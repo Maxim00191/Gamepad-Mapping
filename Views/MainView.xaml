@@ -3,11 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d">
-    <Grid Margin="12">
+             xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections"
+             mc:Ignorable="d"
+             Focusable="True"
+             Background="{DynamicResource AppBackgroundBrush}"
+             Foreground="{DynamicResource AppTextBrush}">
+    <Grid Margin="12"
+          Background="{DynamicResource AppBackgroundBrush}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="420" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="2*" MinWidth="360" />
+            <ColumnDefinition Width="*" MinWidth="280" />
         </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
@@ -15,82 +20,20 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Left: template selection + mappings -->
         <DockPanel Grid.Column="0" Grid.RowSpan="2">
-            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-                <TextBlock Text="Template" FontWeight="Bold" Margin="0,0,0,6" />
-                <ComboBox ItemsSource="{Binding AvailableTemplates}"
-                          DisplayMemberPath="DisplayName"
-                          SelectedItem="{Binding SelectedTemplate}" />
-
-                <Button Content="Reload template"
-                        Command="{Binding ReloadTemplateCommand}"
-                        Margin="0,10,0,0"
-                        HorizontalAlignment="Left" />
-
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <TextBlock Text="Current: " />
-                    <TextBlock Text="{Binding CurrentTemplateDisplayName}" FontWeight="SemiBold" />
-                </StackPanel>
-
-                <TextBlock Text="{Binding MappingCount, StringFormat=Mappings: {0}}"
-                           Margin="0,6,0,0" />
+            <StackPanel DockPanel.Dock="Top">
+                <sections:ProfileTemplatePanelView DataContext="{Binding ProfileTemplatePanel}" />
+                <sections:NewBindingPanelView DataContext="{Binding NewBindingPanel}" />
             </StackPanel>
 
-            <DataGrid ItemsSource="{Binding Mappings}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      CanUserAddRows="False"
-                      HeadersVisibility="Column"
-                      Margin="0"
-                      VerticalAlignment="Stretch">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="From Type" Binding="{Binding From.Type}" Width="110" />
-                    <DataGridTextColumn Header="From Value" Binding="{Binding From.Value}" Width="110" />
-                    <DataGridTextColumn Header="Keyboard Key" Binding="{Binding KeyboardKey}" Width="140" />
-                    <DataGridTextColumn Header="Trigger" Binding="{Binding Trigger}" Width="90" />
-                    <DataGridTextColumn Header="Analog Threshold" Binding="{Binding AnalogThreshold}" Width="160" />
-                </DataGrid.Columns>
-            </DataGrid>
+            <sections:MappingEditorView DataContext="{Binding MappingEditorPanel}" />
         </DockPanel>
 
-        <!-- Right: live gamepad monitor -->
-        <Border Grid.Column="1"
-                Grid.Row="0"
-                Grid.RowSpan="2"
-                BorderBrush="#333"
-                BorderThickness="1"
-                CornerRadius="6"
-                Padding="12"
-                Margin="12,0,0,0">
-            <StackPanel>
-                <TextBlock Text="Live Gamepad Monitor" FontWeight="Bold" Margin="0,0,0,10" />
-
-                <TextBlock Text="{Binding IsGamepadRunning, StringFormat=Reader running: {0}}" />
-
-                <Separator Margin="0,10,0,10" />
-
-                <TextBlock Text="{Binding LastButtonPressed, StringFormat=Pressed: {0}}" />
-                <TextBlock Text="{Binding LastButtonReleased, StringFormat=Released: {0}}" Margin="0,2,0,0" />
-
-                <Separator Margin="0,10,0,10" />
-
-                <TextBlock Text="{Binding LeftThumbX, StringFormat=Left Thumb X: {0:0.00}}" />
-                <TextBlock Text="{Binding LeftThumbY, StringFormat=Left Thumb Y: {0:0.00}}" />
-                <TextBlock Text="{Binding RightThumbX, StringFormat=Right Thumb X: {0:0.00}}" />
-                <TextBlock Text="{Binding RightThumbY, StringFormat=Right Thumb Y: {0:0.00}}" />
-
-                <Separator Margin="0,10,0,10" />
-
-                <TextBlock Text="{Binding LeftTrigger, StringFormat=Left Trigger: {0:0.00}}" />
-                <TextBlock Text="{Binding RightTrigger, StringFormat=Right Trigger: {0:0.00}}" />
-
-                <Button Content="Stop reader"
-                        Command="{Binding StopGamepadCommand}"
-                        Margin="0,16,0,0"
-                        HorizontalAlignment="Left" />
-            </StackPanel>
-        </Border>
+        <sections:GamepadMonitorView Grid.Column="1"
+                                     Grid.Row="0"
+                                     Grid.RowSpan="2"
+                                     Margin="12,0,0,0"
+                                     DataContext="{Binding GamepadMonitorPanel}" />
     </Grid>
 </UserControl>
 

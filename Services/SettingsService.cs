@@ -10,7 +10,7 @@ public class SettingsService
     private static readonly string DefaultSettingsPath = Path.Combine("Config", "default_settings.json");
     private static readonly string LocalSettingsPath = Path.Combine("Config", "local_settings.json");
 
-    public AppSettings LoadSettings()
+    public static AppSettings LoadSettings()
     {
         var root = AppPaths.ResolveContentRoot();
 

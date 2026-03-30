@@ -7,6 +7,9 @@ public class GameProfileTemplate
     [JsonProperty("schemaVersion")]
     public int SchemaVersion { get; set; } = 1;
 
+    [JsonProperty("profileId")]
+    public string ProfileId { get; set; } = string.Empty;
+
     [JsonProperty("gameId")]
     public string GameId { get; set; } = string.Empty;
 

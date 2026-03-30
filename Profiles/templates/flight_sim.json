@@ -8,8 +8,8 @@
     { "from": { "type": "Button", "value": "X" }, "keyboardKey": "R", "trigger": "Pressed" },
     { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "trigger": "Pressed" },
 
-    { "from": { "type": "LeftShoulder", "value": "LeftShoulder" }, "keyboardKey": "Q", "trigger": "Pressed" },
-    { "from": { "type": "RightShoulder", "value": "RightShoulder" }, "keyboardKey": "E", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "Q", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "RightShoulder" }, "keyboardKey": "E", "trigger": "Pressed" },
 
     { "from": { "type": "LeftTrigger", "value": "LeftTrigger" }, "keyboardKey": "W", "trigger": "Pressed", "analogThreshold": 0.6 },
     { "from": { "type": "RightTrigger", "value": "RightTrigger" }, "keyboardKey": "S", "trigger": "Pressed", "analogThreshold": 0.6 },
