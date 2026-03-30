@@ -45,6 +45,9 @@
                                         IsReadOnly="True"
                                         Binding="{Binding KeyboardKey, Mode=OneWay}"
                                         Width="1.3*" />
+                    <DataGridTextColumn Header="Description"
+                                        Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="1.6*" />
                     <DataGridTemplateColumn Header="Trigger" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -100,6 +103,9 @@
                                 Command="{Binding UpdateSelectedBindingCommand}"
                                 Margin="8,0,0,0" />
                     </Grid>
+
+                    <TextBlock Text="Description" Margin="0,8,0,4" />
+                    <TextBox Text="{Binding EditBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
             </Expander>
 

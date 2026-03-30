@@ -32,6 +32,15 @@ public class MappingEntry : ObservableObject
         set => SetProperty(ref _keyboardKey, value);
     }
 
+    private string _description = string.Empty;
+
+    [JsonProperty("description")]
+    public string Description
+    {
+        get => _description;
+        set => SetProperty(ref _description, value);
+    }
+
     private TriggerMoment _trigger = TriggerMoment.Pressed;
 
     [JsonProperty("trigger")]

@@ -4,98 +4,49 @@
   "gameId": "roco-kingdom-world",
   "displayName": "Roco Kingdom World",
   "mappings": [
-    { "from": { "type": "LeftThumbstick", "value": "Up" }, "keyboardKey": "W", "trigger": "Pressed", "analogThreshold": 0.25 },
-    { "from": { "type": "LeftThumbstick", "value": "Down" }, "keyboardKey": "S", "trigger": "Pressed", "analogThreshold": 0.25 },
-    { "from": { "type": "LeftThumbstick", "value": "Left" }, "keyboardKey": "A", "trigger": "Pressed", "analogThreshold": 0.25 },
-    { "from": { "type": "LeftThumbstick", "value": "Right" }, "keyboardKey": "D", "trigger": "Pressed", "analogThreshold": 0.25 },
-    { "from": { "type": "RightThumbstick", "value": "X" }, "keyboardKey": "MouseX", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "RightThumbstick", "value": "Y" }, "keyboardKey": "MouseY", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "LeftThumbstick", "value": "Up" }, "keyboardKey": "W", "description": "Move forward", "trigger": "Pressed", "analogThreshold": 0.25 },
+    { "from": { "type": "LeftThumbstick", "value": "Down" }, "keyboardKey": "S", "description": "Move backward", "trigger": "Pressed", "analogThreshold": 0.25 },
+    { "from": { "type": "LeftThumbstick", "value": "Left" }, "keyboardKey": "A", "description": "Move left", "trigger": "Pressed", "analogThreshold": 0.25 },
+    { "from": { "type": "LeftThumbstick", "value": "Right" }, "keyboardKey": "D", "description": "Move right", "trigger": "Pressed", "analogThreshold": 0.25 },
+    { "from": { "type": "RightThumbstick", "value": "X" }, "keyboardKey": "MouseX", "description": "Rotate view horizontally", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "RightThumbstick", "value": "Y" }, "keyboardKey": "MouseY", "description": "Rotate view vertically", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "description": "Jump", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "X" }, "keyboardKey": "F", "description": "Interact / Pick up", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "description": "Dismount / Cancel", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "E", "description": "Switch to Spirit Ball mode", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder" }, "keyboardKey": "R", "description": "Mount skill / Cast self", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "description": "Sprint / Mount skill hold", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "description": "Sprint / Mount skill hold", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftCtrl", "description": "Toggle walk / run", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "C", "description": "Crouch / Stand", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "X" }, "keyboardKey": "LeftCtrl", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "X" }, "keyboardKey": "LeftCtrl", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "description": "Open / Close menu", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / Unlock cursor", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / Unlock cursor", "trigger": "Released", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "1", "description": "Select spirit / magic 1", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "2", "description": "Select spirit / magic 2", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "3", "description": "Select spirit / magic 3", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "4", "description": "Select spirit / magic 4", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "RightTrigger" }, "keyboardKey": "LeftClick", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightTrigger" }, "keyboardKey": "LeftClick", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + DPadUp" }, "keyboardKey": "5", "description": "Select spirit / magic 5", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + DPadRight" }, "keyboardKey": "6", "description": "Select spirit / magic 6", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "LeftTrigger" }, "keyboardKey": "RightClick", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftTrigger" }, "keyboardKey": "RightClick", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + A" }, "keyboardKey": "Tab", "description": "RolePlay interface", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + B" }, "keyboardKey": "B", "description": "Open bag", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + X" }, "keyboardKey": "M", "description": "Open map", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "J", "description": "Open quest journal", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder + A" }, "keyboardKey": "P", "description": "Open spirit interface", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder + B" }, "keyboardKey": "O", "description": "Open friends list", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder + X" }, "keyboardKey": "K", "description": "Open quick wardrobe", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder + Y" }, "keyboardKey": "I", "description": "Photo mode", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "RightShoulder" }, "keyboardKey": "C", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder" }, "keyboardKey": "C", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "Q", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "Q", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "E", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "E", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "V", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "V", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "I", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "I", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "M", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "M", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftAlt", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftAlt", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "Tab", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "Tab", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "Back + Start" }, "keyboardKey": "Enter", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Back + Start" }, "keyboardKey": "Enter", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadUp" }, "keyboardKey": "F1", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadUp" }, "keyboardKey": "F1", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadRight" }, "keyboardKey": "F2", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadRight" }, "keyboardKey": "F2", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadDown" }, "keyboardKey": "F3", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadDown" }, "keyboardKey": "F3", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadLeft" }, "keyboardKey": "F4", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadLeft" }, "keyboardKey": "F4", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "F5", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "F5", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + X" }, "keyboardKey": "1", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + X" }, "keyboardKey": "1", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + Y" }, "keyboardKey": "2", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + Y" }, "keyboardKey": "2", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + B" }, "keyboardKey": "3", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + B" }, "keyboardKey": "3", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + A" }, "keyboardKey": "4", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + A" }, "keyboardKey": "4", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + DPadLeft" }, "keyboardKey": "5", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + DPadLeft" }, "keyboardKey": "5", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + DPadRight" }, "keyboardKey": "6", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + DPadRight" }, "keyboardKey": "6", "trigger": "Released", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "RightShoulder + Start" }, "keyboardKey": "Tilde", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "RightShoulder + Start" }, "keyboardKey": "Tilde", "trigger": "Released", "analogThreshold": null }
+    { "from": { "type": "Button", "value": "Start + DPadUp" }, "keyboardKey": "U", "description": "Visitor management", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start + DPadRight" }, "keyboardKey": "V", "description": "View quest details", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start + DPadDown" }, "keyboardKey": "G", "description": "Check new messages", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start + DPadLeft" }, "keyboardKey": "Enter", "description": "Open bubble chat", "trigger": "Pressed", "analogThreshold": null }
   ]
 }

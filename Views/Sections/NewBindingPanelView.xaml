@@ -34,6 +34,9 @@
                         Margin="8,0,0,0" />
             </Grid>
 
+            <TextBlock Text="Description (optional)" Margin="0,8,0,4" />
+            <TextBox Text="{Binding NewBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
             <Button Content="Create binding"
                     Command="{Binding CreateKeyBindingCommand}"
                     Margin="0,12,0,0"

@@ -45,6 +45,9 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private string editBindingKeyboardKey = string.Empty;
 
+    [ObservableProperty]
+    private string editBindingDescription = string.Empty;
+
     public string KeyboardKeyCapturePrompt => _mainViewModel.KeyboardCaptureService.KeyboardKeyCapturePrompt;
 
     private ICommand? _recordKeyboardKeyCommand;
@@ -75,6 +78,7 @@ public partial class MappingEditorViewModel : ObservableObject
 
         EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
         EditBindingKeyboardKey = value?.KeyboardKey ?? string.Empty;
+        EditBindingDescription = value?.Description ?? string.Empty;
     }
 
     private void RecordKeyboardKey()
@@ -116,6 +120,7 @@ public partial class MappingEditorViewModel : ObservableObject
         SelectedMapping.From = new GamepadBinding { Type = sourceType, Value = button };
         SelectedMapping.Trigger = EditBindingTrigger;
         SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
+        SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
         SelectedMapping.AnalogThreshold = null;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -127,6 +132,7 @@ public partial class MappingEditorViewModel : ObservableObject
             From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
             KeyboardKey = "A",
             Trigger = TriggerMoment.Tap,
+            Description = string.Empty,
             AnalogThreshold = null
         };
 

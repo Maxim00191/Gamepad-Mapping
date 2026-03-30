@@ -37,6 +37,9 @@ public partial class NewBindingPanelViewModel : ObservableObject
     [ObservableProperty]
     private string newBindingKeyboardKey = string.Empty;
 
+    [ObservableProperty]
+    private string newBindingDescription = string.Empty;
+
     private ICommand? _recordNewBindingKeyCommand;
     public ICommand RecordNewBindingKeyCommand => _recordNewBindingKeyCommand ??= new RelayCommand(RecordNewBindingKey);
 
@@ -67,6 +70,7 @@ public partial class NewBindingPanelViewModel : ObservableObject
             From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button },
             KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString(),
             Trigger = NewBindingTrigger,
+            Description = (NewBindingDescription ?? string.Empty).Trim(),
             AnalogThreshold = null
         };
 
