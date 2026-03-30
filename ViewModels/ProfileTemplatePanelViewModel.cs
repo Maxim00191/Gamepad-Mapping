@@ -1,19 +1,31 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public class ProfileTemplatePanelViewModel : ObservableObject
+public partial class ProfileTemplatePanelViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
+    private readonly IProfileService _profileService;
 
     public ProfileTemplatePanelViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
+        _profileService = _mainViewModel.GetProfileService();
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
     }
+
+    public event EventHandler? ConfigurationChanged;
 
     public ObservableCollection<TemplateOption> AvailableTemplates => _mainViewModel.AvailableTemplates;
 
@@ -31,25 +43,97 @@ public class ProfileTemplatePanelViewModel : ObservableObject
 
     public int MappingCount => _mainViewModel.MappingCount;
 
-    public string NewProfileGameId
+    [ObservableProperty]
+    private string newProfileGameId = string.Empty;
+
+    [ObservableProperty]
+    private string newProfileDisplayName = string.Empty;
+
+    private ICommand? _saveProfileCommand;
+    public ICommand SaveProfileCommand => _saveProfileCommand ??= new RelayCommand(SaveProfile);
+
+    private ICommand? _deleteSelectedProfileCommand;
+    public ICommand DeleteSelectedProfileCommand => _deleteSelectedProfileCommand ??= new RelayCommand(DeleteSelectedProfile);
+
+    private ICommand? _createProfileCommand;
+    public ICommand CreateProfileCommand => _createProfileCommand ??= new RelayCommand(CreateProfile);
+
+    private ICommand? _reloadTemplateCommand;
+    public ICommand ReloadTemplateCommand => _reloadTemplateCommand ??= new RelayCommand(ReloadTemplate);
+
+    private void SaveProfile()
     {
-        get => _mainViewModel.NewProfileGameId;
-        set => _mainViewModel.NewProfileGameId = value;
+        if (SelectedTemplate is null)
+            return;
+
+        var template = new GameProfileTemplate
+        {
+            SchemaVersion = 1,
+            ProfileId = SelectedTemplate.ProfileId,
+            GameId = SelectedTemplate.GameId,
+            DisplayName = CurrentTemplateDisplayName,
+            Mappings = _mainViewModel.Mappings.ToList()
+        };
+
+        _profileService.SaveTemplate(template);
+        _mainViewModel.RefreshTemplates(template.ProfileId);
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public string NewProfileDisplayName
+    private void CreateProfile()
     {
-        get => _mainViewModel.NewProfileDisplayName;
-        set => _mainViewModel.NewProfileDisplayName = value;
+        var gameId = ProfileService.EnsureValidGameId((NewProfileGameId ?? string.Empty).Trim());
+        var displayName = (NewProfileDisplayName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = gameId;
+
+        var profileId = _profileService.CreateUniqueProfileId(gameId, displayName);
+        var template = new GameProfileTemplate
+        {
+            SchemaVersion = 1,
+            ProfileId = profileId,
+            GameId = gameId,
+            DisplayName = displayName,
+            Mappings = new List<MappingEntry>()
+        };
+
+        _profileService.SaveTemplate(template, allowOverwrite: false);
+        _mainViewModel.RefreshTemplates(profileId);
+        NewProfileGameId = string.Empty;
+        NewProfileDisplayName = string.Empty;
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public ICommand SaveProfileCommand => _mainViewModel.SaveProfileCommand;
+    private void DeleteSelectedProfile()
+    {
+        if (SelectedTemplate is null)
+            return;
 
-    public ICommand DeleteSelectedProfileCommand => _mainViewModel.DeleteSelectedProfileCommand;
+        if (string.Equals(SelectedTemplate.ProfileId, _profileService.DefaultGameId, StringComparison.OrdinalIgnoreCase))
+            return;
 
-    public ICommand CreateProfileCommand => _mainViewModel.CreateProfileCommand;
+        var ok = MessageBox.Show(
+            $"Delete profile '{SelectedTemplate.DisplayName}' ({SelectedTemplate.GameId})?",
+            "Confirm delete",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
 
-    public ICommand ReloadTemplateCommand => _mainViewModel.ReloadTemplateCommand;
+        if (ok != MessageBoxResult.Yes)
+            return;
+
+        _profileService.DeleteTemplate(SelectedTemplate.ProfileId);
+        _mainViewModel.RefreshTemplates();
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ReloadTemplate()
+    {
+        if (SelectedTemplate is null)
+            return;
+
+        _mainViewModel.ReloadSelectedTemplate();
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -66,12 +150,6 @@ public class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.MappingCount):
                 OnPropertyChanged(nameof(MappingCount));
-                break;
-            case nameof(MainViewModel.NewProfileGameId):
-                OnPropertyChanged(nameof(NewProfileGameId));
-                break;
-            case nameof(MainViewModel.NewProfileDisplayName):
-                OnPropertyChanged(nameof(NewProfileDisplayName));
                 break;
         }
     }

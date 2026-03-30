@@ -1,14 +1,16 @@
 using System.Text;
 using System.IO;
+using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Utils;
 using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Services;
 
-public class SettingsService
+public class SettingsService : ISettingsService
 {
-    private static readonly string DefaultSettingsPath = Path.Combine("Config", "default_settings.json");
-    private static readonly string LocalSettingsPath = Path.Combine("Config", "local_settings.json");
+    private static readonly string DefaultSettingsPath = Path.Combine("Assets", "Config", "default_settings.json");
+    private static readonly string LocalSettingsPath = Path.Combine("Assets", "Config", "local_settings.json");
 
     public static AppSettings LoadSettings()
     {
@@ -33,5 +35,7 @@ public class SettingsService
         var settings = JsonConvert.DeserializeObject<AppSettings>(json);
         return settings ?? new AppSettings();
     }
+
+    AppSettings ISettingsService.LoadSettings() => LoadSettings();
 }
 

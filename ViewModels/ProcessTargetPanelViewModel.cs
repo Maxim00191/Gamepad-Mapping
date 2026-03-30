@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -28,6 +29,8 @@ public class ProcessTargetPanelViewModel : ObservableObject
 
     public string TargetStatusText => _mainViewModel.TargetStatusText;
 
+    public AppTargetingState TargetState => _mainViewModel.TargetState;
+
     public ICommand RefreshProcessesCommand => _mainViewModel.RefreshProcessesCommand;
 
     public ICommand ClearTargetProcessCommand => _mainViewModel.ClearTargetProcessCommand;
@@ -47,6 +50,9 @@ public class ProcessTargetPanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.TargetStatusText):
                 OnPropertyChanged(nameof(TargetStatusText));
+                break;
+            case nameof(MainViewModel.TargetState):
+                OnPropertyChanged(nameof(TargetState));
                 break;
         }
     }

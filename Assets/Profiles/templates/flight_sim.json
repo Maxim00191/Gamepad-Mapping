@@ -17,4 +17,3 @@
     { "from": { "type": "LeftThumbstick", "value": "LeftThumbstick" }, "keyboardKey": "WASD", "trigger": "Pressed", "analogThreshold": 0.2 }
   ]
 }
-

@@ -485,13 +485,13 @@ $RECYCLE.BIN/
 
 
 # 忽略本地用户生成的映射配置
-Profiles/user_*.json
-Config/local_settings.json
+Assets/Profiles/user_*.json
+Assets/Config/local_settings.json
 
 # 如果你输出日志文件调试，忽略日志
 *.log
 Logs/
 
 .cursorrules
-PrintFileStructure.py
 .cursor-tree.txt
+Scripts-Tests/

@@ -1,29 +1,30 @@
 {
-    // 使用 IntelliSense 了解相关属性。 
-    // 悬停以查看现有属性的描述。
-    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "WPF 调试 (GamepadMapperGUI)",
+            "name": "WPF Debug (Gamepad Mapping)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/bin/Debug/net9.0-windows/Gamepad Mapping.dll",
-            "args": [
-                 "-Command",
-                 "Start-Process -Verb RunAs -FilePath \"${workspaceFolder}/bin/Debug/net9.0-windows/Gamepad Mapping.dll\" -WindowStyle Hidden -Wait"
-                // "run",
-                // "--project",
-                // "${workspaceFolder}/Gamepad Mapping.csproj",
-                // "-c",
-                // "Debug",
-                // "--no-build"
-            ],
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        },
+        {
+            "name": "WPF Debug (Gamepad Mapping, Elevated)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net9.0-windows/Gamepad Mapping.dll",
+            "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "internalConsole"
         }
-        
     ]
 }

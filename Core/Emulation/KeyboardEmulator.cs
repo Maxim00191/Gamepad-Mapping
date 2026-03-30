@@ -5,10 +5,11 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Input;
 using System.Windows.Interop;
+using GamepadMapperGUI.Interfaces.Core;
 
 namespace GamepadMapperGUI.Core
 {
-    public sealed class KeyboardEmulator
+    public sealed class KeyboardEmulator : IKeyboardEmulator
     {
         private readonly object _sendLock = new();
         private const int DefaultTapHoldMs = 30;
@@ -229,4 +230,3 @@ namespace GamepadMapperGUI.Core
         }
     }
 }
-

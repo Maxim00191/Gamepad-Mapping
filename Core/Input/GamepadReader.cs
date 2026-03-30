@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Numerics;
+using GamepadMapperGUI.Interfaces.Core;
 using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core
 {
-    public class GamepadReader
+    public class GamepadReader : IGamepadReader
     {
         private bool _isRunning;
         private int _pollingRateMs = 10;

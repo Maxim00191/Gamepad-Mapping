@@ -52,4 +52,3 @@ public class MappingEntry : ObservableObject
         set => SetProperty(ref _analogThreshold, value);
     }
 }
-

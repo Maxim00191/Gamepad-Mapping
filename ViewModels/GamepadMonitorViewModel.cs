@@ -1,80 +1,47 @@
-using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public class GamepadMonitorViewModel : ObservableObject
+public partial class GamepadMonitorViewModel : ObservableObject
 {
-    private readonly MainViewModel _mainViewModel;
-
-    public GamepadMonitorViewModel(MainViewModel mainViewModel)
+    public GamepadMonitorViewModel(ICommand stopGamepadCommand)
     {
-        _mainViewModel = mainViewModel;
-        _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
+        StopGamepadCommand = stopGamepadCommand;
     }
 
-    public bool IsGamepadRunning => _mainViewModel.IsGamepadRunning;
+    [ObservableProperty]
+    private bool isGamepadRunning;
 
-    public string LastButtonPressed => _mainViewModel.LastButtonPressed;
+    [ObservableProperty]
+    private string lastButtonPressed = string.Empty;
 
-    public string LastButtonReleased => _mainViewModel.LastButtonReleased;
+    [ObservableProperty]
+    private string lastButtonReleased = string.Empty;
 
-    public string LastMappedOutput => _mainViewModel.LastMappedOutput;
+    [ObservableProperty]
+    private string lastMappedOutput = "None";
 
-    public string LastMappingStatus => _mainViewModel.LastMappingStatus;
+    [ObservableProperty]
+    private string lastMappingStatus = "Waiting for gamepad input";
 
-    public float LeftThumbX => _mainViewModel.LeftThumbX;
+    [ObservableProperty]
+    private float leftThumbX;
 
-    public float LeftThumbY => _mainViewModel.LeftThumbY;
+    [ObservableProperty]
+    private float leftThumbY;
 
-    public float RightThumbX => _mainViewModel.RightThumbX;
+    [ObservableProperty]
+    private float rightThumbX;
 
-    public float RightThumbY => _mainViewModel.RightThumbY;
+    [ObservableProperty]
+    private float rightThumbY;
 
-    public float LeftTrigger => _mainViewModel.LeftTrigger;
+    [ObservableProperty]
+    private float leftTrigger;
 
-    public float RightTrigger => _mainViewModel.RightTrigger;
+    [ObservableProperty]
+    private float rightTrigger;
 
-    public ICommand StopGamepadCommand => _mainViewModel.StopGamepadCommand;
-
-    private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        switch (e.PropertyName)
-        {
-            case nameof(MainViewModel.IsGamepadRunning):
-                OnPropertyChanged(nameof(IsGamepadRunning));
-                break;
-            case nameof(MainViewModel.LastButtonPressed):
-                OnPropertyChanged(nameof(LastButtonPressed));
-                break;
-            case nameof(MainViewModel.LastButtonReleased):
-                OnPropertyChanged(nameof(LastButtonReleased));
-                break;
-            case nameof(MainViewModel.LastMappedOutput):
-                OnPropertyChanged(nameof(LastMappedOutput));
-                break;
-            case nameof(MainViewModel.LastMappingStatus):
-                OnPropertyChanged(nameof(LastMappingStatus));
-                break;
-            case nameof(MainViewModel.LeftThumbX):
-                OnPropertyChanged(nameof(LeftThumbX));
-                break;
-            case nameof(MainViewModel.LeftThumbY):
-                OnPropertyChanged(nameof(LeftThumbY));
-                break;
-            case nameof(MainViewModel.RightThumbX):
-                OnPropertyChanged(nameof(RightThumbX));
-                break;
-            case nameof(MainViewModel.RightThumbY):
-                OnPropertyChanged(nameof(RightThumbY));
-                break;
-            case nameof(MainViewModel.LeftTrigger):
-                OnPropertyChanged(nameof(LeftTrigger));
-                break;
-            case nameof(MainViewModel.RightTrigger):
-                OnPropertyChanged(nameof(RightTrigger));
-                break;
-        }
-    }
+    public ICommand StopGamepadCommand { get; }
 }

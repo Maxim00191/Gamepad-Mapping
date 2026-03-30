@@ -4,11 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Services;
 
-public sealed class ProcessTargetService
+public sealed class ProcessTargetService : IProcessTargetService
 {
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint TokenQuery = 0x0008;

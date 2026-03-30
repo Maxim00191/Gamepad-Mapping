@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace GamepadMapperGUI.Services;
+namespace GamepadMapperGUI.Utils;
 
 public static class AppPaths
 {
@@ -11,7 +11,7 @@ public static class AppPaths
     {
         // In dev, current directory is often the project root.
         // In debug/release builds, BaseDirectory points to bin/<tfm>/... so we need to walk up.
-        var markerFile = Path.Combine("Config", "default_settings.json");
+        var markerFile = Path.Combine("Assets", "Config", "default_settings.json");
 
         var candidates = new List<string>();
 

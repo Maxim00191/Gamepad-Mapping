@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace Gamepad_Mapping.UI;
+namespace Gamepad_Mapping.Behaviors;
 
 public static class ComboBoxMouseWheelBehavior
 {

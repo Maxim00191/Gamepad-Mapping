@@ -8,9 +8,8 @@ public class AppSettings
     public int SchemaVersion { get; set; } = 1;
 
     [JsonProperty("templatesDirectory")]
-    public string TemplatesDirectory { get; set; } = "Profiles/templates";
+    public string TemplatesDirectory { get; set; } = "Assets/Profiles/templates";
 
     [JsonProperty("defaultGameId")]
     public string DefaultGameId { get; set; } = "default";
 }
-

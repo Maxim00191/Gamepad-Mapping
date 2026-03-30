@@ -1,9 +1,10 @@
 using System;
 using System.Runtime.InteropServices;
+using GamepadMapperGUI.Interfaces.Core;
 
 namespace GamepadMapperGUI.Core;
 
-public sealed class MouseEmulator
+public sealed class MouseEmulator : IMouseEmulator
 {
     private const uint InputMouse = 0;
     private const uint MouseeventfLeftdown = 0x0002;

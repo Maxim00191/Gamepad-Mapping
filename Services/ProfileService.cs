@@ -1,26 +1,32 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Utils;
 using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Services;
 
-public partial class ProfileService
+public partial class ProfileService : IProfileService
 {
     private static readonly Regex ValidIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", RegexOptions.Compiled);
-    private readonly SettingsService _settingsService;
+    private readonly ISettingsService _settingsService;
     private readonly AppSettings _settings;
 
-    public ProfileService()
+    public ProfileService(ISettingsService? settingsService = null)
     {
-        _settingsService = new SettingsService();
-        _settings = SettingsService.LoadSettings();
+        _settingsService = settingsService ?? new SettingsService();
+        _settings = _settingsService.LoadSettings();
     }
 
     public string DefaultGameId => _settings.DefaultGameId;
+    public ObservableCollection<TemplateOption> AvailableTemplates { get; } = [];
+    public event EventHandler? ProfilesLoaded;
 
     public string LoadTemplateDirectory()
     {
@@ -51,6 +57,61 @@ public partial class ProfileService
     }
 
     public GameProfileTemplate LoadDefaultTemplate() => LoadTemplate(DefaultGameId);
+
+    public TemplateOption? ReloadTemplates(string? preferredProfileId = null)
+    {
+        AvailableTemplates.Clear();
+        var templatesDir = LoadTemplateDirectory();
+        if (!Directory.Exists(templatesDir))
+        {
+            ProfilesLoaded?.Invoke(this, EventArgs.Empty);
+            return null;
+        }
+
+        var jsonFiles = Directory.GetFiles(templatesDir, "*.json", SearchOption.TopDirectoryOnly);
+        var options = new List<TemplateOption>();
+        foreach (var file in jsonFiles)
+        {
+            var profileId = Path.GetFileNameWithoutExtension(file);
+            try
+            {
+                var template = LoadTemplate(profileId);
+                options.Add(new TemplateOption
+                {
+                    ProfileId = profileId,
+                    GameId = template.GameId,
+                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName
+                });
+            }
+            catch
+            {
+                // Ignore invalid templates while loading the list.
+            }
+        }
+
+        foreach (var option in options.OrderBy(o => o.DisplayName, StringComparer.OrdinalIgnoreCase))
+            AvailableTemplates.Add(option);
+
+        ProfilesLoaded?.Invoke(this, EventArgs.Empty);
+        return SelectTemplate(preferredProfileId);
+    }
+
+    public TemplateOption? SelectTemplate(string? preferredProfileId = null)
+    {
+        return
+            (preferredProfileId is not null ? AvailableTemplates.FirstOrDefault(t => t.ProfileId == preferredProfileId) : null) ??
+            AvailableTemplates.FirstOrDefault(t => t.ProfileId == DefaultGameId) ??
+            AvailableTemplates.FirstOrDefault(t => t.GameId == DefaultGameId) ??
+            AvailableTemplates.FirstOrDefault();
+    }
+
+    public GameProfileTemplate? LoadSelectedTemplate(TemplateOption? selectedTemplate)
+    {
+        if (selectedTemplate is null)
+            return null;
+
+        return LoadTemplate(selectedTemplate.ProfileId);
+    }
 
     public bool TemplateExists(string profileId)
     {

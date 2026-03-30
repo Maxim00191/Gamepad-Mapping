@@ -1,12 +1,16 @@
 using System.Collections.ObjectModel;
+using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public class NewBindingPanelViewModel : ObservableObject
+public partial class NewBindingPanelViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
 
@@ -14,33 +18,62 @@ public class NewBindingPanelViewModel : ObservableObject
     {
         _mainViewModel = mainViewModel;
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
+        NewBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        NewBindingTrigger = TriggerMoment.Tap;
     }
+
+    public event EventHandler? ConfigurationChanged;
 
     public ObservableCollection<string> AvailableGamepadButtons => _mainViewModel.AvailableGamepadButtons;
 
     public ObservableCollection<TriggerMoment> AvailableTriggerModes => _mainViewModel.AvailableTriggerModes;
 
-    public string NewBindingFromButton
+    [ObservableProperty]
+    private string newBindingFromButton = "A";
+
+    [ObservableProperty]
+    private TriggerMoment newBindingTrigger = TriggerMoment.Tap;
+
+    [ObservableProperty]
+    private string newBindingKeyboardKey = string.Empty;
+
+    private ICommand? _recordNewBindingKeyCommand;
+    public ICommand RecordNewBindingKeyCommand => _recordNewBindingKeyCommand ??= new RelayCommand(RecordNewBindingKey);
+
+    private ICommand? _createKeyBindingCommand;
+    public ICommand CreateKeyBindingCommand => _createKeyBindingCommand ??= new RelayCommand(CreateKeyBinding);
+
+    private void RecordNewBindingKey()
     {
-        get => _mainViewModel.NewBindingFromButton;
-        set => _mainViewModel.NewBindingFromButton = value;
+        _mainViewModel.KeyboardCaptureService.BeginCapture(
+            "Press a key for the new key binding (Esc to cancel).",
+            key => NewBindingKeyboardKey = key.ToString());
     }
 
-    public TriggerMoment NewBindingTrigger
+    private void CreateKeyBinding()
     {
-        get => _mainViewModel.NewBindingTrigger;
-        set => _mainViewModel.NewBindingTrigger = value;
+        var button = (NewBindingFromButton ?? string.Empty).Trim();
+        var keyToken = (NewBindingKeyboardKey ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(button))
+            return;
+
+        var key = MappingEngine.ParseKey(keyToken);
+        var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
+        if (key == Key.None && !isMouseLookOutput)
+            return;
+
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button },
+            KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString(),
+            Trigger = NewBindingTrigger,
+            AnalogThreshold = null
+        };
+
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
-
-    public string NewBindingKeyboardKey
-    {
-        get => _mainViewModel.NewBindingKeyboardKey;
-        set => _mainViewModel.NewBindingKeyboardKey = value;
-    }
-
-    public ICommand RecordNewBindingKeyCommand => _mainViewModel.RecordNewBindingKeyCommand;
-
-    public ICommand CreateKeyBindingCommand => _mainViewModel.CreateKeyBindingCommand;
 
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -51,15 +84,6 @@ public class NewBindingPanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.AvailableTriggerModes):
                 OnPropertyChanged(nameof(AvailableTriggerModes));
-                break;
-            case nameof(MainViewModel.NewBindingFromButton):
-                OnPropertyChanged(nameof(NewBindingFromButton));
-                break;
-            case nameof(MainViewModel.NewBindingTrigger):
-                OnPropertyChanged(nameof(NewBindingTrigger));
-                break;
-            case nameof(MainViewModel.NewBindingKeyboardKey):
-                OnPropertyChanged(nameof(NewBindingKeyboardKey));
                 break;
         }
     }

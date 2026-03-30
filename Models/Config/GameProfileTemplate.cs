@@ -19,4 +19,3 @@ public class GameProfileTemplate
     [JsonProperty("mappings")]
     public List<MappingEntry> Mappings { get; set; } = new();
 }
-

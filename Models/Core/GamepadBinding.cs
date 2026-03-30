@@ -36,4 +36,3 @@ public class GamepadBinding : ObservableObject
         set => SetProperty(ref _value, value);
     }
 }
-
