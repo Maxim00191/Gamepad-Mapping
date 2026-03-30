@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "gameId": "default",
+  "displayName": "Default Template",
+  "mappings": [
+    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Spacebar", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "LeftShift", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "X" }, "keyboardKey": "Enter", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "Escape", "trigger": "Pressed" },
+
+    { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "W", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "S", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "A", "trigger": "Pressed" },
+    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "D", "trigger": "Pressed" },
+
+    { "from": { "type": "LeftTrigger", "value": "LeftTrigger" }, "keyboardKey": "W", "trigger": "Pressed", "analogThreshold": 0.5 }
+  ]
+}
+

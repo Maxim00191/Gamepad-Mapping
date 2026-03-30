@@ -492,5 +492,6 @@ Config/local_settings.json
 *.log
 Logs/
 
-.vscode
 .cursorrules
+PrintFileStructure.py
+.cursor-tree.txt
