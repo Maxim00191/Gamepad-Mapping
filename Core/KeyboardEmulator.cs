@@ -11,13 +11,22 @@ namespace GamepadMapperGUI.Core
     public sealed class KeyboardEmulator
     {
         private readonly object _sendLock = new();
+        private const int DefaultTapHoldMs = 30;
+        private const int MinTapHoldMs = 20;
+        private const int MaxTapHoldMs = 50;
 
         private const uint INPUT_KEYBOARD = 1;
         private const uint KEYEVENTF_KEYUP = 0x0002;
         private const uint KEYEVENTF_UNICODE = 0x0004;
+        private const uint KEYEVENTF_SCANCODE = 0x0008;
+        private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+        private const uint MAPVK_VK_TO_VSC = 0;
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+        [DllImport("user32.dll")]
+        private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct INPUT
@@ -29,7 +38,20 @@ namespace GamepadMapperGUI.Core
         [StructLayout(LayoutKind.Explicit)]
         private struct InputUnion
         {
+            [FieldOffset(0)] public MOUSEINPUT mi;
             [FieldOffset(0)] public KEYBDINPUT ki;
+            [FieldOffset(0)] public HARDWAREINPUT hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -42,6 +64,14 @@ namespace GamepadMapperGUI.Core
             public IntPtr dwExtraInfo;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct HARDWAREINPUT
+        {
+            public uint uMsg;
+            public ushort wParamL;
+            public ushort wParamH;
+        }
+
         public void KeyDown(Key key)
         {
             if (key == Key.None)
@@ -51,7 +81,7 @@ namespace GamepadMapperGUI.Core
             if (vk == 0)
                 throw new ArgumentException($"Unsupported key for Win32 virtual-key mapping: {key}", nameof(key));
 
-            SendSingleKeyboardInput(vk, 0, flags: 0);
+            SendKeyboardKey(vk, keyUp: false);
         }
 
         public void KeyUp(Key key)
@@ -63,17 +93,20 @@ namespace GamepadMapperGUI.Core
             if (vk == 0)
                 throw new ArgumentException($"Unsupported key for Win32 virtual-key mapping: {key}", nameof(key));
 
-            SendSingleKeyboardInput(vk, 0, flags: KEYEVENTF_KEYUP);
+            SendKeyboardKey(vk, keyUp: true);
         }
 
-        public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0)
+        public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = DefaultTapHoldMs)
         {
             if (repeatCount < 1)
                 throw new ArgumentOutOfRangeException(nameof(repeatCount), "repeatCount must be >= 1.");
 
+            var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
             for (var i = 0; i < repeatCount; i++)
             {
                 KeyDown(key);
+                // Brief key hold improves detection in engines that sample input state per-frame.
+                Thread.Sleep(effectiveHoldMs);
                 KeyUp(key);
 
                 if (interKeyDelayMs > 0 && i < repeatCount - 1)
@@ -125,6 +158,44 @@ namespace GamepadMapperGUI.Core
             var flags = KEYEVENTF_UNICODE | (keyUp ? KEYEVENTF_KEYUP : 0);
 
             SendSingleKeyboardInput(wVk, wScan, flags);
+        }
+
+        private void SendKeyboardKey(ushort virtualKey, bool keyUp)
+        {
+            var scanCode = (ushort)MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC);
+            if (scanCode == 0)
+            {
+                // Fallback for uncommon keys if scan code translation fails.
+                var vkFlags = keyUp ? KEYEVENTF_KEYUP : 0;
+                SendSingleKeyboardInput(virtualKey, 0, vkFlags);
+                return;
+            }
+
+            var scanFlags = KEYEVENTF_SCANCODE | (keyUp ? KEYEVENTF_KEYUP : 0);
+            if (IsExtendedVirtualKey(virtualKey))
+                scanFlags |= KEYEVENTF_EXTENDEDKEY;
+
+            // MSDN: when KEYEVENTF_SCANCODE is set, wVk should be 0 and wScan carries the hardware code.
+            SendSingleKeyboardInput(0, scanCode, scanFlags);
+        }
+
+        private static bool IsExtendedVirtualKey(ushort virtualKey)
+        {
+            return virtualKey is
+                0x21 or // VK_PRIOR (PageUp)
+                0x22 or // VK_NEXT (PageDown)
+                0x23 or // VK_END
+                0x24 or // VK_HOME
+                0x25 or // VK_LEFT
+                0x26 or // VK_UP
+                0x27 or // VK_RIGHT
+                0x28 or // VK_DOWN
+                0x2D or // VK_INSERT
+                0x2E or // VK_DELETE
+                0x6F or // VK_DIVIDE (numpad /)
+                0x90 or // VK_NUMLOCK
+                0xA3 or // VK_RCONTROL
+                0xA5;   // VK_RMENU (Right Alt)
         }
 
         private void SendSingleKeyboardInput(ushort wVk, ushort wScan, uint flags)

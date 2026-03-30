@@ -1,0 +1,87 @@
+<UserControl x:Class="Gamepad_Mapping.Views.Sections.ProcessTargetPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border BorderBrush="{DynamicResource AppBorderBrush}"
+            Background="{DynamicResource AppSurfaceBrush}"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="Process Target"
+                       FontWeight="Bold"
+                       Margin="0,0,0,8" />
+
+            <TextBlock Grid.Row="1"
+                       Text="{Binding TargetStatusText}"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,8" />
+
+            <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+                <Button Content="Refresh"
+                        Command="{Binding RefreshProcessesCommand}"
+                        Margin="0,0,8,0" />
+                <Button Content="Clear target"
+                        Command="{Binding ClearTargetProcessCommand}" />
+            </WrapPanel>
+
+            <ListBox Grid.Row="3"
+                     ItemsSource="{Binding RecentProcesses}"
+                     SelectedItem="{Binding SelectedTargetProcess, Mode=TwoWay}"
+                     MinHeight="80"
+                     MaxHeight="320"
+                     Background="{DynamicResource AppControlSurfaceBrush}"
+                     BorderBrush="{DynamicResource AppBorderBrush}"
+                     BorderThickness="1"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Vertical" Margin="2">
+                            <TextBlock Text="{Binding ProcessName}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppTextBrush}" />
+                            <TextBlock Text="{Binding MainWindowTitle}"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="{x:Type ListBoxItem}">
+                        <Setter Property="Padding" Value="6,4" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AppSelectionTextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+
+            <TextBlock Grid.Row="4"
+                       Margin="0,6,0,0"
+                       FontSize="11"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                       TextWrapping="Wrap"
+                       Text="Select a process to restrict keyboard input to that window. Keys are only sent when the target is in the foreground." />
+        </Grid>
+    </Border>
+</UserControl>

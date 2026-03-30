@@ -20,6 +20,10 @@ public class GamepadMonitorViewModel : ObservableObject
 
     public string LastButtonReleased => _mainViewModel.LastButtonReleased;
 
+    public string LastMappedOutput => _mainViewModel.LastMappedOutput;
+
+    public string LastMappingStatus => _mainViewModel.LastMappingStatus;
+
     public float LeftThumbX => _mainViewModel.LeftThumbX;
 
     public float LeftThumbY => _mainViewModel.LeftThumbY;
@@ -46,6 +50,12 @@ public class GamepadMonitorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.LastButtonReleased):
                 OnPropertyChanged(nameof(LastButtonReleased));
+                break;
+            case nameof(MainViewModel.LastMappedOutput):
+                OnPropertyChanged(nameof(LastMappedOutput));
+                break;
+            case nameof(MainViewModel.LastMappingStatus):
+                OnPropertyChanged(nameof(LastMappingStatus));
                 break;
             case nameof(MainViewModel.LeftThumbX):
                 OnPropertyChanged(nameof(LeftThumbX));

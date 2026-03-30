@@ -20,20 +20,43 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <DockPanel Grid.Column="0" Grid.RowSpan="2">
-            <StackPanel DockPanel.Dock="Top">
-                <sections:ProfileTemplatePanelView DataContext="{Binding ProfileTemplatePanel}" />
-                <sections:NewBindingPanelView DataContext="{Binding NewBindingPanel}" />
-            </StackPanel>
+        <Grid Grid.Column="0" Grid.RowSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <sections:MappingEditorView DataContext="{Binding MappingEditorPanel}" />
-        </DockPanel>
+            <ScrollViewer Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          MaxHeight="360">
+                <StackPanel>
+                    <sections:ProfileTemplatePanelView DataContext="{Binding ProfileTemplatePanel}" />
+                    <sections:NewBindingPanelView DataContext="{Binding NewBindingPanel}" />
+                </StackPanel>
+            </ScrollViewer>
 
-        <sections:GamepadMonitorView Grid.Column="1"
-                                     Grid.Row="0"
-                                     Grid.RowSpan="2"
-                                     Margin="12,0,0,0"
-                                     DataContext="{Binding GamepadMonitorPanel}" />
+            <sections:MappingEditorView Grid.Row="1"
+                                        Margin="0,12,0,0"
+                                        DataContext="{Binding MappingEditorPanel}" />
+        </Grid>
+
+        <Grid Grid.Column="1"
+              Grid.Row="0"
+              Grid.RowSpan="2"
+              Margin="12,0,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <sections:GamepadMonitorView Grid.Row="0"
+                                         DataContext="{Binding GamepadMonitorPanel}" />
+
+            <sections:ProcessTargetPanelView Grid.Row="1"
+                                             Margin="0,12,0,0"
+                                             DataContext="{Binding ProcessTargetPanel}" />
+        </Grid>
     </Grid>
 </UserControl>
 

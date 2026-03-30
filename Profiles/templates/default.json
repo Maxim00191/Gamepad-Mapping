@@ -1,15 +1,15 @@
-﻿{
+{
   "schemaVersion": 1,
   "profileId": "default",
   "gameId": "default",
-  "displayName": "Default Profile",
+  "displayName": "Classic Third-Person 3D",
   "mappings": [
     {
       "from": {
         "type": "Button",
         "value": "A"
       },
-      "keyboardKey": "Spacebar",
+      "keyboardKey": "Space",
       "trigger": "Pressed",
       "analogThreshold": null
     },
@@ -18,7 +18,7 @@
         "type": "Button",
         "value": "B"
       },
-      "keyboardKey": "LeftShift",
+      "keyboardKey": "LeftCtrl",
       "trigger": "Pressed",
       "analogThreshold": null
     },
@@ -27,7 +27,7 @@
         "type": "Button",
         "value": "X"
       },
-      "keyboardKey": "Enter",
+      "keyboardKey": "R",
       "trigger": "Pressed",
       "analogThreshold": null
     },
@@ -36,8 +36,62 @@
         "type": "Button",
         "value": "Y"
       },
-      "keyboardKey": "Escape",
+      "keyboardKey": "F",
       "trigger": "Pressed",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "LeftShoulder"
+      },
+      "keyboardKey": "RightClick",
+      "trigger": "Pressed",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "RightShoulder"
+      },
+      "keyboardKey": "LeftClick",
+      "trigger": "Pressed",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "LeftThumb"
+      },
+      "keyboardKey": "LeftShift",
+      "trigger": "Pressed",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "RightThumb"
+      },
+      "keyboardKey": "C",
+      "trigger": "Pressed",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Back"
+      },
+      "keyboardKey": "Tab",
+      "trigger": "Tap",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Start"
+      },
+      "keyboardKey": "Escape",
+      "trigger": "Tap",
       "analogThreshold": null
     },
     {
@@ -78,12 +132,57 @@
     },
     {
       "from": {
-        "type": "LeftTrigger",
-        "value": "LeftTrigger"
+        "type": "LeftThumbstick",
+        "value": "Up"
       },
       "keyboardKey": "W",
       "trigger": "Pressed",
-      "analogThreshold": 0.5
+      "analogThreshold": 0.25
+    },
+    {
+      "from": {
+        "type": "LeftThumbstick",
+        "value": "Down"
+      },
+      "keyboardKey": "S",
+      "trigger": "Pressed",
+      "analogThreshold": 0.25
+    },
+    {
+      "from": {
+        "type": "LeftThumbstick",
+        "value": "Left"
+      },
+      "keyboardKey": "A",
+      "trigger": "Pressed",
+      "analogThreshold": 0.25
+    },
+    {
+      "from": {
+        "type": "LeftThumbstick",
+        "value": "Right"
+      },
+      "keyboardKey": "D",
+      "trigger": "Pressed",
+      "analogThreshold": 0.25
+    },
+    {
+      "from": {
+        "type": "RightThumbstick",
+        "value": "X"
+      },
+      "keyboardKey": "MouseX",
+      "trigger": "Pressed",
+      "analogThreshold": null
+    },
+    {
+      "from": {
+        "type": "RightThumbstick",
+        "value": "Y"
+      },
+      "keyboardKey": "MouseY",
+      "trigger": "Pressed",
+      "analogThreshold": null
     }
   ]
 }

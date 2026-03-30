@@ -15,6 +15,8 @@
 
             <TextBlock Text="{Binding LastButtonPressed, StringFormat=Pressed: {0}}" />
             <TextBlock Text="{Binding LastButtonReleased, StringFormat=Released: {0}}" Margin="0,2,0,0" />
+            <TextBlock Text="{Binding LastMappedOutput, StringFormat=Mapped output: {0}}" Margin="0,2,0,0" />
+            <TextBlock Text="{Binding LastMappingStatus, StringFormat=Output status: {0}}" Margin="0,2,0,0" TextWrapping="Wrap" />
 
             <Separator Margin="0,10,0,10" />
 

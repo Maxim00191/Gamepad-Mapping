@@ -11,6 +11,8 @@
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/bin/Debug/net9.0-windows/Gamepad Mapping.dll",
             "args": [
+                 "-Command",
+                 "Start-Process -Verb RunAs -FilePath \"${workspaceFolder}/bin/Debug/net9.0-windows/Gamepad Mapping.dll\" -WindowStyle Hidden -Wait"
                 // "run",
                 // "--project",
                 // "${workspaceFolder}/Gamepad Mapping.csproj",

@@ -9,6 +9,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Force standard resizable window chrome at runtime in case any
+        // theme/style initialization overrides XAML window settings.
+        WindowStyle = WindowStyle.SingleBorderWindow;
+        ResizeMode = ResizeMode.CanResize;
+        SizeToContent = SizeToContent.Manual;
+        WindowState = WindowState.Normal;
         _viewModel = new ViewModels.MainViewModel();
         DataContext = _viewModel;
     }

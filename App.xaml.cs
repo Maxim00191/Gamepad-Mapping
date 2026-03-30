@@ -1,6 +1,9 @@
 using Microsoft.Win32;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
+using GamepadMapperGUI.Services;
 
 namespace Gamepad_Mapping;
 
@@ -14,6 +17,7 @@ public partial class App : Application
         base.OnStartup(e);
         ApplySystemTheme();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        CheckStartupElevationCompatibility();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -48,6 +52,9 @@ public partial class App : Application
             SetBrush("AppAccentHoverBrush", Color.FromRgb(37, 88, 177));
             SetBrush("AppSelectionBrush", Color.FromRgb(225, 235, 255));
             SetBrush("AppSelectionTextBrush", Color.FromRgb(17, 17, 17));
+            SetBrush("AppScrollTrackBrush", Color.FromRgb(229, 229, 229));
+            SetBrush("AppScrollThumbBrush", Color.FromRgb(184, 184, 184));
+            SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(154, 154, 154));
             return;
         }
 
@@ -65,6 +72,9 @@ public partial class App : Application
         SetBrush("AppAccentHoverBrush", Color.FromRgb(104, 157, 255));
         SetBrush("AppSelectionBrush", Color.FromRgb(62, 83, 122));
         SetBrush("AppSelectionTextBrush", Color.FromRgb(245, 247, 250));
+        SetBrush("AppScrollTrackBrush", Color.FromRgb(54, 54, 63));
+        SetBrush("AppScrollThumbBrush", Color.FromRgb(104, 104, 116));
+        SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(132, 132, 146));
     }
 
     private static bool ReadUseLightTheme()
@@ -88,6 +98,49 @@ public partial class App : Application
     {
         // Some XAML-created brushes can be frozen (read-only), so always replace the resource instance.
         Resources[resourceKey] = new SolidColorBrush(color);
+    }
+
+    private static void CheckStartupElevationCompatibility()
+    {
+        var processTargetService = new ProcessTargetService();
+        if (processTargetService.IsCurrentProcessElevated())
+            return;
+
+        var foregroundPid = processTargetService.GetForegroundProcessId();
+        if (foregroundPid <= 0 || !processTargetService.IsProcessElevated(foregroundPid))
+            return;
+
+        var result = MessageBox.Show(
+            "The currently focused target appears to be running as administrator.\n\n" +
+            "To avoid Windows UIPI input blocking, relaunch this tool as administrator?",
+            "Run as administrator",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+        if (result != MessageBoxResult.Yes)
+            return;
+
+        var exePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(exePath))
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = exePath,
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+            Current?.Shutdown();
+        }
+        catch (Win32Exception)
+        {
+            // User cancelled the UAC prompt.
+        }
+        catch
+        {
+            // Best-effort relaunch only.
+        }
     }
 }
 

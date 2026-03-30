@@ -5,9 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:Gamepad_Mapping.Views"
         mc:Ignorable="d"
-        Title="MainWindow"
-        Height="450"
-        Width="800"
+        Title="Gamepad Mapping"
+        Height="820"
+        Width="1320"
+        MinHeight="700"
+        MinWidth="1100"
+        ResizeMode="CanResize"
+        WindowStyle="SingleBorderWindow"
+        SizeToContent="Manual"
         Background="{DynamicResource AppBackgroundBrush}"
         Foreground="{DynamicResource AppTextBrush}">
     <Grid Background="{DynamicResource AppBackgroundBrush}">

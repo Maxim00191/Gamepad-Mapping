@@ -75,7 +75,10 @@ namespace GamepadMapperGUI.Core
 
                         var currentRightThumb = NormalizeThumbstick(currentState.Gamepad.RightThumbX, currentState.Gamepad.RightThumbY);
                         var previousRightThumb = NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY);
-                        if (HasAnalogChanged(previousRightThumb, currentRightThumb, AnalogChangeEpsilon))
+                        // Keep publishing right-stick input while engaged so view-rotation mappings
+                        // can continue producing relative mouse movement even when value is stable.
+                        if (HasAnalogChanged(previousRightThumb, currentRightThumb, AnalogChangeEpsilon) ||
+                            IsAnalogEngaged(currentRightThumb, AnalogChangeEpsilon))
                         {
                             OnRightThumbstickChanged?.Invoke(currentRightThumb);
                         }
@@ -193,5 +196,8 @@ namespace GamepadMapperGUI.Core
 
         private static bool HasAnalogChanged(Vector2 previousValue, Vector2 currentValue, float epsilon)
             => Vector2.DistanceSquared(previousValue, currentValue) > epsilon * epsilon;
+
+        private static bool IsAnalogEngaged(Vector2 value, float epsilon)
+            => value.LengthSquared() > epsilon * epsilon;
     }
 }
