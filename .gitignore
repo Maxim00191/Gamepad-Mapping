@@ -484,10 +484,13 @@ $RECYCLE.BIN/
 *.swp
 
 
-# 忽略本地用户生成的映射配置（保留默认模板即可）
+# 忽略本地用户生成的映射配置
 Profiles/user_*.json
 Config/local_settings.json
 
 # 如果你输出日志文件调试，忽略日志
 *.log
 Logs/
+
+.vscode
+.cursorrules
