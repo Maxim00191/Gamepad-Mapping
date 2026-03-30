@@ -13,33 +13,6 @@ namespace GamepadMapperGUI.Core;
 
 public sealed class MappingEngine : IMappingEngine
 {
-    private const int MinHoldThresholdMs = 150;
-    private const int MaxHoldThresholdMs = 3000;
-    private const int DefaultHoldThresholdMs = 450;
-
-    private static readonly Dictionary<string, string> KeyAliases = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Spacebar"] = nameof(Key.Space),
-        ["Return"] = nameof(Key.Enter),
-        ["Esc"] = nameof(Key.Escape),
-        ["LeftControl"] = nameof(Key.LeftCtrl),
-        ["RightControl"] = nameof(Key.RightCtrl),
-        ["Control"] = nameof(Key.LeftCtrl),
-        ["Ctrl"] = nameof(Key.LeftCtrl),
-        ["Alt"] = nameof(Key.LeftAlt),
-        // WPF Key uses D0–D9; bare digits do not round-trip via KeyConverter / Enum.Parse.
-        ["0"] = nameof(Key.D0),
-        ["1"] = nameof(Key.D1),
-        ["2"] = nameof(Key.D2),
-        ["3"] = nameof(Key.D3),
-        ["4"] = nameof(Key.D4),
-        ["5"] = nameof(Key.D5),
-        ["6"] = nameof(Key.D6),
-        ["7"] = nameof(Key.D7),
-        ["8"] = nameof(Key.D8),
-        ["9"] = nameof(Key.D9)
-    };
-
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
     private readonly Func<bool> _canDispatchOutput;
@@ -48,6 +21,12 @@ public sealed class MappingEngine : IMappingEngine
     private readonly OutputStateTracker _outputStateTracker = new();
     private readonly AnalogProcessor _analogProcessor = new();
     private readonly InputDispatcher _inputDispatcher;
+    private readonly Action<ComboHudContent?>? _setComboHud;
+    private readonly HoldSessionManager _holdSessionManager;
+    private readonly InputFramePipeline _inputFramePipeline;
+    private readonly ButtonEventPipeline _buttonEventPipeline;
+
+    private readonly int _comboHudDelayMs;
 
     private readonly TriggerMoment _buttonPressedTrigger = TriggerMoment.Pressed;
     private readonly TriggerMoment _buttonTapTrigger = TriggerMoment.Tap;
@@ -55,7 +34,10 @@ public sealed class MappingEngine : IMappingEngine
     private IReadOnlyCollection<GamepadButtons> _latestActiveButtons = Array.Empty<GamepadButtons>();
     private float _latestLeftTrigger;
     private float _latestRightTrigger;
-    private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
+    private IReadOnlyList<MappingEntry> _lastButtonMappingsSnapshot = Array.Empty<MappingEntry>();
+    private DispatcherTimer? _comboHudDelayTimer;
+    private bool _comboHudDelayConfirmed;
+    private string? _pendingComboHudSignature;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
@@ -63,68 +45,197 @@ public sealed class MappingEngine : IMappingEngine
         Func<bool> canDispatchOutput,
         Action<Action> runOnUi,
         Action<string> setMappedOutput,
-        Action<string> setMappingStatus)
+        Action<string> setMappingStatus,
+        Action<ComboHudContent?>? setComboHud = null,
+        int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs)
     {
+        _comboHudDelayMs = modifierGraceMs;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
+        _setComboHud = setComboHud;
         _inputDispatcher = new InputDispatcher(DispatchMappedOutput, runOnUi, setMappedOutput, setMappingStatus);
+        _holdSessionManager = new HoldSessionManager(
+            _canDispatchOutput,
+            _setMappedOutput,
+            _setMappingStatus,
+            QueueOutputDispatch,
+            SyncComboHud,
+            modifierGraceMs);
+
+        _inputFramePipeline = new InputFramePipeline(
+            middlewares: new IInputFrameMiddleware[] { new InputFrameTransitionMiddleware() },
+            terminal: ProcessInputFrameTerminal);
+
+        _buttonEventPipeline = new ButtonEventPipeline(
+            middlewares:
+            [
+                new ButtonEventPreparationMiddleware(
+                    setLatestInputState: (activeButtons, leftTrigger, rightTrigger) =>
+                    {
+                        _latestLeftTrigger = leftTrigger;
+                        _latestRightTrigger = rightTrigger;
+                        _holdSessionManager.UpdateLatestInputState(activeButtons, leftTrigger, rightTrigger);
+                    },
+                    registerButtonPressed: _holdSessionManager.RegisterButtonPressed,
+                    registerButtonReleased: _holdSessionManager.RegisterButtonReleased,
+                    cancelSupersededHoldSessions: _holdSessionManager.CancelHoldSessionsSupersededByMoreSpecificChord,
+                    handleHoldRelease: _holdSessionManager.HandleHoldBindingRelease,
+                    forceReleaseHeldOutputsForButton: ForceReleaseHeldOutputsForButton,
+                    collectReleasedOutputsHandledByMappings: CollectReleasedOutputsHandledByMappings,
+                    setLatestActiveButtons: activeButtons => _latestActiveButtons = activeButtons,
+                    canDispatchOutput: _canDispatchOutput,
+                    setMappingStatus: _setMappingStatus)
+            ],
+            terminal: ProcessButtonEventTerminal);
     }
 
-    public TriggerMoment ButtonPressedTrigger => _buttonPressedTrigger;
-    public TriggerMoment ButtonTapTrigger => _buttonTapTrigger;
+    public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    {
+        _lastButtonMappingsSnapshot = mappingsSnapshot;
 
-    public void HandleButtonMappings(
+        var context = new InputFrameContext
+        {
+            Frame = frame
+        };
+
+        _inputFramePipeline.Invoke(context);
+        return new InputFrameProcessingResult(context.PressedButtons, context.ReleasedButtons);
+    }
+
+    private void ProcessInputFrameTerminal(InputFrameContext context)
+    {
+        var frame = context.Frame;
+
+        _latestLeftTrigger = frame.LeftTrigger;
+        _latestRightTrigger = frame.RightTrigger;
+
+        var activeButtonsNow = ToActiveButtonsSet(frame.Buttons);
+        _latestActiveButtons = activeButtonsNow;
+        _holdSessionManager.UpdateLatestInputState(_latestActiveButtons, frame.LeftTrigger, frame.RightTrigger);
+
+        // The first frame is treated as an initialization frame; button transitions are ignored.
+        if (!context.IsFirstFrame)
+        {
+            var workingActiveButtons = ToActiveButtonsSet(context.PreviousButtonsMask);
+
+            foreach (var pressedButton in context.PressedButtons)
+            {
+                workingActiveButtons.Add(pressedButton);
+
+                // Keep the legacy ordering: Pressed mappings first, then Tap mappings.
+                HandleButtonMappingsInternal(
+                    pressedButton,
+                    _buttonPressedTrigger,
+                    workingActiveButtons,
+                    _lastButtonMappingsSnapshot,
+                    frame.LeftTrigger,
+                    frame.RightTrigger);
+
+                HandleButtonMappingsInternal(
+                    pressedButton,
+                    _buttonTapTrigger,
+                    workingActiveButtons,
+                    _lastButtonMappingsSnapshot,
+                    frame.LeftTrigger,
+                    frame.RightTrigger);
+            }
+
+            foreach (var releasedButton in context.ReleasedButtons)
+            {
+                HandleButtonMappingsInternal(
+                    releasedButton,
+                    TriggerMoment.Released,
+                    workingActiveButtons,
+                    _lastButtonMappingsSnapshot,
+                    frame.LeftTrigger,
+                    frame.RightTrigger);
+
+                workingActiveButtons.Remove(releasedButton);
+            }
+        }
+
+        // Continuous analog evaluation (for output transitions + relative mouse look).
+        HandleThumbstickMappingsInternal(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot);
+        HandleThumbstickMappingsInternal(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot);
+        HandleTriggerMappingsInternal(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot);
+        HandleTriggerMappingsInternal(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot);
+
+        SyncComboHud();
+    }
+
+    private static HashSet<GamepadButtons> ToActiveButtonsSet(GamepadButtons buttons)
+    {
+        var result = new HashSet<GamepadButtons>();
+        var mask = (uint)buttons;
+        if (mask == 0) return result;
+
+        for (var bitIndex = 0; bitIndex < 32; bitIndex++)
+        {
+            var bit = 1u << bitIndex;
+            if ((mask & bit) == 0) continue;
+
+            var flag = (GamepadButtons)bit;
+            if (Enum.IsDefined(typeof(GamepadButtons), flag))
+                result.Add(flag);
+        }
+
+        return result;
+    }
+
+    private void HandleButtonMappingsInternal(
         GamepadButtons buttons,
         TriggerMoment trigger,
         IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyCollection<MappingEntry> mappings,
+        IReadOnlyList<MappingEntry> mappingsSnapshot,
         float leftTriggerValue,
         float rightTriggerValue)
     {
-        var buttonName = buttons.ToString();
-        var snapshot = mappings.ToList();
-        _latestActiveButtons = activeButtons;
-        _latestLeftTrigger = leftTriggerValue;
-        _latestRightTrigger = rightTriggerValue;
-
-        if (trigger == TriggerMoment.Pressed)
-            CancelHoldSessionsSupersededByMoreSpecificChord(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue);
-
-        var releasedOutputsHandledByMappings = trigger == TriggerMoment.Released
-            ? CollectReleasedOutputsHandledByMappings(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue)
-            : null;
-
-        if (trigger == TriggerMoment.Released)
+        var context = new ButtonEventContext
         {
-            HandleHoldBindingRelease(buttons, activeButtons, leftTriggerValue, rightTriggerValue);
-            ForceReleaseHeldOutputsForButton(buttons, releasedOutputsHandledByMappings);
-        }
-        else if (!_canDispatchOutput())
-        {
-            _setMappingStatus($"Suppressed ({buttons}, {trigger}) - target is not foreground");
+            Button = buttons,
+            Trigger = trigger,
+            ActiveButtons = activeButtons,
+            MappingsSnapshot = mappingsSnapshot,
+            LeftTriggerValue = leftTriggerValue,
+            RightTriggerValue = rightTriggerValue
+        };
+
+        _buttonEventPipeline.Invoke(context);
+    }
+
+    private void ProcessButtonEventTerminal(ButtonEventContext context)
+    {
+        if (context.IsSuppressed)
             return;
-        }
 
         var matched = false;
         var suppressedByHoldDual = false;
         var candidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool RequiresRightTrigger, bool RequiresLeftTrigger, string SourceToken)>();
 
-        foreach (var mapping in snapshot)
+        foreach (var mapping in context.MappingsSnapshot)
         {
             if (mapping?.From is null) continue;
             if (mapping.From.Type != GamepadBindingType.Button) continue;
             if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
                 continue;
             var triggerThreshold = GetTriggerMatchThreshold(mapping);
-            if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, buttons, activeButtons))
+            if (!ChordResolver.DoesChordMatchEvent(
+                    chordButtons,
+                    reqRt,
+                    reqLt,
+                    context.LeftTriggerValue,
+                    context.RightTriggerValue,
+                    triggerThreshold,
+                    context.Button,
+                    context.ActiveButtons))
                 continue;
-            if (mapping.Trigger != trigger) continue;
-            if (trigger == TriggerMoment.Tap && _holdSessions.ContainsKey(sourceToken))
+            if (mapping.Trigger != context.Trigger) continue;
+            if (context.Trigger == TriggerMoment.Tap && _holdSessionManager.HasHoldSessionForSourceToken(sourceToken))
                 continue;
-            if (IsHoldDualMapping(mapping))
+            if (HoldSessionManager.IsHoldDualMapping(mapping))
             {
                 suppressedByHoldDual = true;
                 continue;
@@ -152,14 +263,14 @@ public sealed class MappingEngine : IMappingEngine
 
             try
             {
-                if (!TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out var output, out var baseLabel))
+                if (!InputTokenResolver.TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out var output, out var baseLabel))
                     continue;
 
-                _outputStateTracker.TrackOutputHoldState(candidate.SourceToken, candidate.ChordButtons, output, trigger);
-                var outputLabel = $"{baseLabel} ({trigger})";
+                _outputStateTracker.TrackOutputHoldState(candidate.SourceToken, candidate.ChordButtons, output, context.Trigger);
+                var outputLabel = $"{baseLabel} ({context.Trigger})";
                 _setMappedOutput(outputLabel);
-                _setMappingStatus($"Queued: {candidate.SourceToken} ({trigger}) -> {outputLabel}");
-                QueueOutputDispatch(candidate.SourceToken, trigger, output, outputLabel, candidate.Mapping.KeyboardKey ?? string.Empty);
+                _setMappingStatus($"Queued: {candidate.SourceToken} ({context.Trigger}) -> {outputLabel}");
+                QueueOutputDispatch(candidate.SourceToken, context.Trigger, output, outputLabel, candidate.Mapping.KeyboardKey ?? string.Empty);
             }
             catch (Exception ex)
             {
@@ -169,299 +280,29 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         var holdArmed = false;
-        if (trigger == TriggerMoment.Pressed)
-            holdArmed = TryArmHoldBinding(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue);
+        if (context.Trigger == TriggerMoment.Pressed)
+            holdArmed = _holdSessionManager.TryArmHoldBinding(
+                context.Button,
+                context.ActiveButtons,
+                context.MappingsSnapshot,
+                context.LeftTriggerValue,
+                context.RightTriggerValue);
 
         if (!matched && !suppressedByHoldDual && !holdArmed)
-            _setMappingStatus($"No mapping for {buttonName} ({trigger})");
+            _setMappingStatus($"No mapping for {context.ButtonName} ({context.Trigger})");
     }
 
-    private static bool IsHoldDualMapping(MappingEntry mapping)
-    {
-        if (mapping.Trigger != TriggerMoment.Tap)
-            return false;
-        if (string.IsNullOrWhiteSpace(mapping.HoldKeyboardKey))
-            return false;
-        if (mapping.HoldThresholdMs is < 0)
-            return false;
-        if (!ChordResolver.TryParseButtonChord(mapping.From?.Value, out _, out var reqRt, out var reqLt, out _))
-            return false;
-        if (reqRt || reqLt)
-            return false;
-        return true;
-    }
-
-    private static int ClampHoldThresholdMs(int? value)
-    {
-        var ms = value ?? DefaultHoldThresholdMs;
-        return Math.Clamp(ms, MinHoldThresholdMs, MaxHoldThresholdMs);
-    }
-
-    private sealed class HoldSession
-    {
-        public required string SourceToken { get; init; }
-        public required string ShortKeyToken { get; init; }
-        public required string HoldKeyToken { get; init; }
-        public required List<GamepadButtons> ChordButtons { get; init; }
-        public required bool RequiresRightTrigger { get; init; }
-        public required bool RequiresLeftTrigger { get; init; }
-        public required float TriggerMatchThreshold { get; init; }
-        public required DispatcherTimer Timer { get; init; }
-        public bool LongFired { get; set; }
-    }
-
-    private bool TryArmHoldBinding(
-        GamepadButtons buttons,
-        IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyList<MappingEntry> snapshot,
-        float leftTriggerValue,
-        float rightTriggerValue)
-    {
-        if (!_canDispatchOutput())
-            return false;
-
-        var holdCandidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool ReqRt, bool ReqLt, string SourceToken)>();
-        foreach (var mapping in snapshot)
-        {
-            if (mapping?.From is null || !IsHoldDualMapping(mapping)) continue;
-            if (mapping.From.Type != GamepadBindingType.Button) continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
-                continue;
-            if (reqRt || reqLt)
-                continue;
-            var triggerThreshold = GetTriggerMatchThreshold(mapping);
-            if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, buttons, activeButtons))
-                continue;
-            holdCandidates.Add((mapping, chordButtons, reqRt, reqLt, sourceToken));
-        }
-
-        for (var i = 0; i < holdCandidates.Count; i++)
-        {
-            var candidate = holdCandidates[i];
-            var hasMoreSpecific = holdCandidates.Any(other =>
-                !ReferenceEquals(other.Mapping, candidate.Mapping) &&
-                ChordResolver.IsOtherChordStrictlyMoreSpecific(
-                    candidate.ChordButtons,
-                    candidate.ReqRt,
-                    candidate.ReqLt,
-                    other.ChordButtons,
-                    other.ReqRt,
-                    other.ReqLt));
-            if (hasMoreSpecific)
-                continue;
-
-            if (_holdSessions.ContainsKey(candidate.SourceToken))
-                return true;
-
-            if (!TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out _, out _) ||
-                !TryResolveMappedOutput(candidate.Mapping.HoldKeyboardKey, out _, out _))
-                continue;
-
-            var thresholdMs = ClampHoldThresholdMs(candidate.Mapping.HoldThresholdMs);
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(thresholdMs) };
-            var session = new HoldSession
-            {
-                SourceToken = candidate.SourceToken,
-                ShortKeyToken = candidate.Mapping.KeyboardKey ?? string.Empty,
-                HoldKeyToken = candidate.Mapping.HoldKeyboardKey ?? string.Empty,
-                ChordButtons = candidate.ChordButtons,
-                RequiresRightTrigger = candidate.ReqRt,
-                RequiresLeftTrigger = candidate.ReqLt,
-                TriggerMatchThreshold = GetTriggerMatchThreshold(candidate.Mapping),
-                Timer = timer
-            };
-
-            timer.Tick += (_, _) => OnHoldTimerElapsed(session);
-            timer.Start();
-            _holdSessions[candidate.SourceToken] = session;
-            _setMappingStatus($"Hold armed: {candidate.SourceToken} ({thresholdMs} ms)");
-            return true;
-        }
-
-        return false;
-    }
-
-    private void OnHoldTimerElapsed(HoldSession session)
-    {
-        session.Timer.Stop();
-        if (!_holdSessions.TryGetValue(session.SourceToken, out var live) || !ReferenceEquals(live, session))
-            return;
-
-        if (!ChordPhysicallyActive(
-                session.ChordButtons,
-                session.RequiresRightTrigger,
-                session.RequiresLeftTrigger,
-                _latestLeftTrigger,
-                _latestRightTrigger,
-                session.TriggerMatchThreshold,
-                _latestActiveButtons))
-        {
-            DisposeHoldSession(session.SourceToken);
-            return;
-        }
-
-        if (!_canDispatchOutput())
-        {
-            _setMappingStatus($"Suppressed hold output ({session.SourceToken}) - target is not foreground");
-            DisposeHoldSession(session.SourceToken);
-            return;
-        }
-
-        if (!TryResolveMappedOutput(session.HoldKeyToken, out var output, out var label))
-        {
-            DisposeHoldSession(session.SourceToken);
-            return;
-        }
-
-        session.LongFired = true;
-        var outputLabel = $"{label} (Hold)";
-        _setMappedOutput(outputLabel);
-        _setMappingStatus($"Queued hold: {session.SourceToken} -> {outputLabel}");
-        QueueOutputDispatch(session.SourceToken, TriggerMoment.Tap, output, outputLabel, session.HoldKeyToken);
-    }
-
-    private void HandleHoldBindingRelease(
-        GamepadButtons releasedButton,
-        IReadOnlyCollection<GamepadButtons> activeButtonsPreRelease,
-        float leftTriggerValue,
-        float rightTriggerValue)
-    {
-        var postRelease = new HashSet<GamepadButtons>(activeButtonsPreRelease);
-        postRelease.Remove(releasedButton);
-
-        var tokensToRemove = new List<string>();
-        foreach (var kvp in _holdSessions)
-        {
-            var session = kvp.Value;
-            if (!session.ChordButtons.Contains(releasedButton))
-                continue;
-
-            session.Timer.Stop();
-            if (!ChordPhysicallyActive(
-                    session.ChordButtons,
-                    session.RequiresRightTrigger,
-                    session.RequiresLeftTrigger,
-                    leftTriggerValue,
-                    rightTriggerValue,
-                    session.TriggerMatchThreshold,
-                    postRelease))
-            {
-                if (!session.LongFired && _canDispatchOutput())
-                {
-                    if (TryResolveMappedOutput(session.ShortKeyToken, out var output, out var label))
-                    {
-                        var outputLabel = $"{label} (Tap)";
-                        _setMappedOutput(outputLabel);
-                        _setMappingStatus($"Queued tap: {session.SourceToken} -> {outputLabel}");
-                        QueueOutputDispatch(session.SourceToken, TriggerMoment.Tap, output, outputLabel, session.ShortKeyToken);
-                    }
-                }
-
-                tokensToRemove.Add(kvp.Key);
-            }
-        }
-
-        foreach (var t in tokensToRemove)
-            _holdSessions.Remove(t);
-    }
-
-    private static bool ChordPhysicallyActive(
-        IReadOnlyCollection<GamepadButtons> chordButtons,
-        bool requiresRightTrigger,
-        bool requiresLeftTrigger,
-        float leftTriggerValue,
-        float rightTriggerValue,
-        float triggerMatchThreshold,
-        IReadOnlyCollection<GamepadButtons> activeButtons)
-    {
-        foreach (var button in chordButtons)
-        {
-            if (!activeButtons.Contains(button))
-                return false;
-        }
-
-        if (requiresRightTrigger && rightTriggerValue < triggerMatchThreshold)
-            return false;
-        if (requiresLeftTrigger && leftTriggerValue < triggerMatchThreshold)
-            return false;
-        return true;
-    }
-
-    private void DisposeHoldSession(string sourceToken)
-    {
-        if (_holdSessions.Remove(sourceToken, out var session))
-            session.Timer.Stop();
-    }
-
-    /// <summary>
-    /// If the user is building a stricter chord (e.g. Start then Start+DPadUp), drop a single-button hold timer
-    /// so the short action does not fire on release.
-    /// </summary>
-    private void CancelHoldSessionsSupersededByMoreSpecificChord(
-        GamepadButtons changedButton,
-        IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyList<MappingEntry> snapshot,
-        float leftTriggerValue,
-        float rightTriggerValue)
-    {
-        foreach (var kvp in _holdSessions.ToArray())
-        {
-            var session = kvp.Value;
-            if (session.ChordButtons.Count != 1)
-                continue;
-            foreach (var mapping in snapshot)
-            {
-                if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
-                    continue;
-                if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var obChord, out var obRt, out var obLt, out _))
-                     continue;
-                if (!ChordResolver.IsOtherChordStrictlyMoreSpecific(
-                        session.ChordButtons,
-                        session.RequiresRightTrigger,
-                        session.RequiresLeftTrigger,
-                        obChord,
-                        obRt,
-                        obLt))
-                    continue;
-
-                var th = GetTriggerMatchThreshold(mapping);
-                if (!ChordResolver.DoesChordMatchEvent(
-                        obChord,
-                        obRt,
-                        obLt,
-                        leftTriggerValue,
-                        rightTriggerValue,
-                        th,
-                        changedButton,
-                        activeButtons))
-                    continue;
-
-                DisposeHoldSession(kvp.Key);
-                break;
-            }
-        }
-    }
-
-    private void ClearAllHoldSessions()
-    {
-        foreach (var session in _holdSessions.Values)
-            session.Timer.Stop();
-        _holdSessions.Clear();
-    }
-
-    public void HandleThumbstickMappings(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyCollection<MappingEntry> mappings)
+    private void HandleThumbstickMappingsInternal(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot)
     {
         if (!_canDispatchOutput())
         {
             ForceReleaseAnalogOutputs();
             return;
         }
-
-        var snapshot = mappings.ToList();
         var mouseDeltaX = 0f;
         var mouseDeltaY = 0f;
 
-        foreach (var mapping in snapshot)
+        foreach (var mapping in mappingsSnapshot)
         {
             if (mapping?.From is null || mapping.From.Type != sourceType)
                 continue;
@@ -469,7 +310,7 @@ public sealed class MappingEngine : IMappingEngine
             if (!AnalogProcessor.TryParseAnalogSource(mapping.From.Value, out var source))
                 continue;
 
-            var outputToken = NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
+            var outputToken = InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
             if (string.IsNullOrWhiteSpace(outputToken))
                 continue;
 
@@ -487,7 +328,7 @@ public sealed class MappingEngine : IMappingEngine
                 continue;
             }
 
-            var key = ParseKey(outputToken);
+            var key = InputTokenResolver.ParseKey(outputToken);
             if (key == Key.None)
                 continue;
 
@@ -498,25 +339,23 @@ public sealed class MappingEngine : IMappingEngine
             SendMouseLookDelta(mouseDeltaX, mouseDeltaY);
     }
 
-    public void HandleTriggerMappings(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyCollection<MappingEntry> mappings)
+    private void HandleTriggerMappingsInternal(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot)
     {
         if (!_canDispatchOutput())
         {
             ForceReleaseAnalogOutputs();
             return;
         }
-
-        var snapshot = mappings.ToList();
-        foreach (var mapping in snapshot)
+        foreach (var mapping in mappingsSnapshot)
         {
             if (mapping?.From is null || mapping.From.Type != triggerBindingType)
                 continue;
 
-            if (!TryResolveMappedOutput(mapping.KeyboardKey, out var output, out var baseLabel))
+            if (!InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out var output, out var baseLabel))
                 continue;
 
             var stateKey =
-                $"Trigger|{mapping.From.Type}|{mapping.From.Value}|{NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty)}|{mapping.Trigger}";
+                $"Trigger|{mapping.From.Type}|{mapping.From.Value}|{InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty)}|{mapping.Trigger}";
             var transition = _analogProcessor.EvaluateTriggerTransition(mapping, triggerValue, stateKey);
             if (!transition.HasChanged)
                 continue;
@@ -572,7 +411,9 @@ public sealed class MappingEngine : IMappingEngine
 
     public void ForceReleaseAllOutputs()
     {
-        ClearAllHoldSessions();
+        _latestActiveButtons = Array.Empty<GamepadButtons>();
+        _holdSessionManager.ClearButtonDownTicks();
+        _holdSessionManager.ClearAllHoldSessions();
         _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
     }
 
@@ -589,6 +430,12 @@ public sealed class MappingEngine : IMappingEngine
     {
         try
         {
+            if (_comboHudDelayTimer is not null)
+            {
+                _comboHudDelayTimer.Stop();
+                _comboHudDelayTimer.Tick -= OnComboHudDelayTimerTick;
+                _comboHudDelayTimer = null;
+            }
             ForceReleaseAllOutputs();
             ForceReleaseAnalogOutputs();
             _inputDispatcher.Dispose();
@@ -599,35 +446,123 @@ public sealed class MappingEngine : IMappingEngine
         }
     }
 
-    public static Key ParseKey(string? keyboardKey)
-    {
-        if (string.IsNullOrWhiteSpace(keyboardKey))
-            return Key.None;
+    public static Key ParseKey(string? keyboardKey) => InputTokenResolver.ParseKey(keyboardKey);
 
-        var normalized = NormalizeKeyboardKeyToken(keyboardKey);
-
-        if (Enum.TryParse<Key>(normalized, true, out var key))
-            return key;
-
-        try
-        {
-            var converter = new KeyConverter();
-            var converted = converter.ConvertFromString(normalized);
-            return converted is Key k ? k : Key.None;
-        }
-        catch
-        {
-            return Key.None;
-        }
-    }
-
-    public static string NormalizeKeyboardKeyToken(string keyboardKey)
-    {
-        var token = keyboardKey.Trim();
-        return KeyAliases.TryGetValue(token, out var alias) ? alias : token;
-    }
+    public static string NormalizeKeyboardKeyToken(string keyboardKey) => InputTokenResolver.NormalizeKeyboardKeyToken(keyboardKey);
 
     public static bool IsMouseLookOutput(string token) => AnalogProcessor.IsMouseLookOutput(token);
+
+    private void SyncComboHud()
+    {
+        if (_setComboHud is null)
+            return;
+
+        if (!TryGetComboHudSignature(out var signature))
+        {
+            CancelComboHudDelayTimer();
+            _comboHudDelayConfirmed = false;
+            _pendingComboHudSignature = null;
+            _setComboHud(null);
+            return;
+        }
+
+        if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
+        {
+            _pendingComboHudSignature = signature;
+            _comboHudDelayConfirmed = false;
+            CancelComboHudDelayTimer();
+        }
+
+        if (!_comboHudDelayConfirmed)
+        {
+            ScheduleComboHudDelay();
+            return;
+        }
+
+        CancelComboHudDelayTimer();
+        PresentComboHudForCurrentSignature(signature);
+    }
+
+    private bool TryGetComboHudSignature(out string signature)
+    {
+        if (_holdSessionManager.TryGetFirstHoldSession(out var holdSession) && holdSession is not null)
+        {
+            signature = $"hold|{holdSession.SourceToken}";
+            return true;
+        }
+
+        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot);
+        if (prefix is null)
+        {
+            signature = string.Empty;
+            return false;
+        }
+
+        var thumbprint = string.Join(
+            ',',
+            _latestActiveButtons.OrderBy(b => b.ToString(), StringComparer.OrdinalIgnoreCase));
+        signature = $"prefix|{thumbprint}";
+        return true;
+    }
+
+    private void PresentComboHudForCurrentSignature(string signature)
+    {
+        if (_setComboHud is null)
+            return;
+
+        if (signature.StartsWith("hold|", StringComparison.Ordinal) &&
+            _holdSessionManager.TryGetFirstHoldSession(out var holdSession) &&
+            holdSession is not null)
+        {
+            _setComboHud(ComboHudBuilder.BuildComboHud(holdSession, _lastButtonMappingsSnapshot));
+            return;
+        }
+
+        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot);
+        if (prefix is not null)
+            _setComboHud(prefix);
+        else
+            _setComboHud(null);
+    }
+
+    private void EnsureComboHudDelayTimer()
+    {
+        if (_comboHudDelayTimer is not null)
+            return;
+
+        _comboHudDelayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_comboHudDelayMs) };
+        _comboHudDelayTimer.Tick += OnComboHudDelayTimerTick;
+    }
+
+    private void OnComboHudDelayTimerTick(object? sender, EventArgs e)
+    {
+        _comboHudDelayTimer?.Stop();
+        if (_setComboHud is null)
+            return;
+
+        if (!TryGetComboHudSignature(out var signature))
+        {
+            _comboHudDelayConfirmed = false;
+            _pendingComboHudSignature = null;
+            _setComboHud(null);
+            return;
+        }
+
+        _comboHudDelayConfirmed = true;
+        PresentComboHudForCurrentSignature(signature);
+    }
+
+    private void ScheduleComboHudDelay()
+    {
+        EnsureComboHudDelayTimer();
+        _comboHudDelayTimer!.Stop();
+        _comboHudDelayTimer.Start();
+    }
+
+    private void CancelComboHudDelayTimer()
+    {
+        _comboHudDelayTimer?.Stop();
+    }
 
     private HashSet<DispatchedOutput> CollectReleasedOutputsHandledByMappings(
         GamepadButtons changedButton,
@@ -648,7 +583,7 @@ public sealed class MappingEngine : IMappingEngine
             var triggerThreshold = GetTriggerMatchThreshold(mapping);
             if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, changedButton, activeButtons))
                 continue;
-            if (!TryResolveMappedOutput(mapping.KeyboardKey, out var output, out _))
+            if (!InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out var output, out _))
                 continue;
 
             handledOutputs.Add(output);
@@ -659,30 +594,6 @@ public sealed class MappingEngine : IMappingEngine
 
     private static float GetTriggerMatchThreshold(MappingEntry mapping) =>
         mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : 0.35f;
-
-    private bool TryResolveMappedOutput(string? outputToken, out DispatchedOutput output, out string outputLabel)
-    {
-        output = default;
-        outputLabel = string.Empty;
-        var normalized = NormalizeKeyboardKeyToken(outputToken ?? string.Empty);
-        if (string.IsNullOrWhiteSpace(normalized))
-            return false;
-
-        if (TryParsePointerAction(normalized, out var pointerAction))
-        {
-            output = new DispatchedOutput(null, pointerAction);
-            outputLabel = DescribePointerAction(pointerAction);
-            return true;
-        }
-
-        var key = ParseKey(normalized);
-        if (key == Key.None)
-            return false;
-
-        output = new DispatchedOutput(key, null);
-        outputLabel = $"Keyboard {key}";
-        return true;
-    }
 
     private void DispatchMappedOutput(DispatchedOutput output, TriggerMoment trigger)
     {
@@ -709,21 +620,6 @@ public sealed class MappingEngine : IMappingEngine
     private void ForceReleaseOutput(DispatchedOutput output)
     {
         QueueOutputDispatch("ForceRelease", TriggerMoment.Released, output, "Forced release", "forced-release");
-    }
-
-    private static string DescribePointerAction(PointerAction action)
-    {
-        return action switch
-        {
-            PointerAction.LeftClick => "Mouse Left",
-            PointerAction.RightClick => "Mouse Right",
-            PointerAction.MiddleClick => "Mouse Middle",
-            PointerAction.X1Click => "Mouse X1",
-            PointerAction.X2Click => "Mouse X2",
-            PointerAction.WheelUp => "Mouse Wheel Up",
-            PointerAction.WheelDown => "Mouse Wheel Down",
-            _ => "Mouse"
-        };
     }
 
     private void HandleAnalogKeyboardOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, Key key)
@@ -792,36 +688,6 @@ public sealed class MappingEngine : IMappingEngine
                 if (trigger != TriggerMoment.Released) _mouseEmulator.WheelDown();
                 break;
         }
-    }
-
-    private static bool TryParsePointerAction(string token, out PointerAction action)
-    {
-        var normalized = token.Replace("_", string.Empty, StringComparison.Ordinal)
-            .Replace("-", string.Empty, StringComparison.Ordinal)
-            .Replace(" ", string.Empty, StringComparison.Ordinal)
-            .Trim()
-            .ToUpperInvariant();
-
-        action = normalized switch
-        {
-            "MOUSELEFT" or "LEFTCLICK" or "LCLICK" or "LBUTTON" => PointerAction.LeftClick,
-            "MOUSERIGHT" or "RIGHTCLICK" or "RCLICK" or "RBUTTON" => PointerAction.RightClick,
-            "MOUSEMIDDLE" or "MIDDLECLICK" or "MCLICK" or "MBUTTON" => PointerAction.MiddleClick,
-            "MOUSEX1" or "XBUTTON1" or "XBUTTONONE" => PointerAction.X1Click,
-            "MOUSEX2" or "XBUTTON2" or "XBUTTONTWO" => PointerAction.X2Click,
-            "WHEELUP" or "MOUSEWHEELUP" or "SCROLLUP" => PointerAction.WheelUp,
-            "WHEELDOWN" or "MOUSEWHEELDOWN" or "SCROLLDOWN" => PointerAction.WheelDown,
-            _ => default
-        };
-
-        return normalized is
-            "MOUSELEFT" or "LEFTCLICK" or "LCLICK" or "LBUTTON" or
-            "MOUSERIGHT" or "RIGHTCLICK" or "RCLICK" or "RBUTTON" or
-            "MOUSEMIDDLE" or "MIDDLECLICK" or "MCLICK" or "MBUTTON" or
-            "MOUSEX1" or "XBUTTON1" or "XBUTTONONE" or
-            "MOUSEX2" or "XBUTTON2" or "XBUTTONTWO" or
-            "WHEELUP" or "MOUSEWHEELUP" or "SCROLLUP" or
-            "WHEELDOWN" or "MOUSEWHEELDOWN" or "SCROLLDOWN";
     }
 
     private void QueueOutputDispatch(

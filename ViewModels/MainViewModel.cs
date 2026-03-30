@@ -13,6 +13,7 @@ using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services;
+using Gamepad_Mapping.Views;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
 using Vortice.XInput;
 
@@ -30,9 +31,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IMappingEngine _mappingEngine;
     private readonly EventHandler _profilesLoadedHandler;
     private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
-    private readonly HashSet<GamepadButtons> _pressedButtons = [];
-    private float _lastLeftTrigger;
-    private float _lastRightTrigger;
+    private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
+    private ComboHudWindow? _comboHudWindow;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -64,7 +64,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         AvailableGamepadButtons = new ObservableCollection<string>(
             Enum.GetNames<GamepadButtons>().Where(n => !string.Equals(n, nameof(GamepadButtons.None), StringComparison.OrdinalIgnoreCase)));
         AvailableTriggerModes = new ObservableCollection<TriggerMoment>(Enum.GetValues<TriggerMoment>());
-        Mappings.CollectionChanged += (_, _) => MappingCount = Mappings.Count;
+        Mappings.CollectionChanged += (_, _) =>
+        {
+            MappingCount = Mappings.Count;
+            _mappingsSnapshot = Mappings.ToList();
+        };
 
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
@@ -80,59 +84,27 @@ public partial class MainViewModel : ObservableObject, IDisposable
             CanDispatchMappedOutput,
             DispatchToUi,
             value => GamepadMonitorPanel.LastMappedOutput = value,
-            value => GamepadMonitorPanel.LastMappingStatus = value);
+            value => GamepadMonitorPanel.LastMappingStatus = value,
+            OnComboHud,
+            _profileService.ModifierGraceMs);
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
-        _gamepadReader.OnButtonPressed += buttons =>
+        _gamepadReader.OnInputFrame += frame =>
             DispatchToUi(() =>
             {
-                _pressedButtons.Add(buttons);
-                GamepadMonitorPanel.LastButtonPressed = buttons.ToString();
-                var snapshot = Mappings.ToList();
-                _mappingEngine.HandleButtonMappings(buttons, _mappingEngine.ButtonPressedTrigger, _pressedButtons, snapshot, _lastLeftTrigger, _lastRightTrigger);
-                _mappingEngine.HandleButtonMappings(buttons, _mappingEngine.ButtonTapTrigger, _pressedButtons, snapshot, _lastLeftTrigger, _lastRightTrigger);
-            });
+                GamepadMonitorPanel.LeftThumbX = frame.LeftThumbstick.X;
+                GamepadMonitorPanel.LeftThumbY = frame.LeftThumbstick.Y;
+                GamepadMonitorPanel.RightThumbX = frame.RightThumbstick.X;
+                GamepadMonitorPanel.RightThumbY = frame.RightThumbstick.Y;
+                GamepadMonitorPanel.LeftTrigger = frame.LeftTrigger;
+                GamepadMonitorPanel.RightTrigger = frame.RightTrigger;
 
-        _gamepadReader.OnButtonReleased += buttons =>
-            DispatchToUi(() =>
-            {
-                GamepadMonitorPanel.LastButtonReleased = buttons.ToString();
-                var preReleaseButtons = new HashSet<GamepadButtons>(_pressedButtons) { buttons };
-                _mappingEngine.HandleButtonMappings(buttons, TriggerMoment.Released, preReleaseButtons, Mappings.ToList(), _lastLeftTrigger, _lastRightTrigger);
-                _pressedButtons.Remove(buttons);
-            });
-
-        _gamepadReader.OnLeftThumbstickChanged += value =>
-            DispatchToUi(() =>
-            {
-                GamepadMonitorPanel.LeftThumbX = value.X;
-                GamepadMonitorPanel.LeftThumbY = value.Y;
-                _mappingEngine.HandleThumbstickMappings(GamepadBindingType.LeftThumbstick, value, Mappings.ToList());
-            });
-
-        _gamepadReader.OnRightThumbstickChanged += value =>
-            DispatchToUi(() =>
-            {
-                GamepadMonitorPanel.RightThumbX = value.X;
-                GamepadMonitorPanel.RightThumbY = value.Y;
-                _mappingEngine.HandleThumbstickMappings(GamepadBindingType.RightThumbstick, value, Mappings.ToList());
-            });
-
-        _gamepadReader.OnLeftTriggerChanged += value =>
-            DispatchToUi(() =>
-            {
-                _lastLeftTrigger = value;
-                GamepadMonitorPanel.LeftTrigger = value;
-                _mappingEngine.HandleTriggerMappings(GamepadBindingType.LeftTrigger, value, Mappings.ToList());
-            });
-
-        _gamepadReader.OnRightTriggerChanged += value =>
-            DispatchToUi(() =>
-            {
-                _lastRightTrigger = value;
-                GamepadMonitorPanel.RightTrigger = value;
-                _mappingEngine.HandleTriggerMappings(GamepadBindingType.RightTrigger, value, Mappings.ToList());
+                var result = _mappingEngine.ProcessInputFrame(frame, _mappingsSnapshot);
+                if (result.PressedButtons.Length > 0)
+                    GamepadMonitorPanel.LastButtonPressed = result.PressedButtons[^1].ToString();
+                if (result.ReleasedButtons.Length > 0)
+                    GamepadMonitorPanel.LastButtonReleased = result.ReleasedButtons[^1].ToString();
             });
 
         SelectedTemplate = _profileService.ReloadTemplates();
@@ -280,7 +252,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _gamepadReader.Stop();
         _mappingEngine.ForceReleaseAllOutputs();
         _mappingEngine.ForceReleaseAnalogOutputs();
-        _pressedButtons.Clear();
         IsGamepadRunning = false;
         GamepadMonitorPanel.IsGamepadRunning = false;
     }
@@ -290,6 +261,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             _gamepadReader.Stop();
+            if (_comboHudWindow is not null)
+            {
+                _comboHudWindow.Close();
+                _comboHudWindow = null;
+            }
             _mappingEngine.Dispose();
             _appStatusMonitor.StatusChanged -= _appStatusChangedHandler;
             _appStatusMonitor.Dispose();
@@ -315,6 +291,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _dispatcher.BeginInvoke(action);
     }
 
+    private void OnComboHud(ComboHudContent? content)
+    {
+        DispatchToUi(() =>
+        {
+            if (content is null)
+            {
+                _comboHudWindow?.HideHud();
+                return;
+            }
+
+            _comboHudWindow ??= new ComboHudWindow();
+            _comboHudWindow.ShowHud(content);
+        });
+    }
+
     private void LoadSelectedTemplate()
     {
         var template = _profileService.LoadSelectedTemplate(SelectedTemplate);
@@ -326,6 +317,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         Mappings.Clear();
         foreach (var mapping in template.Mappings)
             Mappings.Add(mapping);
+
+        _mappingsSnapshot = Mappings.ToList();
 
         SelectedMapping = Mappings.FirstOrDefault();
         MappingCount = Mappings.Count;

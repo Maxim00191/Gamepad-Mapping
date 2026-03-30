@@ -7,6 +7,7 @@ namespace GamepadMapperGUI.Interfaces.Services;
 public interface IProfileService
 {
     string DefaultGameId { get; }
+    int ModifierGraceMs { get; }
     ObservableCollection<TemplateOption> AvailableTemplates { get; }
     event EventHandler? ProfilesLoaded;
     string LoadTemplateDirectory();

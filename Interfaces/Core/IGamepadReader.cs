@@ -1,17 +1,13 @@
 using System;
 using System.Numerics;
 using Vortice.XInput;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Interfaces.Core;
 
 public interface IGamepadReader
 {
-    event Action<GamepadButtons>? OnButtonPressed;
-    event Action<GamepadButtons>? OnButtonReleased;
-    event Action<Vector2>? OnLeftThumbstickChanged;
-    event Action<Vector2>? OnRightThumbstickChanged;
-    event Action<float>? OnLeftTriggerChanged;
-    event Action<float>? OnRightTriggerChanged;
+    event Action<InputFrame>? OnInputFrame;
     void Start();
     void Stop();
 }

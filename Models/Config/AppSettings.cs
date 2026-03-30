@@ -12,4 +12,10 @@ public class AppSettings
 
     [JsonProperty("defaultGameId")]
     public string DefaultGameId { get; set; } = "default";
+
+    /// <summary>
+    /// Shared timing (ms) for chord modifier grace, combo HUD reveal delay, and short-press vs hold-dual threshold. Clamped when applied.
+    /// </summary>
+    [JsonProperty("modifierGraceMs")]
+    public int ModifierGraceMs { get; set; } = 500;
 }

@@ -1,0 +1,100 @@
+<Window x:Class="Gamepad_Mapping.Views.ComboHudWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:GamepadMapperGUI.Models"
+        Title="Combo guide"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Focusable="False"
+        ShowActivated="False"
+        mc:Ignorable="d"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        d:DesignHeight="200"
+        d:DesignWidth="320">
+    <Window.Resources>
+        <Storyboard x:Key="FadeInStoryboard">
+            <DoubleAnimation Storyboard.TargetName="RootBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0"
+                             To="1"
+                             Duration="0:0:0.22">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+        <Storyboard x:Key="FadeOutStoryboard">
+            <DoubleAnimation Storyboard.TargetName="RootBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             To="0"
+                             Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseIn" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+    </Window.Resources>
+    <Border x:Name="RootBorder"
+            CornerRadius="10"
+            Padding="14,12"
+            MaxWidth="380"
+            BorderThickness="1"
+            BorderBrush="#66000000">
+        <Border.Background>
+            <SolidColorBrush Color="#E8111111" />
+        </Border.Background>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18"
+                              ShadowDepth="2"
+                              Opacity="0.45"
+                              Direction="270" />
+        </Border.Effect>
+        <StackPanel>
+            <TextBlock x:Name="TitleBlock"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       Foreground="#FFF0F0F0"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,8" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          MaxHeight="320">
+                <ItemsControl x:Name="LinesItems">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:ComboHudLine}">
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Text="{Binding Primary}"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#FFE8E8E8"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Detail}"
+                                           FontSize="12"
+                                           Foreground="#FFB0B0B0"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Detail}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </StackPanel>
+    </Border>
+</Window>

@@ -20,6 +20,15 @@
     { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "description": "Dismount / Cancel", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "X" }, "keyboardKey": "E", "description": "Switch to Spirit Ball mode", "trigger": "Pressed", "analogThreshold": null },
 
+    { "from": { "type": "Button", "value": "LeftThumb + Y" }, "keyboardKey": "F1", "description": "Season screen / quick chat opens chat channel", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftThumb + B" }, "keyboardKey": "F2", "description": "Open events screen", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftThumb + A" }, "keyboardKey": "F3", "description": "Open magic handbook", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftThumb + X" }, "keyboardKey": "F4", "description": "Open compendium / codex", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightThumb + DPadUp" }, "keyboardKey": "F5", "description": "Open shop", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightThumb + DPadRight" }, "keyboardKey": "F6", "description": "Open Pika shop", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightThumb + DPadDown" }, "keyboardKey": "F7", "description": "Open furniture catalog", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightThumb + DPadLeft" }, "keyboardKey": "F8", "description": "Open decoration mode", "trigger": "Pressed", "analogThreshold": null },
+
     { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "description": "Sprint / Mount skill hold", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "description": "Sprint / Mount skill hold", "trigger": "Released", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftCtrl", "description": "Toggle walk / run", "trigger": "Pressed", "analogThreshold": null },
