@@ -31,6 +31,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly EventHandler _profilesLoadedHandler;
     private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
     private readonly HashSet<GamepadButtons> _pressedButtons = [];
+    private float _lastLeftTrigger;
+    private float _lastRightTrigger;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -88,8 +90,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 _pressedButtons.Add(buttons);
                 GamepadMonitorPanel.LastButtonPressed = buttons.ToString();
                 var snapshot = Mappings.ToList();
-                _mappingEngine.HandleButtonMappings(buttons, _mappingEngine.ButtonPressedTrigger, _pressedButtons, snapshot);
-                _mappingEngine.HandleButtonMappings(buttons, _mappingEngine.ButtonTapTrigger, _pressedButtons, snapshot);
+                _mappingEngine.HandleButtonMappings(buttons, _mappingEngine.ButtonPressedTrigger, _pressedButtons, snapshot, _lastLeftTrigger, _lastRightTrigger);
+                _mappingEngine.HandleButtonMappings(buttons, _mappingEngine.ButtonTapTrigger, _pressedButtons, snapshot, _lastLeftTrigger, _lastRightTrigger);
             });
 
         _gamepadReader.OnButtonReleased += buttons =>
@@ -97,7 +99,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             {
                 GamepadMonitorPanel.LastButtonReleased = buttons.ToString();
                 var preReleaseButtons = new HashSet<GamepadButtons>(_pressedButtons) { buttons };
-                _mappingEngine.HandleButtonMappings(buttons, TriggerMoment.Released, preReleaseButtons, Mappings.ToList());
+                _mappingEngine.HandleButtonMappings(buttons, TriggerMoment.Released, preReleaseButtons, Mappings.ToList(), _lastLeftTrigger, _lastRightTrigger);
                 _pressedButtons.Remove(buttons);
             });
 
@@ -117,8 +119,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 _mappingEngine.HandleThumbstickMappings(GamepadBindingType.RightThumbstick, value, Mappings.ToList());
             });
 
-        _gamepadReader.OnLeftTriggerChanged += value => DispatchToUi(() => GamepadMonitorPanel.LeftTrigger = value);
-        _gamepadReader.OnRightTriggerChanged += value => DispatchToUi(() => GamepadMonitorPanel.RightTrigger = value);
+        _gamepadReader.OnLeftTriggerChanged += value =>
+            DispatchToUi(() =>
+            {
+                _lastLeftTrigger = value;
+                GamepadMonitorPanel.LeftTrigger = value;
+                _mappingEngine.HandleTriggerMappings(GamepadBindingType.LeftTrigger, value, Mappings.ToList());
+            });
+
+        _gamepadReader.OnRightTriggerChanged += value =>
+            DispatchToUi(() =>
+            {
+                _lastRightTrigger = value;
+                GamepadMonitorPanel.RightTrigger = value;
+                _mappingEngine.HandleTriggerMappings(GamepadBindingType.RightTrigger, value, Mappings.ToList());
+            });
 
         SelectedTemplate = _profileService.ReloadTemplates();
         LoadSelectedTemplate();

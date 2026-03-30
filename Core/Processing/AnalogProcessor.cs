@@ -101,6 +101,18 @@ internal sealed class AnalogProcessor
         return new AnalogOutputTransition(true, isActive);
     }
 
+    public AnalogOutputTransition EvaluateTriggerTransition(MappingEntry mapping, float triggerValue, string stateKey)
+    {
+        var threshold = mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : DefaultAnalogThreshold;
+        var isActive = triggerValue >= threshold;
+        _analogOutputStates.TryGetValue(stateKey, out var currentState);
+        if (currentState == isActive)
+            return new AnalogOutputTransition(false, isActive);
+
+        _analogOutputStates[stateKey] = isActive;
+        return new AnalogOutputTransition(true, isActive);
+    }
+
     public MouseLookDelta AccumulateMouseLookDelta(float deltaX, float deltaY)
     {
         _mouseLookResidualX += deltaX;

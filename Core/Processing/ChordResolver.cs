@@ -1,15 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GamepadMapperGUI.Models;
 using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
 internal static class ChordResolver
 {
-    public static bool TryParseButtonChord(string? sourceToken, out List<GamepadButtons> chordButtons, out string normalizedSourceToken)
+    public static bool TryParseButtonChord(string? sourceToken, out List<GamepadButtons> chordButtons, out string normalizedSourceToken) =>
+        TryParseButtonChord(sourceToken, out chordButtons, out _, out _, out normalizedSourceToken);
+
+    public static bool TryParseButtonChord(
+        string? sourceToken,
+        out List<GamepadButtons> chordButtons,
+        out bool requiresRightTrigger,
+        out bool requiresLeftTrigger,
+        out string normalizedSourceToken)
     {
         chordButtons = [];
+        requiresRightTrigger = false;
+        requiresLeftTrigger = false;
         normalizedSourceToken = string.Empty;
         if (string.IsNullOrWhiteSpace(sourceToken))
             return false;
@@ -20,6 +31,20 @@ internal static class ChordResolver
 
         foreach (var segment in segments)
         {
+            if (segment.Equals("RightTrigger", StringComparison.OrdinalIgnoreCase) ||
+                segment.Equals("RT", StringComparison.OrdinalIgnoreCase))
+            {
+                requiresRightTrigger = true;
+                continue;
+            }
+
+            if (segment.Equals("LeftTrigger", StringComparison.OrdinalIgnoreCase) ||
+                segment.Equals("LT", StringComparison.OrdinalIgnoreCase))
+            {
+                requiresLeftTrigger = true;
+                continue;
+            }
+
             if (!Enum.TryParse<GamepadButtons>(segment, true, out var button) || button == GamepadButtons.None)
                 return false;
             if (!chordButtons.Contains(button))
@@ -29,12 +54,23 @@ internal static class ChordResolver
         if (chordButtons.Count == 0)
             return false;
 
-        normalizedSourceToken = string.Join(" + ", chordButtons.Select(b => b.ToString()));
+        var parts = new List<string>();
+        if (requiresLeftTrigger)
+            parts.Add(nameof(GamepadBindingType.LeftTrigger));
+        if (requiresRightTrigger)
+            parts.Add(nameof(GamepadBindingType.RightTrigger));
+        parts.AddRange(chordButtons.OrderBy(b => b.ToString()).Select(b => b.ToString()));
+        normalizedSourceToken = string.Join(" + ", parts);
         return true;
     }
 
     public static bool DoesChordMatchEvent(
         IReadOnlyCollection<GamepadButtons> chordButtons,
+        bool requiresRightTrigger,
+        bool requiresLeftTrigger,
+        float leftTriggerValue,
+        float rightTriggerValue,
+        float triggerMatchThreshold,
         GamepadButtons changedButton,
         IReadOnlyCollection<GamepadButtons> activeButtons)
     {
@@ -47,6 +83,36 @@ internal static class ChordResolver
                 return false;
         }
 
+        if (requiresRightTrigger && rightTriggerValue < triggerMatchThreshold)
+            return false;
+        if (requiresLeftTrigger && leftTriggerValue < triggerMatchThreshold)
+            return false;
+
         return true;
+    }
+
+    public static int ChordSpecificity(IReadOnlyCollection<GamepadButtons> chordButtons, bool requiresRightTrigger, bool requiresLeftTrigger) =>
+        chordButtons.Count + (requiresRightTrigger ? 1 : 0) + (requiresLeftTrigger ? 1 : 0);
+
+    /// <summary>
+    /// True when <paramref name="other"/> is strictly more specific than <paramref name="candidate"/>
+    /// and both refer to the same logical chord (candidate's requirements are implied by other's).
+    /// </summary>
+    public static bool IsOtherChordStrictlyMoreSpecific(
+        IReadOnlyCollection<GamepadButtons> candidateChord,
+        bool candidateReqRt,
+        bool candidateReqLt,
+        IReadOnlyCollection<GamepadButtons> otherChord,
+        bool otherReqRt,
+        bool otherReqLt)
+    {
+        if (!candidateChord.All(otherChord.Contains))
+            return false;
+        if (candidateReqRt && !otherReqRt)
+            return false;
+        if (candidateReqLt && !otherReqLt)
+            return false;
+        return ChordSpecificity(otherChord, otherReqRt, otherReqLt) >
+               ChordSpecificity(candidateChord, candidateReqRt, candidateReqLt);
     }
 }

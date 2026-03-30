@@ -21,7 +21,18 @@ public sealed class MappingEngine : IMappingEngine
         ["RightControl"] = nameof(Key.RightCtrl),
         ["Control"] = nameof(Key.LeftCtrl),
         ["Ctrl"] = nameof(Key.LeftCtrl),
-        ["Alt"] = nameof(Key.LeftAlt)
+        ["Alt"] = nameof(Key.LeftAlt),
+        // WPF Key uses D0–D9; bare digits do not round-trip via KeyConverter / Enum.Parse.
+        ["0"] = nameof(Key.D0),
+        ["1"] = nameof(Key.D1),
+        ["2"] = nameof(Key.D2),
+        ["3"] = nameof(Key.D3),
+        ["4"] = nameof(Key.D4),
+        ["5"] = nameof(Key.D5),
+        ["6"] = nameof(Key.D6),
+        ["7"] = nameof(Key.D7),
+        ["8"] = nameof(Key.D8),
+        ["9"] = nameof(Key.D9)
     };
 
     private readonly IKeyboardEmulator _keyboardEmulator;
@@ -59,12 +70,14 @@ public sealed class MappingEngine : IMappingEngine
         GamepadButtons buttons,
         TriggerMoment trigger,
         IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyCollection<MappingEntry> mappings)
+        IReadOnlyCollection<MappingEntry> mappings,
+        float leftTriggerValue,
+        float rightTriggerValue)
     {
         var buttonName = buttons.ToString();
         var snapshot = mappings.ToList();
         var releasedOutputsHandledByMappings = trigger == TriggerMoment.Released
-            ? CollectReleasedOutputsHandledByMappings(buttons, activeButtons, snapshot)
+            ? CollectReleasedOutputsHandledByMappings(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue)
             : null;
 
         if (trigger == TriggerMoment.Released)
@@ -78,18 +91,19 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         var matched = false;
-        var candidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, string SourceToken)>();
+        var candidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool RequiresRightTrigger, bool RequiresLeftTrigger, string SourceToken)>();
 
         foreach (var mapping in snapshot)
         {
             if (mapping?.From is null) continue;
             if (mapping.From.Type != GamepadBindingType.Button) continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var sourceToken))
+            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
                 continue;
-            if (!ChordResolver.DoesChordMatchEvent(chordButtons, buttons, activeButtons))
+            var triggerThreshold = GetTriggerMatchThreshold(mapping);
+            if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, buttons, activeButtons))
                 continue;
             if (mapping.Trigger != trigger) continue;
-            candidates.Add((mapping, chordButtons, sourceToken));
+            candidates.Add((mapping, chordButtons, reqRt, reqLt, sourceToken));
         }
 
         for (var i = 0; i < candidates.Count; i++)
@@ -97,8 +111,13 @@ public sealed class MappingEngine : IMappingEngine
             var candidate = candidates[i];
             var hasMoreSpecificMatch = candidates.Any(other =>
                 !ReferenceEquals(other.Mapping, candidate.Mapping) &&
-                other.ChordButtons.Count > candidate.ChordButtons.Count &&
-                candidate.ChordButtons.All(other.ChordButtons.Contains));
+                ChordResolver.IsOtherChordStrictlyMoreSpecific(
+                    candidate.ChordButtons,
+                    candidate.RequiresRightTrigger,
+                    candidate.RequiresLeftTrigger,
+                    other.ChordButtons,
+                    other.RequiresRightTrigger,
+                    other.RequiresLeftTrigger));
             if (hasMoreSpecificMatch)
                 continue;
 
@@ -175,6 +194,78 @@ public sealed class MappingEngine : IMappingEngine
             SendMouseLookDelta(mouseDeltaX, mouseDeltaY);
     }
 
+    public void HandleTriggerMappings(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyCollection<MappingEntry> mappings)
+    {
+        if (!_canDispatchOutput())
+        {
+            ForceReleaseAnalogOutputs();
+            return;
+        }
+
+        var snapshot = mappings.ToList();
+        foreach (var mapping in snapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != triggerBindingType)
+                continue;
+
+            if (!TryResolveMappedOutput(mapping.KeyboardKey, out var output, out var baseLabel))
+                continue;
+
+            var stateKey =
+                $"Trigger|{mapping.From.Type}|{mapping.From.Value}|{NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty)}|{mapping.Trigger}";
+            var transition = _analogProcessor.EvaluateTriggerTransition(mapping, triggerValue, stateKey);
+            if (!transition.HasChanged)
+                continue;
+
+            try
+            {
+                if (output.KeyboardKey is Key key && key != Key.None)
+                {
+                    if (transition.IsActive)
+                    {
+                        if (mapping.Trigger == TriggerMoment.Tap)
+                            _keyboardEmulator.TapKey(key);
+                        else if (mapping.Trigger != TriggerMoment.Released)
+                            _keyboardEmulator.KeyDown(key);
+                    }
+                    else
+                    {
+                        if (mapping.Trigger == TriggerMoment.Released)
+                            _keyboardEmulator.TapKey(key);
+                        else if (mapping.Trigger != TriggerMoment.Tap)
+                            _keyboardEmulator.KeyUp(key);
+                    }
+                }
+                else if (output.PointerAction is PointerAction pointerAction)
+                {
+                    if (transition.IsActive)
+                    {
+                        if (mapping.Trigger == TriggerMoment.Tap)
+                            SendPointerAction(pointerAction, TriggerMoment.Tap);
+                        else if (mapping.Trigger != TriggerMoment.Released)
+                            SendPointerAction(pointerAction, TriggerMoment.Pressed);
+                    }
+                    else
+                    {
+                        if (mapping.Trigger == TriggerMoment.Released)
+                            SendPointerAction(pointerAction, TriggerMoment.Tap);
+                        else if (mapping.Trigger != TriggerMoment.Tap)
+                            SendPointerAction(pointerAction, TriggerMoment.Released);
+                    }
+                }
+
+                var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
+                _setMappedOutput($"{baseLabel} ({moment})");
+                _setMappingStatus($"Trigger {mapping.From.Type}: {baseLabel} ({moment})");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed trigger mapping. key={mapping.KeyboardKey}, ex={ex.Message}");
+                _setMappingStatus($"Error sending '{mapping.KeyboardKey}': {ex.Message}");
+            }
+        }
+    }
+
     public void ForceReleaseAllOutputs()
     {
         _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
@@ -236,7 +327,9 @@ public sealed class MappingEngine : IMappingEngine
     private HashSet<DispatchedOutput> CollectReleasedOutputsHandledByMappings(
         GamepadButtons changedButton,
         IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyCollection<MappingEntry> snapshot)
+        IReadOnlyCollection<MappingEntry> snapshot,
+        float leftTriggerValue,
+        float rightTriggerValue)
     {
         var handledOutputs = new HashSet<DispatchedOutput>();
         foreach (var mapping in snapshot)
@@ -245,9 +338,10 @@ public sealed class MappingEngine : IMappingEngine
                 continue;
             if (mapping.Trigger != TriggerMoment.Released)
                 continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out _))
+            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out _))
                 continue;
-            if (!ChordResolver.DoesChordMatchEvent(chordButtons, changedButton, activeButtons))
+            var triggerThreshold = GetTriggerMatchThreshold(mapping);
+            if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, changedButton, activeButtons))
                 continue;
             if (!TryResolveMappedOutput(mapping.KeyboardKey, out var output, out _))
                 continue;
@@ -257,6 +351,9 @@ public sealed class MappingEngine : IMappingEngine
 
         return handledOutputs;
     }
+
+    private static float GetTriggerMatchThreshold(MappingEntry mapping) =>
+        mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : 0.35f;
 
     private bool TryResolveMappedOutput(string? outputToken, out DispatchedOutput output, out string outputLabel)
     {
