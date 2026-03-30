@@ -25,7 +25,7 @@
     { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftCtrl", "description": "Toggle walk / run", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "C", "description": "Crouch / Stand", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "description": "Open / Close menu", "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "description": "Menu (tap) / Map (hold)", "trigger": "Tap", "holdKeyboardKey": "M", "holdThresholdMs": 450, "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / Unlock cursor", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / Unlock cursor", "trigger": "Released", "analogThreshold": null },
 

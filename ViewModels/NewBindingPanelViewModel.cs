@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -40,11 +41,27 @@ public partial class NewBindingPanelViewModel : ObservableObject
     [ObservableProperty]
     private string newBindingDescription = string.Empty;
 
+    [ObservableProperty]
+    private string newBindingHoldKeyboardKey = string.Empty;
+
+    [ObservableProperty]
+    private string newBindingHoldThresholdText = string.Empty;
+
     private ICommand? _recordNewBindingKeyCommand;
     public ICommand RecordNewBindingKeyCommand => _recordNewBindingKeyCommand ??= new RelayCommand(RecordNewBindingKey);
 
     private ICommand? _createKeyBindingCommand;
     public ICommand CreateKeyBindingCommand => _createKeyBindingCommand ??= new RelayCommand(CreateKeyBinding);
+
+    private ICommand? _recordNewHoldKeyCommand;
+    public ICommand RecordNewHoldKeyCommand => _recordNewHoldKeyCommand ??= new RelayCommand(RecordNewHoldKey);
+
+    private void RecordNewHoldKey()
+    {
+        _mainViewModel.KeyboardCaptureService.BeginCapture(
+            "Press the HOLD output key (Esc to cancel).",
+            key => NewBindingHoldKeyboardKey = key.ToString());
+    }
 
     private void RecordNewBindingKey()
     {
@@ -65,13 +82,35 @@ public partial class NewBindingPanelViewModel : ObservableObject
         if (key == Key.None && !isMouseLookOutput)
             return;
 
+        int? holdMs = null;
+        var ht = (NewBindingHoldThresholdText ?? string.Empty).Trim();
+        if (!string.IsNullOrEmpty(ht) &&
+            int.TryParse(ht, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+            parsed > 0)
+            holdMs = parsed;
+
+        var holdTok = (NewBindingHoldKeyboardKey ?? string.Empty).Trim();
+        string holdKeyStored = string.Empty;
+        if (!string.IsNullOrWhiteSpace(holdTok))
+        {
+            var hk = MappingEngine.ParseKey(holdTok);
+            var holdMouseLook = MappingEngine.IsMouseLookOutput(holdTok);
+            if (hk == Key.None && !holdMouseLook)
+                return;
+            holdKeyStored = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdTok) : hk.ToString();
+        }
+        else
+            holdMs = null;
+
         var entry = new MappingEntry
         {
             From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button },
             KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString(),
             Trigger = NewBindingTrigger,
             Description = (NewBindingDescription ?? string.Empty).Trim(),
-            AnalogThreshold = null
+            AnalogThreshold = null,
+            HoldKeyboardKey = holdKeyStored,
+            HoldThresholdMs = holdMs
         };
 
         _mainViewModel.Mappings.Add(entry);

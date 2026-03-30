@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Input;
+using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;
@@ -12,6 +13,10 @@ namespace GamepadMapperGUI.Core;
 
 public sealed class MappingEngine : IMappingEngine
 {
+    private const int MinHoldThresholdMs = 150;
+    private const int MaxHoldThresholdMs = 3000;
+    private const int DefaultHoldThresholdMs = 450;
+
     private static readonly Dictionary<string, string> KeyAliases = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Spacebar"] = nameof(Key.Space),
@@ -47,6 +52,11 @@ public sealed class MappingEngine : IMappingEngine
     private readonly TriggerMoment _buttonPressedTrigger = TriggerMoment.Pressed;
     private readonly TriggerMoment _buttonTapTrigger = TriggerMoment.Tap;
 
+    private IReadOnlyCollection<GamepadButtons> _latestActiveButtons = Array.Empty<GamepadButtons>();
+    private float _latestLeftTrigger;
+    private float _latestRightTrigger;
+    private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
+
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
         IMouseEmulator mouseEmulator,
@@ -76,12 +86,20 @@ public sealed class MappingEngine : IMappingEngine
     {
         var buttonName = buttons.ToString();
         var snapshot = mappings.ToList();
+        _latestActiveButtons = activeButtons;
+        _latestLeftTrigger = leftTriggerValue;
+        _latestRightTrigger = rightTriggerValue;
+
+        if (trigger == TriggerMoment.Pressed)
+            CancelHoldSessionsSupersededByMoreSpecificChord(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue);
+
         var releasedOutputsHandledByMappings = trigger == TriggerMoment.Released
             ? CollectReleasedOutputsHandledByMappings(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue)
             : null;
 
         if (trigger == TriggerMoment.Released)
         {
+            HandleHoldBindingRelease(buttons, activeButtons, leftTriggerValue, rightTriggerValue);
             ForceReleaseHeldOutputsForButton(buttons, releasedOutputsHandledByMappings);
         }
         else if (!_canDispatchOutput())
@@ -91,6 +109,7 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         var matched = false;
+        var suppressedByHoldDual = false;
         var candidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool RequiresRightTrigger, bool RequiresLeftTrigger, string SourceToken)>();
 
         foreach (var mapping in snapshot)
@@ -103,6 +122,14 @@ public sealed class MappingEngine : IMappingEngine
             if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, buttons, activeButtons))
                 continue;
             if (mapping.Trigger != trigger) continue;
+            if (trigger == TriggerMoment.Tap && _holdSessions.ContainsKey(sourceToken))
+                continue;
+            if (IsHoldDualMapping(mapping))
+            {
+                suppressedByHoldDual = true;
+                continue;
+            }
+
             candidates.Add((mapping, chordButtons, reqRt, reqLt, sourceToken));
         }
 
@@ -141,8 +168,285 @@ public sealed class MappingEngine : IMappingEngine
             }
         }
 
-        if (!matched)
+        var holdArmed = false;
+        if (trigger == TriggerMoment.Pressed)
+            holdArmed = TryArmHoldBinding(buttons, activeButtons, snapshot, leftTriggerValue, rightTriggerValue);
+
+        if (!matched && !suppressedByHoldDual && !holdArmed)
             _setMappingStatus($"No mapping for {buttonName} ({trigger})");
+    }
+
+    private static bool IsHoldDualMapping(MappingEntry mapping)
+    {
+        if (mapping.Trigger != TriggerMoment.Tap)
+            return false;
+        if (string.IsNullOrWhiteSpace(mapping.HoldKeyboardKey))
+            return false;
+        if (mapping.HoldThresholdMs is < 0)
+            return false;
+        if (!ChordResolver.TryParseButtonChord(mapping.From?.Value, out _, out var reqRt, out var reqLt, out _))
+            return false;
+        if (reqRt || reqLt)
+            return false;
+        return true;
+    }
+
+    private static int ClampHoldThresholdMs(int? value)
+    {
+        var ms = value ?? DefaultHoldThresholdMs;
+        return Math.Clamp(ms, MinHoldThresholdMs, MaxHoldThresholdMs);
+    }
+
+    private sealed class HoldSession
+    {
+        public required string SourceToken { get; init; }
+        public required string ShortKeyToken { get; init; }
+        public required string HoldKeyToken { get; init; }
+        public required List<GamepadButtons> ChordButtons { get; init; }
+        public required bool RequiresRightTrigger { get; init; }
+        public required bool RequiresLeftTrigger { get; init; }
+        public required float TriggerMatchThreshold { get; init; }
+        public required DispatcherTimer Timer { get; init; }
+        public bool LongFired { get; set; }
+    }
+
+    private bool TryArmHoldBinding(
+        GamepadButtons buttons,
+        IReadOnlyCollection<GamepadButtons> activeButtons,
+        IReadOnlyList<MappingEntry> snapshot,
+        float leftTriggerValue,
+        float rightTriggerValue)
+    {
+        if (!_canDispatchOutput())
+            return false;
+
+        var holdCandidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool ReqRt, bool ReqLt, string SourceToken)>();
+        foreach (var mapping in snapshot)
+        {
+            if (mapping?.From is null || !IsHoldDualMapping(mapping)) continue;
+            if (mapping.From.Type != GamepadBindingType.Button) continue;
+            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
+                continue;
+            if (reqRt || reqLt)
+                continue;
+            var triggerThreshold = GetTriggerMatchThreshold(mapping);
+            if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, buttons, activeButtons))
+                continue;
+            holdCandidates.Add((mapping, chordButtons, reqRt, reqLt, sourceToken));
+        }
+
+        for (var i = 0; i < holdCandidates.Count; i++)
+        {
+            var candidate = holdCandidates[i];
+            var hasMoreSpecific = holdCandidates.Any(other =>
+                !ReferenceEquals(other.Mapping, candidate.Mapping) &&
+                ChordResolver.IsOtherChordStrictlyMoreSpecific(
+                    candidate.ChordButtons,
+                    candidate.ReqRt,
+                    candidate.ReqLt,
+                    other.ChordButtons,
+                    other.ReqRt,
+                    other.ReqLt));
+            if (hasMoreSpecific)
+                continue;
+
+            if (_holdSessions.ContainsKey(candidate.SourceToken))
+                return true;
+
+            if (!TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out _, out _) ||
+                !TryResolveMappedOutput(candidate.Mapping.HoldKeyboardKey, out _, out _))
+                continue;
+
+            var thresholdMs = ClampHoldThresholdMs(candidate.Mapping.HoldThresholdMs);
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(thresholdMs) };
+            var session = new HoldSession
+            {
+                SourceToken = candidate.SourceToken,
+                ShortKeyToken = candidate.Mapping.KeyboardKey ?? string.Empty,
+                HoldKeyToken = candidate.Mapping.HoldKeyboardKey ?? string.Empty,
+                ChordButtons = candidate.ChordButtons,
+                RequiresRightTrigger = candidate.ReqRt,
+                RequiresLeftTrigger = candidate.ReqLt,
+                TriggerMatchThreshold = GetTriggerMatchThreshold(candidate.Mapping),
+                Timer = timer
+            };
+
+            timer.Tick += (_, _) => OnHoldTimerElapsed(session);
+            timer.Start();
+            _holdSessions[candidate.SourceToken] = session;
+            _setMappingStatus($"Hold armed: {candidate.SourceToken} ({thresholdMs} ms)");
+            return true;
+        }
+
+        return false;
+    }
+
+    private void OnHoldTimerElapsed(HoldSession session)
+    {
+        session.Timer.Stop();
+        if (!_holdSessions.TryGetValue(session.SourceToken, out var live) || !ReferenceEquals(live, session))
+            return;
+
+        if (!ChordPhysicallyActive(
+                session.ChordButtons,
+                session.RequiresRightTrigger,
+                session.RequiresLeftTrigger,
+                _latestLeftTrigger,
+                _latestRightTrigger,
+                session.TriggerMatchThreshold,
+                _latestActiveButtons))
+        {
+            DisposeHoldSession(session.SourceToken);
+            return;
+        }
+
+        if (!_canDispatchOutput())
+        {
+            _setMappingStatus($"Suppressed hold output ({session.SourceToken}) - target is not foreground");
+            DisposeHoldSession(session.SourceToken);
+            return;
+        }
+
+        if (!TryResolveMappedOutput(session.HoldKeyToken, out var output, out var label))
+        {
+            DisposeHoldSession(session.SourceToken);
+            return;
+        }
+
+        session.LongFired = true;
+        var outputLabel = $"{label} (Hold)";
+        _setMappedOutput(outputLabel);
+        _setMappingStatus($"Queued hold: {session.SourceToken} -> {outputLabel}");
+        QueueOutputDispatch(session.SourceToken, TriggerMoment.Tap, output, outputLabel, session.HoldKeyToken);
+    }
+
+    private void HandleHoldBindingRelease(
+        GamepadButtons releasedButton,
+        IReadOnlyCollection<GamepadButtons> activeButtonsPreRelease,
+        float leftTriggerValue,
+        float rightTriggerValue)
+    {
+        var postRelease = new HashSet<GamepadButtons>(activeButtonsPreRelease);
+        postRelease.Remove(releasedButton);
+
+        var tokensToRemove = new List<string>();
+        foreach (var kvp in _holdSessions)
+        {
+            var session = kvp.Value;
+            if (!session.ChordButtons.Contains(releasedButton))
+                continue;
+
+            session.Timer.Stop();
+            if (!ChordPhysicallyActive(
+                    session.ChordButtons,
+                    session.RequiresRightTrigger,
+                    session.RequiresLeftTrigger,
+                    leftTriggerValue,
+                    rightTriggerValue,
+                    session.TriggerMatchThreshold,
+                    postRelease))
+            {
+                if (!session.LongFired && _canDispatchOutput())
+                {
+                    if (TryResolveMappedOutput(session.ShortKeyToken, out var output, out var label))
+                    {
+                        var outputLabel = $"{label} (Tap)";
+                        _setMappedOutput(outputLabel);
+                        _setMappingStatus($"Queued tap: {session.SourceToken} -> {outputLabel}");
+                        QueueOutputDispatch(session.SourceToken, TriggerMoment.Tap, output, outputLabel, session.ShortKeyToken);
+                    }
+                }
+
+                tokensToRemove.Add(kvp.Key);
+            }
+        }
+
+        foreach (var t in tokensToRemove)
+            _holdSessions.Remove(t);
+    }
+
+    private static bool ChordPhysicallyActive(
+        IReadOnlyCollection<GamepadButtons> chordButtons,
+        bool requiresRightTrigger,
+        bool requiresLeftTrigger,
+        float leftTriggerValue,
+        float rightTriggerValue,
+        float triggerMatchThreshold,
+        IReadOnlyCollection<GamepadButtons> activeButtons)
+    {
+        foreach (var button in chordButtons)
+        {
+            if (!activeButtons.Contains(button))
+                return false;
+        }
+
+        if (requiresRightTrigger && rightTriggerValue < triggerMatchThreshold)
+            return false;
+        if (requiresLeftTrigger && leftTriggerValue < triggerMatchThreshold)
+            return false;
+        return true;
+    }
+
+    private void DisposeHoldSession(string sourceToken)
+    {
+        if (_holdSessions.Remove(sourceToken, out var session))
+            session.Timer.Stop();
+    }
+
+    /// <summary>
+    /// If the user is building a stricter chord (e.g. Start then Start+DPadUp), drop a single-button hold timer
+    /// so the short action does not fire on release.
+    /// </summary>
+    private void CancelHoldSessionsSupersededByMoreSpecificChord(
+        GamepadButtons changedButton,
+        IReadOnlyCollection<GamepadButtons> activeButtons,
+        IReadOnlyList<MappingEntry> snapshot,
+        float leftTriggerValue,
+        float rightTriggerValue)
+    {
+        foreach (var kvp in _holdSessions.ToArray())
+        {
+            var session = kvp.Value;
+            if (session.ChordButtons.Count != 1)
+                continue;
+            foreach (var mapping in snapshot)
+            {
+                if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
+                    continue;
+                if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var obChord, out var obRt, out var obLt, out _))
+                     continue;
+                if (!ChordResolver.IsOtherChordStrictlyMoreSpecific(
+                        session.ChordButtons,
+                        session.RequiresRightTrigger,
+                        session.RequiresLeftTrigger,
+                        obChord,
+                        obRt,
+                        obLt))
+                    continue;
+
+                var th = GetTriggerMatchThreshold(mapping);
+                if (!ChordResolver.DoesChordMatchEvent(
+                        obChord,
+                        obRt,
+                        obLt,
+                        leftTriggerValue,
+                        rightTriggerValue,
+                        th,
+                        changedButton,
+                        activeButtons))
+                    continue;
+
+                DisposeHoldSession(kvp.Key);
+                break;
+            }
+        }
+    }
+
+    private void ClearAllHoldSessions()
+    {
+        foreach (var session in _holdSessions.Values)
+            session.Timer.Stop();
+        _holdSessions.Clear();
     }
 
     public void HandleThumbstickMappings(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyCollection<MappingEntry> mappings)
@@ -268,6 +572,7 @@ public sealed class MappingEngine : IMappingEngine
 
     public void ForceReleaseAllOutputs()
     {
+        ClearAllHoldSessions();
         _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
     }
 

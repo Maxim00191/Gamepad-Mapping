@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -48,10 +49,19 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private string editBindingDescription = string.Empty;
 
+    [ObservableProperty]
+    private string editBindingHoldKeyboardKey = string.Empty;
+
+    [ObservableProperty]
+    private string editBindingHoldThresholdText = string.Empty;
+
     public string KeyboardKeyCapturePrompt => _mainViewModel.KeyboardCaptureService.KeyboardKeyCapturePrompt;
 
     private ICommand? _recordKeyboardKeyCommand;
     public ICommand RecordKeyboardKeyCommand => _recordKeyboardKeyCommand ??= new RelayCommand(RecordKeyboardKey);
+
+    private ICommand? _recordHoldKeyboardKeyCommand;
+    public ICommand RecordHoldKeyboardKeyCommand => _recordHoldKeyboardKeyCommand ??= new RelayCommand(RecordHoldKeyboardKey);
 
     private ICommand? _updateSelectedBindingCommand;
     public ICommand UpdateSelectedBindingCommand => _updateSelectedBindingCommand ??= new RelayCommand(UpdateSelectedBinding);
@@ -79,6 +89,8 @@ public partial class MappingEditorViewModel : ObservableObject
         EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
         EditBindingKeyboardKey = value?.KeyboardKey ?? string.Empty;
         EditBindingDescription = value?.Description ?? string.Empty;
+        EditBindingHoldKeyboardKey = value?.HoldKeyboardKey ?? string.Empty;
+        EditBindingHoldThresholdText = value?.HoldThresholdMs?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
 
     private void RecordKeyboardKey()
@@ -93,6 +105,22 @@ public partial class MappingEditorViewModel : ObservableObject
                 EditBindingKeyboardKey = key.ToString();
                 if (SelectedMapping is not null)
                     SelectedMapping.KeyboardKey = EditBindingKeyboardKey;
+                ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+            });
+    }
+
+    private void RecordHoldKeyboardKey()
+    {
+        if (SelectedMapping is null)
+            return;
+
+        _mainViewModel.KeyboardCaptureService.BeginCapture(
+            "Press the HOLD output key (Esc to cancel).",
+            key =>
+            {
+                EditBindingHoldKeyboardKey = key.ToString();
+                if (SelectedMapping is not null)
+                    SelectedMapping.HoldKeyboardKey = EditBindingHoldKeyboardKey;
                 ConfigurationChanged?.Invoke(this, EventArgs.Empty);
             });
     }
@@ -122,6 +150,29 @@ public partial class MappingEditorViewModel : ObservableObject
         SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
         SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
         SelectedMapping.AnalogThreshold = null;
+
+        var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(holdToken))
+        {
+            SelectedMapping.HoldKeyboardKey = string.Empty;
+            SelectedMapping.HoldThresholdMs = null;
+        }
+        else
+        {
+            var holdKey = MappingEngine.ParseKey(holdToken);
+            var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
+            if (holdKey == Key.None && !holdMouseLook)
+                return;
+            SelectedMapping.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
+            int? holdMs = null;
+            var t = (EditBindingHoldThresholdText ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(t) &&
+                int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+                parsed > 0)
+                holdMs = parsed;
+            SelectedMapping.HoldThresholdMs = holdMs;
+        }
+
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -133,7 +184,9 @@ public partial class MappingEditorViewModel : ObservableObject
             KeyboardKey = "A",
             Trigger = TriggerMoment.Tap,
             Description = string.Empty,
-            AnalogThreshold = null
+            AnalogThreshold = null,
+            HoldKeyboardKey = string.Empty,
+            HoldThresholdMs = null
         };
 
         _mainViewModel.Mappings.Add(entry);

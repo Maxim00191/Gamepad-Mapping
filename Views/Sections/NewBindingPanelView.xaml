@@ -34,6 +34,22 @@
                         Margin="8,0,0,0" />
             </Grid>
 
+            <TextBlock Text="Hold output (optional, Tap only)" Margin="0,8,0,4" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                         Text="{Binding NewBindingHoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Grid.Column="1"
+                        Content="Record"
+                        Command="{Binding RecordNewHoldKeyCommand}"
+                        Margin="8,0,0,0" />
+            </Grid>
+            <TextBlock Text="Hold threshold ms (optional)" Margin="0,8,0,4" />
+            <TextBox Text="{Binding NewBindingHoldThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
             <TextBlock Text="Description (optional)" Margin="0,8,0,4" />
             <TextBox Text="{Binding NewBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 

@@ -44,7 +44,13 @@
                     <DataGridTextColumn Header="KB/M Output"
                                         IsReadOnly="True"
                                         Binding="{Binding KeyboardKey, Mode=OneWay}"
-                                        Width="1.3*" />
+                                        Width="1.2*" />
+                    <DataGridTextColumn Header="Hold output"
+                                        Binding="{Binding HoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="*" />
+                    <DataGridTextColumn Header="Hold ms"
+                                        Binding="{Binding HoldThresholdMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="0.8*" />
                     <DataGridTextColumn Header="Description"
                                         Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="1.6*" />
@@ -85,7 +91,7 @@
                     <ComboBox ItemsSource="{Binding AvailableTriggerModes}"
                               SelectedItem="{Binding EditBindingTrigger, Mode=TwoWay}" />
 
-                    <TextBlock Text="KB/M output" Margin="0,8,0,4" />
+                    <TextBlock Text="KB/M output (short press / tap)" Margin="0,8,0,4" />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -103,6 +109,27 @@
                                 Command="{Binding UpdateSelectedBindingCommand}"
                                 Margin="8,0,0,0" />
                     </Grid>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Margin="0,10,0,4"
+                               Opacity="0.85">
+                        Hold bind (optional): Trigger must be Tap. Hold the button at least the threshold to send the hold key once; quick release sends the short key. Button-only chords (no LT/RT in the chord).
+                    </TextBlock>
+                    <TextBlock Text="Hold output (long press)" Margin="0,0,0,4" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding EditBindingHoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"
+                                Content="Record"
+                                Command="{Binding RecordHoldKeyboardKeyCommand}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock Text="Hold threshold (ms, empty = default ~450)" Margin="0,8,0,4" />
+                    <TextBox Text="{Binding EditBindingHoldThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                     <TextBlock Text="Description" Margin="0,8,0,4" />
                     <TextBox Text="{Binding EditBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
