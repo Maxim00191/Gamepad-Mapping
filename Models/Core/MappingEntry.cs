@@ -41,6 +41,15 @@ public class MappingEntry : ObservableObject
         set => SetProperty(ref _description, value);
     }
 
+    private string? _descriptionKey;
+
+    [JsonProperty("descriptionKey", NullValueHandling = NullValueHandling.Ignore)]
+    public string? DescriptionKey
+    {
+        get => _descriptionKey;
+        set => SetProperty(ref _descriptionKey, value);
+    }
+
     private TriggerMoment _trigger = TriggerMoment.Pressed;
 
     [JsonProperty("trigger")]

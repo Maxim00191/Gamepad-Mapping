@@ -16,6 +16,9 @@ public class GameProfileTemplate
     [JsonProperty("displayName")]
     public string DisplayName { get; set; } = string.Empty;
 
+    [JsonProperty("displayNameKey")]
+    public string DisplayNameKey { get; set; } = string.Empty;
+
     [JsonProperty("mappings")]
     public List<MappingEntry> Mappings { get; set; } = new();
 }

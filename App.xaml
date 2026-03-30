@@ -3,8 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Gamepad_Mapping"
              xmlns:ui="clr-namespace:Gamepad_Mapping.Behaviors"
+             xmlns:services="clr-namespace:GamepadMapperGUI.Services"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <services:TranslationService x:Key="Loc" />
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFF7F7F7" />
         <SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="AppBorderBrush" Color="#FF333333" />
@@ -63,6 +65,56 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type CheckBox}">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type CheckBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="Box"
+                                    Width="18"
+                                    Height="18"
+                                    CornerRadius="4"
+                                    Background="{DynamicResource AppControlSurfaceBrush}"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                    BorderThickness="1">
+                                <Path x:Name="Check"
+                                      Width="10"
+                                      Height="8"
+                                      Margin="3,4,0,0"
+                                      Stroke="{DynamicResource AppAccentBrush}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round"
+                                      Data="M 0 4 L 3.2 7 L 9 1"
+                                      Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                                <Setter TargetName="Box" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                                <Setter TargetName="Box" Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

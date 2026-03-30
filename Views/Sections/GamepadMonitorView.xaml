@@ -7,7 +7,17 @@
             CornerRadius="6"
             Padding="12">
         <StackPanel>
-            <TextBlock Text="Live Gamepad Monitor" FontWeight="Bold" Margin="0,0,0,10" />
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[LiveGamepadMonitor]}"
+                           FontWeight="Bold"
+                           VerticalAlignment="Center"
+                           DockPanel.Dock="Left" />
+                <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[ShowHud]}"
+                          IsChecked="{Binding IsHudEnabled, Mode=TwoWay}"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          DockPanel.Dock="Right" />
+            </DockPanel>
 
             <TextBlock Text="{Binding IsGamepadRunning, StringFormat=Reader running: {0}}" />
 
@@ -30,7 +40,7 @@
             <TextBlock Text="{Binding LeftTrigger, StringFormat=Left Trigger: {0:0.00}}" />
             <TextBlock Text="{Binding RightTrigger, StringFormat=Right Trigger: {0:0.00}}" />
 
-            <Button Content="Stop reader"
+            <Button Content="{Binding Source={StaticResource Loc}, Path=[StopReader]}"
                     Command="{Binding StopGamepadCommand}"
                     Margin="0,16,0,0"
                     HorizontalAlignment="Left" />

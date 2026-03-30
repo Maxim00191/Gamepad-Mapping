@@ -73,7 +73,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         MappingEditorPanel = new MappingEditorViewModel(this);
-        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand);
+        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, OnHudEnabledChanged);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -295,6 +295,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         DispatchToUi(() =>
         {
+            if (!GamepadMonitorPanel.IsHudEnabled)
+            {
+                _comboHudWindow?.HideHud();
+                return;
+            }
+
             if (content is null)
             {
                 _comboHudWindow?.HideHud();
@@ -304,6 +310,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _comboHudWindow ??= new ComboHudWindow();
             _comboHudWindow.ShowHud(content);
         });
+    }
+
+    private void OnHudEnabledChanged(bool isEnabled)
+    {
+        if (!isEnabled)
+            DispatchToUi(() => _comboHudWindow?.HideHud());
     }
 
     private void LoadSelectedTemplate()

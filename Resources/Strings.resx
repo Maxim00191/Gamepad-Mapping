@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ProfileAndTemplate" xml:space="preserve">
+    <value>Profile and Template</value>
+  </data>
+  <data name="Template" xml:space="preserve">
+    <value>Template</value>
+  </data>
+  <data name="DisplayName" xml:space="preserve">
+    <value>Display name</value>
+  </data>
+  <data name="SaveProfile" xml:space="preserve">
+    <value>Save profile</value>
+  </data>
+  <data name="DeleteProfile" xml:space="preserve">
+    <value>Delete profile</value>
+  </data>
+  <data name="CreateNewProfile" xml:space="preserve">
+    <value>Create New Profile</value>
+  </data>
+  <data name="GameKey" xml:space="preserve">
+    <value>Game key</value>
+  </data>
+  <data name="CreateProfile" xml:space="preserve">
+    <value>Create profile</value>
+  </data>
+  <data name="ReloadTemplate" xml:space="preserve">
+    <value>Reload template</value>
+  </data>
+  <data name="CreateNewBinding" xml:space="preserve">
+    <value>Create New KB/M Binding</value>
+  </data>
+  <data name="Button" xml:space="preserve">
+    <value>Button</value>
+  </data>
+  <data name="Trigger" xml:space="preserve">
+    <value>Trigger</value>
+  </data>
+  <data name="KbmOutput" xml:space="preserve">
+    <value>KB/M output (e.g. Space, LeftClick, WheelUp)</value>
+  </data>
+  <data name="RecordKey" xml:space="preserve">
+    <value>Record key</value>
+  </data>
+  <data name="HoldOutputOptionalTapOnly" xml:space="preserve">
+    <value>Hold output (optional, Tap only)</value>
+  </data>
+  <data name="Record" xml:space="preserve">
+    <value>Record</value>
+  </data>
+  <data name="HoldThresholdMsOptional" xml:space="preserve">
+    <value>Hold threshold ms (optional)</value>
+  </data>
+  <data name="DescriptionOptional" xml:space="preserve">
+    <value>Description (optional)</value>
+  </data>
+  <data name="CreateBinding" xml:space="preserve">
+    <value>Create binding</value>
+  </data>
+  <data name="LiveGamepadMonitor" xml:space="preserve">
+    <value>Live Gamepad Monitor</value>
+  </data>
+  <data name="ShowHud" xml:space="preserve">
+    <value>Show HUD</value>
+  </data>
+  <data name="StopReader" xml:space="preserve">
+    <value>Stop reader</value>
+  </data>
+  <data name="ProcessTarget" xml:space="preserve">
+    <value>Process Target</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ClearTarget" xml:space="preserve">
+    <value>Clear target</value>
+  </data>
+  <data name="ProcessRestrictionHint" xml:space="preserve">
+    <value>Select a process to restrict keyboard input to that window. Keys are only sent when the target is in the foreground.</value>
+  </data>
+  <data name="FromType" xml:space="preserve">
+    <value>From Type</value>
+  </data>
+  <data name="FromValue" xml:space="preserve">
+    <value>From Value</value>
+  </data>
+  <data name="KbmOutputShort" xml:space="preserve">
+    <value>KB/M Output</value>
+  </data>
+  <data name="HoldOutput" xml:space="preserve">
+    <value>Hold output</value>
+  </data>
+  <data name="HoldMs" xml:space="preserve">
+    <value>Hold ms</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Threshold" xml:space="preserve">
+    <value>Threshold</value>
+  </data>
+  <data name="SelectedMappingDetails" xml:space="preserve">
+    <value>Selected Mapping Details</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="KbmOutputTap" xml:space="preserve">
+    <value>KB/M output (short press / tap)</value>
+  </data>
+  <data name="UpdateSelectedBinding" xml:space="preserve">
+    <value>Update selected binding</value>
+  </data>
+  <data name="HoldBindHelp" xml:space="preserve">
+    <value>Hold bind (optional): Trigger must be Tap. Hold the button at least the threshold to send the hold key once; quick release sends the short key. Button-only chords (no LT/RT in the chord).</value>
+  </data>
+  <data name="HoldOutputLongPress" xml:space="preserve">
+    <value>Hold output (long press)</value>
+  </data>
+  <data name="HoldThresholdDefault" xml:space="preserve">
+    <value>Hold threshold (ms, empty = default ~450)</value>
+  </data>
+  <data name="AddMapping" xml:space="preserve">
+    <value>Add mapping</value>
+  </data>
+  <data name="RemoveSelected" xml:space="preserve">
+    <value>Remove selected</value>
+  </data>
+  <data name="TemplateName_Default" xml:space="preserve">
+    <value>Elden Ring - Keyboard/Mouse (Combo)</value>
+  </data>
+  <data name="TemplateName_FlightSim" xml:space="preserve">
+    <value>Flight Sim (example)</value>
+  </data>
+  <data name="TemplateName_RocoKingdom" xml:space="preserve">
+    <value>Roco Kingdom World</value>
+  </data>
+  <data name="MapDesc_MoveForward" xml:space="preserve">
+    <value>Move forward</value>
+  </data>
+  <data name="MapDesc_MoveBackward" xml:space="preserve">
+    <value>Move backward</value>
+  </data>
+  <data name="MapDesc_MoveLeft" xml:space="preserve">
+    <value>Move (WASD): left</value>
+  </data>
+  <data name="MapDesc_MoveRight" xml:space="preserve">
+    <value>Move (WASD): right</value>
+  </data>
+  <data name="MapDesc_RotateViewHorizontal" xml:space="preserve">
+    <value>Rotate camera horizontally</value>
+  </data>
+  <data name="MapDesc_RotateViewVertical" xml:space="preserve">
+    <value>Rotate camera vertically</value>
+  </data>
+  <data name="MapDesc_EnterAim" xml:space="preserve">
+    <value>Enter aiming mode</value>
+  </data>
+  <data name="MapDesc_R_MountCast" xml:space="preserve">
+    <value>Use mount skill / mount or dismount / cast on self</value>
+  </data>
+  <data name="MapDesc_ExitAim" xml:space="preserve">
+    <value>Exit aiming mode</value>
+  </data>
+  <data name="MapDesc_Space_Jump" xml:space="preserve">
+    <value>Jump</value>
+  </data>
+  <data name="MapDesc_F_InteractPickUp" xml:space="preserve">
+    <value>Interact / pick up</value>
+  </data>
+  <data name="MapDesc_X_CancelState" xml:space="preserve">
+    <value>Cancel mount / climbing / companion / special state</value>
+  </data>
+  <data name="MapDesc_E_SpiritBallHomeAction" xml:space="preserve">
+    <value>Switch to Spirit Ball mode; in home: equip food / plant seeds</value>
+  </data>
+  <data name="MapDesc_F1_SeasonQuickChat" xml:space="preserve">
+    <value>Open season screen / quick chat channel</value>
+  </data>
+  <data name="MapDesc_F2_Events" xml:space="preserve">
+    <value>Open events screen</value>
+  </data>
+  <data name="MapDesc_F3_MagicHandbook" xml:space="preserve">
+    <value>Open magic handbook</value>
+  </data>
+  <data name="MapDesc_F4_Compendium" xml:space="preserve">
+    <value>Open compendium</value>
+  </data>
+  <data name="MapDesc_F5_Shop" xml:space="preserve">
+    <value>Open shop</value>
+  </data>
+  <data name="MapDesc_F6_PikaShop" xml:space="preserve">
+    <value>Open Pika shop</value>
+  </data>
+  <data name="MapDesc_F7_FurnitureCompendium" xml:space="preserve">
+    <value>Open furniture compendium</value>
+  </data>
+  <data name="MapDesc_F8_DecorationMode" xml:space="preserve">
+    <value>Open decoration mode</value>
+  </data>
+  <data name="MapDesc_LShift_SprintMountSkill" xml:space="preserve">
+    <value>Sprint / use mount skill</value>
+  </data>
+  <data name="MapDesc_LCtrl_ToggleWalkRun" xml:space="preserve">
+    <value>Toggle walk/run state</value>
+  </data>
+  <data name="MapDesc_C_CrouchCallClear" xml:space="preserve">
+    <value>Crouch/stand in grass; call in home; clear crops in farm</value>
+  </data>
+  <data name="MapDesc_Esc_MenuClose" xml:space="preserve">
+    <value>Open/close menu (tap); open map (hold)</value>
+  </data>
+  <data name="MapDesc_LeftAlt_ShowUnlockCursor" xml:space="preserve">
+    <value>Show / unlock cursor</value>
+  </data>
+  <data name="MapDesc_1_SelectSpiritMagic1" xml:space="preserve">
+    <value>Select spirit/magic slot 1</value>
+  </data>
+  <data name="MapDesc_2_SelectSpiritMagic2" xml:space="preserve">
+    <value>Select spirit/magic slot 2</value>
+  </data>
+  <data name="MapDesc_3_SelectSpiritMagic3" xml:space="preserve">
+    <value>Select spirit/magic slot 3</value>
+  </data>
+  <data name="MapDesc_4_SelectSpiritMagic4" xml:space="preserve">
+    <value>Select spirit/magic slot 4</value>
+  </data>
+  <data name="MapDesc_5_SelectSpiritMagic5" xml:space="preserve">
+    <value>Select spirit/magic slot 5</value>
+  </data>
+  <data name="MapDesc_6_SelectSpiritMagic6" xml:space="preserve">
+    <value>Select spirit/magic slot 6</value>
+  </data>
+  <data name="MapDesc_Tab_OpenRolePlay" xml:space="preserve">
+    <value>Open RolePlay interface</value>
+  </data>
+  <data name="MapDesc_B_OpenBag" xml:space="preserve">
+    <value>Open bag</value>
+  </data>
+  <data name="MapDesc_M_OpenMap" xml:space="preserve">
+    <value>Open map</value>
+  </data>
+  <data name="MapDesc_J_OpenQuest" xml:space="preserve">
+    <value>Open quest interface</value>
+  </data>
+  <data name="MapDesc_P_OpenSpirit" xml:space="preserve">
+    <value>Open spirit interface</value>
+  </data>
+  <data name="MapDesc_O_OpenFriends" xml:space="preserve">
+    <value>Open friends interface</value>
+  </data>
+  <data name="MapDesc_K_OpenQuickWardrobe" xml:space="preserve">
+    <value>Open quick wardrobe</value>
+  </data>
+  <data name="MapDesc_I_PhotoMode" xml:space="preserve">
+    <value>Enter photo mode</value>
+  </data>
+  <data name="MapDesc_U_VisitorManagement" xml:space="preserve">
+    <value>Open visitor management popup</value>
+  </data>
+  <data name="MapDesc_V_ViewQuestDetails" xml:space="preserve">
+    <value>View quest details</value>
+  </data>
+  <data name="MapDesc_G_CheckNewMessages" xml:space="preserve">
+    <value>Check new messages (first unlock tutorial)</value>
+  </data>
+  <data name="MapDesc_Enter_BubbleChat" xml:space="preserve">
+    <value>Open scene bubble chat</value>
+  </data>
+</root>

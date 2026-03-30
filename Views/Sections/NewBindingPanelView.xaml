@@ -8,19 +8,19 @@
             Padding="12"
             Margin="0,0,0,12">
         <StackPanel>
-            <TextBlock Text="Create New KB/M Binding"
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CreateNewBinding]}"
                        FontWeight="SemiBold"
                        Margin="0,0,0,10" />
 
-            <TextBlock Text="Button" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Button]}" Margin="0,0,0,4" />
             <ComboBox ItemsSource="{Binding AvailableGamepadButtons}"
                       SelectedItem="{Binding NewBindingFromButton, Mode=TwoWay}" />
 
-            <TextBlock Text="Trigger" Margin="0,8,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />
             <ComboBox ItemsSource="{Binding AvailableTriggerModes}"
                       SelectedItem="{Binding NewBindingTrigger, Mode=TwoWay}" />
 
-            <TextBlock Text="KB/M output (e.g. Space, LeftClick, WheelUp)" Margin="0,8,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[KbmOutput]}" Margin="0,8,0,4" />
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -29,12 +29,12 @@
                 <TextBox Grid.Column="0"
                          Text="{Binding NewBindingKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 <Button Grid.Column="1"
-                        Content="Record key"
+                        Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
                         Command="{Binding RecordNewBindingKeyCommand}"
                         Margin="8,0,0,0" />
             </Grid>
 
-            <TextBlock Text="Hold output (optional, Tap only)" Margin="0,8,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldOutputOptionalTapOnly]}" Margin="0,8,0,4" />
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -43,17 +43,17 @@
                 <TextBox Grid.Column="0"
                          Text="{Binding NewBindingHoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 <Button Grid.Column="1"
-                        Content="Record"
+                        Content="{Binding Source={StaticResource Loc}, Path=[Record]}"
                         Command="{Binding RecordNewHoldKeyCommand}"
                         Margin="8,0,0,0" />
             </Grid>
-            <TextBlock Text="Hold threshold ms (optional)" Margin="0,8,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldThresholdMsOptional]}" Margin="0,8,0,4" />
             <TextBox Text="{Binding NewBindingHoldThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-            <TextBlock Text="Description (optional)" Margin="0,8,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DescriptionOptional]}" Margin="0,8,0,4" />
             <TextBox Text="{Binding NewBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-            <Button Content="Create binding"
+            <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateBinding]}"
                     Command="{Binding CreateKeyBindingCommand}"
                     Margin="0,12,0,0"
                     HorizontalAlignment="Left" />

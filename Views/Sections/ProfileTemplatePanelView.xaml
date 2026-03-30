@@ -8,50 +8,50 @@
             Padding="12"
             Margin="0,0,0,12">
         <StackPanel>
-            <TextBlock Text="Profile and Template"
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileAndTemplate]}"
                        FontWeight="Bold"
                        Margin="0,0,0,10" />
 
-            <TextBlock Text="Template" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Template]}" Margin="0,0,0,4" />
             <ComboBox ItemsSource="{Binding AvailableTemplates}"
                       DisplayMemberPath="DisplayName"
                       SelectedItem="{Binding SelectedTemplate}" />
 
-            <TextBlock Text="Display name" Margin="0,10,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,10,0,4" />
             <TextBox Text="{Binding CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock Text="{Binding MappingCount, StringFormat=Mappings: {0}}"
                        Margin="0,8,0,0" />
 
             <WrapPanel Margin="0,10,0,0">
-                <Button Content="Save profile"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[SaveProfile]}"
                         Command="{Binding SaveProfileCommand}"
                         Margin="0,0,10,0"
                         HorizontalAlignment="Left" />
 
-                <Button Content="Delete profile"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[DeleteProfile]}"
                         Command="{Binding DeleteSelectedProfileCommand}"
                         HorizontalAlignment="Left" />
             </WrapPanel>
 
             <Separator Margin="0,12,0,12" />
 
-            <TextBlock Text="Create New Profile"
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}"
                        FontWeight="SemiBold"
                        Margin="0,0,0,8" />
 
-            <TextBlock Text="Game key" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
             <TextBox Text="{Binding NewProfileGameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-            <TextBlock Text="Display name" Margin="0,8,0,4" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
             <TextBox Text="{Binding NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <WrapPanel Margin="0,12,0,0">
-                <Button Content="Create profile"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
                         Command="{Binding CreateProfileCommand}"
                         Margin="0,0,10,0"
                         HorizontalAlignment="Left" />
-                <Button Content="Reload template"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[ReloadTemplate]}"
                         Command="{Binding ReloadTemplateCommand}"
                         HorizontalAlignment="Left" />
             </WrapPanel>

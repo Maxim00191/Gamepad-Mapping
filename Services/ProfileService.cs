@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
@@ -16,11 +17,15 @@ public partial class ProfileService : IProfileService
 {
     private static readonly Regex ValidIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", RegexOptions.Compiled);
     private readonly ISettingsService _settingsService;
+    private readonly TranslationService _translationService;
     private readonly AppSettings _settings;
 
-    public ProfileService(ISettingsService? settingsService = null)
+    public ProfileService(ISettingsService? settingsService = null, TranslationService? translationService = null)
     {
         _settingsService = settingsService ?? new SettingsService();
+        _translationService = translationService
+            ?? Application.Current?.Resources["Loc"] as TranslationService
+            ?? new TranslationService();
         _settings = _settingsService.LoadSettings();
     }
 
@@ -54,6 +59,23 @@ public partial class ProfileService : IProfileService
 
         if (string.IsNullOrWhiteSpace(template.ProfileId))
             template.ProfileId = profileId.Trim();
+
+        if (!string.IsNullOrWhiteSpace(template.DisplayNameKey))
+        {
+            var localized = _translationService[template.DisplayNameKey];
+            if (!IsMissingLocalization(localized))
+                template.DisplayName = localized;
+        }
+
+        foreach (var mapping in template.Mappings)
+        {
+            if (string.IsNullOrWhiteSpace(mapping.DescriptionKey))
+                continue;
+
+            var localized = _translationService[mapping.DescriptionKey];
+            if (!IsMissingLocalization(localized))
+                mapping.Description = localized;
+        }
 
         return template;
     }
@@ -217,5 +239,8 @@ public partial class ProfileService : IProfileService
 
     [GeneratedRegex("-{2,}")]
     private static partial Regex MyRegex();
+
+    private static bool IsMissingLocalization(string value)
+        => value.Length >= 2 && value[0] == '[' && value[^1] == ']';
 }
 

@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "profileId": "default",
   "gameId": "default",
+  "displayNameKey": "TemplateName_Default",
   "displayName": "Elden Ring - Keyboard/Mouse (Combo)",
   "mappings": [
     {

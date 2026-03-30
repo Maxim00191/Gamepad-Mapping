@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "gameId": "flight_sim",
+  "displayNameKey": "TemplateName_FlightSim",
   "displayName": "Flight Sim (example)",
   "mappings": [
     { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Spacebar", "trigger": "Pressed" },

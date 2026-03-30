@@ -1,3 +1,4 @@
+using System;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -5,9 +6,12 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class GamepadMonitorViewModel : ObservableObject
 {
-    public GamepadMonitorViewModel(ICommand stopGamepadCommand)
+    private readonly Action<bool>? _setHudEnabled;
+
+    public GamepadMonitorViewModel(ICommand stopGamepadCommand, Action<bool>? setHudEnabled = null)
     {
         StopGamepadCommand = stopGamepadCommand;
+        _setHudEnabled = setHudEnabled;
     }
 
     [ObservableProperty]
@@ -42,6 +46,14 @@ public partial class GamepadMonitorViewModel : ObservableObject
 
     [ObservableProperty]
     private float rightTrigger;
+
+    [ObservableProperty]
+    private bool isHudEnabled = true;
+
+    partial void OnIsHudEnabledChanged(bool value)
+    {
+        _setHudEnabled?.Invoke(value);
+    }
 
     public ICommand StopGamepadCommand { get; }
 }

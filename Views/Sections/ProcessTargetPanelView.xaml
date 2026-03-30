@@ -16,7 +16,7 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0"
-                       Text="Process Target"
+                       Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
                        FontWeight="Bold"
                        Margin="0,0,0,8" />
 
@@ -27,10 +27,10 @@
                        Margin="0,0,0,8" />
 
             <WrapPanel Grid.Row="2" Margin="0,0,0,8">
-                <Button Content="Refresh"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[Refresh]}"
                         Command="{Binding RefreshProcessesCommand}"
                         Margin="0,0,8,0" />
-                <Button Content="Clear target"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[ClearTarget]}"
                         Command="{Binding ClearTargetProcessCommand}" />
             </WrapPanel>
 
@@ -81,7 +81,7 @@
                        FontSize="11"
                        Foreground="{DynamicResource AppSecondaryTextBrush}"
                        TextWrapping="Wrap"
-                       Text="Select a process to restrict keyboard input to that window. Keys are only sent when the target is in the foreground." />
+                       Text="{Binding Source={StaticResource Loc}, Path=[ProcessRestrictionHint]}" />
         </Grid>
     </Border>
 </UserControl>

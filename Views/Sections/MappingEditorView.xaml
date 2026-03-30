@@ -25,10 +25,10 @@
                       VerticalAlignment="Stretch"
                       MinHeight="200">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="From Type"
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[FromType]}"
                                         Binding="{Binding From.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="1.1*" />
-                    <DataGridTemplateColumn Header="From Value" Width="1.2*">
+                    <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[FromValue]}" Width="1.2*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding From.Value}" />
@@ -41,20 +41,20 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="KB/M Output"
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[KbmOutputShort]}"
                                         IsReadOnly="True"
                                         Binding="{Binding KeyboardKey, Mode=OneWay}"
                                         Width="1.2*" />
-                    <DataGridTextColumn Header="Hold output"
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[HoldOutput]}"
                                         Binding="{Binding HoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="*" />
-                    <DataGridTextColumn Header="Hold ms"
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[HoldMs]}"
                                         Binding="{Binding HoldThresholdMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="0.8*" />
-                    <DataGridTextColumn Header="Description"
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[Description]}"
                                         Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="1.6*" />
-                    <DataGridTemplateColumn Header="Trigger" Width="*">
+                    <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Trigger}" />
@@ -67,31 +67,100 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Threshold"
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[Threshold]}"
                                         Binding="{Binding AnalogThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="1.1*" />
                 </DataGrid.Columns>
             </DataGrid>
 
             <Expander Grid.Row="1"
-                      Header="Selected Mapping Details"
+                      Header="{Binding Source={StaticResource Loc}, Path=[SelectedMappingDetails]}"
                       IsExpanded="False"
                       Margin="0,10,0,0">
+                <Expander.Style>
+                    <Style TargetType="{x:Type Expander}">
+                        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Expander}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <ToggleButton x:Name="HeaderSite"
+                                                          Grid.Column="0"
+                                                          Width="18"
+                                                          Height="18"
+                                                          Margin="0,0,8,0"
+                                                          VerticalAlignment="Center"
+                                                          Background="{DynamicResource AppControlSurfaceAltBrush}"
+                                                          BorderBrush="{DynamicResource AppBorderBrush}"
+                                                          BorderThickness="1"
+                                                          Padding="0"
+                                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                                <ToggleButton.Template>
+                                                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                                        <Border x:Name="ArrowCircle"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="9">
+                                                            <Path x:Name="Arrow"
+                                                                  Width="8"
+                                                                  Height="5"
+                                                                  VerticalAlignment="Center"
+                                                                  HorizontalAlignment="Center"
+                                                                  Fill="{DynamicResource AppSecondaryTextBrush}"
+                                                                  Data="M 0 5 L 8 5 L 4 0 Z" />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ArrowCircle" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                                                                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AppAccentBrush}" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Setter TargetName="Arrow" Property="Data" Value="M 0 0 L 8 0 L 4 5 Z" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </ToggleButton.Template>
+                                            </ToggleButton>
+                                            <ContentPresenter Grid.Column="1"
+                                                              ContentSource="Header"
+                                                              VerticalAlignment="Center"
+                                                              RecognizesAccessKey="True" />
+                                        </Grid>
+                                        <ContentPresenter x:Name="ExpandSite"
+                                                          Margin="{TemplateBinding Padding}"
+                                                          Visibility="Collapsed" />
+                                    </StackPanel>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsExpanded" Value="True">
+                                            <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Expander.Style>
                 <StackPanel Margin="0,8,0,0">
                     <TextBlock Text="{Binding KeyboardKeyCapturePrompt}"
                                Foreground="{DynamicResource AppAccentTextBrush}"
                                Margin="0,0,0,8" />
 
-                    <TextBlock Text="Source" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Source]}" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding AvailableGamepadButtons}"
                               IsEditable="True"
                               SelectedItem="{Binding EditBindingFromButton, Mode=TwoWay}" />
 
-                    <TextBlock Text="Trigger" Margin="0,8,0,4" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />
                     <ComboBox ItemsSource="{Binding AvailableTriggerModes}"
                               SelectedItem="{Binding EditBindingTrigger, Mode=TwoWay}" />
 
-                    <TextBlock Text="KB/M output (short press / tap)" Margin="0,8,0,4" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[KbmOutputTap]}" Margin="0,8,0,4" />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -101,11 +170,11 @@
                         <TextBox Grid.Column="0"
                                  Text="{Binding EditBindingKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <Button Grid.Column="1"
-                                Content="Record key"
+                                Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
                                 Command="{Binding RecordKeyboardKeyCommand}"
                                 Margin="8,0,0,0" />
                         <Button Grid.Column="2"
-                                Content="Update selected binding"
+                                Content="{Binding Source={StaticResource Loc}, Path=[UpdateSelectedBinding]}"
                                 Command="{Binding UpdateSelectedBindingCommand}"
                                 Margin="8,0,0,0" />
                     </Grid>
@@ -113,9 +182,9 @@
                     <TextBlock TextWrapping="Wrap"
                                Margin="0,10,0,4"
                                Opacity="0.85">
-                        Hold bind (optional): Trigger must be Tap. Hold the button at least the threshold to send the hold key once; quick release sends the short key. Button-only chords (no LT/RT in the chord).
+                        <Run Text="{Binding Source={StaticResource Loc}, Path=[HoldBindHelp], Mode=OneWay}" />
                     </TextBlock>
-                    <TextBlock Text="Hold output (long press)" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldOutputLongPress]}" Margin="0,0,0,4" />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -124,23 +193,23 @@
                         <TextBox Grid.Column="0"
                                  Text="{Binding EditBindingHoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <Button Grid.Column="1"
-                                Content="Record"
+                                Content="{Binding Source={StaticResource Loc}, Path=[Record]}"
                                 Command="{Binding RecordHoldKeyboardKeyCommand}"
                                 Margin="8,0,0,0" />
                     </Grid>
-                    <TextBlock Text="Hold threshold (ms, empty = default ~450)" Margin="0,8,0,4" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldThresholdDefault]}" Margin="0,8,0,4" />
                     <TextBox Text="{Binding EditBindingHoldThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <TextBlock Text="Description" Margin="0,8,0,4" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Description]}" Margin="0,8,0,4" />
                     <TextBox Text="{Binding EditBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
             </Expander>
 
             <WrapPanel Grid.Row="2" Margin="0,10,0,0">
-                <Button Content="Add mapping"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[AddMapping]}"
                         Command="{Binding AddMappingCommand}"
                         Margin="0,0,10,0" />
-                <Button Content="Remove selected"
+                <Button Content="{Binding Source={StaticResource Loc}, Path=[RemoveSelected]}"
                         Command="{Binding RemoveSelectedMappingCommand}"
                         Margin="0,0,10,0" />
             </WrapPanel>

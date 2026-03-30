@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using GamepadMapperGUI.Services;
@@ -15,6 +16,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ApplyLanguage();
         ApplySystemTheme();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         CheckStartupElevationCompatibility();
@@ -98,6 +100,18 @@ public partial class App : Application
     {
         // Some XAML-created brushes can be frozen (read-only), so always replace the resource instance.
         Resources[resourceKey] = new SolidColorBrush(color);
+    }
+
+    private void ApplyLanguage()
+    {
+        // Default to Simplified Chinese for now.
+        const string cultureName = "zh-CN";
+        var culture = CultureInfo.GetCultureInfo(cultureName);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+
+        if (Resources["Loc"] is TranslationService translationService)
+            translationService.Culture = culture;
     }
 
     private static void CheckStartupElevationCompatibility()
