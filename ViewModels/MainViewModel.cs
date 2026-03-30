@@ -73,7 +73,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         MappingEditorPanel = new MappingEditorViewModel(this);
-        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, OnHudEnabledChanged);
+        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, OnHudEnabledChanged);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -232,7 +232,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanStartGamepad))]
     private void StartGamepad()
     {
         if (IsGamepadRunning)
@@ -243,7 +243,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         GamepadMonitorPanel.IsGamepadRunning = true;
     }
 
-    [RelayCommand]
+    private bool CanStartGamepad() => !IsGamepadRunning;
+
+    [RelayCommand(CanExecute = nameof(CanStopGamepad))]
     private void StopGamepad()
     {
         if (!IsGamepadRunning)
@@ -254,6 +256,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _mappingEngine.ForceReleaseAnalogOutputs();
         IsGamepadRunning = false;
         GamepadMonitorPanel.IsGamepadRunning = false;
+    }
+
+    private bool CanStopGamepad() => IsGamepadRunning;
+
+    partial void OnIsGamepadRunningChanged(bool value)
+    {
+        StartGamepadCommand.NotifyCanExecuteChanged();
+        StopGamepadCommand.NotifyCanExecuteChanged();
     }
 
     public void Dispose()

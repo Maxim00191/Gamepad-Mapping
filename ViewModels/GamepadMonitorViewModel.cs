@@ -8,9 +8,13 @@ public partial class GamepadMonitorViewModel : ObservableObject
 {
     private readonly Action<bool>? _setHudEnabled;
 
-    public GamepadMonitorViewModel(ICommand stopGamepadCommand, Action<bool>? setHudEnabled = null)
+    public GamepadMonitorViewModel(
+        ICommand stopGamepadCommand,
+        ICommand startGamepadCommand,
+        Action<bool>? setHudEnabled = null)
     {
         StopGamepadCommand = stopGamepadCommand;
+        StartGamepadCommand = startGamepadCommand;
         _setHudEnabled = setHudEnabled;
     }
 
@@ -50,10 +54,15 @@ public partial class GamepadMonitorViewModel : ObservableObject
     [ObservableProperty]
     private bool isHudEnabled = true;
 
+    [ObservableProperty]
+    private bool isMonitorExpanderExpanded;
+
     partial void OnIsHudEnabledChanged(bool value)
     {
         _setHudEnabled?.Invoke(value);
     }
 
     public ICommand StopGamepadCommand { get; }
+
+    public ICommand StartGamepadCommand { get; }
 }

@@ -73,10 +73,13 @@
     <value>Live Gamepad Monitor</value>
   </data>
   <data name="ShowHud" xml:space="preserve">
-    <value>Show HUD</value>
+    <value>Enable HUD for combo key tips</value>
   </data>
   <data name="StopReader" xml:space="preserve">
     <value>Stop reader</value>
+  </data>
+  <data name="StartReader" xml:space="preserve">
+    <value>Start reader</value>
   </data>
   <data name="ProcessTarget" xml:space="preserve">
     <value>Process Target</value>
@@ -114,6 +117,9 @@
   <data name="SelectedMappingDetails" xml:space="preserve">
     <value>Selected Mapping Details</value>
   </data>
+  <data name="NewMappingDetailsHeader" xml:space="preserve">
+    <value>New mapping — enter details below</value>
+  </data>
   <data name="Source" xml:space="preserve">
     <value>Source</value>
   </data>
@@ -134,6 +140,18 @@
   </data>
   <data name="AddMapping" xml:space="preserve">
     <value>Add mapping</value>
+  </data>
+  <data name="AddMappingPlus" xml:space="preserve">
+    <value>+ Add Mapping</value>
+  </data>
+  <data name="MappingListTitle" xml:space="preserve">
+    <value>Mapping List</value>
+  </data>
+  <data name="SaveNewMapping" xml:space="preserve">
+    <value>Save new mapping</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
   </data>
   <data name="RemoveSelected" xml:space="preserve">
     <value>Remove selected</value>

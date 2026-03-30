@@ -3,6 +3,7 @@ using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -55,6 +56,12 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private string editBindingHoldThresholdText = string.Empty;
 
+    [ObservableProperty]
+    private bool isCreatingNewMapping;
+
+    [ObservableProperty]
+    private bool isMappingDetailsExpanderExpanded = true;
+
     public string KeyboardKeyCapturePrompt => _mainViewModel.KeyboardCaptureService.KeyboardKeyCapturePrompt;
 
     private ICommand? _recordKeyboardKeyCommand;
@@ -67,13 +74,26 @@ public partial class MappingEditorViewModel : ObservableObject
     public ICommand UpdateSelectedBindingCommand => _updateSelectedBindingCommand ??= new RelayCommand(UpdateSelectedBinding);
 
     private ICommand? _addMappingCommand;
-    public ICommand AddMappingCommand => _addMappingCommand ??= new RelayCommand(AddMapping);
+    public ICommand AddMappingCommand => _addMappingCommand ??= new RelayCommand(BeginCreateNewMapping);
 
     private ICommand? _removeSelectedMappingCommand;
     public ICommand RemoveSelectedMappingCommand => _removeSelectedMappingCommand ??= new RelayCommand(RemoveSelectedMapping);
 
+    private ICommand? _saveNewMappingCommand;
+    public ICommand SaveNewMappingCommand => _saveNewMappingCommand ??= new RelayCommand(SaveNewMapping);
+
+    private ICommand? _cancelCreateNewMappingCommand;
+    public ICommand CancelCreateNewMappingCommand => _cancelCreateNewMappingCommand ??= new RelayCommand(CancelCreateNewMapping);
+
     public void SyncFromSelection(MappingEntry? value)
     {
+        if (value is not null)
+            IsCreatingNewMapping = false;
+
+        // Avoid wiping the "new mapping" draft when we clear table selection for create mode.
+        if (value is null && IsCreatingNewMapping)
+            return;
+
         if (value?.From is not null && value.From.Type == GamepadBindingType.Button)
         {
             var mappedButton = value.From.Value ?? string.Empty;
@@ -95,6 +115,18 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void RecordKeyboardKey()
     {
+        if (IsCreatingNewMapping)
+        {
+            _mainViewModel.KeyboardCaptureService.BeginCapture(
+                "Press a key for the new mapping output (Esc to cancel).",
+                key =>
+                {
+                    EditBindingKeyboardKey = key.ToString();
+                    ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+                });
+            return;
+        }
+
         if (SelectedMapping is null)
             return;
 
@@ -111,6 +143,18 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void RecordHoldKeyboardKey()
     {
+        if (IsCreatingNewMapping)
+        {
+            _mainViewModel.KeyboardCaptureService.BeginCapture(
+                "Press the HOLD output key (Esc to cancel).",
+                key =>
+                {
+                    EditBindingHoldKeyboardKey = key.ToString();
+                    ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+                });
+            return;
+        }
+
         if (SelectedMapping is null)
             return;
 
@@ -176,22 +220,92 @@ public partial class MappingEditorViewModel : ObservableObject
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void AddMapping()
+    private void BeginCreateNewMapping()
     {
-        var entry = new MappingEntry
+        IsMappingDetailsExpanderExpanded = true;
+        IsCreatingNewMapping = true;
+        _mainViewModel.SelectedMapping = null;
+
+        EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        EditBindingTrigger = TriggerMoment.Tap;
+        EditBindingKeyboardKey = string.Empty;
+        EditBindingDescription = string.Empty;
+        EditBindingHoldKeyboardKey = string.Empty;
+        EditBindingHoldThresholdText = string.Empty;
+    }
+
+    private void SaveNewMapping()
+    {
+        if (!TryBuildMappingFromEditorFields(out var entry))
         {
-            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
-            KeyboardKey = "A",
-            Trigger = TriggerMoment.Tap,
-            Description = string.Empty,
-            AnalogThreshold = null,
-            HoldKeyboardKey = string.Empty,
-            HoldThresholdMs = null
-        };
+            MessageBox.Show(
+                "Choose a gamepad button from the list and enter a valid keyboard or mouse-look output, then try again.",
+                "Cannot save new mapping",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
 
         _mainViewModel.Mappings.Add(entry);
         _mainViewModel.SelectedMapping = entry;
+        IsCreatingNewMapping = false;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CancelCreateNewMapping()
+    {
+        IsCreatingNewMapping = false;
+        SyncFromSelection(SelectedMapping);
+    }
+
+    private bool TryBuildMappingFromEditorFields(out MappingEntry entry)
+    {
+        entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+
+        var button = (EditBindingFromButton ?? string.Empty).Trim();
+        var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(button))
+            return false;
+
+        if (!AvailableGamepadButtons.Any(b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        var key = MappingEngine.ParseKey(keyToken);
+        var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
+        if (key == Key.None && !isMouseLookOutput)
+            return false;
+
+        entry.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button };
+        entry.Trigger = EditBindingTrigger;
+        entry.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
+        entry.Description = (EditBindingDescription ?? string.Empty).Trim();
+        entry.AnalogThreshold = null;
+
+        var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(holdToken))
+        {
+            entry.HoldKeyboardKey = string.Empty;
+            entry.HoldThresholdMs = null;
+            return true;
+        }
+
+        var holdKey = MappingEngine.ParseKey(holdToken);
+        var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
+        if (holdKey == Key.None && !holdMouseLook)
+            return false;
+
+        entry.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
+        int? holdMs = null;
+        var t = (EditBindingHoldThresholdText ?? string.Empty).Trim();
+        if (!string.IsNullOrEmpty(t) &&
+            int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+            parsed > 0)
+            holdMs = parsed;
+        entry.HoldThresholdMs = holdMs;
+        return true;
     }
 
     private void RemoveSelectedMapping()

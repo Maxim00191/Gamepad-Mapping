@@ -10,54 +10,343 @@
              Focusable="True"
              Background="{DynamicResource AppBackgroundBrush}"
              Foreground="{DynamicResource AppTextBrush}">
+    <UserControl.Resources>
+        <Style x:Key="ToolbarToggleButtonStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppControlSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlPressedBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AppAccentHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlPressedBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
     <Grid Margin="12"
           Background="{DynamicResource AppBackgroundBrush}">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*" MinWidth="360" />
-            <ColumnDefinition Width="*" MinWidth="280" />
-        </Grid.ColumnDefinitions>
-
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Column="0" Grid.RowSpan="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+        <Border Grid.Row="0"
+                Background="{DynamicResource AppSurfaceBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <ScrollViewer Grid.Row="0"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          MaxHeight="360">
-                <StackPanel>
-                    <sections:ProfileTemplatePanelView DataContext="{Binding ProfileTemplatePanel}" />
-                    <sections:NewBindingPanelView DataContext="{Binding NewBindingPanel}" />
-                </StackPanel>
-            </ScrollViewer>
+                <!-- Row 0: template picker (full width, scales with window) -->
+                <Grid Grid.Row="0"
+                      Margin="0,0,0,8"
+                      VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="120" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Source={StaticResource Loc}, Path=[Template]}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+                    <ComboBox Grid.Column="1"
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              ItemsSource="{Binding ProfileTemplatePanel.AvailableTemplates}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedItem="{Binding ProfileTemplatePanel.SelectedTemplate}" />
+                    <Grid Grid.Column="2" Margin="6,0,0,0">
+                        <ToggleButton x:Name="NewConfigButton"
+                                      Style="{StaticResource ToolbarToggleButtonStyle}"
+                                      Width="32"
+                                      Height="32"
+                                      HorizontalAlignment="Left"
+                                      ToolTip="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}">
+                            <Viewbox Width="14" Height="14">
+                                <Path Data="M 7 0 L 7 14 M 0 7 L 14 7"
+                                      Stroke="{DynamicResource AppTextBrush}"
+                                      StrokeThickness="1.35"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Fill="Transparent" />
+                            </Viewbox>
+                        </ToggleButton>
+                        <Popup Placement="Bottom"
+                               PlacementTarget="{Binding ElementName=NewConfigButton}"
+                               StaysOpen="False"
+                               IsOpen="{Binding IsChecked, ElementName=NewConfigButton, Mode=TwoWay}">
+                            <Border Background="{DynamicResource AppSurfaceBrush}"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12"
+                                    MinWidth="280">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}"
+                                               FontWeight="SemiBold"
+                                               Margin="0,0,0,8" />
+                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
+                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileGameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
+                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <WrapPanel Margin="0,10,0,0">
+                                        <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
+                                                Command="{Binding ProfileTemplatePanel.CreateProfileCommand}" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Grid>
 
-            <sections:MappingEditorView Grid.Row="1"
-                                        Margin="0,12,0,0"
-                                        DataContext="{Binding MappingEditorPanel}" />
-        </Grid>
+                <!-- Row 1: display name -->
+                <Grid Grid.Row="1"
+                      Margin="0,0,0,8"
+                      VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="120" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+                    <TextBox Grid.Column="1"
+                             Height="32"
+                             VerticalContentAlignment="Center"
+                             Text="{Binding ProfileTemplatePanel.CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
 
-        <Grid Grid.Column="1"
-              Grid.Row="0"
-              Grid.RowSpan="2"
-              Margin="12,0,0,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+                <!-- Row 2: profile actions -->
+                <WrapPanel Grid.Row="2"
+                           Margin="0,0,0,8"
+                           Orientation="Horizontal">
+                    <Button Height="32"
+                            MinWidth="72"
+                            Padding="10,0"
+                            VerticalContentAlignment="Center"
+                            Margin="0,0,8,6"
+                            Content="{Binding Source={StaticResource Loc}, Path=[SaveProfile]}"
+                            Command="{Binding ProfileTemplatePanel.SaveProfileCommand}" />
+                    <Button Height="32"
+                            MinWidth="72"
+                            Padding="10,0"
+                            VerticalContentAlignment="Center"
+                            Margin="0,0,8,6"
+                            Content="{Binding Source={StaticResource Loc}, Path=[DeleteProfile]}"
+                            Command="{Binding ProfileTemplatePanel.DeleteSelectedProfileCommand}" />
+                    <Button Height="32"
+                            MinWidth="72"
+                            Padding="10,0"
+                            VerticalContentAlignment="Center"
+                            Margin="0,0,8,6"
+                            Content="{Binding Source={StaticResource Loc}, Path=[ReloadTemplate]}"
+                            Command="{Binding ProfileTemplatePanel.ReloadTemplateCommand}" />
+                </WrapPanel>
 
-            <sections:GamepadMonitorView Grid.Row="0"
-                                         DataContext="{Binding GamepadMonitorPanel}" />
+                <!-- Row 3: combo HUD — core on-screen guide; always visible in toolbar -->
+                <CheckBox Grid.Row="3"
+                          Margin="0,0,0,8"
+                          Content="{Binding Source={StaticResource Loc}, Path=[ShowHud]}"
+                          IsChecked="{Binding GamepadMonitorPanel.IsHudEnabled, Mode=TwoWay}"
+                          VerticalAlignment="Center"
+                          FontWeight="SemiBold" />
 
-            <sections:ProcessTargetPanelView Grid.Row="1"
-                                             Margin="0,12,0,0"
-                                             DataContext="{Binding ProcessTargetPanel}" />
+                <!-- Row 4: process target (combo grows; buttons stay on row) -->
+                <Grid Grid.Row="4" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="100" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"
+                               TextWrapping="Wrap" />
+                    <ComboBox Grid.Column="1"
+                              Height="32"
+                              VerticalContentAlignment="Center"
+                              ItemsSource="{Binding ProcessTargetPanel.RecentProcesses}"
+                              SelectedItem="{Binding ProcessTargetPanel.SelectedTargetProcess, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ProcessName}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Grid.Column="2"
+                            Height="32"
+                            Padding="10,0"
+                            VerticalContentAlignment="Center"
+                            Margin="8,0,0,0"
+                            Content="{Binding Source={StaticResource Loc}, Path=[Refresh]}"
+                            Command="{Binding ProcessTargetPanel.RefreshProcessesCommand}" />
+                    <Button Grid.Column="3"
+                            Height="32"
+                            Padding="10,0"
+                            VerticalContentAlignment="Center"
+                            Margin="8,0,0,0"
+                            Content="{Binding Source={StaticResource Loc}, Path=[ClearTarget]}"
+                            Command="{Binding ProcessTargetPanel.ClearTargetProcessCommand}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="7*" MinWidth="340" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="3*" MinWidth="240" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MappingListTitle]}"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               DockPanel.Dock="Left" />
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[AddMappingPlus]}"
+                            Command="{Binding MappingEditorPanel.AddMappingCommand}"
+                            Padding="12,4"
+                            HorizontalAlignment="Right"
+                            DockPanel.Dock="Right" />
+                </DockPanel>
+
+                <sections:MappingEditorView Grid.Row="1"
+                                            DataContext="{Binding MappingEditorPanel}" />
+            </Grid>
+
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext"
+                          ShowsPreview="True"
+                          Background="{DynamicResource AppBorderBrush}" />
+
+            <Grid x:Name="RightPanelGrid"
+                  Grid.Column="2"
+                  Margin="12,0,0,0">
+                <!-- Row heights are updated in code-behind so collapsed expanders use Auto (no star "ghost" space). -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="0" />
+                    <RowDefinition Height="0" MinHeight="0" />
+                    <RowDefinition Height="Auto" MinHeight="0" />
+                </Grid.RowDefinitions>
+
+                <Expander Grid.Row="0"
+                          VerticalAlignment="Stretch"
+                          IsExpanded="{Binding MappingEditorPanel.IsMappingDetailsExpanderExpanded, Mode=TwoWay}"
+                          Margin="0,0,0,6">
+                    <Expander.Header>
+                        <!-- Header is hosted inside the expander's template; it does not inherit this page's DataContext, and -->
+                        <!-- toggle chrome can impose a light Foreground (invisible on light header backgrounds). -->
+                        <Grid DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Expander, Mode=FindAncestor}}">
+                            <TextBlock Foreground="{DynamicResource AppTextBrush}"
+                                       Text="{Binding Source={StaticResource Loc}, Path=[SelectedMappingDetails]}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MappingEditorPanel.IsCreatingNewMapping}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Foreground="{DynamicResource AppTextBrush}"
+                                       Text="{Binding Source={StaticResource Loc}, Path=[NewMappingDetailsHeader]}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MappingEditorPanel.IsCreatingNewMapping}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Expander.Header>
+                    <sections:MappingDetailsPanelView DataContext="{Binding MappingEditorPanel}" />
+                </Expander>
+
+                <GridSplitter x:Name="RightPanelRowSplitter"
+                              Grid.Row="1"
+                              Height="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              ResizeDirection="Rows"
+                              ResizeBehavior="PreviousAndNext"
+                              ShowsPreview="True"
+                              Background="{DynamicResource AppBorderBrush}"
+                              Visibility="Collapsed" />
+
+                <Expander Grid.Row="2"
+                          VerticalAlignment="Stretch"
+                          Header="{Binding Source={StaticResource Loc}, Path=[LiveGamepadMonitor]}"
+                          IsExpanded="{Binding GamepadMonitorPanel.IsMonitorExpanderExpanded, Mode=TwoWay}"
+                          Margin="0,6,0,0">
+                    <sections:GamepadMonitorView VerticalAlignment="Stretch"
+                                                 DataContext="{Binding GamepadMonitorPanel}" />
+                </Expander>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

@@ -1,0 +1,141 @@
+<UserControl x:Class="Gamepad_Mapping.Views.Sections.MappingDetailsPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="{DynamicResource AppSurfaceBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <StackPanel Margin="0,0,0,8">
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppTextBrush}"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[SelectedMappingDetails]}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCreatingNewMapping}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppTextBrush}"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[NewMappingDetailsHeader]}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCreatingNewMapping}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding KeyboardKeyCapturePrompt}"
+                               Foreground="{DynamicResource AppAccentTextBrush}"
+                               Margin="0,0,0,8" />
+
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Source]}" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding AvailableGamepadButtons}"
+                              IsEditable="True"
+                              SelectedItem="{Binding EditBindingFromButton, Mode=TwoWay}" />
+
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />
+                    <ComboBox ItemsSource="{Binding AvailableTriggerModes}"
+                              SelectedItem="{Binding EditBindingTrigger, Mode=TwoWay}" />
+
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[KbmOutputTap]}" Margin="0,8,0,4" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding EditBindingKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"
+                                Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
+                                Command="{Binding RecordKeyboardKeyCommand}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Margin="0,10,0,4"
+                               Opacity="0.85">
+                        <Run Text="{Binding Source={StaticResource Loc}, Path=[HoldBindHelp], Mode=OneWay}" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldOutputLongPress]}" Margin="0,0,0,4" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding EditBindingHoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"
+                                Content="{Binding Source={StaticResource Loc}, Path=[Record]}"
+                                Command="{Binding RecordHoldKeyboardKeyCommand}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldThresholdDefault]}" Margin="0,8,0,4" />
+                    <TextBox Text="{Binding EditBindingHoldThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Description]}" Margin="0,8,0,4" />
+                    <TextBox Text="{Binding EditBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Row="1" Margin="0,10,0,0">
+                <WrapPanel x:Name="EditButtons">
+                    <WrapPanel.Style>
+                        <Style TargetType="{x:Type WrapPanel}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCreatingNewMapping}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </WrapPanel.Style>
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[UpdateSelectedBinding]}"
+                            Command="{Binding UpdateSelectedBindingCommand}"
+                            Margin="0,0,10,0" />
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[RemoveSelected]}"
+                            Command="{Binding RemoveSelectedMappingCommand}" />
+                </WrapPanel>
+
+                <WrapPanel x:Name="CreateButtons">
+                    <WrapPanel.Style>
+                        <Style TargetType="{x:Type WrapPanel}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCreatingNewMapping}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </WrapPanel.Style>
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[SaveNewMapping]}"
+                            Command="{Binding SaveNewMappingCommand}"
+                            Margin="0,0,10,0" />
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[Cancel]}"
+                            Command="{Binding CancelCreateNewMappingCommand}" />
+                </WrapPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>
