@@ -19,6 +19,10 @@ public class GameProfileTemplate
     [JsonProperty("displayNameKey")]
     public string DisplayNameKey { get; set; } = string.Empty;
 
+    /// <summary>Optional per-culture display names (e.g. <c>"zh-CN"</c>). Overrides <see cref="DisplayName"/> and resource <see cref="DisplayNameKey"/> when the current UI culture matches.</summary>
+    [JsonProperty("displayNames", NullValueHandling = NullValueHandling.Ignore)]
+    public Dictionary<string, string>? DisplayNames { get; set; }
+
     /// <summary>
     /// Executable base name for foreground gating (same as <see cref="System.Diagnostics.Process.ProcessName"/>, usually without .exe).
     /// Must be set manually in the profile JSON or in the UI; no process list is offered to reduce risk of mis-targeting system or protected processes.

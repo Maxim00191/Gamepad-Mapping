@@ -50,6 +50,10 @@ public class MappingEntry : ObservableObject
         set => SetProperty(ref _descriptionKey, value);
     }
 
+    /// <summary>Optional per-culture descriptions (e.g. <c>"zh-CN"</c>). Overrides <see cref="Description"/> and resource <see cref="DescriptionKey"/> when the current UI culture matches.</summary>
+    [JsonProperty("descriptions", NullValueHandling = NullValueHandling.Ignore)]
+    public Dictionary<string, string>? Descriptions { get; set; }
+
     private TriggerMoment _trigger = TriggerMoment.Pressed;
 
     [JsonProperty("trigger")]

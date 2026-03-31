@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Text;
 using System.IO;
 using System.Linq;
@@ -70,6 +71,8 @@ public partial class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(template.ProfileId))
             template.ProfileId = profileId.Trim();
 
+        var culture = _translationService.Culture;
+
         if (!string.IsNullOrWhiteSpace(template.DisplayNameKey))
         {
             var localized = _translationService[template.DisplayNameKey];
@@ -77,14 +80,20 @@ public partial class ProfileService : IProfileService
                 template.DisplayName = localized;
         }
 
+        if (TryPickCultureString(template.DisplayNames, culture, out var displayForCulture))
+            template.DisplayName = displayForCulture;
+
         foreach (var mapping in template.Mappings)
         {
-            if (string.IsNullOrWhiteSpace(mapping.DescriptionKey))
-                continue;
+            if (!string.IsNullOrWhiteSpace(mapping.DescriptionKey))
+            {
+                var localized = _translationService[mapping.DescriptionKey];
+                if (!IsMissingLocalization(localized))
+                    mapping.Description = localized;
+            }
 
-            var localized = _translationService[mapping.DescriptionKey];
-            if (!IsMissingLocalization(localized))
-                mapping.Description = localized;
+            if (TryPickCultureString(mapping.Descriptions, culture, out var descForCulture))
+                mapping.Description = descForCulture;
         }
 
         return template;
@@ -255,5 +264,47 @@ public partial class ProfileService : IProfileService
 
     private static bool IsMissingLocalization(string value)
         => value.Length >= 2 && value[0] == '[' && value[^1] == ']';
+
+    /// <summary>Resolves <paramref name="map"/> using <paramref name="culture"/> and its parent chain; keys are matched case-insensitively.</summary>
+    private static bool TryPickCultureString(
+        IReadOnlyDictionary<string, string>? map,
+        CultureInfo culture,
+        out string value)
+    {
+        value = string.Empty;
+        if (map is null || map.Count == 0)
+            return false;
+
+        for (var c = culture; c is not null && !string.IsNullOrEmpty(c.Name); c = c.Parent)
+        {
+            if (TryGetCultureMapValue(map, c.Name, out value))
+                return true;
+        }
+
+        return TryGetCultureMapValue(map, "default", out value);
+    }
+
+    private static bool TryGetCultureMapValue(
+        IReadOnlyDictionary<string, string> map,
+        string key,
+        out string value)
+    {
+        value = string.Empty;
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
+
+        foreach (var kv in map)
+        {
+            if (string.IsNullOrWhiteSpace(kv.Value))
+                continue;
+            if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                value = kv.Value;
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 

@@ -94,16 +94,16 @@ Edits save to `local_settings.json` as you change them. **Thumbstick deadzones**
 
 Each file is `{profileId}.json` with a root object such as:
 
-- `profileId`, `gameId`, `displayName` / `displayNameKey`
+- `profileId`, `gameId`, `displayName`, optional `displayNames` (per-culture map, e.g. `"zh-CN"`), optional `displayNameKey` (looks up `Resources/Strings*.resx`)
 - `targetProcessName` (optional) — process **base name** (usually without `.exe`), same as `Process.ProcessName`
 - `comboLeadButtons` (optional) — XInput button names (e.g. `LeftShoulder`)
-- `mappings` — list of entries with `from` (`type`, `value`), `keyboardKey`, `trigger`, optional `analogThreshold`, `holdKeyboardKey`, `holdThresholdMs`, `description`, `descriptionKey`
+- `mappings` — list of entries with `from` (`type`, `value`), `keyboardKey`, `trigger`, optional `analogThreshold`, `holdKeyboardKey`, `holdThresholdMs`, `description`, optional `descriptions` (per-culture), optional `descriptionKey` (resx)
 
-Examples ship in `Assets/Profiles/templates` (e.g. `default.json`, `flight_sim.json`, `roco-kingdom-world__roco-kingdom.json`).
+Examples ship in `Assets/Profiles/templates` (e.g. `default.json`, `flight_sim.json`, `roco-kingdom-world.json`).
 
 ## UI and localization
 
-The shell follows the **Windows** light/dark apps setting. Strings use **resource-based** localization (`Resources/Strings*.resx`); startup sets culture for translated template keys (`displayNameKey`, `descriptionKey`).
+The shell follows the **Windows** light/dark apps setting. UI strings use **resource-based** localization (`Resources/Strings*.resx`). Template titles and mapping descriptions can use optional **`displayNames` / `descriptions` maps in the profile JSON** (recommended for user templates); `displayNameKey` / `descriptionKey` still resolve through `.resx` when present. Startup sets culture for all of the above.
 
 ## Paths (content root)
 

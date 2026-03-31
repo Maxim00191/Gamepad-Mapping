@@ -105,16 +105,16 @@ dotnet test "GamepadMapping.sln" -c Release
 
 每个配置文件以 `{profileId}.json` 命名，其根对象通常包含：
 
-- `profileId`、`gameId`、`displayName` / `displayNameKey`
+- `profileId`、`gameId`、`displayName`、可选的 `displayNames`（按语言区域名的映射，例如 `"zh-CN"`）、可选的 `displayNameKey`（从 `Resources/Strings*.resx` 取值）
 - `targetProcessName`（可选）— 目标进程的**名称**（通常不含 `.exe`），需与 `Process.ProcessName` 匹配。
 - `comboLeadButtons`（可选）— 定义为组合引导键的 XInput 键名，例如 `LeftShoulder`。
-- `mappings` — 具体的映射列表：包含 `from`（`type`、`value`）、`keyboardKey`、`trigger`，以及可选的属性如 `analogThreshold`、`holdKeyboardKey`、`holdThresholdMs`、`description` 和 `descriptionKey`。
+- `mappings` — 映射列表：`from`（`type`、`value`）、`keyboardKey`、`trigger`，以及可选的 `analogThreshold`、`holdKeyboardKey`、`holdThresholdMs`、`description`、可选的 `descriptions`（按语言的映射）、可选的 `descriptionKey`（资源键）。
 
-示例配置文件位于 `Assets/Profiles/templates` 目录中（例如 `default.json`、`flight_sim.json`、`roco-kingdom-world__roco-kingdom.json`）。
+示例配置文件位于 `Assets/Profiles/templates` 目录中（例如 `default.json`、`flight_sim.json`、`roco-kingdom-world.json`）。
 
 ## 界面与本地化
 
-应用的界面主题会自动适配 **Windows 系统**的深/浅色偏好。界面文案统一使用**资源文件**（`Resources/Strings*.resx`）管理；程序在启动时会获取当前系统的语言环境 (Culture)，并以此解析模板配置中需要翻译的键值（如 `displayNameKey`、`descriptionKey`）。
+应用的界面主题会自动适配 **Windows 系统**的深/浅色偏好。界面文案使用**资源文件**（`Resources/Strings*.resx`）。配置模板标题与映射说明可使用 Profile JSON 中的 **`displayNames` / `descriptions` 映射**（用户自建模板时推荐）；若仍提供 `displayNameKey` / `descriptionKey`，则继续从 `.resx` 解析。程序启动时会按当前 UI 文化 (Culture) 套用以上规则。
 
 ## 内容根路径
 

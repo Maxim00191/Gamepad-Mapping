@@ -1,8 +1,10 @@
 {
   "schemaVersion": 1,
   "gameId": "flight_sim",
-  "displayNameKey": "TemplateName_FlightSim",
   "displayName": "Flight Sim (example)",
+  "displayNames": {
+    "zh-CN": "飞行模拟（示例）"
+  },
   "mappings": [
     { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Spacebar", "trigger": "Pressed" },
     { "from": { "type": "Button", "value": "B" }, "keyboardKey": "LeftCtrl", "trigger": "Pressed" },
