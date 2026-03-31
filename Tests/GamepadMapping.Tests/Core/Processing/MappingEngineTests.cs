@@ -1,0 +1,235 @@
+using System.Collections.Generic;
+using System.Numerics;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using GamepadMapperGUI.Core;
+using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Models;
+using Moq;
+using Vortice.XInput;
+using Xunit;
+
+namespace GamepadMapping.Tests.Core.Processing;
+
+public class MappingEngineTests
+{
+    private static MappingEngine CreateEngine(
+        IKeyboardEmulator keyboard,
+        IMouseEmulator mouse,
+        Func<bool>? canDispatchOutput = null) =>
+        new(
+            keyboard,
+            mouse,
+            canDispatchOutput ?? (() => true),
+            runOnUi: action => action(),
+            setMappedOutput: _ => { },
+            setMappingStatus: _ => { },
+            setComboHud: null);
+
+    private static InputFrame Frame(long timestampMs, GamepadButtons buttons) =>
+        new(
+            buttons,
+            LeftThumbstick: Vector2.Zero,
+            RightThumbstick: Vector2.Zero,
+            LeftTrigger: 0f,
+            RightTrigger: 0f,
+            IsConnected: true,
+            TimestampMs: timestampMs);
+
+    private static List<MappingEntry> SpacePressReleaseOnA() =>
+        new()
+        {
+            new MappingEntry
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                KeyboardKey = "Space",
+                Trigger = TriggerMoment.Pressed
+            },
+            new MappingEntry
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                KeyboardKey = "Space",
+                Trigger = TriggerMoment.Released
+            }
+        };
+
+    private static List<MappingEntry> LetterRPressReleaseOnAPlusB() =>
+        new()
+        {
+            new MappingEntry
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A+B" },
+                KeyboardKey = "R",
+                Trigger = TriggerMoment.Pressed
+            },
+            new MappingEntry
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A+B" },
+                KeyboardKey = "R",
+                Trigger = TriggerMoment.Released
+            }
+        };
+
+    private static List<MappingEntry> LetterEOnATap() =>
+        new()
+        {
+            new MappingEntry
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                KeyboardKey = "E",
+                Trigger = TriggerMoment.Tap
+            }
+        };
+
+    /// <summary>Mapped key output is applied on a background worker; allow the queue to drain before asserting.</summary>
+    private static Task FlushMappedOutputQueueAsync() => Task.Delay(200);
+
+    [Fact]
+    public async Task ProcessInputFrame_ButtonMappedToKey_KeyDownAndKeyUp()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = SpacePressReleaseOnA();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
+
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once, "按下手柄 A 时应触发一次 Space 按下");
+        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once, "松开手柄 A 时应触发一次 Space 松开");
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    /// <summary>
+    /// When the pad drops, <see cref="GamepadReader"/> emits <see cref="InputFrame.Disconnected"/> (buttons cleared).
+    /// Those synthetic releases must run <c>Released</c> mappings so keys are not left down.
+    /// </summary>
+    [Fact]
+    public async Task ProcessInputFrame_DisconnectWhileButtonHeld_ReleasesMappedKey()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = SpacePressReleaseOnA();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+
+        engine.ProcessInputFrame(InputFrame.Disconnected(2), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once, "断开连接时应释放仍按着的映射键，避免卡键");
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_UnmappedButton_NoKeyboardOrMouseCalls()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = new List<MappingEntry>();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.B), mappings);
+
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_ChordRequiresBothButtons_KeyDownOnlyWhenChordComplete()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = LetterRPressReleaseOnAPlusB();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.VerifyNoOtherCalls();
+
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.A | GamepadButtons.B), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(k => k.KeyDown(Key.R), Times.Once);
+
+        engine.ProcessInputFrame(Frame(3, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(k => k.KeyUp(Key.R), Times.Once);
+
+        engine.ProcessInputFrame(Frame(4, GamepadButtons.None), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_TapTrigger_InvokesTapKeyOnceOnPress()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = LetterEOnATap();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(
+            k => k.TapKey(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Once);
+        mockKeyboard.Verify(k => k.KeyDown(It.IsAny<Key>()), Times.Never);
+        mockKeyboard.Verify(k => k.KeyUp(It.IsAny<Key>()), Times.Never);
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_CannotDispatchOutput_SuppressesPress_NotKeyboardDown()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object, () => false);
+        var mappings = SpacePressReleaseOnA();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ForceReleaseAllOutputs_AfterKeyHeld_SendsKeyUp()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = SpacePressReleaseOnA();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+
+        engine.ForceReleaseAllOutputs();
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.AtLeastOnce);
+        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+    }
+}

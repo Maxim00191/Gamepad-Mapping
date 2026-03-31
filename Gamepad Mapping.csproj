@@ -21,4 +21,9 @@
     <Content Include="Assets\Profiles\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Unit tests live under Tests/; default SDK glob would compile them into this executable. -->
+  <ItemGroup>
+    <Compile Remove="Tests\**\*.cs" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,5 @@
 {
+    "dotnet.defaultSolution": "GamepadMapping.sln",
     "cSpell.words": [
         "deadzone",
         "thumbsticks",

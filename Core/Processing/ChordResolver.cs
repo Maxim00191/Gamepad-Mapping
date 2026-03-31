@@ -46,7 +46,13 @@ internal static class ChordResolver
             }
 
             if (!Enum.TryParse<GamepadButtons>(segment, true, out var button) || button == GamepadButtons.None)
+            {
+                chordButtons = [];
+                requiresRightTrigger = false;
+                requiresLeftTrigger = false;
+                normalizedSourceToken = string.Empty;
                 return false;
+            }
             if (!chordButtons.Contains(button))
                 chordButtons.Add(button);
         }
