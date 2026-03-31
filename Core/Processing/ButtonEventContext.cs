@@ -20,7 +20,13 @@ internal sealed class ButtonEventContext
 
     public bool IsSuppressed { get; set; }
 
+    /// <summary>Physical hold duration for the current button when <see cref="Trigger"/> is <see cref="TriggerMoment.Released"/>.</summary>
+    public long? ReleasedButtonHeldMs { get; set; }
+
     public IReadOnlySet<DispatchedOutput>? ReleasedOutputsHandledByMappings { get; set; }
+
+    /// <summary>Short release after a deferred solo <see cref="TriggerMoment.Pressed"/> on a combo-lead button; terminal should skip duplicate solo Released.</summary>
+    public bool DeferredSoloLeadHandledOnRelease { get; set; }
 
     public string ButtonName => Button.ToString();
 }

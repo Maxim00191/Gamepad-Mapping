@@ -66,12 +66,17 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (SelectedTemplate is null)
             return;
 
+        List<string>? comboLeads = null;
+        if (_mainViewModel.ComboLeadButtonsPersist is not null)
+            comboLeads = new List<string>(_mainViewModel.ComboLeadButtonsPersist);
+
         var template = new GameProfileTemplate
         {
             SchemaVersion = 1,
             ProfileId = SelectedTemplate.ProfileId,
             GameId = SelectedTemplate.GameId,
             DisplayName = CurrentTemplateDisplayName,
+            ComboLeadButtons = comboLeads,
             Mappings = _mainViewModel.Mappings.ToList()
         };
 

@@ -35,7 +35,7 @@
     { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftCtrl", "descriptionKey": "MapDesc_LCtrl_ToggleWalkRun", "description": "Toggle walk/run state", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "C", "descriptionKey": "MapDesc_C_CrouchCallClear", "description": "Crouch/stand in grass; call in home; clear crops in farm", "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "descriptionKey": "MapDesc_Esc_MenuClose", "description": "Open/close menu (tap); open map (hold)", "trigger": "Tap", "holdKeyboardKey": "M", "holdThresholdMs": 450, "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Escape", "descriptionKey": "MapDesc_Esc_MenuClose", "description": "Open/close menu (tap); open map (hold)", "trigger": "Tap", "holdKeyboardKey": "M", "holdThresholdMs": 600, "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "descriptionKey": "MapDesc_LeftAlt_ShowUnlockCursor", "description": "Show / unlock cursor", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "descriptionKey": "MapDesc_LeftAlt_ShowUnlockCursor", "description": "Show / unlock cursor", "trigger": "Released", "analogThreshold": null },
 

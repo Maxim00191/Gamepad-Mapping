@@ -20,6 +20,7 @@ internal sealed class HoldSessionManager
     private readonly Action<string, TriggerMoment, DispatchedOutput, string, string> _queueOutputDispatch;
     private readonly Action _onHoldSessionsChanged;
     private readonly int _modifierGraceMs;
+    private readonly int _leadKeyReleaseSuppressMs;
 
     private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
     private readonly Dictionary<GamepadButtons, long> _buttonDownTicks = new();
@@ -34,7 +35,8 @@ internal sealed class HoldSessionManager
         Action<string> setMappingStatus,
         Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch,
         Action onHoldSessionsChanged,
-        int modifierGraceMs)
+        int modifierGraceMs,
+        int leadKeyReleaseSuppressMs)
     {
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
@@ -42,6 +44,19 @@ internal sealed class HoldSessionManager
         _queueOutputDispatch = queueOutputDispatch;
         _onHoldSessionsChanged = onHoldSessionsChanged;
         _modifierGraceMs = modifierGraceMs;
+        _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
+    }
+
+    /// <summary>
+    /// Elapsed ms since <see cref="RegisterButtonPressed"/> for <paramref name="button"/>, or <c>null</c> if not tracked.
+    /// </summary>
+    public long? TryGetPressedDurationMs(GamepadButtons button)
+    {
+        if (!_buttonDownTicks.TryGetValue(button, out var downTick))
+            return null;
+        var now = Environment.TickCount64;
+        var delta = (long)((ulong)((ulong)now - (ulong)downTick));
+        return delta;
     }
 
     internal sealed class HoldSession
@@ -136,8 +151,14 @@ internal sealed class HoldSessionManager
         return true;
     }
 
-    private int ResolveHoldThresholdMs() =>
-        Math.Clamp(_modifierGraceMs, MinHoldThresholdMs, MaxHoldThresholdMs);
+    /// <summary>
+    /// Per <see cref="MappingEntry.HoldThresholdMs"/> when set (&gt; 0); otherwise the app <c>modifierGraceMs</c> default.
+    /// </summary>
+    private int ResolveHoldThresholdMs(MappingEntry mapping)
+    {
+        var raw = mapping.HoldThresholdMs is > 0 ? mapping.HoldThresholdMs.Value : _modifierGraceMs;
+        return Math.Clamp(raw, MinHoldThresholdMs, MaxHoldThresholdMs);
+    }
 
     private static float GetTriggerMatchThreshold(MappingEntry mapping) =>
         mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : 0.35f;
@@ -189,7 +210,7 @@ internal sealed class HoldSessionManager
                 !InputTokenResolver.TryResolveMappedOutput(candidate.Mapping.HoldKeyboardKey, out _, out _))
                 continue;
 
-            var thresholdMs = ResolveHoldThresholdMs();
+            var thresholdMs = ResolveHoldThresholdMs(candidate.Mapping);
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(thresholdMs) };
             var session = new HoldSession
             {
@@ -257,7 +278,9 @@ internal sealed class HoldSessionManager
         GamepadButtons releasedButton,
         IReadOnlyCollection<GamepadButtons> activeButtonsPreRelease,
         float leftTriggerValue,
-        float rightTriggerValue)
+        float rightTriggerValue,
+        long? releasedButtonHeldMs,
+        bool applyLeadReleaseSuppress)
     {
         var postRelease = new HashSet<GamepadButtons>(activeButtonsPreRelease);
         postRelease.Remove(releasedButton);
@@ -281,7 +304,11 @@ internal sealed class HoldSessionManager
             {
                 if (!session.LongFired && _canDispatchOutput())
                 {
-                    if (InputTokenResolver.TryResolveMappedOutput(session.ShortKeyToken, out var output, out var label))
+                    var heldMs = releasedButtonHeldMs ?? TryGetPressedDurationMs(releasedButton);
+                    if (applyLeadReleaseSuppress &&
+                        heldMs.HasValue && heldMs.Value > _leadKeyReleaseSuppressMs)
+                        _setMappingStatus($"Suppressed tap ({session.SourceToken}) - lead held past {_leadKeyReleaseSuppressMs} ms");
+                    else if (InputTokenResolver.TryResolveMappedOutput(session.ShortKeyToken, out var output, out var label))
                     {
                         var outputLabel = $"{label} (Tap)";
                         _setMappedOutput(outputLabel);

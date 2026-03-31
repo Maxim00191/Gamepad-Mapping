@@ -8,6 +8,8 @@ public interface IProfileService
 {
     string DefaultGameId { get; }
     int ModifierGraceMs { get; }
+
+    int LeadKeyReleaseSuppressMs { get; }
     ObservableCollection<TemplateOption> AvailableTemplates { get; }
     event EventHandler? ProfilesLoaded;
     string LoadTemplateDirectory();

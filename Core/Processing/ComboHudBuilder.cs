@@ -11,7 +11,8 @@ internal static class ComboHudBuilder
     public static ComboHudContent? BuildModifierPrefixHud(
         Func<bool> canDispatchOutput,
         IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyList<MappingEntry> mappingsSnapshot)
+        IReadOnlyList<MappingEntry> mappingsSnapshot,
+        IReadOnlySet<GamepadButtons> comboLeads)
     {
         if (!canDispatchOutput())
             return null;
@@ -23,7 +24,7 @@ internal static class ComboHudBuilder
         const bool aReqRt = false;
         const bool aReqLt = false;
 
-        var lines = CollectChordExtensionLines(aChord, aReqRt, aReqLt, mappingsSnapshot);
+        var lines = CollectChordExtensionLines(aChord, aReqRt, aReqLt, mappingsSnapshot, comboLeads);
         if (lines.Count == 0)
             return null;
 
@@ -31,7 +32,10 @@ internal static class ComboHudBuilder
         return new ComboHudContent(title, lines);
     }
 
-    public static ComboHudContent BuildComboHud(HoldSessionManager.HoldSession session, IReadOnlyList<MappingEntry> mappings)
+    public static ComboHudContent BuildComboHud(
+        HoldSessionManager.HoldSession session,
+        IReadOnlyList<MappingEntry> mappings,
+        IReadOnlySet<GamepadButtons> comboLeads)
     {
         MappingEntry? holdEntry = null;
         foreach (var m in mappings)
@@ -56,7 +60,8 @@ internal static class ComboHudBuilder
             session.ChordButtons,
             session.RequiresRightTrigger,
             session.RequiresLeftTrigger,
-            mappings));
+            mappings,
+            comboLeads));
 
         var title = session.SourceToken;
         if (!string.IsNullOrWhiteSpace(holdEntry?.Description))
@@ -69,7 +74,8 @@ internal static class ComboHudBuilder
         List<GamepadButtons> baseChord,
         bool baseReqRt,
         bool baseReqLt,
-        IReadOnlyList<MappingEntry> mappings)
+        IReadOnlyList<MappingEntry> mappings,
+        IReadOnlySet<GamepadButtons> comboLeads)
     {
         var acc = new List<(int Spec, ComboHudLine Line)>();
         foreach (var mapping in mappings)
@@ -80,6 +86,13 @@ internal static class ComboHudBuilder
                 continue;
             if (!ChordResolver.IsOtherChordStrictlyMoreSpecific(baseChord, baseReqRt, baseReqLt, chord, reqRt, reqLt))
                 continue;
+
+            // Solo non–lead buttons: hide extensions that only add leads (e.g. shoulder + face while holding face).
+            // Still show extensions that add another non-lead (e.g. A+X while holding A).
+            if (baseChord.Count == 1 && !comboLeads.Contains(baseChord[0]) &&
+                !chord.Any(b => !baseChord.Contains(b) && !comboLeads.Contains(b)))
+                continue;
+
             if (mapping.Trigger == TriggerMoment.Released)
                 continue;
             if (HoldSessionManager.IsHoldDualMapping(mapping))

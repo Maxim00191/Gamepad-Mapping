@@ -32,6 +32,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly EventHandler _profilesLoadedHandler;
     private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
+    /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
+    private List<string>? _comboLeadButtonsPersist;
     private ComboHudWindow? _comboHudWindow;
 
     public MainViewModel(
@@ -86,7 +88,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             value => GamepadMonitorPanel.LastMappedOutput = value,
             value => GamepadMonitorPanel.LastMappingStatus = value,
             OnComboHud,
-            _profileService.ModifierGraceMs);
+            _profileService.ModifierGraceMs,
+            _profileService.LeadKeyReleaseSuppressMs);
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
@@ -336,6 +339,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         CurrentTemplateDisplayName = template.DisplayName;
 
+        _comboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
+        _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+
         Mappings.Clear();
         foreach (var mapping in template.Mappings)
             Mappings.Add(mapping);
@@ -345,6 +351,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         SelectedMapping = Mappings.FirstOrDefault();
         MappingCount = Mappings.Count;
     }
+
+    /// <summary>Combo lead names from the loaded template; written back unchanged on Save profile.</summary>
+    public IReadOnlyList<string>? ComboLeadButtonsPersist => _comboLeadButtonsPersist;
 
     public IProfileService GetProfileService() => _profileService;
 

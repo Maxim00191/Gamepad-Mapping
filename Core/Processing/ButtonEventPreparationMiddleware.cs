@@ -11,9 +11,10 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
     private readonly Action<GamepadButtons> _registerButtonPressed;
     private readonly Action<GamepadButtons> _registerButtonReleased;
     private readonly Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyList<MappingEntry>, float, float> _cancelSupersededHoldSessions;
-    private readonly Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, float, float> _handleHoldRelease;
+    private readonly Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, float, float, long?> _handleHoldRelease;
+    private readonly Func<GamepadButtons, long?> _getReleasedButtonHeldMs;
     private readonly Action<GamepadButtons, IReadOnlySet<DispatchedOutput>?> _forceReleaseHeldOutputsForButton;
-    private readonly Func<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyCollection<MappingEntry>, float, float, HashSet<DispatchedOutput>> _collectReleasedOutputsHandledByMappings;
+    private readonly Func<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyCollection<MappingEntry>, float, float, long?, HashSet<DispatchedOutput>> _collectReleasedOutputsHandledByMappings;
     private readonly Action<IReadOnlyCollection<GamepadButtons>> _setLatestActiveButtons;
     private readonly Func<bool> _canDispatchOutput;
     private readonly Action<string> _setMappingStatus;
@@ -23,9 +24,10 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         Action<GamepadButtons> registerButtonPressed,
         Action<GamepadButtons> registerButtonReleased,
         Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyList<MappingEntry>, float, float> cancelSupersededHoldSessions,
-        Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, float, float> handleHoldRelease,
+        Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, float, float, long?> handleHoldRelease,
+        Func<GamepadButtons, long?> getReleasedButtonHeldMs,
         Action<GamepadButtons, IReadOnlySet<DispatchedOutput>?> forceReleaseHeldOutputsForButton,
-        Func<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyCollection<MappingEntry>, float, float, HashSet<DispatchedOutput>> collectReleasedOutputsHandledByMappings,
+        Func<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyCollection<MappingEntry>, float, float, long?, HashSet<DispatchedOutput>> collectReleasedOutputsHandledByMappings,
         Action<IReadOnlyCollection<GamepadButtons>> setLatestActiveButtons,
         Func<bool> canDispatchOutput,
         Action<string> setMappingStatus)
@@ -35,6 +37,7 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         _registerButtonReleased = registerButtonReleased;
         _cancelSupersededHoldSessions = cancelSupersededHoldSessions;
         _handleHoldRelease = handleHoldRelease;
+        _getReleasedButtonHeldMs = getReleasedButtonHeldMs;
         _forceReleaseHeldOutputsForButton = forceReleaseHeldOutputsForButton;
         _collectReleasedOutputsHandledByMappings = collectReleasedOutputsHandledByMappings;
         _setLatestActiveButtons = setLatestActiveButtons;
@@ -51,14 +54,16 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
             postRelease.Remove(context.Button);
             _setLatestActiveButtons(postRelease);
             effectiveActiveButtons = postRelease;
-            _registerButtonReleased(context.Button);
+            context.ReleasedButtonHeldMs = _getReleasedButtonHeldMs(context.Button);
             context.ReleasedOutputsHandledByMappings = _collectReleasedOutputsHandledByMappings(
                 context.Button,
                 context.ActiveButtons,
                 context.MappingsSnapshot,
                 context.LeftTriggerValue,
-                context.RightTriggerValue);
-            _handleHoldRelease(context.Button, context.ActiveButtons, context.LeftTriggerValue, context.RightTriggerValue);
+                context.RightTriggerValue,
+                context.ReleasedButtonHeldMs);
+            _handleHoldRelease(context.Button, context.ActiveButtons, context.LeftTriggerValue, context.RightTriggerValue, context.ReleasedButtonHeldMs);
+            _registerButtonReleased(context.Button);
             _forceReleaseHeldOutputsForButton(context.Button, context.ReleasedOutputsHandledByMappings);
         }
         else

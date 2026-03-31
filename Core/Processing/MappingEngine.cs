@@ -27,6 +27,7 @@ public sealed class MappingEngine : IMappingEngine
     private readonly ButtonEventPipeline _buttonEventPipeline;
 
     private readonly int _comboHudDelayMs;
+    private readonly int _leadKeyReleaseSuppressMs;
 
     private readonly TriggerMoment _buttonPressedTrigger = TriggerMoment.Pressed;
     private readonly TriggerMoment _buttonTapTrigger = TriggerMoment.Tap;
@@ -39,6 +40,12 @@ public sealed class MappingEngine : IMappingEngine
     private bool _comboHudDelayConfirmed;
     private string? _pendingComboHudSignature;
 
+    /// <summary>Buttons whose solo <see cref="TriggerMoment.Pressed"/> was deferred because the profile has a richer chord using them.</summary>
+    private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons = [];
+
+    /// <summary>Non-null = exact combo leads from profile JSON; null = infer from mappings each event.</summary>
+    private HashSet<GamepadButtons>? _explicitComboLeadsFromTemplate;
+
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
         IMouseEmulator mouseEmulator,
@@ -47,9 +54,11 @@ public sealed class MappingEngine : IMappingEngine
         Action<string> setMappedOutput,
         Action<string> setMappingStatus,
         Action<ComboHudContent?>? setComboHud = null,
-        int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs)
+        int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
+        int leadKeyReleaseSuppressMs = 500)
     {
         _comboHudDelayMs = modifierGraceMs;
+        _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
         _canDispatchOutput = canDispatchOutput;
@@ -63,7 +72,8 @@ public sealed class MappingEngine : IMappingEngine
             _setMappingStatus,
             QueueOutputDispatch,
             SyncComboHud,
-            modifierGraceMs);
+            modifierGraceMs,
+            leadKeyReleaseSuppressMs);
 
         _inputFramePipeline = new InputFramePipeline(
             middlewares: new IInputFrameMiddleware[] { new InputFrameTransitionMiddleware() },
@@ -82,7 +92,14 @@ public sealed class MappingEngine : IMappingEngine
                     registerButtonPressed: _holdSessionManager.RegisterButtonPressed,
                     registerButtonReleased: _holdSessionManager.RegisterButtonReleased,
                     cancelSupersededHoldSessions: _holdSessionManager.CancelHoldSessionsSupersededByMoreSpecificChord,
-                    handleHoldRelease: _holdSessionManager.HandleHoldBindingRelease,
+                    handleHoldRelease: (btn, active, lt, rt, heldMs) => _holdSessionManager.HandleHoldBindingRelease(
+                        btn,
+                        active,
+                        lt,
+                        rt,
+                        heldMs,
+                        ResolveComboLeads(_lastButtonMappingsSnapshot).Contains(btn)),
+                    getReleasedButtonHeldMs: btn => _holdSessionManager.TryGetPressedDurationMs(btn),
                     forceReleaseHeldOutputsForButton: ForceReleaseHeldOutputsForButton,
                     collectReleasedOutputsHandledByMappings: CollectReleasedOutputsHandledByMappings,
                     setLatestActiveButtons: activeButtons => _latestActiveButtons = activeButtons,
@@ -91,6 +108,13 @@ public sealed class MappingEngine : IMappingEngine
             ],
             terminal: ProcessButtonEventTerminal);
     }
+
+    /// <inheritdoc />
+    public void SetComboLeadButtonsFromTemplate(IReadOnlyList<string>? comboLeadButtonNames) =>
+        _explicitComboLeadsFromTemplate = ComboLeadSemantics.ParseDeclaredNames(comboLeadButtonNames);
+
+    private HashSet<GamepadButtons> ResolveComboLeads(IReadOnlyCollection<MappingEntry> mappings) =>
+        ComboLeadSemantics.ResolveLeads(mappings, _explicitComboLeadsFromTemplate);
 
     public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot)
     {
@@ -211,6 +235,26 @@ public sealed class MappingEngine : IMappingEngine
         if (context.IsSuppressed)
             return;
 
+        var comboLeads = ResolveComboLeads(context.MappingsSnapshot);
+
+        if (context.Trigger == TriggerMoment.Released &&
+            _deferredSoloLeadButtons.Remove(context.Button))
+        {
+            var heldMs = context.ReleasedButtonHeldMs;
+            if (heldMs.HasValue && heldMs.Value > _leadKeyReleaseSuppressMs)
+            {
+                _setMappingStatus($"Suppressed solo ({context.ButtonName}) - lead held past {_leadKeyReleaseSuppressMs} ms");
+            }
+            else if (_canDispatchOutput())
+            {
+                if (TryDispatchDeferredSoloShortRelease(context.Button, context.MappingsSnapshot))
+                {
+                    context.DeferredSoloLeadHandledOnRelease = true;
+                    _setMappingStatus($"Deferred solo (short): {context.ButtonName}");
+                }
+            }
+        }
+
         var matched = false;
         var suppressedByHoldDual = false;
         var candidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool RequiresRightTrigger, bool RequiresLeftTrigger, string SourceToken)>();
@@ -233,6 +277,26 @@ public sealed class MappingEngine : IMappingEngine
                     context.ActiveButtons))
                 continue;
             if (mapping.Trigger != context.Trigger) continue;
+            if (context.Trigger == TriggerMoment.Pressed &&
+                chordButtons.Count == 1 &&
+                !reqRt &&
+                !reqLt &&
+                SnapshotHasMultiButtonChordContaining(chordButtons[0], context.MappingsSnapshot) &&
+                comboLeads.Contains(chordButtons[0]))
+            {
+                _deferredSoloLeadButtons.Add(context.Button);
+                continue;
+            }
+            if (context.Trigger == TriggerMoment.Released &&
+                context.DeferredSoloLeadHandledOnRelease &&
+                chordButtons.Count == 1 &&
+                !reqRt &&
+                !reqLt &&
+                chordButtons[0] == context.Button)
+                continue;
+            if (context.Trigger == TriggerMoment.Released &&
+                ShouldSuppressLeadKeyReleasedOutput(chordButtons, context.ReleasedButtonHeldMs, context.MappingsSnapshot, comboLeads))
+                continue;
             if (context.Trigger == TriggerMoment.Tap && _holdSessionManager.HasHoldSessionForSourceToken(sourceToken))
                 continue;
             if (HoldSessionManager.IsHoldDualMapping(mapping))
@@ -260,6 +324,10 @@ public sealed class MappingEngine : IMappingEngine
                 continue;
 
             matched = true;
+            ClearDeferredSoloLeadsForRichChord(
+                candidate.ChordButtons,
+                candidate.RequiresRightTrigger,
+                candidate.RequiresLeftTrigger);
 
             try
             {
@@ -412,6 +480,7 @@ public sealed class MappingEngine : IMappingEngine
     public void ForceReleaseAllOutputs()
     {
         _latestActiveButtons = Array.Empty<GamepadButtons>();
+        _deferredSoloLeadButtons.Clear();
         _holdSessionManager.ClearButtonDownTicks();
         _holdSessionManager.ClearAllHoldSessions();
         _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
@@ -491,7 +560,8 @@ public sealed class MappingEngine : IMappingEngine
             return true;
         }
 
-        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot);
+        var comboLeads = ResolveComboLeads(_lastButtonMappingsSnapshot);
+        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot, comboLeads);
         if (prefix is null)
         {
             signature = string.Empty;
@@ -510,15 +580,17 @@ public sealed class MappingEngine : IMappingEngine
         if (_setComboHud is null)
             return;
 
+        var comboLeads = ResolveComboLeads(_lastButtonMappingsSnapshot);
+
         if (signature.StartsWith("hold|", StringComparison.Ordinal) &&
             _holdSessionManager.TryGetFirstHoldSession(out var holdSession) &&
             holdSession is not null)
         {
-            _setComboHud(ComboHudBuilder.BuildComboHud(holdSession, _lastButtonMappingsSnapshot));
+            _setComboHud(ComboHudBuilder.BuildComboHud(holdSession, _lastButtonMappingsSnapshot, comboLeads));
             return;
         }
 
-        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot);
+        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot, comboLeads);
         if (prefix is not null)
             _setComboHud(prefix);
         else
@@ -569,9 +641,11 @@ public sealed class MappingEngine : IMappingEngine
         IReadOnlyCollection<GamepadButtons> activeButtons,
         IReadOnlyCollection<MappingEntry> snapshot,
         float leftTriggerValue,
-        float rightTriggerValue)
+        float rightTriggerValue,
+        long? releasedButtonHeldMs)
     {
         var handledOutputs = new HashSet<DispatchedOutput>();
+        var comboLeads = ResolveComboLeads(snapshot);
         foreach (var mapping in snapshot)
         {
             if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
@@ -579,6 +653,8 @@ public sealed class MappingEngine : IMappingEngine
             if (mapping.Trigger != TriggerMoment.Released)
                 continue;
             if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out _))
+                continue;
+            if (ShouldSuppressLeadKeyReleasedOutput(chordButtons, releasedButtonHeldMs, snapshot, comboLeads))
                 continue;
             var triggerThreshold = GetTriggerMatchThreshold(mapping);
             if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, changedButton, activeButtons))
@@ -590,6 +666,129 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         return handledOutputs;
+    }
+
+    private bool ShouldSuppressLeadKeyReleasedOutput(
+        IReadOnlyList<GamepadButtons> chordButtons,
+        long? releasedButtonHeldMs,
+        IReadOnlyCollection<MappingEntry> snapshot,
+        HashSet<GamepadButtons> comboLeads)
+    {
+        if (releasedButtonHeldMs is null || releasedButtonHeldMs <= _leadKeyReleaseSuppressMs)
+            return false;
+        if (chordButtons.Count != 1)
+            return false;
+        if (!comboLeads.Contains(chordButtons[0]))
+            return false;
+        return SnapshotHasMultiButtonChordContaining(chordButtons[0], snapshot);
+    }
+
+    private static bool SnapshotHasMultiButtonChordContaining(
+        GamepadButtons button,
+        IReadOnlyCollection<MappingEntry> snapshot)
+    {
+        foreach (var mapping in snapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
+                continue;
+            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var reqRt, out var reqLt, out _))
+                continue;
+            if (!chord.Contains(button))
+                continue;
+            if (ChordResolver.ChordSpecificity(chord, reqRt, reqLt) >= 2)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ClearDeferredSoloLeadsForRichChord(
+        IReadOnlyList<GamepadButtons> chordButtons,
+        bool requiresRightTrigger,
+        bool requiresLeftTrigger)
+    {
+        if (ChordResolver.ChordSpecificity(chordButtons, requiresRightTrigger, requiresLeftTrigger) < 2)
+            return;
+        foreach (var b in chordButtons)
+            _deferredSoloLeadButtons.Remove(b);
+    }
+
+    private bool TryDispatchDeferredSoloShortRelease(GamepadButtons button, IReadOnlyList<MappingEntry> snapshot)
+    {
+        MappingEntry? pressed = null;
+        MappingEntry? released = null;
+        MappingEntry? tap = null;
+        foreach (var mapping in snapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
+                continue;
+            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var rt, out var lt, out var token))
+                continue;
+            if (rt || lt || chord.Count != 1 || chord[0] != button)
+                continue;
+            switch (mapping.Trigger)
+            {
+                case TriggerMoment.Pressed:
+                    pressed = mapping;
+                    break;
+                case TriggerMoment.Released:
+                    released = mapping;
+                    break;
+                case TriggerMoment.Tap:
+                    tap = mapping;
+                    break;
+            }
+        }
+
+        try
+        {
+            if (pressed is not null &&
+                released is not null &&
+                string.Equals(pressed.KeyboardKey, released.KeyboardKey, StringComparison.Ordinal) &&
+                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var pressToken) &&
+                InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var output, out var baseLabel))
+            {
+                var soloChord = new List<GamepadButtons> { button };
+                _outputStateTracker.TrackOutputHoldState(pressToken, soloChord, output, TriggerMoment.Pressed);
+                var pressLabel = $"{baseLabel} (Pressed)";
+                _setMappedOutput(pressLabel);
+                QueueOutputDispatch(pressToken, TriggerMoment.Pressed, output, pressLabel, pressed.KeyboardKey ?? string.Empty);
+
+                _outputStateTracker.TrackOutputHoldState(pressToken, soloChord, output, TriggerMoment.Released);
+                var relLabel = $"{baseLabel} (Released)";
+                _setMappedOutput(relLabel);
+                QueueOutputDispatch(pressToken, TriggerMoment.Released, output, relLabel, released.KeyboardKey ?? string.Empty);
+                return true;
+            }
+
+            if (pressed is not null &&
+                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var soloToken) &&
+                InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
+            {
+                var outLabel = $"{tapLabel} (Tap)";
+                _setMappedOutput(outLabel);
+                _setMappingStatus($"Queued: {soloToken} (Tap) -> {outLabel}");
+                QueueOutputDispatch(soloToken, TriggerMoment.Tap, soloOut, outLabel, pressed.KeyboardKey ?? string.Empty);
+                return true;
+            }
+
+            if (tap is not null &&
+                ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapTok) &&
+                InputTokenResolver.TryResolveMappedOutput(tap.KeyboardKey, out var tOut, out var bLab))
+            {
+                var ol = $"{bLab} (Tap)";
+                _setMappedOutput(ol);
+                QueueOutputDispatch(tapTok, TriggerMoment.Tap, tOut, ol, tap.KeyboardKey ?? string.Empty);
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Deferred solo release failed: {ex.Message}");
+            _setMappingStatus($"Deferred solo error: {ex.Message}");
+        }
+
+        return false;
     }
 
     private static float GetTriggerMatchThreshold(MappingEntry mapping) =>

@@ -94,6 +94,10 @@ internal static class ChordResolver
     public static int ChordSpecificity(IReadOnlyCollection<GamepadButtons> chordButtons, bool requiresRightTrigger, bool requiresLeftTrigger) =>
         chordButtons.Count + (requiresRightTrigger ? 1 : 0) + (requiresLeftTrigger ? 1 : 0);
 
+    /// <summary>ABXY — always treated as action keys for combo-lead deferral / long-release suppress (not modifier leads).</summary>
+    public static bool IsFaceActionButton(GamepadButtons b) =>
+        b is GamepadButtons.A or GamepadButtons.B or GamepadButtons.X or GamepadButtons.Y;
+
     /// <summary>
     /// True when <paramref name="other"/> is strictly more specific than <paramref name="candidate"/>
     /// and both refer to the same logical chord (candidate's requirements are implied by other's).

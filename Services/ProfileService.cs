@@ -32,6 +32,8 @@ public partial class ProfileService : IProfileService
     public string DefaultGameId => _settings.DefaultGameId;
 
     public int ModifierGraceMs => Math.Clamp(_settings.ModifierGraceMs, 50, 10_000);
+
+    public int LeadKeyReleaseSuppressMs => Math.Clamp(_settings.LeadKeyReleaseSuppressMs, 50, 10_000);
     public ObservableCollection<TemplateOption> AvailableTemplates { get; } = [];
     public event EventHandler? ProfilesLoaded;
 
