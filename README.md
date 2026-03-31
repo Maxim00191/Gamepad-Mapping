@@ -27,6 +27,15 @@ dotnet run --project "Gamepad Mapping.csproj"
 
 Release binaries include `Assets\Config` and `Assets\Profiles` content via `CopyToOutputDirectory`; run from the output folder or ensure the working directory can resolve those paths (see **Paths** below).
 
+## CI/CD
+
+[GitHub Actions](.github/workflows/build.yml) runs on every push and pull request to `main` (**`dotnet build`** Release). When you push an annotated or lightweight tag named like `v1.0.0`, the workflow also **publishes** a **self-contained** `win-x64` build, zips it, and creates a **GitHub Release** with that zip attached (via [softprops/action-gh-release](https://github.com/softprops/action-gh-release)).
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Configuration
 
 On first run, **`Assets/Config/default_settings.json`** is copied to **`Assets/Config/local_settings.json`**. Edit `local_settings.json` to persist your preferences; defaults ship in `default_settings.json`.
