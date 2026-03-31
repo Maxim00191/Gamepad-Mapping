@@ -315,4 +315,46 @@
   <data name="MapDesc_Enter_BubbleChat" xml:space="preserve">
     <value>打开场景气泡聊天</value>
   </data>
+  <data name="AppSettingsHeader" xml:space="preserve">
+    <value>应用程序设置</value>
+  </data>
+  <data name="AppSettingsButton" xml:space="preserve">
+    <value>应用程序设置</value>
+  </data>
+  <data name="AppSettingsTooltip" xml:space="preserve">
+    <value>调整全局时间、手柄轮询间隔、模拟触发阈值与键鼠模拟等。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+  </data>
+  <data name="AppSettingsTimingSection" xml:space="preserve">
+    <value>时间与键盘</value>
+  </data>
+  <data name="AppSettingsAnalogSection" xml:space="preserve">
+    <value>摇杆与轮询</value>
+  </data>
+  <data name="ModifierGraceLabel" xml:space="preserve">
+    <value>修饰键容限 / 组合 HUD 延迟（毫秒）</value>
+  </data>
+  <data name="LeadSuppressLabel" xml:space="preserve">
+    <value>主导键长按抑制阈值（毫秒）</value>
+  </data>
+  <data name="TapHoldLabel" xml:space="preserve">
+    <value>键盘点按按住时长（毫秒）</value>
+  </data>
+  <data name="TapInterKeyDelayLabel" xml:space="preserve">
+    <value>连点间隔（毫秒）</value>
+  </data>
+  <data name="TextInterCharDelayLabel" xml:space="preserve">
+    <value>文本逐字间隔（毫秒）</value>
+  </data>
+  <data name="DefaultAnalogThresholdLabel" xml:space="preserve">
+    <value>默认模拟触发阈值（0–1）</value>
+  </data>
+  <data name="MouseLookSensitivityLabel" xml:space="preserve">
+    <value>鼠标视角灵敏度</value>
+  </data>
+  <data name="AnalogEpsilonLabel" xml:space="preserve">
+    <value>摇杆变化灵敏度（ε）</value>
+  </data>
+  <data name="PollingIntervalLabel" xml:space="preserve">
+    <value>手柄轮询间隔（毫秒）</value>
+  </data>
 </root>

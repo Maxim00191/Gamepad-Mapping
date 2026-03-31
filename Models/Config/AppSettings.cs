@@ -45,4 +45,46 @@ public class AppSettings
     /// <summary>Normalized [0..1] deadzone for the right stick; falls back to <see cref="ThumbstickDeadzone"/> when non-positive.</summary>
     [JsonProperty("rightThumbstickDeadzone")]
     public float RightThumbstickDeadzone { get; set; }
+
+    /// <summary>
+    /// Polling interval for reading the gamepad state (ms). Lower values increase responsiveness at the cost of CPU usage.
+    /// </summary>
+    [JsonProperty("gamepadPollingIntervalMs")]
+    public int GamepadPollingIntervalMs { get; set; } = 10;
+
+    /// <summary>
+    /// Default normalized [0..1] threshold for activating stick/trigger analog mappings when a mapping does not override it.
+    /// </summary>
+    [JsonProperty("defaultAnalogActivationThreshold")]
+    public float DefaultAnalogActivationThreshold { get; set; } = 0.35f;
+
+    /// <summary>
+    /// Sensitivity factor for mouse-look mappings (pixels per unit of stick input) when a mapping does not override it.
+    /// </summary>
+    [JsonProperty("mouseLookSensitivity")]
+    public float MouseLookSensitivity { get; set; } = 18f;
+
+    /// <summary>
+    /// Minimum analog change magnitude required before emitting a new input frame (epsilon). Smaller values are more sensitive.
+    /// </summary>
+    [JsonProperty("analogChangeEpsilon")]
+    public float AnalogChangeEpsilon { get; set; } = 0.01f;
+
+    /// <summary>
+    /// Default keyboard tap hold duration in milliseconds when simulating a single key press.
+    /// </summary>
+    [JsonProperty("keyboardTapHoldDurationMs")]
+    public int KeyboardTapHoldDurationMs { get; set; } = 30;
+
+    /// <summary>
+    /// Default delay in milliseconds between repeated tap outputs when a mapping requests multiple repeats.
+    /// </summary>
+    [JsonProperty("tapInterKeyDelayMs")]
+    public int TapInterKeyDelayMs { get; set; } = 0;
+
+    /// <summary>
+    /// Default delay in milliseconds between characters when sending text through the keyboard emulator.
+    /// </summary>
+    [JsonProperty("textInterCharDelayMs")]
+    public int TextInterCharDelayMs { get; set; } = 0;
 }

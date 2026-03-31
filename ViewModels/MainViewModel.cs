@@ -50,6 +50,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _profileService = profileService ?? new ProfileService();
 
         _appSettings = SettingsService.LoadSettings();
+        ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
+        LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
+        GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;
+        DefaultAnalogActivationThreshold = _appSettings.DefaultAnalogActivationThreshold;
+        MouseLookSensitivity = _appSettings.MouseLookSensitivity;
+        AnalogChangeEpsilon = _appSettings.AnalogChangeEpsilon;
+        KeyboardTapHoldDurationMs = _appSettings.KeyboardTapHoldDurationMs;
+        TapInterKeyDelayMs = _appSettings.TapInterKeyDelayMs;
+        TextInterCharDelayMs = _appSettings.TextInterCharDelayMs;
         var baseDeadzone = _appSettings.ThumbstickDeadzone;
         static float ResolveStickDeadzone(float specific, float shared)
         {
@@ -241,6 +250,114 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnIsProcessTargetingEnabledChanged(bool value)
     {
         _appStatusMonitor.UpdateTarget(SelectedTargetProcess, value);
+    }
+
+    [ObservableProperty]
+    private int modifierGraceMsSetting;
+
+    partial void OnModifierGraceMsSettingChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 50, 10_000);
+        if (clamped != value)
+            modifierGraceMsSetting = clamped;
+        _appSettings.ModifierGraceMs = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int leadKeyReleaseSuppressMsSetting;
+
+    partial void OnLeadKeyReleaseSuppressMsSettingChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 50, 10_000);
+        if (clamped != value)
+            leadKeyReleaseSuppressMsSetting = clamped;
+        _appSettings.LeadKeyReleaseSuppressMs = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int gamepadPollingIntervalMs;
+
+    partial void OnGamepadPollingIntervalMsChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 5, 30);
+        if (clamped != value)
+            gamepadPollingIntervalMs = clamped;
+        _appSettings.GamepadPollingIntervalMs = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private float defaultAnalogActivationThreshold;
+
+    partial void OnDefaultAnalogActivationThresholdChanged(float value)
+    {
+        var clamped = Math.Clamp(value, 0.01f, 1f);
+        if (Math.Abs(clamped - value) > float.Epsilon)
+            defaultAnalogActivationThreshold = clamped;
+        _appSettings.DefaultAnalogActivationThreshold = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private float mouseLookSensitivity;
+
+    partial void OnMouseLookSensitivityChanged(float value)
+    {
+        var clamped = Math.Clamp(value, 1f, 100f);
+        if (Math.Abs(clamped - value) > float.Epsilon)
+            mouseLookSensitivity = clamped;
+        _appSettings.MouseLookSensitivity = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private float analogChangeEpsilon;
+
+    partial void OnAnalogChangeEpsilonChanged(float value)
+    {
+        var clamped = Math.Clamp(value, 0.001f, 0.1f);
+        if (Math.Abs(clamped - value) > float.Epsilon)
+            analogChangeEpsilon = clamped;
+        _appSettings.AnalogChangeEpsilon = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int keyboardTapHoldDurationMs;
+
+    partial void OnKeyboardTapHoldDurationMsChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 20, 50);
+        if (clamped != value)
+            keyboardTapHoldDurationMs = clamped;
+        _appSettings.KeyboardTapHoldDurationMs = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int tapInterKeyDelayMs;
+
+    partial void OnTapInterKeyDelayMsChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 0, 1000);
+        if (clamped != value)
+            tapInterKeyDelayMs = clamped;
+        _appSettings.TapInterKeyDelayMs = clamped;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int textInterCharDelayMs;
+
+    partial void OnTextInterCharDelayMsChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 0, 1000);
+        if (clamped != value)
+            textInterCharDelayMs = clamped;
+        _appSettings.TextInterCharDelayMs = clamped;
+        SettingsService.SaveSettings(_appSettings);
     }
 
     private bool CanDispatchMappedOutput()

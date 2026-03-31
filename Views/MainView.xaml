@@ -54,6 +54,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Prominent entry point for application-wide settings (saved to local config). -->
+        <Style x:Key="AppSettingsToolbarToggleStyle" TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource ToolbarToggleButtonStyle}">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="MinWidth" Value="172" />
+            <Setter Property="Padding" Value="10,0,14,0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
     </UserControl.Resources>
     <Grid Margin="12"
           Background="{DynamicResource AppBackgroundBrush}">
@@ -97,48 +106,157 @@
                               ItemsSource="{Binding ProfileTemplatePanel.AvailableTemplates}"
                               DisplayMemberPath="DisplayName"
                               SelectedItem="{Binding ProfileTemplatePanel.SelectedTemplate}" />
-                    <Grid Grid.Column="2" Margin="6,0,0,0">
-                        <ToggleButton x:Name="NewConfigButton"
-                                      Style="{StaticResource ToolbarToggleButtonStyle}"
-                                      Width="32"
-                                      Height="32"
-                                      HorizontalAlignment="Left"
-                                      ToolTip="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}">
-                            <Viewbox Width="14" Height="14">
-                                <Path Data="M 7 0 L 7 14 M 0 7 L 14 7"
-                                      Stroke="{DynamicResource AppTextBrush}"
-                                      StrokeThickness="1.35"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round"
-                                      Fill="Transparent" />
-                            </Viewbox>
-                        </ToggleButton>
-                        <Popup Placement="Bottom"
-                               PlacementTarget="{Binding ElementName=NewConfigButton}"
-                               StaysOpen="False"
-                               IsOpen="{Binding IsChecked, ElementName=NewConfigButton, Mode=TwoWay}">
-                            <Border Background="{DynamicResource AppSurfaceBrush}"
-                                    BorderBrush="{DynamicResource AppBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Padding="12"
-                                    MinWidth="280">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}"
-                                               FontWeight="SemiBold"
-                                               Margin="0,0,0,8" />
-                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
-                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileGameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
-                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <WrapPanel Margin="0,10,0,0">
-                                        <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
-                                                Command="{Binding ProfileTemplatePanel.CreateProfileCommand}" />
-                                    </WrapPanel>
-                                </StackPanel>
-                            </Border>
-                        </Popup>
-                    </Grid>
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="6,0,0,0">
+                        <Grid>
+                            <ToggleButton x:Name="NewConfigButton"
+                                          Style="{StaticResource ToolbarToggleButtonStyle}"
+                                          Width="32"
+                                          Height="32"
+                                          HorizontalAlignment="Left"
+                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}">
+                                <Viewbox Width="14" Height="14">
+                                    <Path Data="M 7 0 L 7 14 M 0 7 L 14 7"
+                                          Stroke="{DynamicResource AppTextBrush}"
+                                          StrokeThickness="1.35"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          Fill="Transparent" />
+                                </Viewbox>
+                            </ToggleButton>
+                            <Popup Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=NewConfigButton}"
+                                   StaysOpen="False"
+                                   IsOpen="{Binding IsChecked, ElementName=NewConfigButton, Mode=TwoWay}">
+                                <Border Background="{DynamicResource AppSurfaceBrush}"
+                                        BorderBrush="{DynamicResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12"
+                                        MinWidth="280">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,0,0,8" />
+                                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding ProfileTemplatePanel.NewProfileGameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
+                                        <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <WrapPanel Margin="0,10,0,0">
+                                            <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
+                                                    Command="{Binding ProfileTemplatePanel.CreateProfileCommand}" />
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <Grid Margin="10,0,0,0">
+                            <ToggleButton x:Name="AppSettingsButton"
+                                          Style="{StaticResource AppSettingsToolbarToggleStyle}"
+                                          HorizontalAlignment="Left"
+                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[AppSettingsTooltip]}">
+                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsButton]}"
+                                           VerticalAlignment="Center" />
+                            </ToggleButton>
+                            <Popup Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=AppSettingsButton}"
+                                   StaysOpen="False"
+                                   IsOpen="{Binding IsChecked, ElementName=AppSettingsButton, Mode=TwoWay}">
+                                <Border Background="{DynamicResource AppSurfaceBrush}"
+                                        BorderBrush="{DynamicResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12"
+                                        MinWidth="340"
+                                        MaxWidth="420">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsHeader]}"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="14"
+                                                   Margin="0,0,0,8" />
+                                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsTimingSection]}"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,0,0,6" />
+                                        <UniformGrid Columns="2" Margin="0,0,0,6">
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ModifierGraceLabel]}"
+                                                       Margin="0,0,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding ModifierGraceMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,0,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[LeadSuppressLabel]}"
+                                                       Margin="0,4,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding LeadKeyReleaseSuppressMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapHoldLabel]}"
+                                                       Margin="0,4,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding KeyboardTapHoldDurationMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapInterKeyDelayLabel]}"
+                                                       Margin="0,4,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding TapInterKeyDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TextInterCharDelayLabel]}"
+                                                       Margin="0,4,8,0"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding TextInterCharDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,0" />
+                                        </UniformGrid>
+
+                                        <Separator Margin="0,6,0,8" />
+
+                                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsAnalogSection]}"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,0,0,6" />
+                                        <UniformGrid Columns="2">
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DefaultAnalogThresholdLabel]}"
+                                                       Margin="0,0,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding DefaultAnalogActivationThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.00}}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,0,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MouseLookSensitivityLabel]}"
+                                                       Margin="0,4,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding MouseLookSensitivity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AnalogEpsilonLabel]}"
+                                                       Margin="0,4,8,4"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding AnalogChangeEpsilon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.000}}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[PollingIntervalLabel]}"
+                                                       Margin="0,4,8,0"
+                                                       TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding GamepadPollingIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Width="88"
+                                                     HorizontalAlignment="Left"
+                                                     Margin="0,4,0,0" />
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Row 1: display name -->

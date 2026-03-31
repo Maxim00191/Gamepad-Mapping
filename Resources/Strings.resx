@@ -315,4 +315,46 @@
   <data name="MapDesc_Enter_BubbleChat" xml:space="preserve">
     <value>Open scene bubble chat</value>
   </data>
+  <data name="AppSettingsHeader" xml:space="preserve">
+    <value>Application settings</value>
+  </data>
+  <data name="AppSettingsButton" xml:space="preserve">
+    <value>Application settings</value>
+  </data>
+  <data name="AppSettingsTooltip" xml:space="preserve">
+    <value>Timing, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
+  </data>
+  <data name="AppSettingsTimingSection" xml:space="preserve">
+    <value>Timing &amp; keyboard</value>
+  </data>
+  <data name="AppSettingsAnalogSection" xml:space="preserve">
+    <value>Analog &amp; polling</value>
+  </data>
+  <data name="ModifierGraceLabel" xml:space="preserve">
+    <value>Modifier grace / combo HUD delay (ms)</value>
+  </data>
+  <data name="LeadSuppressLabel" xml:space="preserve">
+    <value>Lead key long-hold suppress (ms)</value>
+  </data>
+  <data name="TapHoldLabel" xml:space="preserve">
+    <value>Keyboard tap hold (ms)</value>
+  </data>
+  <data name="TapInterKeyDelayLabel" xml:space="preserve">
+    <value>Tap repeat gap (ms)</value>
+  </data>
+  <data name="TextInterCharDelayLabel" xml:space="preserve">
+    <value>Text between chars (ms)</value>
+  </data>
+  <data name="DefaultAnalogThresholdLabel" xml:space="preserve">
+    <value>Default analog threshold (0–1)</value>
+  </data>
+  <data name="MouseLookSensitivityLabel" xml:space="preserve">
+    <value>Mouse-look sensitivity</value>
+  </data>
+  <data name="AnalogEpsilonLabel" xml:space="preserve">
+    <value>Analog change epsilon</value>
+  </data>
+  <data name="PollingIntervalLabel" xml:space="preserve">
+    <value>Gamepad poll interval (ms)</value>
+  </data>
 </root>
