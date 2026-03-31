@@ -75,6 +75,15 @@
   <data name="ShowHud" xml:space="preserve">
     <value>启用组合键提示（屏幕 HUD）</value>
   </data>
+  <data name="ComboHudPanelOpacityHint" xml:space="preserve">
+    <value>数值越小背景越透明；保存在本地设置中。</value>
+  </data>
+  <data name="ComboHudPanelOpacityLabel" xml:space="preserve">
+    <value>HUD 背景不透明度（α）</value>
+  </data>
+  <data name="ComboHudShadowOpacityLabel" xml:space="preserve">
+    <value>HUD 阴影强度</value>
+  </data>
   <data name="StopReader" xml:space="preserve">
     <value>停止读取</value>
   </data>
@@ -198,6 +207,9 @@
   <data name="TemplateName_RocoKingdom" xml:space="preserve">
     <value>洛克王国世界</value>
   </data>
+  <data name="TemplateName_RocoKingdom" xml:space="preserve">
+    <value>洛克王国世界2</value>
+  </data>
   <data name="MapDesc_MoveForward" xml:space="preserve">
     <value>向前移动</value>
   </data>
@@ -226,13 +238,13 @@
     <value>退出瞄准模式</value>
   </data>
   <data name="MapDesc_Space_Jump" xml:space="preserve">
-    <value>跳跃</value>
+    <value>跳跃（短按）；鼠标左键单击（长按）</value>
   </data>
   <data name="MapDesc_F_InteractPickUp" xml:space="preserve">
     <value>交互/拾取</value>
   </data>
   <data name="MapDesc_X_CancelState" xml:space="preserve">
-    <value>取消骑乘/攀爬/同行/特殊状态</value>
+    <value>取消骑乘/攀爬/同行/特殊状态（短按）；Escape（长按）</value>
   </data>
   <data name="MapDesc_E_SpiritBallHomeAction" xml:space="preserve">
     <value>切换至精灵球模式；家园：装备食物/种植种子</value>

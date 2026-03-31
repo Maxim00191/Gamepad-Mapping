@@ -75,6 +75,15 @@
   <data name="ShowHud" xml:space="preserve">
     <value>Enable HUD for combo key tips</value>
   </data>
+  <data name="ComboHudPanelOpacityHint" xml:space="preserve">
+    <value>Lower values make the panel more transparent; stored in local settings.</value>
+  </data>
+  <data name="ComboHudPanelOpacityLabel" xml:space="preserve">
+    <value>HUD background opacity (α)</value>
+  </data>
+  <data name="ComboHudShadowOpacityLabel" xml:space="preserve">
+    <value>HUD shadow strength</value>
+  </data>
   <data name="StopReader" xml:space="preserve">
     <value>Stop reader</value>
   </data>
@@ -198,6 +207,9 @@
   <data name="TemplateName_RocoKingdom" xml:space="preserve">
     <value>Roco Kingdom World</value>
   </data>
+  <data name="TemplateName_RocoKingdom_2" xml:space="preserve">
+    <value>Roco Kingdom World 2</value>
+  </data>
   <data name="MapDesc_MoveForward" xml:space="preserve">
     <value>Move forward</value>
   </data>
@@ -226,13 +238,13 @@
     <value>Exit aiming mode</value>
   </data>
   <data name="MapDesc_Space_Jump" xml:space="preserve">
-    <value>Jump</value>
+    <value>Jump (tap); mouse left click (hold)</value>
   </data>
   <data name="MapDesc_F_InteractPickUp" xml:space="preserve">
     <value>Interact / pick up</value>
   </data>
   <data name="MapDesc_X_CancelState" xml:space="preserve">
-    <value>Cancel mount / climbing / companion / special state</value>
+    <value>Cancel mount / climbing / companion / special state (tap); Escape (hold)</value>
   </data>
   <data name="MapDesc_E_SpiritBallHomeAction" xml:space="preserve">
     <value>Switch to Spirit Ball mode; in home: equip food / plant seeds</value>

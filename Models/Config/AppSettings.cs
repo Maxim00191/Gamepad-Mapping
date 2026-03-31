@@ -103,4 +103,12 @@ public class AppSettings
     /// </summary>
     [JsonProperty("textInterCharDelayMs")]
     public int TextInterCharDelayMs { get; set; } = 0;
+
+    /// <summary>ARGB alpha (0–255) for the on-screen combo HUD panel backing. Clamped in the app when applied.</summary>
+    [JsonProperty("comboHudPanelAlpha")]
+    public int ComboHudPanelAlpha { get; set; } = 96;
+
+    /// <summary>Opacity of the HUD drop shadow (roughly 0.08–0.55). Clamped when applied.</summary>
+    [JsonProperty("comboHudShadowOpacity")]
+    public double ComboHudShadowOpacity { get; set; } = 0.28;
 }

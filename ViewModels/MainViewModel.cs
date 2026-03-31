@@ -114,7 +114,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
             initialLeftTriggerOuterDeadzone: _appSettings.LeftTriggerOuterDeadzone,
             initialRightTriggerInnerDeadzone: _appSettings.RightTriggerInnerDeadzone,
             initialRightTriggerOuterDeadzone: _appSettings.RightTriggerOuterDeadzone,
-            triggerDeadzonesChanged: OnTriggerDeadzonesChanged);
+            triggerDeadzonesChanged: OnTriggerDeadzonesChanged,
+            initialComboHudPanelAlpha: Math.Clamp(_appSettings.ComboHudPanelAlpha, 24, 220),
+            initialComboHudShadowOpacity: Math.Clamp(_appSettings.ComboHudShadowOpacity, 0.08, 0.60),
+            comboHudChromeChanged: OnComboHudChromeChanged);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -465,7 +468,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
             }
 
             _comboHudWindow ??= new ComboHudWindow();
-            _comboHudWindow.ShowHud(content);
+            var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
+            var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
+            _comboHudWindow.ShowHud(content, a, o);
+        });
+    }
+
+    private void OnComboHudChromeChanged(int panelAlpha, double shadowOpacity)
+    {
+        var a = Math.Clamp(panelAlpha, 24, 220);
+        var o = Math.Clamp(shadowOpacity, 0.08, 0.60);
+        _appSettings.ComboHudPanelAlpha = a;
+        _appSettings.ComboHudShadowOpacity = o;
+        SettingsService.SaveSettings(_appSettings);
+
+        DispatchToUi(() =>
+        {
+            if (_comboHudWindow is { IsVisible: true })
+                _comboHudWindow.ApplyVisualSettings((byte)a, o);
         });
     }
 

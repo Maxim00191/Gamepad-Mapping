@@ -20,7 +20,7 @@ internal static class ComboHudBuilder
         if (activeButtons is null || activeButtons.Count == 0)
             return null;
 
-        var aChord = activeButtons.OrderBy(b => b.ToString(), StringComparer.OrdinalIgnoreCase).ToList();
+        var aChord = OrderHeldButtonsForTitle(activeButtons);
         const bool aReqRt = false;
         const bool aReqLt = false;
 
@@ -28,7 +28,7 @@ internal static class ComboHudBuilder
         if (lines.Count == 0)
             return null;
 
-        var title = string.Join(" + ", aChord.Select(b => b.ToString()));
+        var title = string.Join(" + ", aChord.Select(FormatHudButton));
         return new ComboHudContent(title, lines);
     }
 
@@ -50,24 +50,27 @@ internal static class ComboHudBuilder
             break;
         }
 
-        var lines = new List<ComboHudLine>
+        var lines = new List<ComboHudLine>();
+        var shortSource = FormatHudChordLabel(session.SourceToken);
+        if (!string.IsNullOrWhiteSpace(holdEntry?.Description))
         {
-            new($"Short press → {FormatHudOutput(session.ShortKeyToken)}", null),
-            new($"Hold {session.HoldThresholdMs} ms → {FormatHudOutput(session.HoldKeyToken)}", null)
-        };
+            var content = $"{shortSource} · tap {FormatHudOutput(session.ShortKeyToken)} · hold {session.HoldThresholdMs} ms → {FormatHudOutput(session.HoldKeyToken)}";
+            lines.Add(new ComboHudLine(holdEntry.Description.Trim(), content));
+        }
+        else
+        {
+            lines.Add(new ComboHudLine($"Short press → {FormatHudOutput(session.ShortKeyToken)}", null));
+            lines.Add(new ComboHudLine($"Hold {session.HoldThresholdMs} ms → {FormatHudOutput(session.HoldKeyToken)}", null));
+        }
 
         lines.AddRange(CollectChordExtensionLines(
-            session.ChordButtons,
+            OrderHeldButtonsForTitle(session.ChordButtons),
             session.RequiresRightTrigger,
             session.RequiresLeftTrigger,
             mappings,
             comboLeads));
 
-        var title = session.SourceToken;
-        if (!string.IsNullOrWhiteSpace(holdEntry?.Description))
-            title = $"{session.SourceToken}  ·  {holdEntry.Description}";
-
-        return new ComboHudContent(title, lines);
+        return new ComboHudContent(shortSource, lines);
     }
 
     public static List<ComboHudLine> CollectChordExtensionLines(
@@ -77,7 +80,7 @@ internal static class ComboHudBuilder
         IReadOnlyList<MappingEntry> mappings,
         IReadOnlySet<GamepadButtons> comboLeads)
     {
-        var acc = new List<(int Spec, ComboHudLine Line)>();
+        var acc = new List<(int Spec, int SortTier, int FaceKey, int DpadKey, string NormTok, ComboHudLine Line)>();
         foreach (var mapping in mappings)
         {
             if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
@@ -99,18 +102,181 @@ internal static class ComboHudBuilder
                 continue;
 
             var spec = ChordResolver.ChordSpecificity(chord, reqRt, reqLt);
-            var comboLabel = mapping.From.Value ?? normTok;
+            var comboLabel = FormatHudChordLabel(mapping.From.Value ?? normTok);
             var keyPart = string.IsNullOrWhiteSpace(mapping.KeyboardKey) ? string.Empty : mapping.KeyboardKey.Trim();
             var descPart = mapping.Description?.Trim();
-            var detail = string.IsNullOrEmpty(descPart)
-                ? keyPart
-                : string.IsNullOrEmpty(keyPart)
-                    ? descPart
-                    : $"{descPart} → {keyPart}";
-            acc.Add((spec, new ComboHudLine(comboLabel, string.IsNullOrWhiteSpace(detail) ? null : detail)));
+
+            string? contentLine = null;
+            if (!string.IsNullOrEmpty(keyPart))
+                contentLine = string.IsNullOrEmpty(comboLabel) ? keyPart : $"{comboLabel} → {keyPart}";
+            else if (!string.IsNullOrEmpty(comboLabel))
+                contentLine = comboLabel;
+
+            string primary;
+            string? detail;
+            if (!string.IsNullOrEmpty(descPart))
+            {
+                primary = descPart;
+                detail = string.IsNullOrWhiteSpace(contentLine) ? null : contentLine;
+            }
+            else if (!string.IsNullOrEmpty(keyPart))
+            {
+                primary = keyPart;
+                detail = string.IsNullOrEmpty(comboLabel) ? null : comboLabel;
+            }
+            else
+            {
+                primary = comboLabel;
+                detail = null;
+            }
+
+            var added = chord.Where(b => !baseChord.Contains(b)).ToList();
+            var (sortTier, faceKey, dpadKey) = ExtensionLineSortKeys(added);
+            acc.Add((spec, sortTier, faceKey, dpadKey, normTok, new ComboHudLine(primary, detail)));
         }
 
-        return acc.OrderBy(e => e.Spec).ThenBy(e => e.Line.Primary, StringComparer.OrdinalIgnoreCase).Select(e => e.Line).ToList();
+        return acc
+            .OrderBy(e => e.Spec)
+            .ThenBy(e => e.SortTier)
+            .ThenBy(e => e.FaceKey)
+            .ThenBy(e => e.DpadKey)
+            .ThenBy(e => e.NormTok, StringComparer.OrdinalIgnoreCase)
+            .Select(e => e.Line)
+            .ToList();
+    }
+
+    /// <summary>Face buttons in top-right-bottom-left (Y, B, A, X) order for HUD labels.</summary>
+    private static int FaceYbaxIndex(GamepadButtons b) => b switch
+    {
+        GamepadButtons.Y => 0,
+        GamepadButtons.B => 1,
+        GamepadButtons.A => 2,
+        GamepadButtons.X => 3,
+        _ => -1
+    };
+
+    /// <summary>D-pad in clockwise-from-up (Up, Right, Down, Left) order for HUD labels.</summary>
+    private static int DPadUrdlIndex(GamepadButtons b) => b switch
+    {
+        GamepadButtons.DPadUp => 0,
+        GamepadButtons.DPadRight => 1,
+        GamepadButtons.DPadDown => 2,
+        GamepadButtons.DPadLeft => 3,
+        _ => -1
+    };
+
+    private static bool IsFaceButton(GamepadButtons b) => FaceYbaxIndex(b) >= 0;
+
+    private static bool IsDpadButton(GamepadButtons b) => DPadUrdlIndex(b) >= 0;
+
+    /// <summary>0 = other (shoulders, thumbs, etc.), 1 = D-pad, 2 = face — so title reads … + D-pad + face (YBAX).</summary>
+    private static int HudTitleButtonGroup(GamepadButtons b)
+    {
+        if (IsFaceButton(b)) return 2;
+        if (IsDpadButton(b)) return 1;
+        return 0;
+    }
+
+    private static List<GamepadButtons> OrderHeldButtonsForTitle(IReadOnlyCollection<GamepadButtons> activeButtons)
+    {
+        return activeButtons
+            .OrderBy(HudTitleButtonGroup)
+            .ThenBy(b =>
+            {
+                var g = HudTitleButtonGroup(b);
+                return g switch
+                {
+                    0 => $"0:{b}",
+                    1 => $"1:{DPadUrdlIndex(b):D2}",
+                    2 => $"2:{FaceYbaxIndex(b):D2}",
+                    _ => "9:"
+                };
+            }, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>Sort extension rows: additions that include a face button first (YBAX), then D-pad-only (↑→↓←), then others.</summary>
+    private static (int SortTier, int FaceKey, int DpadKey) ExtensionLineSortKeys(List<GamepadButtons> addedButtons)
+    {
+        var faceRanks = addedButtons.Select(FaceYbaxIndex).Where(i => i >= 0).ToList();
+        var dpadRanks = addedButtons.Select(DPadUrdlIndex).Where(i => i >= 0).ToList();
+        var faceKey = faceRanks.Count > 0 ? faceRanks.Min() : 99;
+        var dpadKey = dpadRanks.Count > 0 ? dpadRanks.Min() : 99;
+        int sortTier;
+        if (faceRanks.Count > 0)
+            sortTier = 0;
+        else if (dpadRanks.Count > 0)
+            sortTier = 1;
+        else
+            sortTier = 2;
+        return (sortTier, faceKey, dpadKey);
+    }
+
+    private static string FormatHudButton(GamepadButtons b) => b switch
+    {
+        GamepadButtons.LeftShoulder => "LB",
+        GamepadButtons.RightShoulder => "RB",
+        GamepadButtons.LeftThumb => "LS",
+        GamepadButtons.RightThumb => "RS",
+        // Directional arrows — familiar on game UIs (avoid single letters that clash with face / keyboard).
+        GamepadButtons.DPadUp => "\u2191",
+        GamepadButtons.DPadRight => "\u2192",
+        GamepadButtons.DPadDown => "\u2193",
+        GamepadButtons.DPadLeft => "\u2190",
+        _ => b.ToString()
+    };
+
+    /// <summary>Compact chord text for HUD (<see cref="GamepadBinding.Value"/> or normalized chord tokens).</summary>
+    private static string FormatHudChordLabel(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+            return label ?? string.Empty;
+
+        var parts = label.Split(['+', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Join(" + ", parts.Select(FormatHudChordSegment));
+    }
+
+    private static string FormatHudChordSegment(string segment)
+    {
+        if (string.IsNullOrWhiteSpace(segment))
+            return segment;
+
+        var s = segment.Trim();
+
+        if (s.Equals("LeftTrigger", StringComparison.OrdinalIgnoreCase) ||
+            s.Equals("LT", StringComparison.OrdinalIgnoreCase))
+            return "LT";
+        if (s.Equals("RightTrigger", StringComparison.OrdinalIgnoreCase) ||
+            s.Equals("RT", StringComparison.OrdinalIgnoreCase))
+            return "RT";
+
+        if (s.Equals("LeftShoulder", StringComparison.OrdinalIgnoreCase) ||
+            s.Equals("LB", StringComparison.OrdinalIgnoreCase))
+            return "LB";
+        if (s.Equals("RightShoulder", StringComparison.OrdinalIgnoreCase) ||
+            s.Equals("RB", StringComparison.OrdinalIgnoreCase))
+            return "RB";
+
+        if (s.Equals("LeftThumb", StringComparison.OrdinalIgnoreCase) ||
+            s.Equals("LS", StringComparison.OrdinalIgnoreCase))
+            return "LS";
+        if (s.Equals("RightThumb", StringComparison.OrdinalIgnoreCase) ||
+            s.Equals("RS", StringComparison.OrdinalIgnoreCase))
+            return "RS";
+
+        if (s.Equals("DPadUp", StringComparison.OrdinalIgnoreCase))
+            return "\u2191";
+        if (s.Equals("DPadRight", StringComparison.OrdinalIgnoreCase))
+            return "\u2192";
+        if (s.Equals("DPadDown", StringComparison.OrdinalIgnoreCase))
+            return "\u2193";
+        if (s.Equals("DPadLeft", StringComparison.OrdinalIgnoreCase))
+            return "\u2190";
+
+        if (Enum.TryParse<GamepadButtons>(s, true, out var btn) && btn != GamepadButtons.None)
+            return FormatHudButton(btn);
+
+        return s;
     }
 
     private static string FormatHudOutput(string? token)

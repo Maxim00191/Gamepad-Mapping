@@ -305,12 +305,50 @@
                 </WrapPanel>
 
                 <!-- Row 3: combo HUD — core on-screen guide; always visible in toolbar -->
-                <CheckBox Grid.Row="3"
-                          Margin="0,0,0,8"
-                          Content="{Binding Source={StaticResource Loc}, Path=[ShowHud]}"
-                          IsChecked="{Binding GamepadMonitorPanel.IsHudEnabled, Mode=TwoWay}"
-                          VerticalAlignment="Center"
-                          FontWeight="SemiBold" />
+                <StackPanel Grid.Row="3" Margin="0,0,0,8">
+                    <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[ShowHud]}"
+                              IsChecked="{Binding GamepadMonitorPanel.IsHudEnabled, Mode=TwoWay}"
+                              VerticalAlignment="Center"
+                              FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ComboHudPanelOpacityHint]}"
+                               Margin="0,8,0,0"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               FontSize="11" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ComboHudPanelOpacityLabel]}"
+                               Margin="0,4,0,2"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Slider Width="200"
+                                Minimum="24"
+                                Maximum="200"
+                                Value="{Binding GamepadMonitorPanel.ComboHudPanelAlpha, Mode=TwoWay}"
+                                SmallChange="2"
+                                LargeChange="16"
+                                AutoToolTipPlacement="TopLeft" />
+                        <TextBlock VerticalAlignment="Center" Margin="10,0,0,0">
+                            <Run Text="{Binding GamepadMonitorPanel.ComboHudPanelAlpha, Mode=OneWay}" />
+                            <Run Text="/255" />
+                        </TextBlock>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ComboHudShadowOpacityLabel]}"
+                               Margin="0,8,0,2"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Slider Width="200"
+                                Minimum="0.08"
+                                Maximum="0.55"
+                                Value="{Binding GamepadMonitorPanel.ComboHudShadowOpacity, Mode=TwoWay}"
+                                TickFrequency="0.02"
+                                IsSnapToTickEnabled="True"
+                                SmallChange="0.02"
+                                LargeChange="0.06"
+                                AutoToolTipPlacement="TopLeft" />
+                        <TextBlock Text="{Binding GamepadMonitorPanel.ComboHudShadowOpacity, StringFormat={}{0:F2}}"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0,0,0" />
+                    </StackPanel>
+                </StackPanel>
 
                 <!-- Row 4: target process name (stored in profile JSON; no running-process picker) -->
                 <StackPanel Grid.Row="4">

@@ -1,6 +1,8 @@
 using System;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using GamepadMapperGUI.Models;
 using Gamepad_Mapping.Utils;
@@ -15,8 +17,22 @@ public partial class ComboHudWindow : Window
         SourceInitialized += (_, _) => TopMostOverlayHelper.ApplyToWindow(this);
     }
 
-    public void ShowHud(ComboHudContent content)
+    /// <summary>Updates panel tint, border, and shadow from user settings (live while the HUD is open).</summary>
+    public void ApplyVisualSettings(byte panelAlpha, double shadowOpacity)
     {
+        panelAlpha = (byte)Math.Clamp((int)panelAlpha, 24, 220);
+        shadowOpacity = Math.Clamp(shadowOpacity, 0.08, 0.60);
+        RootBorder.Background = new SolidColorBrush(Color.FromArgb(panelAlpha, 0x1C, 0x1C, 0x1E));
+        var borderA = (byte)Math.Clamp(panelAlpha / 2 + 28, 32, 100);
+        RootBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(borderA, 0, 0, 0));
+        if (RootBorder.Effect is DropShadowEffect dse)
+            dse.Opacity = shadowOpacity;
+    }
+
+    public void ShowHud(ComboHudContent content, byte panelAlpha, double shadowOpacity)
+    {
+        ApplyVisualSettings(panelAlpha, shadowOpacity);
+        ApplyHudLayoutBounds();
         TitleBlock.Text = content.Title;
         LinesItems.ItemsSource = content.Lines;
         var wasHidden = !IsVisible;
@@ -56,6 +72,19 @@ public partial class ComboHudWindow : Window
             fadeOut.Completed -= OnFadeOutCompleted;
         Hide();
         RootBorder.Opacity = 1;
+    }
+
+    /// <summary>
+    /// Lets long tip lists scroll inside the work area instead of a fixed 320px cap or clipping off-screen.
+    /// </summary>
+    private void ApplyHudLayoutBounds()
+    {
+        var work = SystemParameters.WorkArea;
+        const double screenEdgeMargin = 28;
+        const double chromeAboveScroll = 102;
+        var maxWindowH = Math.Max(200, work.Height - screenEdgeMargin);
+        MaxHeight = maxWindowH;
+        LinesScrollViewer.MaxHeight = Math.Max(220, maxWindowH - chromeAboveScroll);
     }
 
     private void PositionBottomRight()

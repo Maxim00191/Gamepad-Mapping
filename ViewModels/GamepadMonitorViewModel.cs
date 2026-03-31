@@ -11,6 +11,7 @@ public partial class GamepadMonitorViewModel : ObservableObject
     private readonly Action<bool>? _setHudEnabled;
     private readonly Action<float, float>? _deadzoneChanged;
     private readonly Action<float, float, float, float>? _triggerDeadzonesChanged;
+    private readonly Action<int, double>? _comboHudChromeChanged;
 
     public GamepadMonitorViewModel(
         ICommand stopGamepadCommand,
@@ -23,19 +24,25 @@ public partial class GamepadMonitorViewModel : ObservableObject
         float initialLeftTriggerOuterDeadzone = 1f,
         float initialRightTriggerInnerDeadzone = 0f,
         float initialRightTriggerOuterDeadzone = 1f,
-        Action<float, float, float, float>? triggerDeadzonesChanged = null)
+        Action<float, float, float, float>? triggerDeadzonesChanged = null,
+        int initialComboHudPanelAlpha = 96,
+        double initialComboHudShadowOpacity = 0.28,
+        Action<int, double>? comboHudChromeChanged = null)
     {
         StopGamepadCommand = stopGamepadCommand;
         StartGamepadCommand = startGamepadCommand;
         _setHudEnabled = setHudEnabled;
         _deadzoneChanged = deadzoneChanged;
         _triggerDeadzonesChanged = triggerDeadzonesChanged;
+        _comboHudChromeChanged = comboHudChromeChanged;
         leftThumbstickDeadzone = initialLeftThumbstickDeadzone;
         rightThumbstickDeadzone = initialRightThumbstickDeadzone;
         leftTriggerInnerDeadzone = initialLeftTriggerInnerDeadzone;
         leftTriggerOuterDeadzone = initialLeftTriggerOuterDeadzone;
         rightTriggerInnerDeadzone = initialRightTriggerInnerDeadzone;
         rightTriggerOuterDeadzone = initialRightTriggerOuterDeadzone;
+        comboHudPanelAlpha = initialComboHudPanelAlpha;
+        comboHudShadowOpacity = initialComboHudShadowOpacity;
     }
 
     [ObservableProperty]
@@ -95,10 +102,24 @@ public partial class GamepadMonitorViewModel : ObservableObject
     [ObservableProperty]
     private float rightTriggerOuterDeadzone;
 
+    /// <summary>ARGB alpha for combo HUD panel (typical range 24–200). Saved to app settings.</summary>
+    [ObservableProperty]
+    private int comboHudPanelAlpha;
+
+    /// <summary>Drop shadow opacity for combo HUD (typical 0.08–0.55).</summary>
+    [ObservableProperty]
+    private double comboHudShadowOpacity;
+
     partial void OnIsHudEnabledChanged(bool value)
     {
         _setHudEnabled?.Invoke(value);
     }
+
+    partial void OnComboHudPanelAlphaChanged(int value) =>
+        _comboHudChromeChanged?.Invoke(ComboHudPanelAlpha, ComboHudShadowOpacity);
+
+    partial void OnComboHudShadowOpacityChanged(double value) =>
+        _comboHudChromeChanged?.Invoke(ComboHudPanelAlpha, ComboHudShadowOpacity);
 
     partial void OnLeftThumbstickDeadzoneChanged(float value)
     {

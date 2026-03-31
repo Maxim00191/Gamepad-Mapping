@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "profileId": "roco_kingdom",
+  "profileId": "roco_kingdom_2",
   "gameId": "roco-kingdom-world",
-  "displayNameKey": "TemplateName_RocoKingdom",
-  "displayName": "Roco Kingdom World",
+  "displayNameKey": "TemplateName_RocoKingdom_2",
+  "displayName": "Roco Kingdom World 2",
   "mappings": [
     { "from": { "type": "LeftThumbstick", "value": "Up" }, "keyboardKey": "W", "descriptionKey": "MapDesc_MoveForward", "description": "Move (WASD): forward", "trigger": "Pressed", "analogThreshold": 0.25 },
     { "from": { "type": "LeftThumbstick", "value": "Down" }, "keyboardKey": "S", "descriptionKey": "MapDesc_MoveBackward", "description": "Move (WASD): backward", "trigger": "Pressed", "analogThreshold": 0.25 },
@@ -18,7 +18,7 @@
 
     { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "descriptionKey": "MapDesc_Space_Jump", "description": "Jump (tap); mouse left click (hold)", "trigger": "Tap", "holdKeyboardKey": "LeftClick", "holdThresholdMs": 300, "analogThreshold": null },
     { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "descriptionKey": "MapDesc_F_InteractPickUp", "description": "Interact / pick up", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "descriptionKey": "MapDesc_X_CancelState", "description": "Cancel mount / climbing / companion / special state (tap); Escape (hold)", "trigger": "Tap", "holdKeyboardKey": "Escape", "holdThresholdMs": 600, "analogThreshold": null },
+    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "descriptionKey": "MapDesc_X_CancelState", "description": "Cancel mount / climbing / companion / special state (tap); Escape (hold)", "trigger": "Tap", "holdKeyboardKey": "Escape", "holdThresholdMs": 300, "analogThreshold": null },
     { "from": { "type": "Button", "value": "X" }, "keyboardKey": "E", "descriptionKey": "MapDesc_E_SpiritBallHomeAction", "description": "Switch to Spirit Ball mode; in home: equip food / plant seeds", "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "LeftThumb + Y" }, "keyboardKey": "F1", "descriptionKey": "MapDesc_F1_SeasonQuickChat", "description": "Open season screen / quick chat channel", "trigger": "Pressed", "analogThreshold": null },

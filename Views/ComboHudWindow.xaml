@@ -43,42 +43,47 @@
     <Border x:Name="RootBorder"
             CornerRadius="10"
             Padding="14,12"
-            MaxWidth="380"
+            MaxWidth="440"
             BorderThickness="1"
-            BorderBrush="#66000000">
+            BorderBrush="#40000000">
         <Border.Background>
-            <SolidColorBrush Color="#E8111111" />
+            <!-- Low-alpha fill keeps tips readable while showing more of the game behind -->
+            <SolidColorBrush Color="#601C1C1E" />
         </Border.Background>
         <Border.Effect>
             <DropShadowEffect BlurRadius="18"
                               ShadowDepth="2"
-                              Opacity="0.45"
+                              Opacity="0.28"
                               Direction="270" />
         </Border.Effect>
         <StackPanel>
             <TextBlock x:Name="TitleBlock"
-                       FontSize="15"
-                       FontWeight="SemiBold"
-                       Foreground="#FFF0F0F0"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       Foreground="#FFFFFFFF"
                        TextWrapping="Wrap"
-                       Margin="0,0,0,8" />
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                       Margin="0,0,0,10" />
+            <ScrollViewer x:Name="LinesScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
-                          MaxHeight="320">
+                          VerticalAlignment="Top">
                 <ItemsControl x:Name="LinesItems">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:ComboHudLine}">
                             <StackPanel Margin="0,0,0,8">
                                 <TextBlock Text="{Binding Primary}"
-                                           FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Foreground="#FFE8E8E8"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding Detail}"
-                                           FontSize="12"
-                                           Foreground="#FFB0B0B0"
+                                           FontSize="16"
+                                           FontWeight="Bold"
+                                           Foreground="#FFFFFFFF"
                                            TextWrapping="Wrap"
-                                           Margin="0,2,0,0">
+                                           LineHeight="24" />
+                                <TextBlock Text="{Binding Detail}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#FFE8EDF2"
+                                           TextWrapping="Wrap"
+                                           Margin="0,5,0,0"
+                                           LineHeight="21">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Visible" />

@@ -1,11 +1,17 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using GamepadMapperGUI.Interfaces.Core;
 
 namespace GamepadMapperGUI.Core;
 
 public sealed class MouseEmulator : IMouseEmulator
 {
+    /// <summary>
+    /// Brief down-hold before up, aligned with <see cref="KeyboardEmulator"/> tap keys so games that poll input each frame register clicks.
+    /// </summary>
+    private const int ClickHoldMs = 30;
+
     private const uint InputMouse = 0;
     private const uint MouseeventfLeftdown = 0x0002;
     private const uint MouseeventfLeftup = 0x0004;
@@ -53,6 +59,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void LeftClick()
     {
         LeftDown();
+        Thread.Sleep(ClickHoldMs);
         LeftUp();
     }
 
@@ -61,6 +68,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void RightClick()
     {
         RightDown();
+        Thread.Sleep(ClickHoldMs);
         RightUp();
     }
 
@@ -69,6 +77,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void MiddleClick()
     {
         MiddleDown();
+        Thread.Sleep(ClickHoldMs);
         MiddleUp();
     }
 
@@ -77,6 +86,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void X1Click()
     {
         X1Down();
+        Thread.Sleep(ClickHoldMs);
         X1Up();
     }
 
@@ -85,6 +95,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void X2Click()
     {
         X2Down();
+        Thread.Sleep(ClickHoldMs);
         X2Up();
     }
 
