@@ -162,6 +162,18 @@
   <data name="RemoveSelected" xml:space="preserve">
     <value>删除所选</value>
   </data>
+  <data name="AnalogSettings" xml:space="preserve">
+    <value>模拟轴设置</value>
+  </data>
+  <data name="ThumbstickDeadzoneHeader" xml:space="preserve">
+    <value>摇杆死区</value>
+  </data>
+  <data name="LeftStickLabel" xml:space="preserve">
+    <value>左摇杆</value>
+  </data>
+  <data name="RightStickLabel" xml:space="preserve">
+    <value>右摇杆</value>
+  </data>
   <data name="TemplateName_Default" xml:space="preserve">
     <value>艾尔登法环 - 键鼠（组合）</value>
   </data>

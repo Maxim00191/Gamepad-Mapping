@@ -15,11 +15,34 @@ namespace GamepadMapperGUI.Core
         private bool _isFirstFrameEmission;
         private readonly uint _userIndex = 0;
 
-        private const float ThumbstickDeadzone = 0.10f;
+        private float _leftThumbstickDeadzone;
+        private float _rightThumbstickDeadzone;
 
         private const float AnalogChangeEpsilon = 0.01f;
 
         public event Action<InputFrame>? OnInputFrame;
+
+        public GamepadReader(float? leftThumbstickDeadzone = null, float? rightThumbstickDeadzone = null)
+        {
+            if (leftThumbstickDeadzone is { } left)
+                LeftThumbstickDeadzone = left;
+            if (rightThumbstickDeadzone is { } right)
+                RightThumbstickDeadzone = right;
+        }
+
+        /// <summary>Left thumbstick deadzone in normalized [0..1] range, clamped internally.</summary>
+        public float LeftThumbstickDeadzone
+        {
+            get => _leftThumbstickDeadzone;
+            set => _leftThumbstickDeadzone = Math.Clamp(value, 0f, 0.9f);
+        }
+
+        /// <summary>Right thumbstick deadzone in normalized [0..1] range, clamped internally.</summary>
+        public float RightThumbstickDeadzone
+        {
+            get => _rightThumbstickDeadzone;
+            set => _rightThumbstickDeadzone = Math.Clamp(value, 0f, 0.9f);
+        }
 
         public void Start()
         {
@@ -48,17 +71,17 @@ namespace GamepadMapperGUI.Core
                     var currentButtons = currentState.Gamepad.Buttons;
                     var timestampMs = Environment.TickCount64;
 
-                    var currentLeftThumb = NormalizeThumbstick(currentState.Gamepad.LeftThumbX, currentState.Gamepad.LeftThumbY);
-                    var currentRightThumb = NormalizeThumbstick(currentState.Gamepad.RightThumbX, currentState.Gamepad.RightThumbY);
+                    var currentLeftThumb = NormalizeThumbstick(currentState.Gamepad.LeftThumbX, currentState.Gamepad.LeftThumbY, _leftThumbstickDeadzone);
+                    var currentRightThumb = NormalizeThumbstick(currentState.Gamepad.RightThumbX, currentState.Gamepad.RightThumbY, _rightThumbstickDeadzone);
                     var currentLeftTrigger = NormalizeTrigger(currentState.Gamepad.LeftTrigger);
                     var currentRightTrigger = NormalizeTrigger(currentState.Gamepad.RightTrigger);
 
                     var shouldEmit =
                         _isFirstFrameEmission ||
                         (_hasPreviousState && currentButtons != _previousState.Gamepad.Buttons) ||
-                        (_hasPreviousState && HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.LeftThumbX, _previousState.Gamepad.LeftThumbY), currentLeftThumb, AnalogChangeEpsilon)) ||
+                        (_hasPreviousState && HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.LeftThumbX, _previousState.Gamepad.LeftThumbY, _leftThumbstickDeadzone), currentLeftThumb, AnalogChangeEpsilon)) ||
                         (_hasPreviousState &&
-                         (HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY), currentRightThumb, AnalogChangeEpsilon) ||
+                         (HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY, _rightThumbstickDeadzone), currentRightThumb, AnalogChangeEpsilon) ||
                           IsAnalogEngaged(currentRightThumb, AnalogChangeEpsilon))) ||
                         (_hasPreviousState && HasAnalogChanged(NormalizeTrigger(_previousState.Gamepad.LeftTrigger), currentLeftTrigger, AnalogChangeEpsilon)) ||
                         (_hasPreviousState && HasAnalogChanged(NormalizeTrigger(_previousState.Gamepad.RightTrigger), currentRightTrigger, AnalogChangeEpsilon));
@@ -96,10 +119,10 @@ namespace GamepadMapperGUI.Core
 
         private static float NormalizeTrigger(byte value) => value / 255f;
 
-        private static Vector2 NormalizeThumbstick(short x, short y)
+        private static Vector2 NormalizeThumbstick(short x, short y, float deadzone)
         {
-            var nx = ApplyDeadzone(NormalizeAxis(x));
-            var ny = ApplyDeadzone(NormalizeAxis(y));
+            var nx = ApplyDeadzone(NormalizeAxis(x), deadzone);
+            var ny = ApplyDeadzone(NormalizeAxis(y), deadzone);
             return new Vector2(nx, ny);
         }
 
@@ -112,13 +135,13 @@ namespace GamepadMapperGUI.Core
             return normalized;
         }
 
-        private static float ApplyDeadzone(float v)
+        private static float ApplyDeadzone(float v, float deadzone)
         {
             var av = MathF.Abs(v);
-            if (av < ThumbstickDeadzone) return 0f;
+            if (av < deadzone) return 0f;
 
             var sign = MathF.Sign(v);
-            return sign * (av - ThumbstickDeadzone) / (1f - ThumbstickDeadzone);
+            return sign * (av - deadzone) / (1f - deadzone);
         }
 
         private static bool HasAnalogChanged(float previousValue, float currentValue, float epsilon)

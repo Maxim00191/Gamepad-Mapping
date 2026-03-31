@@ -162,6 +162,18 @@
   <data name="RemoveSelected" xml:space="preserve">
     <value>Remove selected</value>
   </data>
+  <data name="AnalogSettings" xml:space="preserve">
+    <value>Analog settings</value>
+  </data>
+  <data name="ThumbstickDeadzoneHeader" xml:space="preserve">
+    <value>Thumbstick deadzone</value>
+  </data>
+  <data name="LeftStickLabel" xml:space="preserve">
+    <value>Left stick</value>
+  </data>
+  <data name="RightStickLabel" xml:space="preserve">
+    <value>Right stick</value>
+  </data>
   <data name="TemplateName_Default" xml:space="preserve">
     <value>Elden Ring - Keyboard/Mouse (Combo)</value>
   </data>

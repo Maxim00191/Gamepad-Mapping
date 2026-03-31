@@ -35,6 +35,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
     private ComboHudWindow? _comboHudWindow;
+    private readonly AppSettings _appSettings;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -47,7 +48,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
-        _gamepadReader = gamepadReader ?? new GamepadReader();
+
+        _appSettings = SettingsService.LoadSettings();
+        var baseDeadzone = _appSettings.ThumbstickDeadzone;
+        static float ResolveStickDeadzone(float specific, float shared)
+        {
+            var value = specific > 0f ? specific : shared;
+            return Math.Clamp(value, 0f, 0.9f);
+        }
+
+        var initialLeftDeadzone = ResolveStickDeadzone(_appSettings.LeftThumbstickDeadzone, baseDeadzone);
+        var initialRightDeadzone = ResolveStickDeadzone(_appSettings.RightThumbstickDeadzone, baseDeadzone);
+
+        _gamepadReader = gamepadReader ?? new GamepadReader(initialLeftDeadzone, initialRightDeadzone);
         _processTargetService = processTargetService ?? new ProcessTargetService();
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
         _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
@@ -74,7 +87,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         MappingEditorPanel = new MappingEditorViewModel(this);
-        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, OnHudEnabledChanged);
+        GamepadMonitorPanel = new GamepadMonitorViewModel(
+            StopGamepadCommand,
+            StartGamepadCommand,
+            OnHudEnabledChanged,
+            initialLeftThumbstickDeadzone: initialLeftDeadzone,
+            initialRightThumbstickDeadzone: initialRightDeadzone,
+            deadzoneChanged: OnThumbstickDeadzoneChanged);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -95,10 +114,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _gamepadReader.OnInputFrame += frame =>
             DispatchToUi(() =>
             {
-                GamepadMonitorPanel.LeftThumbX = frame.LeftThumbstick.X;
-                GamepadMonitorPanel.LeftThumbY = frame.LeftThumbstick.Y;
-                GamepadMonitorPanel.RightThumbX = frame.RightThumbstick.X;
-                GamepadMonitorPanel.RightThumbY = frame.RightThumbstick.Y;
+                var leftDz = GamepadMonitorPanel.LeftThumbstickDeadzone;
+                var rightDz = GamepadMonitorPanel.RightThumbstickDeadzone;
+                static float ClampDeadzone(float v, float dz) => MathF.Abs(v) < dz ? 0f : v;
+
+                GamepadMonitorPanel.LeftThumbX = ClampDeadzone(frame.LeftThumbstick.X, leftDz);
+                GamepadMonitorPanel.LeftThumbY = ClampDeadzone(frame.LeftThumbstick.Y, leftDz);
+                GamepadMonitorPanel.RightThumbX = ClampDeadzone(frame.RightThumbstick.X, rightDz);
+                GamepadMonitorPanel.RightThumbY = ClampDeadzone(frame.RightThumbstick.Y, rightDz);
                 GamepadMonitorPanel.LeftTrigger = frame.LeftTrigger;
                 GamepadMonitorPanel.RightTrigger = frame.RightTrigger;
 
@@ -368,6 +391,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void OnChildPanelConfigurationChanged(object? sender, EventArgs e)
     {
         MappingCount = Mappings.Count;
+    }
+
+    private void OnThumbstickDeadzoneChanged(float left, float right)
+    {
+        if (_gamepadReader is GamepadReader concreteReader)
+        {
+            concreteReader.LeftThumbstickDeadzone = left;
+            concreteReader.RightThumbstickDeadzone = right;
+        }
+
+        _appSettings.LeftThumbstickDeadzone = left;
+        _appSettings.RightThumbstickDeadzone = right;
+        SettingsService.SaveSettings(_appSettings);
     }
 }
 

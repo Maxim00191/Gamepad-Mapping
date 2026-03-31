@@ -31,4 +31,18 @@ public class AppSettings
     /// </summary>
     [JsonProperty("leadKeyReleaseSuppressMs")]
     public int LeadKeyReleaseSuppressMs { get; set; } = 500;
+
+    /// <summary>
+    /// Legacy shared thumbstick deadzone (normalized [0..1]). When per-stick values are unset, this acts as the default.
+    /// </summary>
+    [JsonProperty("thumbstickDeadzone")]
+    public float ThumbstickDeadzone { get; set; } = 0.10f;
+
+    /// <summary>Normalized [0..1] deadzone for the left stick; falls back to <see cref="ThumbstickDeadzone"/> when non-positive.</summary>
+    [JsonProperty("leftThumbstickDeadzone")]
+    public float LeftThumbstickDeadzone { get; set; }
+
+    /// <summary>Normalized [0..1] deadzone for the right stick; falls back to <see cref="ThumbstickDeadzone"/> when non-positive.</summary>
+    [JsonProperty("rightThumbstickDeadzone")]
+    public float RightThumbstickDeadzone { get; set; }
 }

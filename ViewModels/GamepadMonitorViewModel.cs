@@ -7,15 +7,22 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class GamepadMonitorViewModel : ObservableObject
 {
     private readonly Action<bool>? _setHudEnabled;
+    private readonly Action<float, float>? _deadzoneChanged;
 
     public GamepadMonitorViewModel(
         ICommand stopGamepadCommand,
         ICommand startGamepadCommand,
-        Action<bool>? setHudEnabled = null)
+        Action<bool>? setHudEnabled = null,
+        float initialLeftThumbstickDeadzone = 0.10f,
+        float initialRightThumbstickDeadzone = 0.10f,
+        Action<float, float>? deadzoneChanged = null)
     {
         StopGamepadCommand = stopGamepadCommand;
         StartGamepadCommand = startGamepadCommand;
         _setHudEnabled = setHudEnabled;
+        _deadzoneChanged = deadzoneChanged;
+        leftThumbstickDeadzone = initialLeftThumbstickDeadzone;
+        rightThumbstickDeadzone = initialRightThumbstickDeadzone;
     }
 
     [ObservableProperty]
@@ -57,9 +64,25 @@ public partial class GamepadMonitorViewModel : ObservableObject
     [ObservableProperty]
     private bool isMonitorExpanderExpanded;
 
+    [ObservableProperty]
+    private float leftThumbstickDeadzone;
+
+    [ObservableProperty]
+    private float rightThumbstickDeadzone;
+
     partial void OnIsHudEnabledChanged(bool value)
     {
         _setHudEnabled?.Invoke(value);
+    }
+
+    partial void OnLeftThumbstickDeadzoneChanged(float value)
+    {
+        _deadzoneChanged?.Invoke(value, RightThumbstickDeadzone);
+    }
+
+    partial void OnRightThumbstickDeadzoneChanged(float value)
+    {
+        _deadzoneChanged?.Invoke(LeftThumbstickDeadzone, value);
     }
 
     public ICommand StopGamepadCommand { get; }
