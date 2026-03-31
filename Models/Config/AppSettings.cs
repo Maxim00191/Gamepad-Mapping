@@ -46,6 +46,22 @@ public class AppSettings
     [JsonProperty("rightThumbstickDeadzone")]
     public float RightThumbstickDeadzone { get; set; }
 
+    /// <summary>Left trigger inner deadzone: raw values at or below this normalized level map to 0.</summary>
+    [JsonProperty("leftTriggerInnerDeadzone")]
+    public float LeftTriggerInnerDeadzone { get; set; }
+
+    /// <summary>Left trigger outer threshold: raw values at or above this normalized level map to 1 (full pull).</summary>
+    [JsonProperty("leftTriggerOuterDeadzone")]
+    public float LeftTriggerOuterDeadzone { get; set; } = 1f;
+
+    /// <summary>Right trigger inner deadzone (same semantics as <see cref="LeftTriggerInnerDeadzone"/>).</summary>
+    [JsonProperty("rightTriggerInnerDeadzone")]
+    public float RightTriggerInnerDeadzone { get; set; }
+
+    /// <summary>Right trigger outer threshold (same semantics as <see cref="LeftTriggerOuterDeadzone"/>).</summary>
+    [JsonProperty("rightTriggerOuterDeadzone")]
+    public float RightTriggerOuterDeadzone { get; set; } = 1f;
+
     /// <summary>
     /// Polling interval for reading the gamepad state (ms). Lower values increase responsiveness at the cost of CPU usage.
     /// </summary>

@@ -174,6 +174,21 @@
   <data name="RightStickLabel" xml:space="preserve">
     <value>Right stick</value>
   </data>
+  <data name="TriggerDeadzoneHeader" xml:space="preserve">
+    <value>Trigger deadzone</value>
+  </data>
+  <data name="LeftTriggerLabel" xml:space="preserve">
+    <value>Left trigger</value>
+  </data>
+  <data name="RightTriggerLabel" xml:space="preserve">
+    <value>Right trigger</value>
+  </data>
+  <data name="TriggerInnerDeadzoneShort" xml:space="preserve">
+    <value>Inner</value>
+  </data>
+  <data name="TriggerOuterDeadzoneShort" xml:space="preserve">
+    <value>Outer</value>
+  </data>
   <data name="TemplateName_Default" xml:space="preserve">
     <value>Elden Ring - Keyboard/Mouse (Combo)</value>
   </data>

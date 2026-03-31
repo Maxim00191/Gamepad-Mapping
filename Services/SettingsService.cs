@@ -33,8 +33,36 @@ public class SettingsService : ISettingsService
         }
 
         var json = File.ReadAllText(pathToLoad, Encoding.UTF8);
-        var settings = JsonConvert.DeserializeObject<AppSettings>(json);
-        return settings ?? new AppSettings();
+        var settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
+        NormalizeTriggerDeadzones(settings);
+        return settings;
+    }
+
+    private const float TriggerDeadzoneMinSpan = 0.02f;
+
+    /// <summary>
+    /// Ensures trigger outer &gt; inner and outer defaults to 1 when missing from older JSON (stored as 0).
+    /// </summary>
+    public static void NormalizeTriggerDeadzones(AppSettings s)
+    {
+        static void FixPair(ref float inner, ref float outer)
+        {
+            inner = Math.Clamp(inner, 0f, 0.98f);
+            if (outer < inner + TriggerDeadzoneMinSpan)
+                outer = 1f;
+            outer = Math.Clamp(outer, inner + TriggerDeadzoneMinSpan, 1f);
+        }
+
+        var li = s.LeftTriggerInnerDeadzone;
+        var lo = s.LeftTriggerOuterDeadzone;
+        var ri = s.RightTriggerInnerDeadzone;
+        var ro = s.RightTriggerOuterDeadzone;
+        FixPair(ref li, ref lo);
+        FixPair(ref ri, ref ro);
+        s.LeftTriggerInnerDeadzone = li;
+        s.LeftTriggerOuterDeadzone = lo;
+        s.RightTriggerInnerDeadzone = ri;
+        s.RightTriggerOuterDeadzone = ro;
     }
 
     AppSettings ISettingsService.LoadSettings() => LoadSettings();

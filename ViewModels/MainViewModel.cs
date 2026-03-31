@@ -69,7 +69,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var initialLeftDeadzone = ResolveStickDeadzone(_appSettings.LeftThumbstickDeadzone, baseDeadzone);
         var initialRightDeadzone = ResolveStickDeadzone(_appSettings.RightThumbstickDeadzone, baseDeadzone);
 
-        _gamepadReader = gamepadReader ?? new GamepadReader(initialLeftDeadzone, initialRightDeadzone);
+        _gamepadReader = gamepadReader ??
+            new GamepadReader(
+                initialLeftDeadzone,
+                initialRightDeadzone,
+                _appSettings.LeftTriggerInnerDeadzone,
+                _appSettings.LeftTriggerOuterDeadzone,
+                _appSettings.RightTriggerInnerDeadzone,
+                _appSettings.RightTriggerOuterDeadzone);
         _processTargetService = processTargetService ?? new ProcessTargetService();
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
         _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
@@ -102,7 +109,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
             OnHudEnabledChanged,
             initialLeftThumbstickDeadzone: initialLeftDeadzone,
             initialRightThumbstickDeadzone: initialRightDeadzone,
-            deadzoneChanged: OnThumbstickDeadzoneChanged);
+            deadzoneChanged: OnThumbstickDeadzoneChanged,
+            initialLeftTriggerInnerDeadzone: _appSettings.LeftTriggerInnerDeadzone,
+            initialLeftTriggerOuterDeadzone: _appSettings.LeftTriggerOuterDeadzone,
+            initialRightTriggerInnerDeadzone: _appSettings.RightTriggerInnerDeadzone,
+            initialRightTriggerOuterDeadzone: _appSettings.RightTriggerOuterDeadzone,
+            triggerDeadzonesChanged: OnTriggerDeadzonesChanged);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -520,6 +532,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _appSettings.LeftThumbstickDeadzone = left;
         _appSettings.RightThumbstickDeadzone = right;
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    private void OnTriggerDeadzonesChanged(float leftInner, float leftOuter, float rightInner, float rightOuter)
+    {
+        if (_gamepadReader is GamepadReader concreteReader)
+        {
+            concreteReader.LeftTriggerInnerDeadzone = leftInner;
+            concreteReader.LeftTriggerOuterDeadzone = leftOuter;
+            concreteReader.RightTriggerInnerDeadzone = rightInner;
+            concreteReader.RightTriggerOuterDeadzone = rightOuter;
+        }
+
+        _appSettings.LeftTriggerInnerDeadzone = leftInner;
+        _appSettings.LeftTriggerOuterDeadzone = leftOuter;
+        _appSettings.RightTriggerInnerDeadzone = rightInner;
+        _appSettings.RightTriggerOuterDeadzone = rightOuter;
         SettingsService.SaveSettings(_appSettings);
     }
 }

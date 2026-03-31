@@ -18,16 +18,36 @@ namespace GamepadMapperGUI.Core
         private float _leftThumbstickDeadzone;
         private float _rightThumbstickDeadzone;
 
+        private float _leftTriggerInnerDeadzone;
+        private float _leftTriggerOuterDeadzone = 1f;
+        private float _rightTriggerInnerDeadzone;
+        private float _rightTriggerOuterDeadzone = 1f;
+
         private const float AnalogChangeEpsilon = 0.01f;
+        private const float TriggerDeadzoneMinSpan = 0.02f;
 
         public event Action<InputFrame>? OnInputFrame;
 
-        public GamepadReader(float? leftThumbstickDeadzone = null, float? rightThumbstickDeadzone = null)
+        public GamepadReader(
+            float? leftThumbstickDeadzone = null,
+            float? rightThumbstickDeadzone = null,
+            float? leftTriggerInnerDeadzone = null,
+            float? leftTriggerOuterDeadzone = null,
+            float? rightTriggerInnerDeadzone = null,
+            float? rightTriggerOuterDeadzone = null)
         {
             if (leftThumbstickDeadzone is { } left)
                 LeftThumbstickDeadzone = left;
             if (rightThumbstickDeadzone is { } right)
                 RightThumbstickDeadzone = right;
+            if (leftTriggerInnerDeadzone is { } lti)
+                LeftTriggerInnerDeadzone = lti;
+            if (leftTriggerOuterDeadzone is { } lto)
+                LeftTriggerOuterDeadzone = lto;
+            if (rightTriggerInnerDeadzone is { } rti)
+                RightTriggerInnerDeadzone = rti;
+            if (rightTriggerOuterDeadzone is { } rto)
+                RightTriggerOuterDeadzone = rto;
         }
 
         /// <summary>Left thumbstick deadzone in normalized [0..1] range, clamped internally.</summary>
@@ -42,6 +62,46 @@ namespace GamepadMapperGUI.Core
         {
             get => _rightThumbstickDeadzone;
             set => _rightThumbstickDeadzone = Math.Clamp(value, 0f, 0.9f);
+        }
+
+        /// <summary>Left trigger inner threshold [0..1]; values at or below map to 0.</summary>
+        public float LeftTriggerInnerDeadzone
+        {
+            get => _leftTriggerInnerDeadzone;
+            set
+            {
+                var v = Math.Clamp(value, 0f, 0.98f);
+                _leftTriggerInnerDeadzone = v;
+                if (_leftTriggerOuterDeadzone < v + TriggerDeadzoneMinSpan)
+                    _leftTriggerOuterDeadzone = Math.Clamp(v + TriggerDeadzoneMinSpan, v + TriggerDeadzoneMinSpan, 1f);
+            }
+        }
+
+        /// <summary>Left trigger outer threshold [inner+span..1]; values at or above map to 1.</summary>
+        public float LeftTriggerOuterDeadzone
+        {
+            get => _leftTriggerOuterDeadzone;
+            set => _leftTriggerOuterDeadzone = Math.Clamp(value, _leftTriggerInnerDeadzone + TriggerDeadzoneMinSpan, 1f);
+        }
+
+        /// <summary>Right trigger inner threshold (same semantics as <see cref="LeftTriggerInnerDeadzone"/>).</summary>
+        public float RightTriggerInnerDeadzone
+        {
+            get => _rightTriggerInnerDeadzone;
+            set
+            {
+                var v = Math.Clamp(value, 0f, 0.98f);
+                _rightTriggerInnerDeadzone = v;
+                if (_rightTriggerOuterDeadzone < v + TriggerDeadzoneMinSpan)
+                    _rightTriggerOuterDeadzone = Math.Clamp(v + TriggerDeadzoneMinSpan, v + TriggerDeadzoneMinSpan, 1f);
+            }
+        }
+
+        /// <summary>Right trigger outer threshold (same semantics as <see cref="LeftTriggerOuterDeadzone"/>).</summary>
+        public float RightTriggerOuterDeadzone
+        {
+            get => _rightTriggerOuterDeadzone;
+            set => _rightTriggerOuterDeadzone = Math.Clamp(value, _rightTriggerInnerDeadzone + TriggerDeadzoneMinSpan, 1f);
         }
 
         public void Start()
@@ -73,8 +133,8 @@ namespace GamepadMapperGUI.Core
 
                     var currentLeftThumb = NormalizeThumbstick(currentState.Gamepad.LeftThumbX, currentState.Gamepad.LeftThumbY, _leftThumbstickDeadzone);
                     var currentRightThumb = NormalizeThumbstick(currentState.Gamepad.RightThumbX, currentState.Gamepad.RightThumbY, _rightThumbstickDeadzone);
-                    var currentLeftTrigger = NormalizeTrigger(currentState.Gamepad.LeftTrigger);
-                    var currentRightTrigger = NormalizeTrigger(currentState.Gamepad.RightTrigger);
+                    var currentLeftTrigger = NormalizeTrigger(currentState.Gamepad.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone);
+                    var currentRightTrigger = NormalizeTrigger(currentState.Gamepad.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone);
 
                     var shouldEmit =
                         _isFirstFrameEmission ||
@@ -83,8 +143,16 @@ namespace GamepadMapperGUI.Core
                         (_hasPreviousState &&
                          (HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY, _rightThumbstickDeadzone), currentRightThumb, AnalogChangeEpsilon) ||
                           IsAnalogEngaged(currentRightThumb, AnalogChangeEpsilon))) ||
-                        (_hasPreviousState && HasAnalogChanged(NormalizeTrigger(_previousState.Gamepad.LeftTrigger), currentLeftTrigger, AnalogChangeEpsilon)) ||
-                        (_hasPreviousState && HasAnalogChanged(NormalizeTrigger(_previousState.Gamepad.RightTrigger), currentRightTrigger, AnalogChangeEpsilon));
+                        (_hasPreviousState &&
+                         HasAnalogChanged(
+                             NormalizeTrigger(_previousState.Gamepad.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone),
+                             currentLeftTrigger,
+                             AnalogChangeEpsilon)) ||
+                        (_hasPreviousState &&
+                         HasAnalogChanged(
+                             NormalizeTrigger(_previousState.Gamepad.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone),
+                             currentRightTrigger,
+                             AnalogChangeEpsilon));
 
                     if (shouldEmit)
                     {
@@ -117,7 +185,13 @@ namespace GamepadMapperGUI.Core
             }
         }
 
-        private static float NormalizeTrigger(byte value) => value / 255f;
+        private static float NormalizeTrigger(byte value, float inner, float outer)
+        {
+            var raw = value / 255f;
+            if (raw <= inner) return 0f;
+            if (raw >= outer) return 1f;
+            return (raw - inner) / (outer - inner);
+        }
 
         private static Vector2 NormalizeThumbstick(short x, short y, float deadzone)
         {
