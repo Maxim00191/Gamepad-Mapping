@@ -182,8 +182,10 @@ DocProject/Help/*.hhp
 DocProject/Help/Html2
 DocProject/Help/html
 
-# Click-Once directory
-publish/
+# Local publish outputs (scripts in publish/ are tracked)
+publish/single/
+publish/fx/
+publish/*.zip
 
 # Publish Web Output
 *.[Pp]ublish.xml
