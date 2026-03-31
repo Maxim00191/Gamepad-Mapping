@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
@@ -106,19 +107,77 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
         if (!isProcessTargetingEnabled || selectedTargetProcess is null)
             return (AppTargetingState.NoTargetSelected, "No target selected - output suppressed");
 
-        if (_elevationHandler.IsBlockedByUipi(selectedTargetProcess))
+        var uipiTarget = ResolveProcessForUipi(selectedTargetProcess);
+        if (uipiTarget is not null && _elevationHandler.IsBlockedByUipi(uipiTarget))
         {
             return (
                 AppTargetingState.BlockedByUipi,
-                $"Target requires admin privileges: {selectedTargetProcess.ProcessName} (PID {selectedTargetProcess.ProcessId})");
+                $"Target requires admin privileges: {uipiTarget.ProcessName} (PID {uipiTarget.ProcessId})");
         }
 
         var isForegroundMatch = _processTargetService.IsForeground(selectedTargetProcess);
         if (isForegroundMatch)
-            return (AppTargetingState.Connected, $"Connected: {selectedTargetProcess.ProcessName} (PID {selectedTargetProcess.ProcessId})");
+        {
+            var pid = DisplayPidForStatus(selectedTargetProcess);
+            return (AppTargetingState.Connected, $"Connected: {selectedTargetProcess.ProcessName} (PID {pid})");
+        }
 
         return (
             AppTargetingState.WaitingForForeground,
-            $"Waiting for target foreground: {selectedTargetProcess.ProcessName} (PID {selectedTargetProcess.ProcessId})");
+            $"Waiting for target foreground: {selectedTargetProcess.ProcessName} (PID {DisplayPidForStatus(selectedTargetProcess)})");
+    }
+
+    private int DisplayPidForStatus(ProcessInfo selected)
+    {
+        if (selected.ProcessId > 0)
+            return selected.ProcessId;
+
+        var fg = _processTargetService.GetForegroundProcessId();
+        if (fg <= 0)
+            return 0;
+
+        try
+        {
+            using var p = Process.GetProcessById(fg);
+            if (string.Equals(p.ProcessName, selected.ProcessName, StringComparison.OrdinalIgnoreCase))
+                return fg;
+        }
+        catch
+        {
+            // Ignore.
+        }
+
+        return 0;
+    }
+
+    /// <summary>When only a declared name is known (PID 0), use the foreground process id if its name matches — needed for correct UIPI checks.</summary>
+    private ProcessInfo? ResolveProcessForUipi(ProcessInfo selected)
+    {
+        if (selected.ProcessId > 0)
+            return selected;
+
+        var fg = _processTargetService.GetForegroundProcessId();
+        if (fg <= 0)
+            return selected;
+
+        try
+        {
+            using var p = Process.GetProcessById(fg);
+            if (string.Equals(p.ProcessName, selected.ProcessName, StringComparison.OrdinalIgnoreCase))
+            {
+                return new ProcessInfo
+                {
+                    ProcessId = fg,
+                    ProcessName = selected.ProcessName,
+                    MainWindowTitle = selected.MainWindowTitle
+                };
+            }
+        }
+        catch
+        {
+            // Best-effort: fall back to declared ProcessInfo.
+        }
+
+        return selected;
     }
 }

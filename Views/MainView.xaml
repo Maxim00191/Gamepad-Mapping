@@ -194,45 +194,35 @@
                           VerticalAlignment="Center"
                           FontWeight="SemiBold" />
 
-                <!-- Row 4: process target (combo grows; buttons stay on row) -->
-                <Grid Grid.Row="4" VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" MinWidth="100" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
-                               Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"
-                               TextWrapping="Wrap" />
-                    <ComboBox Grid.Column="1"
-                              Height="32"
-                              VerticalContentAlignment="Center"
-                              ItemsSource="{Binding ProcessTargetPanel.RecentProcesses}"
-                              SelectedItem="{Binding ProcessTargetPanel.SelectedTargetProcess, Mode=TwoWay}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding ProcessName}" VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Button Grid.Column="2"
-                            Height="32"
-                            Padding="10,0"
-                            VerticalContentAlignment="Center"
-                            Margin="8,0,0,0"
-                            Content="{Binding Source={StaticResource Loc}, Path=[Refresh]}"
-                            Command="{Binding ProcessTargetPanel.RefreshProcessesCommand}" />
-                    <Button Grid.Column="3"
-                            Height="32"
-                            Padding="10,0"
-                            VerticalContentAlignment="Center"
-                            Margin="8,0,0,0"
-                            Content="{Binding Source={StaticResource Loc}, Path=[ClearTarget]}"
-                            Command="{Binding ProcessTargetPanel.ClearTargetProcessCommand}" />
-                </Grid>
+                <!-- Row 4: target process name (stored in profile JSON; no running-process picker) -->
+                <StackPanel Grid.Row="4">
+                    <Grid Margin="0,0,0,6"
+                          VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" MinWidth="100" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"
+                                   TextWrapping="Wrap" />
+                        <TextBox Grid.Column="1"
+                                 Height="32"
+                                 VerticalContentAlignment="Center"
+                                 Text="{Binding ProcessTargetPanel.TemplateTargetProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="{Binding Source={StaticResource Loc}, Path=[TargetProcessNameToolTip]}" />
+                    </Grid>
+                    <TextBlock Text="{Binding ProcessTargetPanel.TargetStatusText}"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,6"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="11" />
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ProcessRestrictionHint]}" />
+                </StackPanel>
             </Grid>
         </Border>
 

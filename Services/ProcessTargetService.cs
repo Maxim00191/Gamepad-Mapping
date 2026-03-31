@@ -11,6 +11,64 @@ namespace GamepadMapperGUI.Services;
 
 public sealed class ProcessTargetService : IProcessTargetService
 {
+    /// <inheritdoc />
+    public ProcessInfo CreateTargetFromDeclaredProcessName(string? rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+        {
+            return new ProcessInfo
+            {
+                ProcessId = 0,
+                ProcessName = string.Empty,
+                MainWindowTitle = string.Empty
+            };
+        }
+
+        var trimmed = rawName.Trim();
+        var baseName = trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            ? trimmed[..^4].Trim()
+            : trimmed;
+
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            return new ProcessInfo
+            {
+                ProcessId = 0,
+                ProcessName = string.Empty,
+                MainWindowTitle = string.Empty
+            };
+        }
+
+        var pid = TryGetFirstLiveProcessIdByName(baseName);
+        return new ProcessInfo
+        {
+            ProcessId = pid,
+            ProcessName = baseName,
+            MainWindowTitle = string.Empty
+        };
+    }
+
+    private static int TryGetFirstLiveProcessIdByName(string processNameWithoutExtension)
+    {
+        try
+        {
+            var processes = Process.GetProcessesByName(processNameWithoutExtension);
+            try
+            {
+                return processes.Length > 0 ? processes[0].Id : 0;
+            }
+            finally
+            {
+                foreach (var p in processes)
+                    p.Dispose();
+            }
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint TokenQuery = 0x0008;
     private const int TokenElevationClass = 20;

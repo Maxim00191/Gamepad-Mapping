@@ -5,6 +5,9 @@ namespace GamepadMapperGUI.Interfaces.Services;
 
 public interface IProcessTargetService
 {
+    /// <summary>Builds a <see cref="ProcessInfo"/> from a user-declared name (optional .exe); resolves <see cref="ProcessInfo.ProcessId"/> when a matching process is running.</summary>
+    ProcessInfo CreateTargetFromDeclaredProcessName(string? rawName);
+
     List<ProcessInfo> GetRecentWindowedProcesses();
     int GetForegroundProcessId();
     bool IsForeground(int processId);

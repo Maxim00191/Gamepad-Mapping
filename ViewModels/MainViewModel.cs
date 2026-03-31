@@ -61,7 +61,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
             });
 
         AvailableTemplates = _profileService.AvailableTemplates;
-        RecentProcesses = new ObservableCollection<ProcessInfo>();
         Mappings = new ObservableCollection<MappingEntry>();
         AvailableGamepadButtons = new ObservableCollection<string>(
             Enum.GetNames<GamepadButtons>().Where(n => !string.Equals(n, nameof(GamepadButtons.None), StringComparison.OrdinalIgnoreCase)));
@@ -110,10 +109,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     GamepadMonitorPanel.LastButtonReleased = result.ReleasedButtons[^1].ToString();
             });
 
-        SelectedTemplate = _profileService.ReloadTemplates();
+        SelectedTemplate = _profileService.ReloadTemplates(_profileService.LastSelectedTemplateProfileId);
         LoadSelectedTemplate();
 
-        RefreshProcesses();
         StartGamepad();
     }
 
@@ -128,6 +126,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             LoadSelectedTemplate();
+            _profileService.PersistLastSelectedTemplateProfileId(value?.ProfileId);
         }
         catch (Exception ex)
         {
@@ -168,8 +167,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public IKeyboardCaptureService KeyboardCaptureService => _keyboardCaptureService;
 
+    /// <summary>User-declared executable name (profile field); edit here or in JSON, then save profile.</summary>
     [ObservableProperty]
-    private ObservableCollection<ProcessInfo> recentProcesses;
+    private string templateTargetProcessName = string.Empty;
 
     [ObservableProperty]
     private ProcessInfo? selectedTargetProcess;
@@ -183,29 +183,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private AppTargetingState targetState = AppTargetingState.NoTargetSelected;
 
-    [RelayCommand]
-    private void RefreshProcesses()
+    partial void OnTemplateTargetProcessNameChanged(string value)
     {
-        var current = _processTargetService.GetRecentWindowedProcesses();
-        RecentProcesses.Clear();
-        foreach (var p in current)
-            RecentProcesses.Add(p);
-
-        if (SelectedTargetProcess is not null)
-        {
-            var match = RecentProcesses.FirstOrDefault(p => p.ProcessId == SelectedTargetProcess.ProcessId)
-                        ?? RecentProcesses.FirstOrDefault(p =>
-                            string.Equals(p.ProcessName, SelectedTargetProcess.ProcessName,
-                                StringComparison.OrdinalIgnoreCase));
-            SelectedTargetProcess = match;
-        }
+        ApplyDeclaredProcessTarget();
     }
 
-    [RelayCommand]
-    private void ClearTargetProcess()
+    private void ApplyDeclaredProcessTarget()
     {
-        SelectedTargetProcess = null;
-        IsProcessTargetingEnabled = false;
+        var raw = TemplateTargetProcessName;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            SelectedTargetProcess = null;
+            return;
+        }
+
+        SelectedTargetProcess = _processTargetService.CreateTargetFromDeclaredProcessName(raw);
     }
 
     partial void OnSelectedTargetProcessChanged(ProcessInfo? value)
@@ -350,6 +342,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         SelectedMapping = Mappings.FirstOrDefault();
         MappingCount = Mappings.Count;
+
+        TemplateTargetProcessName = template.TargetProcessName ?? string.Empty;
+        ApplyDeclaredProcessTarget();
     }
 
     /// <summary>Combo lead names from the loaded template; written back unchanged on Save profile.</summary>

@@ -31,7 +31,6 @@
     { "from": { "type": "Button", "value": "RightThumb + DPadLeft" }, "keyboardKey": "F8", "descriptionKey": "MapDesc_F8_DecorationMode", "description": "Open decoration mode", "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "descriptionKey": "MapDesc_LShift_SprintMountSkill", "description": "Sprint / use mount skill", "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder" }, "keyboardKey": "LeftShift", "descriptionKey": "MapDesc_LShift_SprintMountSkill", "description": "Sprint / use mount skill", "trigger": "Released", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftThumb" }, "keyboardKey": "LeftCtrl", "descriptionKey": "MapDesc_LCtrl_ToggleWalkRun", "description": "Toggle walk/run state", "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "C", "descriptionKey": "MapDesc_C_CrouchCallClear", "description": "Crouch/stand in grass; call in home; clear crops in farm", "trigger": "Pressed", "analogThreshold": null },
 

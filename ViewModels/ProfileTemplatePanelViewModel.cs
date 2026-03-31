@@ -41,6 +41,12 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         set => _mainViewModel.CurrentTemplateDisplayName = value;
     }
 
+    public string TemplateTargetProcessName
+    {
+        get => _mainViewModel.TemplateTargetProcessName;
+        set => _mainViewModel.TemplateTargetProcessName = value;
+    }
+
     public int MappingCount => _mainViewModel.MappingCount;
 
     [ObservableProperty]
@@ -70,12 +76,14 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (_mainViewModel.ComboLeadButtonsPersist is not null)
             comboLeads = new List<string>(_mainViewModel.ComboLeadButtonsPersist);
 
+        var targetProc = (_mainViewModel.TemplateTargetProcessName ?? string.Empty).Trim();
         var template = new GameProfileTemplate
         {
             SchemaVersion = 1,
             ProfileId = SelectedTemplate.ProfileId,
             GameId = SelectedTemplate.GameId,
             DisplayName = CurrentTemplateDisplayName,
+            TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
             ComboLeadButtons = comboLeads,
             Mappings = _mainViewModel.Mappings.ToList()
         };
@@ -152,6 +160,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.CurrentTemplateDisplayName):
                 OnPropertyChanged(nameof(CurrentTemplateDisplayName));
+                break;
+            case nameof(MainViewModel.TemplateTargetProcessName):
+                OnPropertyChanged(nameof(TemplateTargetProcessName));
                 break;
             case nameof(MainViewModel.MappingCount):
                 OnPropertyChanged(nameof(MappingCount));

@@ -13,6 +13,10 @@ public class AppSettings
     [JsonProperty("defaultGameId")]
     public string DefaultGameId { get; set; } = "default";
 
+    /// <summary>Profile id (<c>*.json</c> stem) of the template last chosen in the UI; restored on next launch.</summary>
+    [JsonProperty("lastSelectedTemplateProfileId")]
+    public string? LastSelectedTemplateProfileId { get; set; }
+
     /// <summary>
     /// Shared timing (ms) for chord modifier grace and combo HUD reveal delay. Hold-bind duration uses each mapping's
     /// <c>holdThresholdMs</c> when set; otherwise this value is the hold threshold fallback. Clamped when applied.

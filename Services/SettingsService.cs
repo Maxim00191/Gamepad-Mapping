@@ -1,5 +1,6 @@
-using System.Text;
+using System;
 using System.IO;
+using System.Text;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
@@ -37,5 +38,18 @@ public class SettingsService : ISettingsService
     }
 
     AppSettings ISettingsService.LoadSettings() => LoadSettings();
+
+    public static void SaveSettings(AppSettings settings)
+    {
+        if (settings is null) throw new ArgumentNullException(nameof(settings));
+
+        var root = AppPaths.ResolveContentRoot();
+        var localPath = Path.Combine(root, LocalSettingsPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+        var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+        File.WriteAllText(localPath, json, Encoding.UTF8);
+    }
+
+    void ISettingsService.SaveSettings(AppSettings settings) => SaveSettings(settings);
 }
 

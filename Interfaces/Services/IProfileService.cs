@@ -7,6 +7,11 @@ namespace GamepadMapperGUI.Interfaces.Services;
 public interface IProfileService
 {
     string DefaultGameId { get; }
+
+    /// <summary>Last saved template profile id from settings; used to pre-select on startup.</summary>
+    string? LastSelectedTemplateProfileId { get; }
+
+    void PersistLastSelectedTemplateProfileId(string? profileId);
     int ModifierGraceMs { get; }
 
     int LeadKeyReleaseSuppressMs { get; }

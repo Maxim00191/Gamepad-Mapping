@@ -91,7 +91,13 @@
     <value>Clear target</value>
   </data>
   <data name="ProcessRestrictionHint" xml:space="preserve">
-    <value>Select a process to restrict keyboard input to that window. Keys are only sent when the target is in the foreground.</value>
+    <value>Type the game's executable name (same as in Task Manager, usually without .exe). It is stored in the profile JSON—there is no list of running processes. Output is sent only when that process has the foreground window.</value>
+  </data>
+  <data name="TargetProcessNameLabel" xml:space="preserve">
+    <value>Executable name (profile)</value>
+  </data>
+  <data name="TargetProcessNameToolTip" xml:space="preserve">
+    <value>Example: notepad or MyGame — must match Process Name in Task Manager. Save profile to persist.</value>
   </data>
   <data name="FromType" xml:space="preserve">
     <value>From Type</value>

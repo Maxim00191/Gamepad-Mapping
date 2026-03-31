@@ -31,6 +31,14 @@ public partial class ProfileService : IProfileService
 
     public string DefaultGameId => _settings.DefaultGameId;
 
+    public string? LastSelectedTemplateProfileId => _settings.LastSelectedTemplateProfileId;
+
+    public void PersistLastSelectedTemplateProfileId(string? profileId)
+    {
+        _settings.LastSelectedTemplateProfileId = string.IsNullOrWhiteSpace(profileId) ? null : profileId.Trim();
+        _settingsService.SaveSettings(_settings);
+    }
+
     public int ModifierGraceMs => Math.Clamp(_settings.ModifierGraceMs, 50, 10_000);
 
     public int LeadKeyReleaseSuppressMs => Math.Clamp(_settings.LeadKeyReleaseSuppressMs, 50, 10_000);
@@ -125,7 +133,10 @@ public partial class ProfileService : IProfileService
     public TemplateOption? SelectTemplate(string? preferredProfileId = null)
     {
         return
-            (preferredProfileId is not null ? AvailableTemplates.FirstOrDefault(t => t.ProfileId == preferredProfileId) : null) ??
+            (preferredProfileId is not null
+                ? AvailableTemplates.FirstOrDefault(t =>
+                    string.Equals(t.ProfileId, preferredProfileId, StringComparison.OrdinalIgnoreCase))
+                : null) ??
             AvailableTemplates.FirstOrDefault(t => t.ProfileId == DefaultGameId) ??
             AvailableTemplates.FirstOrDefault(t => t.GameId == DefaultGameId) ??
             AvailableTemplates.FirstOrDefault();

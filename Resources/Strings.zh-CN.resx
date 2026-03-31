@@ -91,7 +91,13 @@
     <value>清除目标</value>
   </data>
   <data name="ProcessRestrictionHint" xml:space="preserve">
-    <value>选择一个进程以将键盘输入限制到该窗口。仅当目标窗口处于前台时才会发送按键。</value>
+    <value>请输入游戏的可执行文件名称（与任务管理器中的“进程名称”一致，通常不带 .exe）。该值保存在配置 JSON 中，本工具不提供正在运行进程的列表。仅当该进程拥有前台窗口时才会发送映射输出。</value>
+  </data>
+  <data name="TargetProcessNameLabel" xml:space="preserve">
+    <value>可执行文件名（配置文件）</value>
+  </data>
+  <data name="TargetProcessNameToolTip" xml:space="preserve">
+    <value>例如 notepad 或 MyGame，须与任务管理器中的进程名称一致。保存配置文件后生效。</value>
   </data>
   <data name="FromType" xml:space="preserve">
     <value>来源类型</value>
