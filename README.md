@@ -1,107 +1,125 @@
-
-
 # Gamepad Mapping
 
-A Windows desktop app that maps **XInput** gamepad input to **keyboard and mouse** output so you can play PC games with a controller profile tuned per title. It uses a **foreground target** (optional process name) so mappings can apply only while your game is focused.
+**简体中文:** [README_zh.md](README_zh.md)
+
+A Windows desktop app that maps **XInput** gamepad input to **keyboard and mouse** so you can play PC games with per-title controller profiles. Optionally limit output to a **foreground target** (game process name) so mappings do not fire in other windows.
+
+**Quick facts**
+
+- **Input:** XInput-compatible controllers.
+- **Output:** Simulated keyboard and mouse (see [Elevation awareness](#features) for admin-target games).
+- **Profiles:** JSON templates under `Assets/Profiles/templates`; global tuning in `Assets/Config/local_settings.json`.
 
 ## Features
 
-- **Profile templates** — JSON profiles under `Assets/Profiles/templates` define bindings, display metadata, and optional combo behavior.
-- **Bindings** — Buttons, triggers, and thumbsticks map to virtual keys; supports **press / release / tap** triggers, analog thresholds, and **hold vs. tap** dual outputs (`holdKeyboardKey`, `holdThresholdMs`).
-- **Chords and combos** — Multi-button chords with modifier grace and **combo lead** semantics (`comboLeadButtons`); optional **combo HUD** overlay while you play.
-- **Application settings** — **Application settings** in the top bar edits global timing, analog defaults, polling, and keyboard emulation tuning; values persist in `Assets/Config/local_settings.json` (separate from per-game profile JSON).
-- **Process targeting** — `targetProcessName` gates output to when a named executable is in the foreground (helps avoid typing into the wrong window).
-- **Elevation awareness** — If the focused app is running **as administrator**, the app can prompt to relaunch elevated so Windows does not block synthetic input (UIPI).
+- **Profile templates** — JSON files define bindings, display metadata, and optional combo behavior.
+- **Bindings** — Buttons, triggers, and thumbsticks map to keys; **press / release / tap** triggers, analog thresholds, and **hold vs. tap** pairs (`holdKeyboardKey`, `holdThresholdMs`).
+- **Chords and combos** — Multi-button chords with modifier grace and **combo lead** semantics (`comboLeadButtons`); optional **combo HUD** while playing.
+- **Application settings** — Top-bar panel for global timing, analog defaults, polling, and keyboard emulation; values persist in `Assets/Config/local_settings.json` (separate from profile JSON).
+- **Process targeting** — `targetProcessName` limits mapping to when a named executable (typically without `.exe`) is in the foreground.
+- **Elevation awareness** — If the focused app runs **as administrator**, the app can offer to relaunch elevated so Windows does not block synthetic input (UIPI).
 
 ## Requirements
 
-- **OS:** Windows (WPF host).
-- **.NET SDK:** [.NET 9](https://dotnet.microsoft.com/download/dotnet/9.0) (target framework `net9.0-windows`).
-- **Gamepad:** XInput-compatible controller (via [Vortice.XInput](https://github.com/amerkoleci/Vortice.Windows)).
+- **OS:** Windows (WPF).
+- **.NET SDK:** [.NET 9](https://dotnet.microsoft.com/download/dotnet/9.0) (`net9.0-windows`).
+- **Gamepad:** XInput-compatible controller ([Vortice.XInput](https://github.com/amerkoleci/Vortice.Windows)).
 
 ## Build and run
 
-From the repository root:
+From the repository root (powershell or any shell):
 
 ```powershell
 dotnet build "Gamepad Mapping.csproj" -c Release
 dotnet run --project "Gamepad Mapping.csproj"
 ```
 
-Release binaries include `Assets\Config` and `Assets\Profiles` content via `CopyToOutputDirectory`; run from the output folder or ensure the working directory can resolve those paths (see **Paths** below).
+You can also open `GamepadMapping.sln` in Visual Studio and run the startup project.
+
+Release and Debug outputs copy `Assets\Config` and `Assets\Profiles` into the build folder (`CopyToOutputDirectory`). Run the app with working directory set to a folder that contains the `Assets` tree (the project root in dev, or `bin\...\net9.0-windows\` after build). See [Paths (content root)](#paths-content-root).
+
+### Tests
+
+```powershell
+dotnet test "GamepadMapping.sln" -c Release
+```
 
 ## Configuration
 
-On first run, `**Assets/Config/default_settings.json`** is copied to `**Assets/Config/local_settings.json**`. The app reads and writes `**local_settings.json**` for global options. **Profile bindings** (mappings, process name, combo leads) live in `**Assets/Profiles/templates/{profileId}.json`**—they are not stored in app settings.
+On first launch, if `Assets/Config/local_settings.json` is missing, the app copies `Assets/Config/default_settings.json` to `local_settings.json`. Global options are read and written in **`local_settings.json`**. **Bindings** (mappings, process name, combo leads) live only in **`Assets/Profiles/templates/{profileId}.json`**, not in app settings.
 
 ### Application settings (in-app)
 
-Use the **Application settings** control in the **top bar**, to the right of the template dropdown and the “create new profile” (+) button. It opens a panel with two groups:
+In the **top bar**, open **Application settings** (to the right of the template dropdown and the “new profile” (+) button). The panel has two groups:
 
 1. **Timing & keyboard**
-  - **Modifier grace / combo HUD delay (`modifierGraceMs`)** — Milliseconds used for chord modifier grace, when the combo HUD appears, and as the **fallback** hold duration for tap/hold dual bindings when a mapping does not set `holdThresholdMs`.
-  - **Lead key long-hold suppress (`leadKeyReleaseSuppressMs`)** — For **combo lead** buttons (from `comboLeadButtons` or inferred): if you hold longer than this and release without completing a combo path, solo “released” / short-hold outputs can be suppressed so cancelling a combo does not fire stray keys.
-  - **Keyboard tap hold (`keyboardTapHoldDurationMs`)** — How long a simulated key stays down for a tap (clamped to a safe range in the app).
-  - **Tap repeat gap (`tapInterKeyDelayMs`)** — Optional delay between repeated taps when the mapper issues multiple taps.
-  - **Text between chars (`textInterCharDelayMs`)** — Optional delay between characters when sending text via the keyboard emulator.
+   - **Modifier grace / combo HUD delay (`modifierGraceMs`)** — Chord modifier grace, combo HUD timing, and **fallback** hold duration for tap/hold bindings when `holdThresholdMs` is not set on a mapping.
+   - **Lead key long-hold suppress (`leadKeyReleaseSuppressMs`)** — For combo lead buttons: suppress stray solo release / short-hold output when you cancel a long hold without finishing a combo path.
+   - **Keyboard tap hold (`keyboardTapHoldDurationMs`)** — How long a simulated key stays down for a tap (clamped in-app).
+   - **Tap repeat gap (`tapInterKeyDelayMs`)** — Delay between repeated taps when the mapper sends multiple taps.
+   - **Text between chars (`textInterCharDelayMs`)** — Delay between characters when sending text via the keyboard emulator.
 2. **Analog & polling**
-  - **Default analog threshold (`defaultAnalogActivationThreshold`)** — Normalized **0–1** default for stick/trigger mappings that do not set `analogThreshold` on the binding.
-  - **Mouse-look sensitivity (`mouseLookSensitivity`)** — Scale for right-stick (or configured) mouse-look output when no per-mapping override exists.
-  - **Analog change epsilon (`analogChangeEpsilon`)** — How much analog values must change before the reader treats the state as updated (smaller = more sensitive, more updates).
-  - **Gamepad poll interval (`gamepadPollingIntervalMs`)** — Milliseconds between XInput polls; lower is snappier, higher uses less CPU.
+   - **Default analog threshold (`defaultAnalogActivationThreshold`)** — Normalized **0–1** default for stick/trigger mappings without `analogThreshold`.
+   - **Mouse-look sensitivity (`mouseLookSensitivity`)** — Default scale for mouse-look when a mapping does not override it.
+   - **Analog change epsilon (`analogChangeEpsilon`)** — Minimum change before analog input is treated as updated (smaller = more updates).
+   - **Gamepad poll interval (`gamepadPollingIntervalMs`)** — Milliseconds between XInput polls (lower = snappier, higher = less CPU).
 
-Changes from this panel are **saved to `local_settings.json` as you edit** (same schema as below). **Thumbstick deadzones** for the live reader are adjusted under **Live Gamepad Monitor → Analog** (gear icon); those values are also written to `**leftThumbstickDeadzone` / `rightThumbstickDeadzone`** (and align with the shared default `**thumbstickDeadzone**` when per-stick values are unset).
+Edits save to `local_settings.json` as you change them. **Thumbstick deadzones** for live reading are adjusted under **Live Gamepad Monitor → Analog** (gear icon); those map to `leftThumbstickDeadzone` and `rightThumbstickDeadzone` in settings, aligned with the shared default `thumbstickDeadzone` when per-stick values are unset.
 
+### Settings reference (`local_settings.json`)
 
-| Setting                            | Purpose                                                                                   |
-| ---------------------------------- | ----------------------------------------------------------------------------------------- |
-| `templatesDirectory`               | Folder (relative to content root) for profile `*.json` files.                             |
-| `defaultGameId`                    | Profile id (filename stem) used as the default template.                                  |
-| `lastSelectedTemplateProfileId`    | Last template chosen in the UI; restored on launch.                                       |
-| `modifierGraceMs`                  | Shared timing for chord modifier grace, combo HUD delay, and hold-threshold fallback.     |
-| `leadKeyReleaseSuppressMs`         | For combo lead buttons: suppress stray solo release / short hold when cancelling a combo. |
-| `thumbstickDeadzone`               | Default normalized deadzone for thumbsticks when per-stick values are not set.            |
-| `leftThumbstickDeadzone`           | Left stick deadzone `[0–1]` (UI: Live Gamepad Monitor).                                   |
-| `rightThumbstickDeadzone`          | Right stick deadzone `[0–1]` (UI: Live Gamepad Monitor).                                  |
-| `gamepadPollingIntervalMs`         | Delay between gamepad polls (ms).                                                         |
-| `defaultAnalogActivationThreshold` | Default analog activation threshold `0–1` for mappings without `analogThreshold`.         |
-| `mouseLookSensitivity`             | Default mouse-look sensitivity scaler.                                                    |
-| `analogChangeEpsilon`              | Minimum analog delta to treat input as changed.                                           |
-| `keyboardTapHoldDurationMs`        | Simulated key-down duration for taps (ms).                                                |
-| `tapInterKeyDelayMs`               | Delay between repeated taps (ms).                                                         |
-| `textInterCharDelayMs`             | Delay between typed characters (ms).                                                      |
-
+| Setting | Purpose |
+| -------- | -------- |
+| `templatesDirectory` | Folder (relative to content root) for profile `*.json` files. |
+| `defaultGameId` | Profile id (filename stem) used as the default template. |
+| `lastSelectedTemplateProfileId` | Last template selected in the UI; restored on launch. |
+| `modifierGraceMs` | Chord grace, combo HUD delay, and hold-threshold fallback. |
+| `leadKeyReleaseSuppressMs` | Combo lead: suppress stray solo release / short hold when cancelling. |
+| `thumbstickDeadzone` | Default normalized deadzone when per-stick values are not set. |
+| `leftThumbstickDeadzone` | Left stick deadzone `[0–1]` (Live Gamepad Monitor). |
+| `rightThumbstickDeadzone` | Right stick deadzone `[0–1]` (Live Gamepad Monitor). |
+| `leftTriggerInnerDeadzone` | Left trigger inner deadzone (normalized); values at or below map to 0. |
+| `leftTriggerOuterDeadzone` | Left trigger outer threshold; values at or above map to full pull. |
+| `rightTriggerInnerDeadzone` | Right trigger inner deadzone (same semantics as left). |
+| `rightTriggerOuterDeadzone` | Right trigger outer threshold (same semantics as left). |
+| `gamepadPollingIntervalMs` | Delay between gamepad polls (ms). |
+| `defaultAnalogActivationThreshold` | Default `0–1` activation for mappings without `analogThreshold`. |
+| `mouseLookSensitivity` | Default mouse-look sensitivity scaler. |
+| `analogChangeEpsilon` | Minimum analog delta to treat input as changed. |
+| `keyboardTapHoldDurationMs` | Simulated key-down duration for taps (ms). |
+| `tapInterKeyDelayMs` | Delay between repeated taps (ms). |
+| `textInterCharDelayMs` | Delay between typed characters (ms). |
 
 ## Profile format (templates)
 
-Each template is one JSON file: `{profileId}.json` with a root object similar to:
+Each file is `{profileId}.json` with a root object such as:
 
 - `profileId`, `gameId`, `displayName` / `displayNameKey`
-- `targetProcessName` (optional) — process **base name** (typically without `.exe`), matching `Process.ProcessName`
-- `comboLeadButtons` (optional) — XInput button names (e.g. `LeftShoulder`) for combo lead behavior
+- `targetProcessName` (optional) — process **base name** (usually without `.exe`), same as `Process.ProcessName`
+- `comboLeadButtons` (optional) — XInput button names (e.g. `LeftShoulder`)
 - `mappings` — list of entries with `from` (`type`, `value`), `keyboardKey`, `trigger`, optional `analogThreshold`, `holdKeyboardKey`, `holdThresholdMs`, `description`, `descriptionKey`
 
-Shipped examples live in `Assets/Profiles/templates` (for example `default.json`, `flight_sim.json`, `roco-kingdom-world__roco-kingdom.json`).
+Examples ship in `Assets/Profiles/templates` (e.g. `default.json`, `flight_sim.json`, `roco-kingdom-world__roco-kingdom.json`).
 
 ## UI and localization
 
-The shell follows the **Windows light/dark** apps setting. Strings support **resource-based localization** (`Resources/Strings*.resx`); the app wires a default culture at startup for translated template keys (`displayNameKey`, `descriptionKey`).
+The shell follows the **Windows** light/dark apps setting. Strings use **resource-based** localization (`Resources/Strings*.resx`); startup sets culture for translated template keys (`displayNameKey`, `descriptionKey`).
 
 ## Paths (content root)
 
-The app resolves a **content root** by looking for `Assets/Config/default_settings.json` starting from the current directory, `AppContext.BaseDirectory`, and parent folders—so development runs from the project folder and published runs from the folder that contains the copied `Assets` tree.
+The app finds **content root** by locating `Assets/Config/default_settings.json` starting from the current directory, `AppContext.BaseDirectory`, and parent folders—so development runs from the project folder and published layouts work when the copied `Assets` tree sits beside the executable.
 
 ## Tech stack
 
 - **WPF** — UI
 - **[CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)** — MVVM helpers
-- **[Newtonsoft.Json](https://www.newtonsoft.com/json)** — Profile and settings serialization
-- **[InputSimulatorPlus](https://www.nuget.org/packages/InputSimulatorPlus)** — Synthetic keyboard/mouse input
-- **[Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)** — Gamepad reading
+- **[Newtonsoft.Json](https://www.newtonsoft.com/json)** — Profiles and settings
+- **[InputSimulatorPlus](https://www.nuget.org/packages/InputSimulatorPlus)** — Synthetic keyboard/mouse
+- **[Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)** — Gamepad input
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/build.yml) runs on every push and pull request to `main` (`**dotnet build`** Release). When you push an annotated or lightweight tag named like `v1.0.0`, the workflow also **publishes** a **self-contained** `win-x64` build, zips it, and creates a **GitHub Release** with that zip attached (via [softprops/action-gh-release](https://github.com/softprops/action-gh-release)).
+[GitHub Actions](.github/workflows/build.yml) runs on every push and pull request to `main` (`dotnet build` Release). Pushing a tag matching `v*` (e.g. `v1.0.0`) also **publishes** a **self-contained** `win-x64` build, zips it, and creates a **GitHub Release** with the zip ([softprops/action-gh-release](https://github.com/softprops/action-gh-release)).
 
 ```powershell
 git tag v1.0.0
