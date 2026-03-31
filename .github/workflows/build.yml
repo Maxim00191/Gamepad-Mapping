@@ -51,17 +51,30 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Publish (win-x64, self-contained)
-        run: dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained true -o publish
+      - name: Publish single-file (win-x64, self-contained)
+        run: >
+          dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained true
+          -o publish-single
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
 
-      - name: Zip artifact
+      - name: Publish framework-dependent (win-x64, runtime not bundled)
+        run: >
+          dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false
+          -o publish-fx
+
+      - name: Zip artifacts
         shell: pwsh
-        run: Compress-Archive -Path "publish\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64.zip"
+        run: |
+          Compress-Archive -Path "publish-single\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip"
+          Compress-Archive -Path "publish-fx\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Gamepad-Mapping-${{ github.ref_name }}-win-x64.zip
+          files: |
+            Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip
+            Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
