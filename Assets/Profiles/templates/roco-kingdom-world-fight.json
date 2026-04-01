@@ -6,7 +6,6 @@
   "displayNames": {
     "zh-CN": "洛克王国世界·战斗"
   },
-  "comboLeadButtons": ["LeftShoulder", "RightShoulder"],
   "mappings": [
     { "from": { "type": "LeftThumbstick", "value": "Left" }, "keyboardKey": "A", "description": "Battle: move/select left (A)", "descriptions": { "zh-CN": "战斗：向左选择（A）" }, "trigger": "Pressed", "analogThreshold": 0.25 },
     { "from": { "type": "LeftThumbstick", "value": "Right" }, "keyboardKey": "D", "description": "Battle: move/select right (D)", "descriptions": { "zh-CN": "战斗：向右选择（D）" }, "trigger": "Pressed", "analogThreshold": 0.25 },
@@ -34,7 +33,7 @@
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "Tab", "description": "Battle: view battle log (Tab)", "descriptions": { "zh-CN": "战斗：查看对战记录（Tab）" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "Tab", "description": "Battle: view battle log (Tab)", "descriptions": { "zh-CN": "战斗：查看对战记录（Tab）" }, "trigger": "Released", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Enter", "description": "Battle: open chat (Enter)", "descriptions": { "zh-CN": "战斗：打开聊天界面（Enter）" }, "trigger": "Tap", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Enter", "description": "Battle: open chat (Enter)", "descriptions": { "zh-CN": "战斗：打开聊天界面（Enter）" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "Start + Back" }, "keyboardKey": "", "description": "Switch profile: overworld / exploration", "descriptions": { "zh-CN": "切换配置：大世界探索" }, "trigger": "Pressed", "analogThreshold": null, "templateToggle": { "alternateProfileId": "roco-kingdom-world" } }
   ]
