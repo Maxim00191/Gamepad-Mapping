@@ -240,4 +240,16 @@
   <data name="PollingIntervalLabel" xml:space="preserve">
     <value>Gamepad poll interval (ms)</value>
   </data>
+  <data name="ItemCycleEnabled" xml:space="preserve">
+    <value>Cycle inventory / hotbar slots (sends digit keys 1–n as a chord)</value>
+  </data>
+  <data name="ItemCycleDirection" xml:space="preserve">
+    <value>Cycle direction</value>
+  </data>
+  <data name="ItemCycleSlotCount" xml:space="preserve">
+    <value>Number of slots n (1–9)</value>
+  </data>
+  <data name="ItemCycleWithKeys" xml:space="preserve">
+    <value>Hold these keys while tapping the number (optional, e.g. LeftAlt or LeftCtrl+LeftShift)</value>
+  </data>
 </root>

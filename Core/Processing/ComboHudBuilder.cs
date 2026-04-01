@@ -103,7 +103,7 @@ internal static class ComboHudBuilder
 
             var spec = ChordResolver.ChordSpecificity(chord, reqRt, reqLt);
             var comboLabel = FormatHudChordLabel(mapping.From.Value ?? normTok);
-            var keyPart = string.IsNullOrWhiteSpace(mapping.KeyboardKey) ? string.Empty : mapping.KeyboardKey.Trim();
+            var keyPart = FormatHudMappingOutput(mapping);
             var descPart = mapping.Description?.Trim();
 
             string? contentLine = null;
@@ -283,5 +283,18 @@ internal static class ComboHudBuilder
     {
         var t = token?.Trim() ?? string.Empty;
         return string.IsNullOrEmpty(t) ? "—" : t;
+    }
+
+    private static string FormatHudMappingOutput(MappingEntry mapping)
+    {
+        if (mapping.ItemCycle is { } ic)
+        {
+            var n = Math.Clamp(ic.SlotCount, 1, 9);
+            var mods = ic.WithKeys is { Count: > 0 } ? string.Join("+", ic.WithKeys) + "+" : string.Empty;
+            var dir = ic.Direction == ItemCycleDirection.Previous ? "prev" : "next";
+            return $"{mods}1–{n} ({dir})";
+        }
+
+        return string.IsNullOrWhiteSpace(mapping.KeyboardKey) ? string.Empty : mapping.KeyboardKey.Trim();
     }
 }

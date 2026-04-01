@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System;
 using System.ComponentModel;
@@ -57,7 +58,25 @@ public partial class MappingEditorViewModel : ObservableObject
     private string editBindingHoldThresholdText = string.Empty;
 
     [ObservableProperty]
+    private bool editItemCycleEnabled;
+
+    [ObservableProperty]
+    private ItemCycleDirection editItemCycleDirection = ItemCycleDirection.Next;
+
+    [ObservableProperty]
+    private string editItemCycleSlotText = "9";
+
+    [ObservableProperty]
+    private string editItemCycleWithKeys = string.Empty;
+
+    [ObservableProperty]
     private bool isCreatingNewMapping;
+
+    /// <summary>When false, KB/M output and hold bind fields apply; item cycle uses its own outputs.</summary>
+    public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled;
+
+    public IReadOnlyList<ItemCycleDirection> AvailableItemCycleDirections { get; } =
+        new[] { ItemCycleDirection.Next, ItemCycleDirection.Previous };
 
     [ObservableProperty]
     private bool isMappingDetailsExpanderExpanded = true;
@@ -107,10 +126,29 @@ public partial class MappingEditorViewModel : ObservableObject
         }
 
         EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
-        EditBindingKeyboardKey = value?.KeyboardKey ?? string.Empty;
+        if (value?.ItemCycle is { } ic)
+        {
+            EditItemCycleEnabled = true;
+            EditItemCycleDirection = ic.Direction;
+            EditItemCycleSlotText = Math.Clamp(ic.SlotCount, 1, 9).ToString(CultureInfo.InvariantCulture);
+            EditItemCycleWithKeys = ic.WithKeys is { Count: > 0 } ? string.Join('+', ic.WithKeys) : string.Empty;
+            EditBindingKeyboardKey = string.Empty;
+            EditBindingHoldKeyboardKey = string.Empty;
+            EditBindingHoldThresholdText = string.Empty;
+        }
+        else
+        {
+            EditItemCycleEnabled = false;
+            EditItemCycleDirection = ItemCycleDirection.Next;
+            EditItemCycleSlotText = "9";
+            EditItemCycleWithKeys = string.Empty;
+            EditBindingKeyboardKey = value?.KeyboardKey ?? string.Empty;
+            EditBindingHoldKeyboardKey = value?.HoldKeyboardKey ?? string.Empty;
+            EditBindingHoldThresholdText = value?.HoldThresholdMs?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+
         EditBindingDescription = value?.Description ?? string.Empty;
-        EditBindingHoldKeyboardKey = value?.HoldKeyboardKey ?? string.Empty;
-        EditBindingHoldThresholdText = value?.HoldThresholdMs?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
     private void RecordKeyboardKey()
@@ -175,7 +213,6 @@ public partial class MappingEditorViewModel : ObservableObject
             return;
 
         var button = (EditBindingFromButton ?? string.Empty).Trim();
-        var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(button))
             return;
 
@@ -184,37 +221,62 @@ public partial class MappingEditorViewModel : ObservableObject
             !AvailableGamepadButtons.Any(b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase)))
             return;
 
-        var key = MappingEngine.ParseKey(keyToken);
-        var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
-        if (key == Key.None && !isMouseLookOutput)
-            return;
-
         SelectedMapping.From = new GamepadBinding { Type = sourceType, Value = button };
         SelectedMapping.Trigger = EditBindingTrigger;
-        SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
         SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
         SelectedMapping.AnalogThreshold = null;
 
-        var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(holdToken))
+        if (EditItemCycleEnabled)
         {
+            var slotText = (EditItemCycleSlotText ?? string.Empty).Trim();
+            if (!int.TryParse(slotText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 1 || n > 9)
+                return;
+            if (!TryParseWithKeysTokens(EditItemCycleWithKeys, out var withKeys))
+                return;
+
+            SelectedMapping.ItemCycle = new ItemCycleBinding
+            {
+                Direction = EditItemCycleDirection,
+                SlotCount = n,
+                WithKeys = withKeys
+            };
+            SelectedMapping.KeyboardKey = string.Empty;
             SelectedMapping.HoldKeyboardKey = string.Empty;
             SelectedMapping.HoldThresholdMs = null;
         }
         else
         {
-            var holdKey = MappingEngine.ParseKey(holdToken);
-            var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
-            if (holdKey == Key.None && !holdMouseLook)
+            SelectedMapping.ItemCycle = null;
+
+            var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
+            var key = MappingEngine.ParseKey(keyToken);
+            var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
+            if (key == Key.None && !isMouseLookOutput)
                 return;
-            SelectedMapping.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
-            int? holdMs = null;
-            var t = (EditBindingHoldThresholdText ?? string.Empty).Trim();
-            if (!string.IsNullOrEmpty(t) &&
-                int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
-                parsed > 0)
-                holdMs = parsed;
-            SelectedMapping.HoldThresholdMs = holdMs;
+
+            SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
+
+            var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(holdToken))
+            {
+                SelectedMapping.HoldKeyboardKey = string.Empty;
+                SelectedMapping.HoldThresholdMs = null;
+            }
+            else
+            {
+                var holdKey = MappingEngine.ParseKey(holdToken);
+                var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
+                if (holdKey == Key.None && !holdMouseLook)
+                    return;
+                SelectedMapping.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
+                int? holdMs = null;
+                var t = (EditBindingHoldThresholdText ?? string.Empty).Trim();
+                if (!string.IsNullOrEmpty(t) &&
+                    int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+                    parsed > 0)
+                    holdMs = parsed;
+                SelectedMapping.HoldThresholdMs = holdMs;
+            }
         }
 
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
@@ -232,6 +294,11 @@ public partial class MappingEditorViewModel : ObservableObject
         EditBindingDescription = string.Empty;
         EditBindingHoldKeyboardKey = string.Empty;
         EditBindingHoldThresholdText = string.Empty;
+        EditItemCycleEnabled = false;
+        EditItemCycleDirection = ItemCycleDirection.Next;
+        EditItemCycleSlotText = "9";
+        EditItemCycleWithKeys = string.Empty;
+        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
     private void SaveNewMapping()
@@ -239,7 +306,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (!TryBuildMappingFromEditorFields(out var entry))
         {
             MessageBox.Show(
-                "Choose a gamepad button from the list and enter a valid keyboard or mouse-look output, then try again.",
+                "Choose a gamepad button, then either enable hotbar cycling (valid n and optional modifiers) or enter a valid keyboard / mouse-look output.",
                 "Cannot save new mapping",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -266,23 +333,46 @@ public partial class MappingEditorViewModel : ObservableObject
         };
 
         var button = (EditBindingFromButton ?? string.Empty).Trim();
-        var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(button))
             return false;
 
         if (!AvailableGamepadButtons.Any(b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase)))
             return false;
 
+        entry.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button };
+        entry.Trigger = EditBindingTrigger;
+        entry.Description = (EditBindingDescription ?? string.Empty).Trim();
+        entry.AnalogThreshold = null;
+
+        if (EditItemCycleEnabled)
+        {
+            var slotText = (EditItemCycleSlotText ?? string.Empty).Trim();
+            if (!int.TryParse(slotText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 1 || n > 9)
+                return false;
+            if (!TryParseWithKeysTokens(EditItemCycleWithKeys, out var withKeys))
+                return false;
+
+            entry.ItemCycle = new ItemCycleBinding
+            {
+                Direction = EditItemCycleDirection,
+                SlotCount = n,
+                WithKeys = withKeys
+            };
+            entry.KeyboardKey = string.Empty;
+            entry.HoldKeyboardKey = string.Empty;
+            entry.HoldThresholdMs = null;
+            return true;
+        }
+
+        entry.ItemCycle = null;
+
+        var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
         var key = MappingEngine.ParseKey(keyToken);
         var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
         if (key == Key.None && !isMouseLookOutput)
             return false;
 
-        entry.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button };
-        entry.Trigger = EditBindingTrigger;
         entry.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
-        entry.Description = (EditBindingDescription ?? string.Empty).Trim();
-        entry.AnalogThreshold = null;
 
         var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(holdToken))
@@ -307,6 +397,30 @@ public partial class MappingEditorViewModel : ObservableObject
         entry.HoldThresholdMs = holdMs;
         return true;
     }
+
+    private static bool TryParseWithKeysTokens(string? line, out List<string>? tokens)
+    {
+        tokens = null;
+        if (string.IsNullOrWhiteSpace(line))
+            return true;
+
+        var parts = line.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+            return true;
+
+        tokens = [];
+        foreach (var p in parts)
+        {
+            if (MappingEngine.ParseKey(p) == Key.None)
+                return false;
+            tokens.Add(p);
+        }
+
+        return true;
+    }
+
+    partial void OnEditItemCycleEnabledChanged(bool value) =>
+        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
 
     private void RemoveSelectedMapping()
     {

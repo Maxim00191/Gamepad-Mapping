@@ -1,11 +1,7 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.MappingEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Border Background="{DynamicResource AppSurfaceBrush}"
-            BorderBrush="{DynamicResource AppBorderBrush}"
-            BorderThickness="1"
-            CornerRadius="6"
-            Padding="12">
+    <Border Style="{StaticResource SectionCardBorder}">
         <DataGrid ItemsSource="{Binding Mappings}"
                   AutoGenerateColumns="False"
                   IsReadOnly="False"
@@ -35,7 +31,7 @@
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[KbmOutputShort]}"
                                     IsReadOnly="True"
-                                    Binding="{Binding KeyboardKey, Mode=OneWay}"
+                                    Binding="{Binding OutputSummaryForGrid, Mode=OneWay}"
                                     Width="1.2*" />
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[HoldOutput]}"
                                     Binding="{Binding HoldKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

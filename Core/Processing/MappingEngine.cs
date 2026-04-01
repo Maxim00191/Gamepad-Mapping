@@ -40,6 +40,9 @@ public sealed class MappingEngine : IMappingEngine
     private bool _comboHudDelayConfirmed;
     private string? _pendingComboHudSignature;
 
+    /// <summary>Shared index 0..n-1 for <see cref="ItemCycleBinding"/> mappings (wraps per activation).</summary>
+    private int _itemCycleSlotIndex;
+
     /// <summary>Buttons whose solo <see cref="TriggerMoment.Pressed"/> was deferred because the profile has a richer chord using them.</summary>
     private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons = [];
 
@@ -65,7 +68,12 @@ public sealed class MappingEngine : IMappingEngine
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
         _setComboHud = setComboHud;
-        _inputDispatcher = new InputDispatcher(DispatchMappedOutput, runOnUi, setMappedOutput, setMappingStatus);
+        _inputDispatcher = new InputDispatcher(
+            DispatchMappedOutput,
+            (modifiers, mainKey) => _keyboardEmulator.TapKeyChord(modifiers, mainKey),
+            runOnUi,
+            setMappedOutput,
+            setMappingStatus);
         _holdSessionManager = new HoldSessionManager(
             _canDispatchOutput,
             _setMappedOutput,
@@ -331,6 +339,30 @@ public sealed class MappingEngine : IMappingEngine
 
             try
             {
+                if (candidate.Mapping.ItemCycle is { } cycle)
+                {
+                    if (context.Trigger == TriggerMoment.Released)
+                        continue;
+                    if (!_canDispatchOutput())
+                        continue;
+                    if (!TryPrepareItemCycleStep(cycle, out var digitKey, out var modifierKeys, out var itemLabel))
+                    {
+                        _setMappingStatus("Item cycle: invalid key name in itemCycle.withKeys");
+                        continue;
+                    }
+
+                    _setMappedOutput(itemLabel);
+                    _setMappingStatus($"Queued: {candidate.SourceToken} ({context.Trigger}) -> {itemLabel}");
+                    _inputDispatcher.EnqueueChordTap(
+                        candidate.SourceToken,
+                        context.Trigger,
+                        modifierKeys,
+                        digitKey,
+                        itemLabel,
+                        candidate.SourceToken);
+                    continue;
+                }
+
                 if (!InputTokenResolver.TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out var output, out var baseLabel))
                     continue;
 
@@ -897,5 +929,27 @@ public sealed class MappingEngine : IMappingEngine
         string sourceToken)
     {
         _inputDispatcher.Enqueue(buttonName, trigger, output, outputLabel, sourceToken);
+    }
+
+    private bool TryPrepareItemCycleStep(ItemCycleBinding cycle, out Key digitKey, out Key[] modifierKeys, out string label)
+    {
+        digitKey = Key.None;
+        modifierKeys = Array.Empty<Key>();
+        label = string.Empty;
+
+        var n = Math.Clamp(cycle.SlotCount, 1, 9);
+        if (cycle.Direction == ItemCycleDirection.Next)
+            _itemCycleSlotIndex = (_itemCycleSlotIndex + 1) % n;
+        else
+            _itemCycleSlotIndex = (_itemCycleSlotIndex - 1 + n) % n;
+
+        var idx = _itemCycleSlotIndex;
+        digitKey = Key.D1 + idx;
+        if (!InputTokenResolver.TryParseItemCycleModifierKeys(cycle.WithKeys, out modifierKeys))
+            return false;
+
+        var modText = modifierKeys.Length > 0 ? string.Join('+', modifierKeys) + "+" : string.Empty;
+        label = $"{modText}{digitKey} (slot {idx + 1}/{n})";
+        return true;
     }
 }

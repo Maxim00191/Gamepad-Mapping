@@ -7,9 +7,11 @@ internal readonly record struct DispatchedOutput(Key? KeyboardKey, PointerAction
 internal readonly record struct QueuedOutputWork(
     string ButtonName,
     TriggerMoment Trigger,
-    DispatchedOutput Output,
     string OutputLabel,
-    string SourceToken);
+    string SourceToken,
+    DispatchedOutput? DirectOutput,
+    System.Windows.Input.Key[]? ChordModifiers,
+    System.Windows.Input.Key? ChordMainKey);
 
 internal enum PointerAction
 {

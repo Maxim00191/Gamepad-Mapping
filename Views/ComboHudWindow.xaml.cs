@@ -11,20 +11,41 @@ namespace Gamepad_Mapping.Views;
 
 public partial class ComboHudWindow : Window
 {
+    private byte _lastPanelAlpha = 140;
+    private double _lastShadowOpacity = 0.28;
+
     public ComboHudWindow()
     {
         InitializeComponent();
         SourceInitialized += (_, _) => TopMostOverlayHelper.ApplyToWindow(this);
+        App.ThemeChanged += OnAppThemeChanged;
+        Closed += (_, _) => App.ThemeChanged -= OnAppThemeChanged;
     }
+
+    private void OnAppThemeChanged(object? sender, EventArgs e) =>
+        ApplyVisualSettings(_lastPanelAlpha, _lastShadowOpacity);
 
     /// <summary>Updates panel tint, border, and shadow from user settings (live while the HUD is open).</summary>
     public void ApplyVisualSettings(byte panelAlpha, double shadowOpacity)
     {
+        _lastPanelAlpha = panelAlpha;
+        _lastShadowOpacity = shadowOpacity;
         panelAlpha = (byte)Math.Clamp((int)panelAlpha, 24, 220);
         shadowOpacity = Math.Clamp(shadowOpacity, 0.08, 0.60);
-        RootBorder.Background = new SolidColorBrush(Color.FromArgb(panelAlpha, 0x1C, 0x1C, 0x1E));
-        var borderA = (byte)Math.Clamp(panelAlpha / 2 + 28, 32, 100);
-        RootBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(borderA, 0, 0, 0));
+
+        if (App.UsesLightTheme)
+        {
+            RootBorder.Background = new SolidColorBrush(Color.FromArgb(panelAlpha, 0xFC, 0xFC, 0xFE));
+            var borderA = (byte)Math.Clamp(panelAlpha / 3 + 24, 44, 100);
+            RootBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(borderA, 0x28, 0x28, 0x34));
+        }
+        else
+        {
+            RootBorder.Background = new SolidColorBrush(Color.FromArgb(panelAlpha, 0x1C, 0x1C, 0x1E));
+            var borderA = (byte)Math.Clamp(panelAlpha / 2 + 28, 32, 100);
+            RootBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(borderA, 0, 0, 0));
+        }
+
         if (RootBorder.Effect is DropShadowEffect dse)
             dse.Opacity = shadowOpacity;
     }

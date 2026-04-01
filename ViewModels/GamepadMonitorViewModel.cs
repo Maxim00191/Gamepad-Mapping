@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -178,4 +179,7 @@ public partial class GamepadMonitorViewModel : ObservableObject
     public ICommand StopGamepadCommand { get; }
 
     public ICommand StartGamepadCommand { get; }
+
+    [RelayCommand]
+    private void CollapseMonitor() => IsMonitorExpanderExpanded = false;
 }

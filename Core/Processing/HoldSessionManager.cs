@@ -138,6 +138,8 @@ internal sealed class HoldSessionManager
 
     public static bool IsHoldDualMapping(MappingEntry mapping)
     {
+        if (mapping.ItemCycle != null)
+            return false;
         if (mapping.Trigger != TriggerMoment.Tap)
             return false;
         if (string.IsNullOrWhiteSpace(mapping.HoldKeyboardKey))

@@ -57,6 +57,34 @@ internal static class InputTokenResolver
         return KeyAliases.TryGetValue(token, out var alias) ? alias : token;
     }
 
+    /// <summary>Parses modifier names for <see cref="ItemCycleBinding.WithKeys"/>; empty or null list is valid.</summary>
+    public static bool TryParseItemCycleModifierKeys(IReadOnlyList<string>? tokens, out Key[] keys)
+    {
+        if (tokens is null || tokens.Count == 0)
+        {
+            keys = Array.Empty<Key>();
+            return true;
+        }
+
+        var list = new List<Key>();
+        foreach (var t in tokens)
+        {
+            if (string.IsNullOrWhiteSpace(t))
+                continue;
+            var k = ParseKey(t.Trim());
+            if (k == Key.None)
+            {
+                keys = Array.Empty<Key>();
+                return false;
+            }
+
+            list.Add(k);
+        }
+
+        keys = list.ToArray();
+        return true;
+    }
+
     internal static bool TryResolveMappedOutput(string? outputToken, out DispatchedOutput output, out string outputLabel)
     {
         output = default;

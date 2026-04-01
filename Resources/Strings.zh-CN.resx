@@ -240,4 +240,16 @@
   <data name="PollingIntervalLabel" xml:space="preserve">
     <value>手柄轮询间隔（毫秒）</value>
   </data>
+  <data name="ItemCycleEnabled" xml:space="preserve">
+    <value>循环物品栏槽位（以组合键方式发送数字键 1–n）</value>
+  </data>
+  <data name="ItemCycleDirection" xml:space="preserve">
+    <value>循环方向</value>
+  </data>
+  <data name="ItemCycleSlotCount" xml:space="preserve">
+    <value>槽位数量 n（1–9）</value>
+  </data>
+  <data name="ItemCycleWithKeys" xml:space="preserve">
+    <value>按数字时附带的修饰键（可空，例如 LeftAlt 或 LeftCtrl+LeftShift）</value>
+  </data>
 </root>

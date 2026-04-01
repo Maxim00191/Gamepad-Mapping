@@ -47,7 +47,6 @@
             BorderThickness="1"
             BorderBrush="#40000000">
         <Border.Background>
-            <!-- Low-alpha fill keeps tips readable while showing more of the game behind -->
             <SolidColorBrush Color="#601C1C1E" />
         </Border.Background>
         <Border.Effect>
@@ -60,7 +59,7 @@
             <TextBlock x:Name="TitleBlock"
                        FontSize="16"
                        FontWeight="Bold"
-                       Foreground="#FFFFFFFF"
+                       Foreground="{DynamicResource AppHudTitleBrush}"
                        TextWrapping="Wrap"
                        Margin="0,0,0,10" />
             <ScrollViewer x:Name="LinesScrollViewer"
@@ -74,13 +73,13 @@
                                 <TextBlock Text="{Binding Primary}"
                                            FontSize="16"
                                            FontWeight="Bold"
-                                           Foreground="#FFFFFFFF"
+                                           Foreground="{DynamicResource AppHudTitleBrush}"
                                            TextWrapping="Wrap"
                                            LineHeight="24" />
                                 <TextBlock Text="{Binding Detail}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
-                                           Foreground="#FFE8EDF2"
+                                           Foreground="{DynamicResource AppHudDetailBrush}"
                                            TextWrapping="Wrap"
                                            Margin="0,5,0,0"
                                            LineHeight="21">

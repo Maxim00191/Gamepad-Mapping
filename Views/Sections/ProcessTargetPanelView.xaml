@@ -1,11 +1,7 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.ProcessTargetPanelView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Border BorderBrush="{DynamicResource AppBorderBrush}"
-            Background="{DynamicResource AppSurfaceBrush}"
-            BorderThickness="1"
-            CornerRadius="6"
-            Padding="12">
+    <Border Style="{StaticResource SectionCardBorder}">
         <StackPanel>
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
                        FontWeight="Bold"

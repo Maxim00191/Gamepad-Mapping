@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core;
@@ -10,6 +11,7 @@ namespace GamepadMapperGUI.Core;
 internal sealed class InputDispatcher : IDisposable
 {
     private readonly Action<DispatchedOutput, TriggerMoment> _dispatchMappedOutput;
+    private readonly Action<IReadOnlyList<Key>, Key> _dispatchChordTap;
     private readonly Action<Action> _runOnUi;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
@@ -21,11 +23,13 @@ internal sealed class InputDispatcher : IDisposable
 
     public InputDispatcher(
         Action<DispatchedOutput, TriggerMoment> dispatchMappedOutput,
+        Action<IReadOnlyList<Key>, Key> dispatchChordTap,
         Action<Action> runOnUi,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus)
     {
         _dispatchMappedOutput = dispatchMappedOutput;
+        _dispatchChordTap = dispatchChordTap;
         _runOnUi = runOnUi;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
@@ -41,7 +45,37 @@ internal sealed class InputDispatcher : IDisposable
     {
         lock (_outputQueueLock)
         {
-            _outputQueue.Enqueue(new QueuedOutputWork(buttonName, trigger, output, outputLabel, sourceToken));
+            _outputQueue.Enqueue(new QueuedOutputWork(
+                buttonName,
+                trigger,
+                outputLabel,
+                sourceToken,
+                output,
+                ChordModifiers: null,
+                ChordMainKey: null));
+        }
+
+        _outputQueueSignal.Release();
+    }
+
+    public void EnqueueChordTap(
+        string buttonName,
+        TriggerMoment trigger,
+        Key[] modifiers,
+        Key mainKey,
+        string outputLabel,
+        string sourceToken)
+    {
+        lock (_outputQueueLock)
+        {
+            _outputQueue.Enqueue(new QueuedOutputWork(
+                buttonName,
+                trigger,
+                outputLabel,
+                sourceToken,
+                DirectOutput: null,
+                ChordModifiers: modifiers,
+                ChordMainKey: mainKey));
         }
 
         _outputQueueSignal.Release();
@@ -80,7 +114,13 @@ internal sealed class InputDispatcher : IDisposable
 
             try
             {
-                _dispatchMappedOutput(workItem.Output, workItem.Trigger);
+                if (workItem.ChordMainKey is { } mainKey && workItem.ChordModifiers is not null)
+                    _dispatchChordTap(workItem.ChordModifiers, mainKey);
+                else if (workItem.DirectOutput is { } direct)
+                    _dispatchMappedOutput(direct, workItem.Trigger);
+                else
+                    throw new InvalidOperationException("Queued output has neither direct output nor chord keys.");
+
                 _runOnUi(() =>
                 {
                     _setMappedOutput(workItem.OutputLabel);

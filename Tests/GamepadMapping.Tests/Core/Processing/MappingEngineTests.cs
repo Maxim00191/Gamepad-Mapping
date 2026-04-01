@@ -232,4 +232,92 @@ public class MappingEngineTests
         mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.AtLeastOnce);
         mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
     }
+
+    [Fact]
+    public async Task ProcessInputFrame_ItemCycleNext_TapKeyChordCyclesDigits()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                Trigger = TriggerMoment.Tap,
+                ItemCycle = new ItemCycleBinding { Direction = ItemCycleDirection.Next, SlotCount = 3 }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(
+            k => k.TapKeyChord(
+                It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
+                Key.D2,
+                It.IsAny<int>()),
+            Times.Once);
+
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(3, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(
+            k => k.TapKeyChord(
+                It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
+                Key.D3,
+                It.IsAny<int>()),
+            Times.Once);
+
+        engine.ProcessInputFrame(Frame(4, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(5, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(
+            k => k.TapKeyChord(
+                It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
+                Key.D1,
+                It.IsAny<int>()),
+            Times.Once);
+
+        mockKeyboard.Verify(
+            k => k.TapKeyChord(It.IsAny<IReadOnlyList<Key>>(), It.IsAny<Key>(), It.IsAny<int>()),
+            Times.Exactly(3));
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_ItemCycleWithModifiers_PassesModifiersToTapKeyChord()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                Trigger = TriggerMoment.Tap,
+                ItemCycle = new ItemCycleBinding
+                {
+                    Direction = ItemCycleDirection.Next,
+                    SlotCount = 2,
+                    WithKeys = new List<string> { "LeftAlt" }
+                }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(
+            k => k.TapKeyChord(
+                It.Is<IReadOnlyList<Key>>(l => l.Count == 1 && l[0] == Key.LeftAlt),
+                Key.D2,
+                It.IsAny<int>()),
+            Times.Once);
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
 }

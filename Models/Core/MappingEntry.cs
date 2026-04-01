@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -29,7 +30,11 @@ public class MappingEntry : ObservableObject
     public string KeyboardKey
     {
         get => _keyboardKey;
-        set => SetProperty(ref _keyboardKey, value);
+        set
+        {
+            if (SetProperty(ref _keyboardKey, value))
+                OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
     }
 
     private string _description = string.Empty;
@@ -96,5 +101,39 @@ public class MappingEntry : ObservableObject
     {
         get => _holdThresholdMs;
         set => SetProperty(ref _holdThresholdMs, value);
+    }
+
+    private ItemCycleBinding? _itemCycle;
+
+    /// <summary>When set, this mapping cycles a shared 1..n item slot and taps digit keys instead of <see cref="KeyboardKey"/>.</summary>
+    [JsonProperty("itemCycle", NullValueHandling = NullValueHandling.Ignore)]
+    public ItemCycleBinding? ItemCycle
+    {
+        get => _itemCycle;
+        set
+        {
+            if (SetProperty(ref _itemCycle, value))
+                OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+    }
+
+    /// <summary>Compact label for the mapping grid (item cycle summary or <see cref="KeyboardKey"/>).</summary>
+    [JsonIgnore]
+    public string OutputSummaryForGrid
+    {
+        get
+        {
+            if (ItemCycle is { } ic)
+            {
+                var n = Math.Clamp(ic.SlotCount, 1, 9);
+                var mods = ic.WithKeys is { Count: > 0 }
+                    ? string.Join("+", ic.WithKeys) + "+"
+                    : string.Empty;
+                var dir = ic.Direction == ItemCycleDirection.Previous ? "prev" : "next";
+                return $"{mods}Items 1–{n} ({dir})";
+            }
+
+            return _keyboardKey ?? string.Empty;
+        }
     }
 }

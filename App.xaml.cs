@@ -13,6 +13,12 @@ public partial class App : Application
     private const string PersonalizeRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
     private const string AppsUseLightThemeValueName = "AppsUseLightTheme";
 
+    /// <summary>Matches the last-applied Windows app theme (updated in <see cref="ApplySystemTheme"/>).</summary>
+    public static bool UsesLightTheme { get; private set; } = true;
+
+    /// <summary>Fired after application resource brushes are refreshed for light/dark mode.</summary>
+    public static event EventHandler? ThemeChanged;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -37,6 +43,7 @@ public partial class App : Application
     private void ApplySystemTheme()
     {
         var useLightTheme = ReadUseLightTheme();
+        UsesLightTheme = useLightTheme;
 
         if (useLightTheme)
         {
@@ -57,26 +64,39 @@ public partial class App : Application
             SetBrush("AppScrollTrackBrush", Color.FromRgb(229, 229, 229));
             SetBrush("AppScrollThumbBrush", Color.FromRgb(184, 184, 184));
             SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(154, 154, 154));
-            return;
+            SetBrush("AppSeparatorBrush", Color.FromRgb(218, 218, 224));
+            SetBrush("AppGridSplitterBrush", Color.FromRgb(200, 200, 210));
+            SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(46, 107, 216));
+            SetBrush("AppHudTitleBrush", Color.FromRgb(26, 26, 30));
+            SetBrush("AppHudDetailBrush", Color.FromRgb(75, 78, 90));
+        }
+        else
+        {
+            SetBrush("AppBackgroundBrush", Color.FromRgb(24, 24, 27));
+            SetBrush("AppSurfaceBrush", Color.FromRgb(35, 35, 40));
+            SetBrush("AppBorderBrush", Color.FromRgb(95, 95, 105));
+            SetBrush("AppTextBrush", Color.FromRgb(238, 238, 242));
+            SetBrush("AppSecondaryTextBrush", Color.FromRgb(185, 185, 195));
+            SetBrush("AppAccentTextBrush", Color.FromRgb(255, 135, 95));
+            SetBrush("AppControlSurfaceBrush", Color.FromRgb(43, 43, 49));
+            SetBrush("AppControlSurfaceAltBrush", Color.FromRgb(50, 50, 58));
+            SetBrush("AppControlHoverBrush", Color.FromRgb(62, 62, 72));
+            SetBrush("AppControlPressedBrush", Color.FromRgb(78, 78, 91));
+            SetBrush("AppAccentBrush", Color.FromRgb(79, 140, 255));
+            SetBrush("AppAccentHoverBrush", Color.FromRgb(104, 157, 255));
+            SetBrush("AppSelectionBrush", Color.FromRgb(62, 83, 122));
+            SetBrush("AppSelectionTextBrush", Color.FromRgb(245, 247, 250));
+            SetBrush("AppScrollTrackBrush", Color.FromRgb(54, 54, 63));
+            SetBrush("AppScrollThumbBrush", Color.FromRgb(104, 104, 116));
+            SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(132, 132, 146));
+            SetBrush("AppSeparatorBrush", Color.FromRgb(62, 62, 72));
+            SetBrush("AppGridSplitterBrush", Color.FromRgb(72, 72, 84));
+            SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(79, 140, 255));
+            SetBrush("AppHudTitleBrush", Color.FromRgb(245, 246, 250));
+            SetBrush("AppHudDetailBrush", Color.FromRgb(205, 210, 220));
         }
 
-        SetBrush("AppBackgroundBrush", Color.FromRgb(24, 24, 27));
-        SetBrush("AppSurfaceBrush", Color.FromRgb(35, 35, 40));
-        SetBrush("AppBorderBrush", Color.FromRgb(95, 95, 105));
-        SetBrush("AppTextBrush", Color.FromRgb(238, 238, 242));
-        SetBrush("AppSecondaryTextBrush", Color.FromRgb(185, 185, 195));
-        SetBrush("AppAccentTextBrush", Color.FromRgb(255, 135, 95));
-        SetBrush("AppControlSurfaceBrush", Color.FromRgb(43, 43, 49));
-        SetBrush("AppControlSurfaceAltBrush", Color.FromRgb(50, 50, 58));
-        SetBrush("AppControlHoverBrush", Color.FromRgb(62, 62, 72));
-        SetBrush("AppControlPressedBrush", Color.FromRgb(78, 78, 91));
-        SetBrush("AppAccentBrush", Color.FromRgb(79, 140, 255));
-        SetBrush("AppAccentHoverBrush", Color.FromRgb(104, 157, 255));
-        SetBrush("AppSelectionBrush", Color.FromRgb(62, 83, 122));
-        SetBrush("AppSelectionTextBrush", Color.FromRgb(245, 247, 250));
-        SetBrush("AppScrollTrackBrush", Color.FromRgb(54, 54, 63));
-        SetBrush("AppScrollThumbBrush", Color.FromRgb(104, 104, 116));
-        SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(132, 132, 146));
+        ThemeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private static bool ReadUseLightTheme()

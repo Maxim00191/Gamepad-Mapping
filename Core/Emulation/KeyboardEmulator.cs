@@ -115,6 +115,34 @@ namespace GamepadMapperGUI.Core
             }
         }
 
+        public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs)
+        {
+            if (mainKey == Key.None)
+                throw new ArgumentException("Main key cannot be Key.None.", nameof(mainKey));
+            if (modifiers is null) throw new ArgumentNullException(nameof(modifiers));
+
+            var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
+            var modList = new List<Key>();
+            foreach (var k in modifiers)
+            {
+                if (k != Key.None)
+                    modList.Add(k);
+            }
+
+            lock (_sendLock)
+            {
+                foreach (var m in modList)
+                    KeyDown(m);
+
+                KeyDown(mainKey);
+                Thread.Sleep(effectiveHoldMs);
+                KeyUp(mainKey);
+
+                for (var i = modList.Count - 1; i >= 0; i--)
+                    KeyUp(modList[i]);
+            }
+        }
+
         public void SendText(string text, int interCharDelayMs = 0)
         {
             if (text is null) throw new ArgumentNullException(nameof(text));
