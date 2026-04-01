@@ -31,7 +31,7 @@
     <value>创建新配置</value>
   </data>
   <data name="GameKey" xml:space="preserve">
-    <value>游戏键</value>
+    <value>模板分组标识</value>
   </data>
   <data name="CreateProfile" xml:space="preserve">
     <value>创建配置</value>

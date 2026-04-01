@@ -50,7 +50,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
     public int MappingCount => _mainViewModel.MappingCount;
 
     [ObservableProperty]
-    private string newProfileGameId = string.Empty;
+    private string newProfileTemplateGroupId = string.Empty;
 
     [ObservableProperty]
     private string newProfileDisplayName = string.Empty;
@@ -81,7 +81,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         {
             SchemaVersion = 1,
             ProfileId = SelectedTemplate.ProfileId,
-            GameId = SelectedTemplate.GameId,
+            TemplateGroupId = SelectedTemplate.TemplateGroupId,
             DisplayName = CurrentTemplateDisplayName,
             TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
             ComboLeadButtons = comboLeads,
@@ -95,24 +95,24 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
 
     private void CreateProfile()
     {
-        var gameId = ProfileService.EnsureValidGameId((NewProfileGameId ?? string.Empty).Trim());
+        var templateGroupId = ProfileService.EnsureValidTemplateGroupId((NewProfileTemplateGroupId ?? string.Empty).Trim());
         var displayName = (NewProfileDisplayName ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(displayName))
-            displayName = gameId;
+            displayName = templateGroupId;
 
-        var profileId = _profileService.CreateUniqueProfileId(gameId, displayName);
+        var profileId = _profileService.CreateUniqueProfileId(templateGroupId, displayName);
         var template = new GameProfileTemplate
         {
             SchemaVersion = 1,
             ProfileId = profileId,
-            GameId = gameId,
+            TemplateGroupId = templateGroupId,
             DisplayName = displayName,
             Mappings = new List<MappingEntry>()
         };
 
         _profileService.SaveTemplate(template, allowOverwrite: false);
         _mainViewModel.RefreshTemplates(profileId);
-        NewProfileGameId = string.Empty;
+        NewProfileTemplateGroupId = string.Empty;
         NewProfileDisplayName = string.Empty;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -122,11 +122,11 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (SelectedTemplate is null)
             return;
 
-        if (string.Equals(SelectedTemplate.ProfileId, _profileService.DefaultGameId, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(SelectedTemplate.ProfileId, _profileService.DefaultProfileId, StringComparison.OrdinalIgnoreCase))
             return;
 
         var ok = MessageBox.Show(
-            $"Delete profile '{SelectedTemplate.DisplayName}' ({SelectedTemplate.GameId})?",
+            $"Delete profile '{SelectedTemplate.DisplayName}' ({SelectedTemplate.TemplateGroupId})?",
             "Confirm delete",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gameId": "flight_sim",
+  "templateGroupId": "flight_sim",
   "displayName": "Flight Sim (example)",
   "displayNames": {
     "zh-CN": "飞行模拟（示例）"

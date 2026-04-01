@@ -85,7 +85,7 @@
                                                        FontWeight="SemiBold"
                                                        Margin="0,0,0,8" />
                                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
-                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileGameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
                                             <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             <WrapPanel Margin="0,10,0,0">

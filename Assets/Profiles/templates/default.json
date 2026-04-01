@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "profileId": "default",
-  "gameId": "default",
+  "templateGroupId": "default",
   "displayName": "Elden Ring - Keyboard/Mouse (Combo)",
   "displayNames": {
     "zh-CN": "艾尔登法环 - 键鼠（组合）"

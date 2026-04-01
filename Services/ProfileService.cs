@@ -30,7 +30,7 @@ public partial class ProfileService : IProfileService
         _settings = _settingsService.LoadSettings();
     }
 
-    public string DefaultGameId => _settings.DefaultGameId;
+    public string DefaultProfileId => _settings.DefaultProfileId;
 
     public string? LastSelectedTemplateProfileId => _settings.LastSelectedTemplateProfileId;
 
@@ -99,7 +99,7 @@ public partial class ProfileService : IProfileService
         return template;
     }
 
-    public GameProfileTemplate LoadDefaultTemplate() => LoadTemplate(DefaultGameId);
+    public GameProfileTemplate LoadDefaultTemplate() => LoadTemplate(DefaultProfileId);
 
     public TemplateOption? ReloadTemplates(string? preferredProfileId = null)
     {
@@ -122,7 +122,7 @@ public partial class ProfileService : IProfileService
                 options.Add(new TemplateOption
                 {
                     ProfileId = profileId,
-                    GameId = template.GameId,
+                    TemplateGroupId = template.TemplateGroupId,
                     DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName
                 });
             }
@@ -146,8 +146,8 @@ public partial class ProfileService : IProfileService
                 ? AvailableTemplates.FirstOrDefault(t =>
                     string.Equals(t.ProfileId, preferredProfileId, StringComparison.OrdinalIgnoreCase))
                 : null) ??
-            AvailableTemplates.FirstOrDefault(t => t.ProfileId == DefaultGameId) ??
-            AvailableTemplates.FirstOrDefault(t => t.GameId == DefaultGameId) ??
+            AvailableTemplates.FirstOrDefault(t => t.ProfileId == DefaultProfileId) ??
+            AvailableTemplates.FirstOrDefault(t => t.TemplateGroupId == DefaultProfileId) ??
             AvailableTemplates.FirstOrDefault();
     }
 
@@ -167,17 +167,17 @@ public partial class ProfileService : IProfileService
     }
 
     /// <summary>
-    /// Heuristic: profiles whose <see cref="GameProfileTemplate.GameId"/> values match or look like variants
+    /// Heuristic: profiles whose <see cref="GameProfileTemplate.TemplateGroupId"/> values match or look like variants
     /// (<c>mygame</c> and <c>mygame-battle</c>) typically target the same executable; missing <c>targetProcessName</c>
     /// on the variant should inherit from the sibling the user already configured.
     /// </summary>
-    public static bool ProfilesLikelyShareGameExecutable(string? previousGameId, string? newGameId)
+    public static bool ProfilesLikelyShareGameExecutable(string? previousTemplateGroupId, string? newTemplateGroupId)
     {
-        if (string.IsNullOrWhiteSpace(previousGameId) || string.IsNullOrWhiteSpace(newGameId))
+        if (string.IsNullOrWhiteSpace(previousTemplateGroupId) || string.IsNullOrWhiteSpace(newTemplateGroupId))
             return false;
 
-        var a = previousGameId.Trim();
-        var b = newGameId.Trim();
+        var a = previousTemplateGroupId.Trim();
+        var b = newTemplateGroupId.Trim();
         if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
             return true;
 
@@ -188,25 +188,25 @@ public partial class ProfileService : IProfileService
         return a.Length <= b.Length ? IsSegmentPrefix(a, b) : IsSegmentPrefix(b, a);
     }
 
-    public static string EnsureValidGameId(string gameId)
+    public static string EnsureValidTemplateGroupId(string templateGroupId)
     {
-        var normalized = (gameId ?? string.Empty).Trim();
+        var normalized = (templateGroupId ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(normalized))
-            throw new ArgumentException("Game key is required.", nameof(gameId));
+            throw new ArgumentException("Template group ID (templateGroupId) is required.", nameof(templateGroupId));
 
         if (!ValidIdPattern.IsMatch(normalized))
-            throw new ArgumentException("Game key can only contain letters, digits, dot, underscore, and dash.", nameof(gameId));
+            throw new ArgumentException("Template group ID (templateGroupId) can only contain letters, digits, dot, underscore, and dash.", nameof(templateGroupId));
 
         return normalized;
     }
 
-    public string CreateUniqueProfileId(string gameId, string? displayName)
+    public string CreateUniqueProfileId(string templateGroupId, string? displayName)
     {
-        var normalizedGameId = EnsureValidGameId(gameId);
+        var normalizedTemplateGroupId = EnsureValidTemplateGroupId(templateGroupId);
         var displaySegment = SlugSegment(displayName);
         var baseId = string.IsNullOrWhiteSpace(displaySegment)
-            ? normalizedGameId
-            : $"{normalizedGameId}__{displaySegment}";
+            ? normalizedTemplateGroupId
+            : $"{normalizedTemplateGroupId}__{displaySegment}";
 
         var candidate = baseId;
         var index = 2;
@@ -229,12 +229,12 @@ public partial class ProfileService : IProfileService
         if (template.SchemaVersion <= 0)
             template.SchemaVersion = 1;
 
-        template.GameId = EnsureValidGameId(template.GameId);
+        template.TemplateGroupId = EnsureValidTemplateGroupId(template.TemplateGroupId);
         template.DisplayName ??= string.Empty;
         template.Mappings ??= new System.Collections.Generic.List<MappingEntry>();
 
         if (string.IsNullOrWhiteSpace(template.ProfileId))
-            template.ProfileId = CreateUniqueProfileId(template.GameId, template.DisplayName);
+            template.ProfileId = CreateUniqueProfileId(template.TemplateGroupId, template.DisplayName);
         else
             template.ProfileId = EnsureValidProfileId(template.ProfileId);
 

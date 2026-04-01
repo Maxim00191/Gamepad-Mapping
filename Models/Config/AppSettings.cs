@@ -10,8 +10,19 @@ public class AppSettings
     [JsonProperty("templatesDirectory")]
     public string TemplatesDirectory { get; set; } = "Assets/Profiles/templates";
 
+    [JsonProperty("defaultProfileId")]
+    public string DefaultProfileId { get; set; } = "default";
+
+    // Backward compatibility for existing local_settings/default_settings using "defaultGameId".
     [JsonProperty("defaultGameId")]
-    public string DefaultGameId { get; set; } = "default";
+    private string LegacyDefaultGameId
+    {
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                DefaultProfileId = value;
+        }
+    }
 
     /// <summary>Profile id (<c>*.json</c> stem) of the template last chosen in the UI; restored on next launch.</summary>
     [JsonProperty("lastSelectedTemplateProfileId")]

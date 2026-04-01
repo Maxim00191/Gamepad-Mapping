@@ -10,8 +10,19 @@ public class GameProfileTemplate
     [JsonProperty("profileId")]
     public string ProfileId { get; set; } = string.Empty;
 
+    [JsonProperty("templateGroupId")]
+    public string TemplateGroupId { get; set; } = string.Empty;
+
+    // Backward compatibility for older templates that used "gameId".
     [JsonProperty("gameId")]
-    public string GameId { get; set; } = string.Empty;
+    private string LegacyGameId
+    {
+        set
+        {
+            if (string.IsNullOrWhiteSpace(TemplateGroupId) && !string.IsNullOrWhiteSpace(value))
+                TemplateGroupId = value;
+        }
+    }
 
     [JsonProperty("displayName")]
     public string DisplayName { get; set; } = string.Empty;

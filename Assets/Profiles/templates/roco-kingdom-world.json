@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
   "profileId": "roco-kingdom-world",
-  "gameId": "roco-kingdom-world",
+  "templateGroupId": "roco-kingdom-world",
   "displayName": "Roco Kingdom World — Exploration",
+  "targetProcessName": "NRC-Win64-Shipping",
   "displayNames": {
     "zh-CN": "洛克王国世界·探索"
   },

@@ -37,7 +37,7 @@
                        Margin="0,0,0,8" />
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
-            <TextBox Text="{Binding NewProfileGameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBox Text="{Binding NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
             <TextBox Text="{Binding NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />

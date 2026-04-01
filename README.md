@@ -71,7 +71,7 @@ Edits save to `local_settings.json` as you change them. **Thumbstick deadzones**
 | Setting | Purpose |
 | -------- | -------- |
 | `templatesDirectory` | Folder (relative to content root) for profile `*.json` files. |
-| `defaultGameId` | Profile id (filename stem) used as the default template. |
+| `defaultProfileId` | Profile id (filename stem) used as the default template. |
 | `lastSelectedTemplateProfileId` | Last template selected in the UI; restored on launch. |
 | `modifierGraceMs` | Chord grace, combo HUD delay, and hold-threshold fallback. |
 | `leadKeyReleaseSuppressMs` | Combo lead: suppress stray solo release / short hold when cancelling. |
@@ -94,7 +94,7 @@ Edits save to `local_settings.json` as you change them. **Thumbstick deadzones**
 
 Each file is `{profileId}.json` with a root object such as:
 
-- `profileId`, `gameId`, `displayName`, optional `displayNames` (per-culture map, e.g. `"zh-CN"`), optional `displayNameKey` (looks up `Resources/Strings*.resx`)
+- `profileId`, `templateGroupId`, `displayName`, optional `displayNames` (per-culture map, e.g. `"zh-CN"`), optional `displayNameKey` (looks up `Resources/Strings*.resx`)
 - `targetProcessName` (optional) — process **base name** (usually without `.exe`), same as `Process.ProcessName`
 - `comboLeadButtons` (optional) — XInput button names (e.g. `LeftShoulder`)
 - `mappings` — list of entries with `from` (`type`, `value`), `keyboardKey`, `trigger`, optional `analogThreshold`, `holdKeyboardKey`, `holdThresholdMs`, `description`, optional `descriptions` (per-culture), optional `descriptionKey` (resx)

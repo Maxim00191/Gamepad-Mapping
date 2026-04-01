@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
   "profileId": "roco-kingdom-world-fight",
-  "gameId": "roco-kingdom-world-fight",
+  "templateGroupId": "roco-kingdom-world-fight",
   "displayName": "Roco Kingdom World — Battle",
+  "targetProcessName": "NRC-Win64-Shipping",
   "displayNames": {
     "zh-CN": "洛克王国世界·战斗"
   },

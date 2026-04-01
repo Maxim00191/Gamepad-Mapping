@@ -82,7 +82,7 @@ dotnet test "GamepadMapping.sln" -c Release
 | 字段名                             | 说明                                                        |
 | ---------------------------------- | ----------------------------------------------------------- |
 | `templatesDirectory`               | 存放模板 `*.json` 的目录（相对于内容根路径）。              |
-| `defaultGameId`                    | 默认模板的 ID（即不含扩展名的文件名）。                     |
+| `defaultProfileId`                 | 默认模板的 ID（即不含扩展名的文件名）。                     |
 | `lastSelectedTemplateProfileId`    | 上次在界面中选择的模板，用于下次启动时恢复状态。            |
 | `modifierGraceMs`                  | 组合键修饰键判定容差、组合键 HUD 延迟及默认的长按触发阈值。 |
 | `leadKeyReleaseSuppressMs`         | 组合引导键：中断长按时抑制误触发输出的时间。                |
@@ -105,7 +105,7 @@ dotnet test "GamepadMapping.sln" -c Release
 
 每个配置文件以 `{profileId}.json` 命名，其根对象通常包含：
 
-- `profileId`、`gameId`、`displayName`、可选的 `displayNames`（按语言区域名的映射，例如 `"zh-CN"`）、可选的 `displayNameKey`（从 `Resources/Strings*.resx` 取值）
+- `profileId`、`templateGroupId`、`displayName`、可选的 `displayNames`（按语言区域名的映射，例如 `"zh-CN"`）、可选的 `displayNameKey`（从 `Resources/Strings*.resx` 取值）
 - `targetProcessName`（可选）— 目标进程的**名称**（通常不含 `.exe`），需与 `Process.ProcessName` 匹配。
 - `comboLeadButtons`（可选）— 定义为组合引导键的 XInput 键名，例如 `LeftShoulder`。
 - `mappings` — 映射列表：`from`（`type`、`value`）、`keyboardKey`、`trigger`，以及可选的 `analogThreshold`、`holdKeyboardKey`、`holdThresholdMs`、`description`、可选的 `descriptions`（按语言的映射）、可选的 `descriptionKey`（资源键）。

@@ -1,5 +1,5 @@
 {
   "schemaVersion": 1,
   "templatesDirectory": "Assets/Profiles/templates",
-  "defaultGameId": "default"
+  "defaultProfileId": "default"
 }

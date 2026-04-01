@@ -6,7 +6,7 @@ namespace GamepadMapperGUI.Interfaces.Services;
 
 public interface IProfileService
 {
-    string DefaultGameId { get; }
+    string DefaultProfileId { get; }
 
     /// <summary>Last saved template profile id from settings; used to pre-select on startup.</summary>
     string? LastSelectedTemplateProfileId { get; }
@@ -24,7 +24,7 @@ public interface IProfileService
     TemplateOption? SelectTemplate(string? preferredProfileId = null);
     GameProfileTemplate? LoadSelectedTemplate(TemplateOption? selectedTemplate);
     bool TemplateExists(string profileId);
-    string CreateUniqueProfileId(string gameId, string? displayName);
+    string CreateUniqueProfileId(string templateGroupId, string? displayName);
     void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true);
     void DeleteTemplate(string profileId);
 }
