@@ -84,9 +84,113 @@
                         </ComboBox.Style>
                     </ComboBox>
 
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleSlotCount]}" Margin="0,8,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBox Text="{Binding EditItemCycleSlotText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.Style>
+                            <Style TargetType="{x:Type TextBox}"
+                                   BasedOn="{StaticResource {x:Type TextBox}}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleWithKeys]}"
+                               Margin="0,8,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBox Text="{Binding EditItemCycleWithKeys, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.Style>
+                            <Style TargetType="{x:Type TextBox}"
+                                   BasedOn="{StaticResource {x:Type TextBox}}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="12"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleDefaultBehavior]}"
+                               Margin="0,10,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBlock TextWrapping="Wrap"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppTextBrush}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleCustomOutputsSection]}"
+                               Margin="0,12,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="12"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopKeysHint]}"
+                               Margin="0,0,0,6">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
                     <TextBlock TextWrapping="Wrap"
                                Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopForwardKey]}"
-                               Margin="0,8,0,4">
+                               Margin="0,0,0,4">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -157,77 +261,6 @@
                                 Command="{Binding RecordItemCycleBackwardKeyCommand}"
                                 Margin="8,0,0,0" />
                     </Grid>
-
-                    <TextBlock TextWrapping="Wrap"
-                               Foreground="{DynamicResource AppSecondaryTextBrush}"
-                               FontSize="12"
-                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopKeysHint]}"
-                               Margin="0,4,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-
-                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleSlotCount]}" Margin="0,8,0,4">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <TextBox Text="{Binding EditItemCycleSlotText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                        <TextBox.Style>
-                            <Style TargetType="{x:Type TextBox}"
-                                   BasedOn="{StaticResource {x:Type TextBox}}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-
-                    <TextBlock TextWrapping="Wrap"
-                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleWithKeys]}"
-                               Margin="0,8,0,4">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <TextBox Text="{Binding EditItemCycleWithKeys, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                        <TextBox.Style>
-                            <Style TargetType="{x:Type TextBox}"
-                                   BasedOn="{StaticResource {x:Type TextBox}}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[KbmOutputTap]}" Margin="0,8,0,4" />
                     <Grid IsEnabled="{Binding EditKeyboardAndHoldSectionsEnabled}">

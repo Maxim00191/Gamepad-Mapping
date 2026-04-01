@@ -241,24 +241,30 @@
     <value>手柄轮询间隔（毫秒）</value>
   </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
-    <value>循环物品栏槽位（以组合键方式发送数字键 1–n）</value>
+    <value>循环热键栏 / 物品栏槽位</value>
   </data>
   <data name="ItemCycleDirection" xml:space="preserve">
     <value>循环方向</value>
   </data>
+  <data name="ItemCycleDefaultBehavior" xml:space="preserve">
+    <value>在 1…n 之间维护当前槽位（循环）。默认每次按下会发出对应该槽位的数字键，并可配合上方可选修饰键。若要保持此方式，请将下一节中的两项自定义输出留空。</value>
+  </data>
+  <data name="ItemCycleCustomOutputsSection" xml:space="preserve">
+    <value>自定义下一槽 / 上一槽的输出（可选）</value>
+  </data>
   <data name="ItemCycleLoopForwardKey" xml:space="preserve">
-    <value>向前循环按键</value>
+    <value>切到下一槽时发出的按键或鼠标动作</value>
   </data>
   <data name="ItemCycleLoopBackwardKey" xml:space="preserve">
-    <value>向后循环按键</value>
+    <value>切到上一槽时发出的按键或鼠标动作</value>
   </data>
   <data name="ItemCycleLoopKeysHint" xml:space="preserve">
-    <value>填写向前/向后两个按键后，将模拟对应输出（与键盘输出相同写法）。两者都留空则仍使用数字键 1–n。</value>
+    <value>仅当游戏不用 1–9 选槽、而用其他键或鼠标键切换时使用。写法与「点按」输出相同。两项须同时填写，或同时留空。</value>
   </data>
   <data name="ItemCycleSlotCount" xml:space="preserve">
     <value>槽位数量 n（1–9）</value>
   </data>
   <data name="ItemCycleWithKeys" xml:space="preserve">
-    <value>按数字时附带的修饰键（可空，例如 LeftAlt 或 LeftCtrl+LeftShift）</value>
+    <value>可选组合修饰键（如 LeftAlt 或 LeftCtrl+LeftShift），与数字键或下方自定义输出一起生效。</value>
   </data>
 </root>

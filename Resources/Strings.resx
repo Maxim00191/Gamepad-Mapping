@@ -241,24 +241,30 @@
     <value>Gamepad poll interval (ms)</value>
   </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
-    <value>Cycle inventory / hotbar slots (sends digit keys 1–n as a chord)</value>
+    <value>Cycle hotbar / inventory slots</value>
   </data>
   <data name="ItemCycleDirection" xml:space="preserve">
     <value>Cycle direction</value>
   </data>
+  <data name="ItemCycleDefaultBehavior" xml:space="preserve">
+    <value>Keeps one active slot from 1 to n (wrapping). By default each press sends that slot’s number key, with optional modifiers above. Leave the two optional outputs in the next section empty to keep this behavior.</value>
+  </data>
+  <data name="ItemCycleCustomOutputsSection" xml:space="preserve">
+    <value>Custom next / previous outputs</value>
+  </data>
   <data name="ItemCycleLoopForwardKey" xml:space="preserve">
-    <value>Loop forward key</value>
+    <value>Output for the next slot</value>
   </data>
   <data name="ItemCycleLoopBackwardKey" xml:space="preserve">
-    <value>Loop back key</value>
+    <value>Output for the previous slot</value>
   </data>
   <data name="ItemCycleLoopKeysHint" xml:space="preserve">
-    <value>Set both loop keys to send those outputs for next/previous (same tokens as keyboard output). Leave both empty to send number keys 1–n instead.</value>
+    <value>Only when the game does not use 1–9 for slots—for example it scrolls with other keys or mouse buttons. Use the same token format as Tap. You must set both fields, or leave both empty.</value>
   </data>
   <data name="ItemCycleSlotCount" xml:space="preserve">
     <value>Number of slots n (1–9)</value>
   </data>
   <data name="ItemCycleWithKeys" xml:space="preserve">
-    <value>Hold these keys while tapping the number (optional, e.g. LeftAlt or LeftCtrl+LeftShift)</value>
+    <value>Optional chord modifiers (e.g. LeftAlt or LeftCtrl+LeftShift), applied with the digit or with custom outputs below.</value>
   </data>
 </root>

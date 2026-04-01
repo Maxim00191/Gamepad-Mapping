@@ -41,12 +41,7 @@
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Released", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "", "description": "Cycle spirit/magic slot forward (1–6)", "descriptions": { "zh-CN": "循环选择精灵/魔法槽位（下一个，1–6）" }, "trigger": "Pressed", "analogThreshold": null, "itemCycle": { "direction": "Previous", "slotCount": 6 } },
-    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "2", "description": "Select spirit/magic slot 2", "descriptions": { "zh-CN": "选择精灵/魔法 2" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "", "description": "Cycle spirit/magic slot backward (1–6)", "descriptions": { "zh-CN": "循环选择精灵/魔法槽位（上一个，1–6）" }, "trigger": "Pressed", "analogThreshold": null, "itemCycle": { "direction": "Next", "slotCount": 6 } },
-    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "4", "description": "Select spirit/magic slot 4", "descriptions": { "zh-CN": "选择精灵/魔法 4" }, "trigger": "Pressed", "analogThreshold": null },
-
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadUp" }, "keyboardKey": "5", "description": "Select spirit/magic slot 5", "descriptions": { "zh-CN": "选择精灵/魔法 5" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + DPadRight" }, "keyboardKey": "6", "description": "Select spirit/magic slot 6", "descriptions": { "zh-CN": "选择精灵/魔法 6" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "LeftShoulder + A" }, "keyboardKey": "Tab", "description": "Open RolePlay interface", "descriptions": { "zh-CN": "打开RolePlay界面" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + B" }, "keyboardKey": "B", "description": "Open bag", "descriptions": { "zh-CN": "打开背包界面" }, "trigger": "Pressed", "analogThreshold": null },
