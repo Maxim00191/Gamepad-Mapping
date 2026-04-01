@@ -50,7 +50,7 @@ public partial class ComboHudWindow : Window
             dse.Opacity = shadowOpacity;
     }
 
-    public void ShowHud(ComboHudContent content, byte panelAlpha, double shadowOpacity)
+    public void ShowHud(ComboHudContent content, byte panelAlpha, double shadowOpacity, ComboHudPlacement placement)
     {
         ApplyVisualSettings(panelAlpha, shadowOpacity);
         ApplyHudLayoutBounds();
@@ -63,7 +63,7 @@ public partial class ComboHudWindow : Window
             Show();
         Dispatcher.BeginInvoke(() =>
         {
-            PositionBottomRight();
+            PositionHud(placement);
             if (wasHidden && Resources["FadeInStoryboard"] is Storyboard fadeIn)
                 fadeIn.Begin(this);
         }, DispatcherPriority.Loaded);
@@ -108,14 +108,26 @@ public partial class ComboHudWindow : Window
         LinesScrollViewer.MaxHeight = Math.Max(220, maxWindowH - chromeAboveScroll);
     }
 
-    private void PositionBottomRight()
+    private void PositionHud(ComboHudPlacement placement)
     {
         var area = SystemParameters.WorkArea;
-        Left = area.Right - ActualWidth - 20;
-        Top = area.Bottom - ActualHeight - 20;
+        const double margin = 20;
+        const double clampPadding = 12;
+        var centerX = area.Left + (area.Width - ActualWidth) / 2;
+        var centerY = area.Top + (area.Height - ActualHeight) / 2;
+
+        (Left, Top) = placement switch
+        {
+            ComboHudPlacement.TopLeft => (area.Left + margin, area.Top + margin),
+            ComboHudPlacement.TopRight => (area.Right - ActualWidth - margin, area.Top + margin),
+            ComboHudPlacement.BottomLeft => (area.Left + margin, area.Bottom - ActualHeight - margin),
+            ComboHudPlacement.Center => (centerX, centerY),
+            _ => (area.Right - ActualWidth - margin, area.Bottom - ActualHeight - margin)
+        };
+
         if (Left < area.Left)
-            Left = area.Left + 12;
+            Left = area.Left + clampPadding;
         if (Top < area.Top)
-            Top = area.Top + 12;
+            Top = area.Top + clampPadding;
     }
 }

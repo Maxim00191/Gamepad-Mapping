@@ -84,6 +84,30 @@
   <data name="ComboHudShadowOpacityLabel" xml:space="preserve">
     <value>HUD shadow strength</value>
   </data>
+  <data name="ComboHudPlacementLabel" xml:space="preserve">
+    <value>HUD screen position</value>
+  </data>
+  <data name="ComboHudPlacementTopLeft" xml:space="preserve">
+    <value>Top left</value>
+  </data>
+  <data name="ComboHudPlacementTopRight" xml:space="preserve">
+    <value>Top right</value>
+  </data>
+  <data name="ComboHudPlacementBottomLeft" xml:space="preserve">
+    <value>Bottom left</value>
+  </data>
+  <data name="ComboHudPlacementBottomRight" xml:space="preserve">
+    <value>Bottom right</value>
+  </data>
+  <data name="ComboHudPlacementCenter" xml:space="preserve">
+    <value>Center</value>
+  </data>
+  <data name="ComboHudAppearanceButton" xml:space="preserve">
+    <value>HUD appearance</value>
+  </data>
+  <data name="ComboHudAppearanceHeader" xml:space="preserve">
+    <value>HUD appearance settings</value>
+  </data>
   <data name="StopReader" xml:space="preserve">
     <value>Stop reader</value>
   </data>
@@ -206,6 +230,12 @@
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
     <value>Timing, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
+  </data>
+  <data name="AppSettingsLanguageSection" xml:space="preserve">
+    <value>Localization</value>
+  </data>
+  <data name="AppLanguageLabel" xml:space="preserve">
+    <value>Language</value>
   </data>
   <data name="AppSettingsTimingSection" xml:space="preserve">
     <value>Timing &amp; keyboard</value>

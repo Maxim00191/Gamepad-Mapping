@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -21,6 +22,12 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class MainViewModel : ObservableObject, IDisposable
 {
+    private static readonly UiLanguageOption[] SupportedUiLanguages =
+    [
+        new("zh-CN", "简体中文"),
+        new("en-US", "English")
+    ];
+
     private readonly Dispatcher _dispatcher;
     private readonly IProfileService _profileService;
     private readonly IGamepadReader _gamepadReader;
@@ -41,6 +48,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly AppSettings _appSettings;
     private DispatcherTimer? _templateSwitchHudTimer;
     private bool _isTemplateSwitchHudActive;
+    private bool _isInitializingUiLanguageSelection;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -64,6 +72,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
         KeyboardTapHoldDurationMs = _appSettings.KeyboardTapHoldDurationMs;
         TapInterKeyDelayMs = _appSettings.TapInterKeyDelayMs;
         TextInterCharDelayMs = _appSettings.TextInterCharDelayMs;
+        ComboHudPlacementSetting = ParseComboHudPlacement(_appSettings.ComboHudPlacement);
+        AvailableUiLanguages = new ObservableCollection<UiLanguageOption>(SupportedUiLanguages);
+        _isInitializingUiLanguageSelection = true;
+        SelectedUiLanguage =
+            AvailableUiLanguages.FirstOrDefault(x =>
+                string.Equals(x.CultureName, _appSettings.UiCulture, StringComparison.OrdinalIgnoreCase))
+            ?? AvailableUiLanguages.FirstOrDefault(x =>
+                string.Equals(x.CultureName, "zh-CN", StringComparison.OrdinalIgnoreCase))
+            ?? AvailableUiLanguages.FirstOrDefault();
+        _isInitializingUiLanguageSelection = false;
+
+        if (SelectedUiLanguage is not null)
+            ApplyUiLanguage(SelectedUiLanguage.CultureName, persist: false);
+
         var baseDeadzone = _appSettings.ThumbstickDeadzone;
         static float ResolveStickDeadzone(float specific, float shared)
         {
@@ -381,6 +403,30 @@ public partial class MainViewModel : ObservableObject, IDisposable
         SettingsService.SaveSettings(_appSettings);
     }
 
+    [ObservableProperty]
+    private ComboHudPlacement comboHudPlacementSetting;
+
+    partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value)
+    {
+        _appSettings.ComboHudPlacement = value.ToString();
+        SettingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private ObservableCollection<UiLanguageOption> availableUiLanguages = [];
+
+    [ObservableProperty]
+    private UiLanguageOption? selectedUiLanguage;
+
+    partial void OnSelectedUiLanguageChanged(UiLanguageOption? value)
+    {
+        if (value is null)
+            return;
+
+        ApplyUiLanguage(value.CultureName, persist: !_isInitializingUiLanguageSelection);
+        ReloadLocalizedTemplateContent();
+    }
+
     private bool CanDispatchMappedOutput()
     {
         _appStatusMonitor.EvaluateNow();
@@ -498,7 +544,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _comboHudWindow ??= new ComboHudWindow();
             var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
             var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
-            _comboHudWindow.ShowHud(content, a, o);
+            _comboHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
         });
     }
 
@@ -535,7 +581,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var title = "Profile switched";
         var line = new ComboHudLine($"→ {profileDisplayName}", null);
         var content = new ComboHudContent(title, new[] { line });
-        _comboHudWindow.ShowHud(content, a, o);
+        _comboHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
 
         _templateSwitchHudTimer.Start();
     }
@@ -609,6 +655,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _lastLoadedGameIdForTargetInherit = template.GameId;
 
         ApplyDeclaredProcessTarget();
+        UpdateTemplateToggleDisplayNames();
     }
 
     /// <summary>Combo lead names from the loaded template; written back unchanged on Save profile.</summary>
@@ -662,6 +709,71 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appSettings.RightTriggerInnerDeadzone = rightInner;
         _appSettings.RightTriggerOuterDeadzone = rightOuter;
         SettingsService.SaveSettings(_appSettings);
+    }
+
+    private static ComboHudPlacement ParseComboHudPlacement(string? raw)
+    {
+        return Enum.TryParse<ComboHudPlacement>(raw, true, out var parsed)
+            ? parsed
+            : ComboHudPlacement.BottomRight;
+    }
+
+    private void ReloadLocalizedTemplateContent()
+    {
+        var selectedProfileId = SelectedTemplate?.ProfileId;
+        var reselected = _profileService.ReloadTemplates(selectedProfileId);
+        OnPropertyChanged(nameof(AvailableTemplates));
+        if (reselected is not null)
+            SelectedTemplate = reselected;
+        else
+            UpdateTemplateToggleDisplayNames();
+    }
+
+    private void UpdateTemplateToggleDisplayNames()
+    {
+        if (Mappings is null || Mappings.Count == 0)
+            return;
+
+        foreach (var mapping in Mappings)
+        {
+            if (mapping.TemplateToggle is null)
+            {
+                mapping.TemplateToggleDisplayName = string.Empty;
+                continue;
+            }
+
+            var targetId = mapping.TemplateToggle.AlternateProfileId?.Trim() ?? string.Empty;
+            var localizedName = AvailableTemplates.FirstOrDefault(t =>
+                string.Equals(t.ProfileId, targetId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? string.Empty;
+            mapping.TemplateToggleDisplayName = localizedName;
+        }
+    }
+
+    private void ApplyUiLanguage(string cultureName, bool persist)
+    {
+        CultureInfo culture;
+        try
+        {
+            culture = CultureInfo.GetCultureInfo(cultureName);
+        }
+        catch (CultureNotFoundException)
+        {
+            culture = CultureInfo.GetCultureInfo("zh-CN");
+        }
+
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        if (Application.Current?.Resources["Loc"] is TranslationService translationService)
+            translationService.Culture = culture;
+
+        if (!persist)
+            return;
+
+        if (!string.Equals(_appSettings.UiCulture, culture.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            _appSettings.UiCulture = culture.Name;
+            SettingsService.SaveSettings(_appSettings);
+        }
     }
 }
 

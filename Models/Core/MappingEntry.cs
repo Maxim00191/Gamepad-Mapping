@@ -131,6 +131,20 @@ public class MappingEntry : ObservableObject
         }
     }
 
+    private string _templateToggleDisplayName = string.Empty;
+
+    /// <summary>Resolved display name for <see cref="TemplateToggle"/> target (set by the view-model).</summary>
+    [JsonIgnore]
+    public string TemplateToggleDisplayName
+    {
+        get => _templateToggleDisplayName;
+        set
+        {
+            if (SetProperty(ref _templateToggleDisplayName, value))
+                OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+    }
+
     /// <summary>Compact label for the mapping grid (item cycle summary or <see cref="KeyboardKey"/>).</summary>
     [JsonIgnore]
     public string OutputSummaryForGrid
@@ -154,7 +168,8 @@ public class MappingEntry : ObservableObject
             if (TemplateToggle is { } tt)
             {
                 var id = tt.AlternateProfileId?.Trim() ?? string.Empty;
-                return id.Length > 0 ? $"Toggle profile → {id}" : "Toggle profile";
+                var display = string.IsNullOrWhiteSpace(_templateToggleDisplayName) ? id : _templateToggleDisplayName;
+                return id.Length > 0 ? $"Toggle profile → {display}" : "Toggle profile";
             }
 
             return _keyboardKey ?? string.Empty;

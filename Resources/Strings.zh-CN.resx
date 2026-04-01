@@ -84,6 +84,30 @@
   <data name="ComboHudShadowOpacityLabel" xml:space="preserve">
     <value>HUD 阴影强度</value>
   </data>
+  <data name="ComboHudPlacementLabel" xml:space="preserve">
+    <value>HUD 屏幕位置</value>
+  </data>
+  <data name="ComboHudPlacementTopLeft" xml:space="preserve">
+    <value>左上</value>
+  </data>
+  <data name="ComboHudPlacementTopRight" xml:space="preserve">
+    <value>右上</value>
+  </data>
+  <data name="ComboHudPlacementBottomLeft" xml:space="preserve">
+    <value>左下</value>
+  </data>
+  <data name="ComboHudPlacementBottomRight" xml:space="preserve">
+    <value>右下</value>
+  </data>
+  <data name="ComboHudPlacementCenter" xml:space="preserve">
+    <value>屏幕中央</value>
+  </data>
+  <data name="ComboHudAppearanceButton" xml:space="preserve">
+    <value>HUD 外观</value>
+  </data>
+  <data name="ComboHudAppearanceHeader" xml:space="preserve">
+    <value>HUD 外观设置</value>
+  </data>
   <data name="StopReader" xml:space="preserve">
     <value>停止读取</value>
   </data>
@@ -206,6 +230,12 @@
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
     <value>调整全局时间、手柄轮询间隔、模拟触发阈值与键鼠模拟等。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+  </data>
+  <data name="AppSettingsLanguageSection" xml:space="preserve">
+    <value>本地化</value>
+  </data>
+  <data name="AppLanguageLabel" xml:space="preserve">
+    <value>语言</value>
   </data>
   <data name="AppSettingsTimingSection" xml:space="preserve">
     <value>时间与键盘</value>

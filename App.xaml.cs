@@ -124,9 +124,18 @@ public partial class App : Application
 
     private void ApplyLanguage()
     {
-        // Default to Simplified Chinese for now.
-        const string cultureName = "zh-CN";
-        var culture = CultureInfo.GetCultureInfo(cultureName);
+        var settings = SettingsService.LoadSettings();
+        var cultureName = string.IsNullOrWhiteSpace(settings.UiCulture) ? "zh-CN" : settings.UiCulture;
+        CultureInfo culture;
+        try
+        {
+            culture = CultureInfo.GetCultureInfo(cultureName);
+        }
+        catch (CultureNotFoundException)
+        {
+            culture = CultureInfo.GetCultureInfo("zh-CN");
+        }
+
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
 
