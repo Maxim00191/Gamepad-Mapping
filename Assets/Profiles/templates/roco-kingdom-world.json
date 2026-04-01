@@ -42,6 +42,8 @@
 
     { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "", "description": "Cycle spirit/magic slot forward (1–6)", "descriptions": { "zh-CN": "循环选择精灵/魔法槽位（下一个，1–6）" }, "trigger": "Pressed", "analogThreshold": null, "itemCycle": { "direction": "Previous", "slotCount": 6 } },
     { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "", "description": "Cycle spirit/magic slot backward (1–6)", "descriptions": { "zh-CN": "循环选择精灵/魔法槽位（上一个，1–6）" }, "trigger": "Pressed", "analogThreshold": null, "itemCycle": { "direction": "Next", "slotCount": 6 } },
+    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "Enter", "description": "Open scene bubble chat", "descriptions": { "zh-CN": "打开场景气泡聊天" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "V", "description": "View quest details", "descriptions": { "zh-CN": "查看任务详情" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "LeftShoulder + A" }, "keyboardKey": "Tab", "description": "Open RolePlay interface", "descriptions": { "zh-CN": "打开RolePlay界面" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + B" }, "keyboardKey": "B", "description": "Open bag", "descriptions": { "zh-CN": "打开背包界面" }, "trigger": "Pressed", "analogThreshold": null },
@@ -54,8 +56,6 @@
     { "from": { "type": "Button", "value": "RightShoulder + Y" }, "keyboardKey": "I", "description": "Enter photo mode", "descriptions": { "zh-CN": "进入拍照模式" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "Start + DPadUp" }, "keyboardKey": "U", "description": "Open visitor management popup", "descriptions": { "zh-CN": "打开互访管理弹窗" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Start + DPadRight" }, "keyboardKey": "V", "description": "View quest details", "descriptions": { "zh-CN": "查看任务详情" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Start + DPadDown" }, "keyboardKey": "G", "description": "Check new messages (first unlock tutorial)", "descriptions": { "zh-CN": "查看新信息（初次解锁-教学）" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Start + DPadLeft" }, "keyboardKey": "Enter", "description": "Open scene bubble chat", "descriptions": { "zh-CN": "打开场景气泡聊天" }, "trigger": "Pressed", "analogThreshold": null }
+    { "from": { "type": "Button", "value": "Start + DPadDown" }, "keyboardKey": "G", "description": "Check new messages (first unlock tutorial)", "descriptions": { "zh-CN": "查看新信息（初次解锁-教学）" }, "trigger": "Pressed", "analogThreshold": null }
   ]
 }
