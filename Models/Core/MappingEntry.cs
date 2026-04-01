@@ -117,6 +117,20 @@ public class MappingEntry : ObservableObject
         }
     }
 
+    private TemplateToggleBinding? _templateToggle;
+
+    /// <summary>When set, activates another profile instead of <see cref="KeyboardKey"/> (mutually exclusive with <see cref="ItemCycle"/>).</summary>
+    [JsonProperty("templateToggle", NullValueHandling = NullValueHandling.Ignore)]
+    public TemplateToggleBinding? TemplateToggle
+    {
+        get => _templateToggle;
+        set
+        {
+            if (SetProperty(ref _templateToggle, value))
+                OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+    }
+
     /// <summary>Compact label for the mapping grid (item cycle summary or <see cref="KeyboardKey"/>).</summary>
     [JsonIgnore]
     public string OutputSummaryForGrid
@@ -135,6 +149,12 @@ public class MappingEntry : ObservableObject
                 if (fwd.Length > 0 && back.Length > 0)
                     return $"{mods}{fwd} / {back} ({dir}, 1–{n})";
                 return $"{mods}Items 1–{n} ({dir})";
+            }
+
+            if (TemplateToggle is { } tt)
+            {
+                var id = tt.AlternateProfileId?.Trim() ?? string.Empty;
+                return id.Length > 0 ? $"Toggle profile → {id}" : "Toggle profile";
             }
 
             return _keyboardKey ?? string.Empty;

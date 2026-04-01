@@ -299,6 +299,12 @@ internal static class ComboHudBuilder
             return $"{mods}1–{n} ({dir})";
         }
 
+        if (mapping.TemplateToggle is { } tt)
+        {
+            var id = tt.AlternateProfileId?.Trim() ?? string.Empty;
+            return id.Length > 0 ? $"Toggle → {id}" : "Toggle profile";
+        }
+
         return string.IsNullOrWhiteSpace(mapping.KeyboardKey) ? string.Empty : mapping.KeyboardKey.Trim();
     }
 }

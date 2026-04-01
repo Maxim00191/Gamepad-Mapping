@@ -32,6 +32,8 @@ public sealed class MappingEngine : IMappingEngine
     private readonly TriggerMoment _buttonPressedTrigger = TriggerMoment.Pressed;
     private readonly TriggerMoment _buttonTapTrigger = TriggerMoment.Tap;
 
+    private readonly Action<string>? _requestTemplateSwitchToProfileId;
+
     private IReadOnlyCollection<GamepadButtons> _latestActiveButtons = Array.Empty<GamepadButtons>();
     private float _latestLeftTrigger;
     private float _latestRightTrigger;
@@ -58,10 +60,12 @@ public sealed class MappingEngine : IMappingEngine
         Action<string> setMappingStatus,
         Action<ComboHudContent?>? setComboHud = null,
         int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
-        int leadKeyReleaseSuppressMs = 500)
+        int leadKeyReleaseSuppressMs = 500,
+        Action<string>? requestTemplateSwitchToProfileId = null)
     {
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
+        _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
         _canDispatchOutput = canDispatchOutput;
@@ -367,6 +371,17 @@ public sealed class MappingEngine : IMappingEngine
                         itemLabel,
                         useCustomOut ? customOut : null,
                         useCustomOut ? Key.None : digitKey);
+                    continue;
+                }
+
+                if (TryDispatchTemplateToggle(
+                        candidate.Mapping,
+                        context.Trigger,
+                        candidate.SourceToken,
+                        out var toggleErr))
+                {
+                    if (toggleErr is not null)
+                        _setMappingStatus(toggleErr);
                     continue;
                 }
 
@@ -862,6 +877,18 @@ public sealed class MappingEngine : IMappingEngine
             }
 
             if (pressed is not null &&
+                pressed.TemplateToggle is { } deferredToggle &&
+                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredToggleToken))
+            {
+                if (TryDispatchTemplateToggle(pressed, TriggerMoment.Tap, deferredToggleToken, out var defTtErr))
+                {
+                    if (defTtErr is not null)
+                        _setMappingStatus(defTtErr);
+                    return true;
+                }
+            }
+
+            if (pressed is not null &&
                 ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var soloToken) &&
                 InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
             {
@@ -899,6 +926,18 @@ public sealed class MappingEngine : IMappingEngine
                     tapUseCustom ? tapCustom : null,
                     tapUseCustom ? Key.None : tapDigit);
                 return true;
+            }
+
+            if (tap is not null &&
+                tap.TemplateToggle is { } tapToggle &&
+                ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapToggleToken))
+            {
+                if (TryDispatchTemplateToggle(tap, TriggerMoment.Tap, tapToggleToken, out var tapTtErr))
+                {
+                    if (tapTtErr is not null)
+                        _setMappingStatus(tapTtErr);
+                    return true;
+                }
             }
 
             if (tap is not null &&
@@ -1113,6 +1152,36 @@ public sealed class MappingEngine : IMappingEngine
 
         digitKey = Key.D1 + idx;
         label = $"{modText}{digitKey} (slot {idx + 1}/{n})";
+        return true;
+    }
+
+    private bool TryDispatchTemplateToggle(
+        MappingEntry mapping,
+        TriggerMoment trigger,
+        string sourceToken,
+        out string? errorStatus)
+    {
+        errorStatus = null;
+        if (mapping.TemplateToggle is not { } tt)
+            return false;
+
+        if (trigger == TriggerMoment.Released)
+            return true;
+
+        if (!_canDispatchOutput())
+            return true;
+
+        var profileId = tt.AlternateProfileId?.Trim() ?? string.Empty;
+        if (profileId.Length == 0)
+        {
+            errorStatus = "Toggle profile: missing alternateProfileId.";
+            return true;
+        }
+
+        var label = $"Toggle profile → {profileId}";
+        _setMappedOutput($"{label} ({trigger})");
+        _setMappingStatus($"Queued: {sourceToken} ({trigger}) -> {label}");
+        _requestTemplateSwitchToProfileId?.Invoke(profileId);
         return true;
     }
 }

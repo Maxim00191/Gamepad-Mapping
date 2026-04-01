@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "profileId": "roco-kingdom-world",
   "gameId": "roco-kingdom-world",
-  "displayName": "Roco Kingdom World",
+  "displayName": "Roco Kingdom World — Exploration",
   "displayNames": {
-    "zh-CN": "洛克王国世界"
+    "zh-CN": "洛克王国世界·探索"
   },
   "mappings": [
     { "from": { "type": "LeftThumbstick", "value": "Up" }, "keyboardKey": "W", "description": "Move (WASD): forward", "descriptions": { "zh-CN": "向前移动" }, "trigger": "Pressed", "analogThreshold": 0.25 },
@@ -39,6 +39,8 @@
     { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "M", "description": "Open map", "descriptions": { "zh-CN": "打开地图" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Released", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "Start + Back" }, "keyboardKey": "", "description": "Switch profile: battle", "descriptions": { "zh-CN": "切换配置：战斗" }, "trigger": "Pressed", "analogThreshold": null, "templateToggle": { "alternateProfileId": "roco-kingdom-world-fight" } },
 
     { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "", "description": "Cycle spirit/magic slot forward (1–6)", "descriptions": { "zh-CN": "循环选择精灵/魔法槽位（下一个，1–6）" }, "trigger": "Pressed", "analogThreshold": null, "itemCycle": { "direction": "Previous", "slotCount": 6 } },
     { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "", "description": "Cycle spirit/magic slot backward (1–6)", "descriptions": { "zh-CN": "循环选择精灵/魔法槽位（上一个，1–6）" }, "trigger": "Pressed", "analogThreshold": null, "itemCycle": { "direction": "Next", "slotCount": 6 } },

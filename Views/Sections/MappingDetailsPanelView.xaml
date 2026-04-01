@@ -57,6 +57,56 @@
                               Content="{Binding Source={StaticResource Loc}, Path=[ItemCycleEnabled]}"
                               IsChecked="{Binding EditItemCycleEnabled, Mode=TwoWay}" />
 
+                    <CheckBox Margin="0,0,0,8"
+                              Content="{Binding Source={StaticResource Loc}, Path=[TemplateToggleEnabled]}"
+                              IsChecked="{Binding EditTemplateToggleEnabled, Mode=TwoWay}" />
+
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="12"
+                               Text="{Binding Source={StaticResource Loc}, Path=[TemplateToggleHint]}"
+                               Margin="0,0,0,8">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditTemplateToggleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateToggleAlternateProfile]}"
+                               Margin="0,0,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditTemplateToggleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ComboBox ItemsSource="{Binding AvailableProfileTemplates}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="ProfileId"
+                              SelectedValue="{Binding EditTemplateToggleAlternateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <ComboBox.Style>
+                            <Style TargetType="{x:Type ComboBox}"
+                                   BasedOn="{StaticResource {x:Type ComboBox}}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditTemplateToggleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleDirection]}" Margin="0,0,0,4">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">

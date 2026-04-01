@@ -140,6 +140,8 @@ internal sealed class HoldSessionManager
     {
         if (mapping.ItemCycle != null)
             return false;
+        if (mapping.TemplateToggle != null)
+            return false;
         if (mapping.Trigger != TriggerMoment.Tap)
             return false;
         if (string.IsNullOrWhiteSpace(mapping.HoldKeyboardKey))

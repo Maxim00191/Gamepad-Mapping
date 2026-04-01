@@ -34,8 +34,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
+
+    /// <summary>Last loaded template <see cref="GameProfileTemplate.GameId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
+    private string? _lastLoadedGameIdForTargetInherit;
     private ComboHudWindow? _comboHudWindow;
     private readonly AppSettings _appSettings;
+    private DispatcherTimer? _templateSwitchHudTimer;
+    private bool _isTemplateSwitchHudActive;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -131,7 +136,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             value => GamepadMonitorPanel.LastMappingStatus = value,
             OnComboHud,
             _profileService.ModifierGraceMs,
-            _profileService.LeadKeyReleaseSuppressMs);
+            _profileService.LeadKeyReleaseSuppressMs,
+            requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)));
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
@@ -381,6 +387,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
         return _appStatusMonitor.CanSendOutput;
     }
 
+    private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
+    {
+        var id = (targetProfileId ?? string.Empty).Trim();
+        if (id.Length == 0 || !_profileService.TemplateExists(id))
+            return;
+
+        var opt = _profileService.AvailableTemplates.FirstOrDefault(t =>
+            string.Equals(t.ProfileId, id, StringComparison.OrdinalIgnoreCase));
+        if (opt is null)
+            return;
+
+        if (string.Equals(SelectedTemplate?.ProfileId, opt.ProfileId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _mappingEngine.ForceReleaseAllOutputs();
+        _mappingEngine.ForceReleaseAnalogOutputs();
+        SelectedTemplate = opt;
+        ShowTemplateSwitchHud(opt.DisplayName);
+    }
 
     [RelayCommand(CanExecute = nameof(CanStartGamepad))]
     private void StartGamepad()
@@ -455,6 +480,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         DispatchToUi(() =>
         {
+            if (_isTemplateSwitchHudActive)
+                return;
+
             if (!GamepadMonitorPanel.IsHudEnabled)
             {
                 _comboHudWindow?.HideHud();
@@ -472,6 +500,44 @@ public partial class MainViewModel : ObservableObject, IDisposable
             var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
             _comboHudWindow.ShowHud(content, a, o);
         });
+    }
+
+    private void ShowTemplateSwitchHud(string profileDisplayName)
+    {
+        if (!GamepadMonitorPanel.IsHudEnabled)
+            return;
+
+        if (_templateSwitchHudTimer is not null)
+        {
+            _templateSwitchHudTimer.Stop();
+            _templateSwitchHudTimer = null;
+        }
+
+        _isTemplateSwitchHudActive = true;
+
+        _templateSwitchHudTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(3)
+        };
+
+        _templateSwitchHudTimer.Tick += (_, _) =>
+        {
+            _templateSwitchHudTimer?.Stop();
+            _templateSwitchHudTimer = null;
+            _isTemplateSwitchHudActive = false;
+            _comboHudWindow?.HideHud();
+        };
+
+        _comboHudWindow ??= new ComboHudWindow();
+        var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
+        var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
+
+        var title = "Profile switched";
+        var line = new ComboHudLine($"→ {profileDisplayName}", null);
+        var content = new ComboHudContent(title, new[] { line });
+        _comboHudWindow.ShowHud(content, a, o);
+
+        _templateSwitchHudTimer.Start();
     }
 
     private void OnComboHudChromeChanged(int panelAlpha, double shadowOpacity)
@@ -492,7 +558,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void OnHudEnabledChanged(bool isEnabled)
     {
         if (!isEnabled)
-            DispatchToUi(() => _comboHudWindow?.HideHud());
+            DispatchToUi(() =>
+            {
+                if (_templateSwitchHudTimer is not null)
+                {
+                    _templateSwitchHudTimer.Stop();
+                    _templateSwitchHudTimer = null;
+                }
+
+                _isTemplateSwitchHudActive = false;
+                _comboHudWindow?.HideHud();
+            });
     }
 
     private void LoadSelectedTemplate()
@@ -515,7 +591,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
         SelectedMapping = Mappings.FirstOrDefault();
         MappingCount = Mappings.Count;
 
-        TemplateTargetProcessName = template.TargetProcessName ?? string.Empty;
+        var fromFile = (template.TargetProcessName ?? string.Empty).Trim();
+        var uiBefore = (TemplateTargetProcessName ?? string.Empty).Trim();
+
+        if (fromFile.Length > 0)
+            TemplateTargetProcessName = fromFile;
+        else if (uiBefore.Length > 0
+                 && ProfileService.ProfilesLikelyShareGameExecutable(_lastLoadedGameIdForTargetInherit, template.GameId))
+        {
+            TemplateTargetProcessName = uiBefore;
+            template.TargetProcessName = uiBefore;
+            _profileService.SaveTemplate(template);
+        }
+        else
+            TemplateTargetProcessName = string.Empty;
+
+        _lastLoadedGameIdForTargetInherit = template.GameId;
+
         ApplyDeclaredProcessTarget();
     }
 

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "profileId": "roco-kingdom-world-fight",
+  "gameId": "roco-kingdom-world-fight",
+  "displayName": "Roco Kingdom World — Battle",
+  "displayNames": {
+    "zh-CN": "洛克王国世界·战斗"
+  },
+  "comboLeadButtons": ["LeftShoulder", "RightShoulder"],
+  "mappings": [
+    { "from": { "type": "LeftThumbstick", "value": "Left" }, "keyboardKey": "A", "description": "Battle: move/select left (A)", "descriptions": { "zh-CN": "战斗：向左选择（A）" }, "trigger": "Pressed", "analogThreshold": 0.25 },
+    { "from": { "type": "LeftThumbstick", "value": "Right" }, "keyboardKey": "D", "description": "Battle: move/select right (D)", "descriptions": { "zh-CN": "战斗：向右选择（D）" }, "trigger": "Pressed", "analogThreshold": 0.25 },
+    { "from": { "type": "RightThumbstick", "value": "X" }, "keyboardKey": "MouseX", "description": "Camera: horizontal", "descriptions": { "zh-CN": "视角：水平" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "RightThumbstick", "value": "Y" }, "keyboardKey": "MouseY", "description": "Camera: vertical", "descriptions": { "zh-CN": "视角：垂直" }, "trigger": "Pressed", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "description": "Battle: confirm selection (Space)", "descriptions": { "zh-CN": "战斗：确认选择（空格）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "Escape", "description": "Battle: back / cancel (Esc)", "descriptions": { "zh-CN": "战斗：返回/取消（Esc）" }, "trigger": "Pressed", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "DPadUp" }, "keyboardKey": "D1", "description": "Battle: hotbar/target slot 1 (1)", "descriptions": { "zh-CN": "战斗：快捷栏/目标槽位1（1）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "D2", "description": "Battle: hotbar/target slot 2 (2)", "descriptions": { "zh-CN": "战斗：快捷栏/目标槽位2（2）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadDown" }, "keyboardKey": "D3", "description": "Battle: hotbar/target slot 3 (3)", "descriptions": { "zh-CN": "战斗：快捷栏/目标槽位3（3）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "DPadLeft" }, "keyboardKey": "D4", "description": "Battle: hotbar/target slot 4 (4)", "descriptions": { "zh-CN": "战斗：快捷栏/目标槽位4（4）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder + DPadUp" }, "keyboardKey": "D5", "description": "Battle: hotbar/target slot 5 (5)", "descriptions": { "zh-CN": "战斗：快捷栏/目标槽位5（5）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "RightShoulder + DPadRight" }, "keyboardKey": "D6", "description": "Battle: hotbar/target slot 6 (6)", "descriptions": { "zh-CN": "战斗：快捷栏/目标槽位6（6）" }, "trigger": "Pressed", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "LeftShoulder + X" }, "keyboardKey": "Q", "description": "UI: open bag (Q)", "descriptions": { "zh-CN": "界面：打开背包（Q）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "W", "description": "UI: open capture screen (W)", "descriptions": { "zh-CN": "界面：打开捕捉界面（W）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + B" }, "keyboardKey": "E", "description": "UI: open swap pet screen (E)", "descriptions": { "zh-CN": "界面：打开更换精灵界面（E）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + A" }, "keyboardKey": "R", "description": "UI: open skills screen (R)", "descriptions": { "zh-CN": "界面：打开技能界面（R）" }, "trigger": "Pressed", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "T", "description": "Battle: switch release pet (T)", "descriptions": { "zh-CN": "战斗：切换释放技能的精灵（T）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "X" }, "keyboardKey": "X", "description": "Battle: gather energy (tap X); clear skill chain (hold Z)", "descriptions": { "zh-CN": "战斗：聚能（短按X）；清空技能链（长按Z）" }, "trigger": "Tap", "holdKeyboardKey": "Z", "holdThresholdMs": 380, "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "Tab", "description": "Battle: view battle log (Tab)", "descriptions": { "zh-CN": "战斗：查看对战记录（Tab）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "Tab", "description": "Battle: view battle log (Tab)", "descriptions": { "zh-CN": "战斗：查看对战记录（Tab）" }, "trigger": "Released", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Enter", "description": "Battle: open chat (Enter)", "descriptions": { "zh-CN": "战斗：打开聊天界面（Enter）" }, "trigger": "Tap", "analogThreshold": null },
+
+    { "from": { "type": "Button", "value": "Start + Back" }, "keyboardKey": "", "description": "Switch profile: overworld / exploration", "descriptions": { "zh-CN": "切换配置：大世界探索" }, "trigger": "Pressed", "analogThreshold": null, "templateToggle": { "alternateProfileId": "roco-kingdom-world" } }
+  ]
+}

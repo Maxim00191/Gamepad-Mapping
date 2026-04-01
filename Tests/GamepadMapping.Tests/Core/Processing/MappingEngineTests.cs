@@ -16,7 +16,8 @@ public class MappingEngineTests
     private static MappingEngine CreateEngine(
         IKeyboardEmulator keyboard,
         IMouseEmulator mouse,
-        Func<bool>? canDispatchOutput = null) =>
+        Func<bool>? canDispatchOutput = null,
+        Action<string>? requestTemplateSwitchToProfileId = null) =>
         new(
             keyboard,
             mouse,
@@ -24,7 +25,8 @@ public class MappingEngineTests
             runOnUi: action => action(),
             setMappedOutput: _ => { },
             setMappingStatus: _ => { },
-            setComboHud: null);
+            setComboHud: null,
+            requestTemplateSwitchToProfileId: requestTemplateSwitchToProfileId);
 
     private static InputFrame Frame(long timestampMs, GamepadButtons buttons) =>
         new(
@@ -392,6 +394,69 @@ public class MappingEngineTests
                 Key.D1,
                 It.IsAny<int>()),
             Times.Once);
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public void ProcessInputFrame_TemplateTogglePressed_InvokesSwitchHandler()
+    {
+        var switched = new List<string>();
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(
+            mockKeyboard.Object,
+            mockMouse.Object,
+            requestTemplateSwitchToProfileId: switched.Add);
+
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "Y" },
+                KeyboardKey = string.Empty,
+                Trigger = TriggerMoment.Pressed,
+                TemplateToggle = new TemplateToggleBinding { AlternateProfileId = "vehicle" }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.Y), mappings);
+
+        Assert.Single(switched);
+        Assert.Equal("vehicle", switched[0]);
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_TemplateToggleReleased_DoesNotInvokeSwitchHandler()
+    {
+        var switched = new List<string>();
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(
+            mockKeyboard.Object,
+            mockMouse.Object,
+            requestTemplateSwitchToProfileId: switched.Add);
+
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "Y" },
+                KeyboardKey = string.Empty,
+                Trigger = TriggerMoment.Released,
+                TemplateToggle = new TemplateToggleBinding { AlternateProfileId = "vehicle" }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.Y), mappings);
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        Assert.Empty(switched);
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }

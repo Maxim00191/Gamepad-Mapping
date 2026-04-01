@@ -166,6 +166,28 @@ public partial class ProfileService : IProfileService
         return File.Exists(templatePath);
     }
 
+    /// <summary>
+    /// Heuristic: profiles whose <see cref="GameProfileTemplate.GameId"/> values match or look like variants
+    /// (<c>mygame</c> and <c>mygame-battle</c>) typically target the same executable; missing <c>targetProcessName</c>
+    /// on the variant should inherit from the sibling the user already configured.
+    /// </summary>
+    public static bool ProfilesLikelyShareGameExecutable(string? previousGameId, string? newGameId)
+    {
+        if (string.IsNullOrWhiteSpace(previousGameId) || string.IsNullOrWhiteSpace(newGameId))
+            return false;
+
+        var a = previousGameId.Trim();
+        var b = newGameId.Trim();
+        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        static bool IsSegmentPrefix(string shorter, string longer) =>
+            longer.StartsWith(shorter + "-", StringComparison.OrdinalIgnoreCase)
+            || longer.StartsWith(shorter + ".", StringComparison.OrdinalIgnoreCase);
+
+        return a.Length <= b.Length ? IsSegmentPrefix(a, b) : IsSegmentPrefix(b, a);
+    }
+
     public static string EnsureValidGameId(string gameId)
     {
         var normalized = (gameId ?? string.Empty).Trim();

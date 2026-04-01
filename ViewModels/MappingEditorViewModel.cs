@@ -40,6 +40,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public ObservableCollection<TriggerMoment> AvailableTriggerModes => _mainViewModel.AvailableTriggerModes;
 
+    public ObservableCollection<TemplateOption> AvailableProfileTemplates => _mainViewModel.AvailableTemplates;
+
     [ObservableProperty]
     private string editBindingFromButton = "A";
 
@@ -77,10 +79,16 @@ public partial class MappingEditorViewModel : ObservableObject
     private string editItemCycleBackwardKey = string.Empty;
 
     [ObservableProperty]
+    private bool editTemplateToggleEnabled;
+
+    [ObservableProperty]
+    private string editTemplateToggleAlternateProfileId = string.Empty;
+
+    [ObservableProperty]
     private bool isCreatingNewMapping;
 
-    /// <summary>When false, KB/M output and hold bind fields apply; item cycle uses its own outputs.</summary>
-    public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled;
+    /// <summary>When false, KB/M output and hold bind fields apply; item cycle / template toggle use their own outputs.</summary>
+    public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled && !EditTemplateToggleEnabled;
 
     public IReadOnlyList<ItemCycleDirection> AvailableItemCycleDirections { get; } =
         new[] { ItemCycleDirection.Next, ItemCycleDirection.Previous };
@@ -144,6 +152,8 @@ public partial class MappingEditorViewModel : ObservableObject
         if (value?.ItemCycle is { } ic)
         {
             EditItemCycleEnabled = true;
+            EditTemplateToggleEnabled = false;
+            EditTemplateToggleAlternateProfileId = string.Empty;
             EditItemCycleDirection = ic.Direction;
             EditItemCycleSlotText = Math.Clamp(ic.SlotCount, 1, 9).ToString(CultureInfo.InvariantCulture);
             EditItemCycleWithKeys = ic.WithKeys is { Count: > 0 } ? string.Join('+', ic.WithKeys) : string.Empty;
@@ -153,9 +163,25 @@ public partial class MappingEditorViewModel : ObservableObject
             EditBindingHoldKeyboardKey = string.Empty;
             EditBindingHoldThresholdText = string.Empty;
         }
+        else if (value?.TemplateToggle is { } tt)
+        {
+            EditItemCycleEnabled = false;
+            EditItemCycleDirection = ItemCycleDirection.Next;
+            EditItemCycleSlotText = "9";
+            EditItemCycleWithKeys = string.Empty;
+            EditItemCycleForwardKey = string.Empty;
+            EditItemCycleBackwardKey = string.Empty;
+            EditTemplateToggleEnabled = true;
+            EditTemplateToggleAlternateProfileId = tt.AlternateProfileId ?? string.Empty;
+            EditBindingKeyboardKey = string.Empty;
+            EditBindingHoldKeyboardKey = string.Empty;
+            EditBindingHoldThresholdText = string.Empty;
+        }
         else
         {
             EditItemCycleEnabled = false;
+            EditTemplateToggleEnabled = false;
+            EditTemplateToggleAlternateProfileId = string.Empty;
             EditItemCycleDirection = ItemCycleDirection.Next;
             EditItemCycleSlotText = "9";
             EditItemCycleWithKeys = string.Empty;
@@ -265,6 +291,21 @@ public partial class MappingEditorViewModel : ObservableObject
                 return;
 
             SelectedMapping.ItemCycle = icBinding;
+            SelectedMapping.TemplateToggle = null;
+            SelectedMapping.KeyboardKey = string.Empty;
+            SelectedMapping.HoldKeyboardKey = string.Empty;
+            SelectedMapping.HoldThresholdMs = null;
+        }
+        else if (EditTemplateToggleEnabled)
+        {
+            var alt = (EditTemplateToggleAlternateProfileId ?? string.Empty).Trim();
+            if (alt.Length == 0 || !_mainViewModel.GetProfileService().TemplateExists(alt))
+                return;
+            if (string.Equals(alt, _mainViewModel.SelectedTemplate?.ProfileId, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            SelectedMapping.ItemCycle = null;
+            SelectedMapping.TemplateToggle = new TemplateToggleBinding { AlternateProfileId = alt };
             SelectedMapping.KeyboardKey = string.Empty;
             SelectedMapping.HoldKeyboardKey = string.Empty;
             SelectedMapping.HoldThresholdMs = null;
@@ -272,6 +313,7 @@ public partial class MappingEditorViewModel : ObservableObject
         else
         {
             SelectedMapping.ItemCycle = null;
+            SelectedMapping.TemplateToggle = null;
 
             var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
             var key = MappingEngine.ParseKey(keyToken);
@@ -325,6 +367,8 @@ public partial class MappingEditorViewModel : ObservableObject
         EditItemCycleWithKeys = string.Empty;
         EditItemCycleForwardKey = string.Empty;
         EditItemCycleBackwardKey = string.Empty;
+        EditTemplateToggleEnabled = false;
+        EditTemplateToggleAlternateProfileId = string.Empty;
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
@@ -333,7 +377,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (!TryBuildMappingFromEditorFields(out var entry))
         {
             MessageBox.Show(
-                "Choose a gamepad button, then either enable hotbar cycling (valid slot count 1–9; optional loop forward/back keys together, or both empty for digits 1–n; optional modifiers) or enter a valid keyboard / mouse-look output.",
+                "Choose a gamepad button, then either enable hotbar cycling (valid slot count 1–9; optional loop forward/back keys together, or both empty for digits 1–n; optional modifiers), or toggle profile (pick another saved template), or enter a valid keyboard / mouse-look output.",
                 "Cannot save new mapping",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -377,6 +421,23 @@ public partial class MappingEditorViewModel : ObservableObject
                 return false;
 
             entry.ItemCycle = ic;
+            entry.TemplateToggle = null;
+            entry.KeyboardKey = string.Empty;
+            entry.HoldKeyboardKey = string.Empty;
+            entry.HoldThresholdMs = null;
+            return true;
+        }
+
+        if (EditTemplateToggleEnabled)
+        {
+            var alt = (EditTemplateToggleAlternateProfileId ?? string.Empty).Trim();
+            if (alt.Length == 0 || !_mainViewModel.GetProfileService().TemplateExists(alt))
+                return false;
+            if (string.Equals(alt, _mainViewModel.SelectedTemplate?.ProfileId, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            entry.ItemCycle = null;
+            entry.TemplateToggle = new TemplateToggleBinding { AlternateProfileId = alt };
             entry.KeyboardKey = string.Empty;
             entry.HoldKeyboardKey = string.Empty;
             entry.HoldThresholdMs = null;
@@ -384,6 +445,7 @@ public partial class MappingEditorViewModel : ObservableObject
         }
 
         entry.ItemCycle = null;
+        entry.TemplateToggle = null;
 
         var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
         var key = MappingEngine.ParseKey(keyToken);
@@ -481,8 +543,19 @@ public partial class MappingEditorViewModel : ObservableObject
         return true;
     }
 
-    partial void OnEditItemCycleEnabledChanged(bool value) =>
+    partial void OnEditItemCycleEnabledChanged(bool value)
+    {
+        if (value)
+            EditTemplateToggleEnabled = false;
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+    }
+
+    partial void OnEditTemplateToggleEnabledChanged(bool value)
+    {
+        if (value)
+            EditItemCycleEnabled = false;
+        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+    }
 
     private void RemoveSelectedMapping()
     {
@@ -515,6 +588,9 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.AvailableTriggerModes):
                 OnPropertyChanged(nameof(AvailableTriggerModes));
+                break;
+            case nameof(MainViewModel.AvailableTemplates):
+                OnPropertyChanged(nameof(AvailableProfileTemplates));
                 break;
         }
     }

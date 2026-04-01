@@ -267,4 +267,13 @@
   <data name="ItemCycleWithKeys" xml:space="preserve">
     <value>Optional chord modifiers (e.g. LeftAlt or LeftCtrl+LeftShift), applied with the digit or with custom outputs below.</value>
   </data>
+  <data name="TemplateToggleEnabled" xml:space="preserve">
+    <value>Toggle profile (control mode)</value>
+  </data>
+  <data name="TemplateToggleAlternateProfile" xml:space="preserve">
+    <value>Switch to template</value>
+  </data>
+  <data name="TemplateToggleHint" xml:space="preserve">
+    <value>Add the same button on each profile and point each at the other template’s ID so one press swaps modes (e.g. General ↔ Vehicle). Uses Pressed or Tap; no keyboard output.</value>
+  </data>
 </root>

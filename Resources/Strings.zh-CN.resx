@@ -267,4 +267,13 @@
   <data name="ItemCycleWithKeys" xml:space="preserve">
     <value>可选组合修饰键（如 LeftAlt 或 LeftCtrl+LeftShift），与数字键或下方自定义输出一起生效。</value>
   </data>
+  <data name="TemplateToggleEnabled" xml:space="preserve">
+    <value>切换配置模板（控制模式）</value>
+  </data>
+  <data name="TemplateToggleAlternateProfile" xml:space="preserve">
+    <value>切换到的模板</value>
+  </data>
+  <data name="TemplateToggleHint" xml:space="preserve">
+    <value>在每个模板中用同一按键绑定，并把对方的 profileId 填在「切换到的模板」里，即可一键在两种模式间切换（例如常规 ↔ 载具）。触发方式为按下或点按；不发出键盘按键。</value>
+  </data>
 </root>
