@@ -131,14 +131,14 @@ dotnet test "GamepadMapping.sln" -c Release
 ## CI/CD 自动化构建
 
 本项目已配置 [GitHub Actions](https://www.google.com/search?q=.github/workflows/build.yml)。当代码推送到 `main` 分支或提交相关 PR 时，将自动执行 `dotnet build` (Release) 校验。
-当推送匹配 `v*` 规则的标签（如 `v1.2.0`）时，流水线会构建两种 `win-x64` 产物并打包为 zip，通过 [softprops/action-gh-release](https://github.com/softprops/action-gh-release) 创建 **GitHub Release**：
+当推送匹配 `v*` 规则的标签（如 `v1.3.0`）时，流水线会构建两种 `win-x64` 产物并打包为 zip，通过 [softprops/action-gh-release](https://github.com/softprops/action-gh-release) 创建 **GitHub Release**：
 
 - **`Gamepad-Mapping-<tag>-win-x64-single.zip`** — **单文件**、自包含运行（无需单独安装 .NET 运行时）。
 - **`Gamepad-Mapping-<tag>-win-x64-fx.zip`** — **框架依赖**包（体积更小；需已安装 [.NET 9 桌面运行时](https://dotnet.microsoft.com/download/dotnet/9.0)）。
 
 ```powershell
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.3.0
+git push origin v1.3.0
 ```
 
 ## 许可证

@@ -5,12 +5,12 @@
     Writes build outputs under this folder (publish/single, publish/fx, publish/*.zip).
 
 .PARAMETER Tag
-    Used in zip file names (e.g. v1.2.0). If omitted, uses the exact git tag at HEAD, or "local".
+    Used in zip file names (e.g. v1.3.0). If omitted, uses the exact git tag at HEAD, or "local".
 
 .EXAMPLE
     .\publish\publish-release.ps1
 .EXAMPLE
-    .\publish\publish-release.ps1 -Tag v1.2.0
+    .\publish\publish-release.ps1 -Tag v1.3.0
 #>
 param(
     [string] $Tag = ""
@@ -19,7 +19,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $publishRoot = $PSScriptRoot
-$repoRoot = Split-Path -LiteralPath $publishRoot -Parent
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path -Path $publishRoot -ChildPath ".."))
 Set-Location -LiteralPath $repoRoot
 
 $csproj = Join-Path $repoRoot "Gamepad Mapping.csproj"
