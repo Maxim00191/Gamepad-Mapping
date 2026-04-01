@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -70,6 +71,12 @@ public partial class MappingEditorViewModel : ObservableObject
     private string editItemCycleWithKeys = string.Empty;
 
     [ObservableProperty]
+    private string editItemCycleForwardKey = string.Empty;
+
+    [ObservableProperty]
+    private string editItemCycleBackwardKey = string.Empty;
+
+    [ObservableProperty]
     private bool isCreatingNewMapping;
 
     /// <summary>When false, KB/M output and hold bind fields apply; item cycle uses its own outputs.</summary>
@@ -88,6 +95,14 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private ICommand? _recordHoldKeyboardKeyCommand;
     public ICommand RecordHoldKeyboardKeyCommand => _recordHoldKeyboardKeyCommand ??= new RelayCommand(RecordHoldKeyboardKey);
+
+    private ICommand? _recordItemCycleForwardKeyCommand;
+    public ICommand RecordItemCycleForwardKeyCommand =>
+        _recordItemCycleForwardKeyCommand ??= new RelayCommand(RecordItemCycleForwardKey);
+
+    private ICommand? _recordItemCycleBackwardKeyCommand;
+    public ICommand RecordItemCycleBackwardKeyCommand =>
+        _recordItemCycleBackwardKeyCommand ??= new RelayCommand(RecordItemCycleBackwardKey);
 
     private ICommand? _updateSelectedBindingCommand;
     public ICommand UpdateSelectedBindingCommand => _updateSelectedBindingCommand ??= new RelayCommand(UpdateSelectedBinding);
@@ -132,6 +147,8 @@ public partial class MappingEditorViewModel : ObservableObject
             EditItemCycleDirection = ic.Direction;
             EditItemCycleSlotText = Math.Clamp(ic.SlotCount, 1, 9).ToString(CultureInfo.InvariantCulture);
             EditItemCycleWithKeys = ic.WithKeys is { Count: > 0 } ? string.Join('+', ic.WithKeys) : string.Empty;
+            EditItemCycleForwardKey = ic.LoopForwardKey ?? string.Empty;
+            EditItemCycleBackwardKey = ic.LoopBackwardKey ?? string.Empty;
             EditBindingKeyboardKey = string.Empty;
             EditBindingHoldKeyboardKey = string.Empty;
             EditBindingHoldThresholdText = string.Empty;
@@ -142,6 +159,8 @@ public partial class MappingEditorViewModel : ObservableObject
             EditItemCycleDirection = ItemCycleDirection.Next;
             EditItemCycleSlotText = "9";
             EditItemCycleWithKeys = string.Empty;
+            EditItemCycleForwardKey = string.Empty;
+            EditItemCycleBackwardKey = string.Empty;
             EditBindingKeyboardKey = value?.KeyboardKey ?? string.Empty;
             EditBindingHoldKeyboardKey = value?.HoldKeyboardKey ?? string.Empty;
             EditBindingHoldThresholdText = value?.HoldThresholdMs?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
@@ -177,6 +196,20 @@ public partial class MappingEditorViewModel : ObservableObject
                     SelectedMapping.KeyboardKey = EditBindingKeyboardKey;
                 ConfigurationChanged?.Invoke(this, EventArgs.Empty);
             });
+    }
+
+    private void RecordItemCycleForwardKey()
+    {
+        _mainViewModel.KeyboardCaptureService.BeginCapture(
+            "Press the loop-forward output key (Esc to cancel).",
+            key => EditItemCycleForwardKey = key.ToString());
+    }
+
+    private void RecordItemCycleBackwardKey()
+    {
+        _mainViewModel.KeyboardCaptureService.BeginCapture(
+            "Press the loop-back output key (Esc to cancel).",
+            key => EditItemCycleBackwardKey = key.ToString());
     }
 
     private void RecordHoldKeyboardKey()
@@ -228,18 +261,10 @@ public partial class MappingEditorViewModel : ObservableObject
 
         if (EditItemCycleEnabled)
         {
-            var slotText = (EditItemCycleSlotText ?? string.Empty).Trim();
-            if (!int.TryParse(slotText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 1 || n > 9)
-                return;
-            if (!TryParseWithKeysTokens(EditItemCycleWithKeys, out var withKeys))
+            if (!TryBuildItemCycleBindingFromEditor(out var icBinding))
                 return;
 
-            SelectedMapping.ItemCycle = new ItemCycleBinding
-            {
-                Direction = EditItemCycleDirection,
-                SlotCount = n,
-                WithKeys = withKeys
-            };
+            SelectedMapping.ItemCycle = icBinding;
             SelectedMapping.KeyboardKey = string.Empty;
             SelectedMapping.HoldKeyboardKey = string.Empty;
             SelectedMapping.HoldThresholdMs = null;
@@ -298,6 +323,8 @@ public partial class MappingEditorViewModel : ObservableObject
         EditItemCycleDirection = ItemCycleDirection.Next;
         EditItemCycleSlotText = "9";
         EditItemCycleWithKeys = string.Empty;
+        EditItemCycleForwardKey = string.Empty;
+        EditItemCycleBackwardKey = string.Empty;
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
@@ -306,7 +333,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (!TryBuildMappingFromEditorFields(out var entry))
         {
             MessageBox.Show(
-                "Choose a gamepad button, then either enable hotbar cycling (valid n and optional modifiers) or enter a valid keyboard / mouse-look output.",
+                "Choose a gamepad button, then either enable hotbar cycling (valid slot count 1–9; optional loop forward/back keys together, or both empty for digits 1–n; optional modifiers) or enter a valid keyboard / mouse-look output.",
                 "Cannot save new mapping",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -346,18 +373,10 @@ public partial class MappingEditorViewModel : ObservableObject
 
         if (EditItemCycleEnabled)
         {
-            var slotText = (EditItemCycleSlotText ?? string.Empty).Trim();
-            if (!int.TryParse(slotText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 1 || n > 9)
-                return false;
-            if (!TryParseWithKeysTokens(EditItemCycleWithKeys, out var withKeys))
+            if (!TryBuildItemCycleBindingFromEditor(out var ic))
                 return false;
 
-            entry.ItemCycle = new ItemCycleBinding
-            {
-                Direction = EditItemCycleDirection,
-                SlotCount = n,
-                WithKeys = withKeys
-            };
+            entry.ItemCycle = ic;
             entry.KeyboardKey = string.Empty;
             entry.HoldKeyboardKey = string.Empty;
             entry.HoldThresholdMs = null;
@@ -395,6 +414,49 @@ public partial class MappingEditorViewModel : ObservableObject
             parsed > 0)
             holdMs = parsed;
         entry.HoldThresholdMs = holdMs;
+        return true;
+    }
+
+    private bool TryBuildItemCycleBindingFromEditor([NotNullWhen(true)] out ItemCycleBinding? binding)
+    {
+        binding = null;
+        var slotText = (EditItemCycleSlotText ?? string.Empty).Trim();
+        if (!int.TryParse(slotText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 1 || n > 9)
+            return false;
+
+        if (!TryParseWithKeysTokens(EditItemCycleWithKeys, out var withKeys))
+            return false;
+
+        var fwdRaw = (EditItemCycleForwardKey ?? string.Empty).Trim();
+        var backRaw = (EditItemCycleBackwardKey ?? string.Empty).Trim();
+        var hasFwd = fwdRaw.Length > 0;
+        var hasBack = backRaw.Length > 0;
+        if (hasFwd != hasBack)
+            return false;
+
+        if (hasFwd)
+        {
+            if (!MappingEngine.TryNormalizeMappedOutputStorage(fwdRaw, out var fSt) ||
+                !MappingEngine.TryNormalizeMappedOutputStorage(backRaw, out var bSt))
+                return false;
+
+            binding = new ItemCycleBinding
+            {
+                Direction = EditItemCycleDirection,
+                SlotCount = n,
+                LoopForwardKey = fSt,
+                LoopBackwardKey = bSt,
+                WithKeys = withKeys
+            };
+            return true;
+        }
+
+        binding = new ItemCycleBinding
+        {
+            Direction = EditItemCycleDirection,
+            SlotCount = n,
+            WithKeys = withKeys
+        };
         return true;
     }
 

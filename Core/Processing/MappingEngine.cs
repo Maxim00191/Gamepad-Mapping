@@ -40,8 +40,8 @@ public sealed class MappingEngine : IMappingEngine
     private bool _comboHudDelayConfirmed;
     private string? _pendingComboHudSignature;
 
-    /// <summary>Shared index 0..n-1 for <see cref="ItemCycleBinding"/> mappings (wraps per activation).</summary>
-    private int _itemCycleSlotIndex;
+    /// <summary>0..n-1 = last emitted slot; -1 = no step yet (first Next emits slot 1, first Previous emits slot n).</summary>
+    private int _itemCycleSlotIndex = -1;
 
     /// <summary>Buttons whose solo <see cref="TriggerMoment.Pressed"/> was deferred because the profile has a richer chord using them.</summary>
     private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons = [];
@@ -345,21 +345,28 @@ public sealed class MappingEngine : IMappingEngine
                         continue;
                     if (!_canDispatchOutput())
                         continue;
-                    if (!TryPrepareItemCycleStep(cycle, out var digitKey, out var modifierKeys, out var itemLabel))
+                    if (!TryPrepareItemCycleStep(
+                            cycle,
+                            out var digitKey,
+                            out var customOut,
+                            out var useCustomOut,
+                            out var modifierKeys,
+                            out var itemLabel,
+                            out var itemCycleError))
                     {
-                        _setMappingStatus("Item cycle: invalid key name in itemCycle.withKeys");
+                        _setMappingStatus(itemCycleError);
                         continue;
                     }
 
                     _setMappedOutput(itemLabel);
                     _setMappingStatus($"Queued: {candidate.SourceToken} ({context.Trigger}) -> {itemLabel}");
-                    _inputDispatcher.EnqueueChordTap(
+                    EnqueueItemCycleTap(
                         candidate.SourceToken,
                         context.Trigger,
                         modifierKeys,
-                        digitKey,
                         itemLabel,
-                        candidate.SourceToken);
+                        useCustomOut ? customOut : null,
+                        useCustomOut ? Key.None : digitKey);
                     continue;
                 }
 
@@ -552,6 +559,36 @@ public sealed class MappingEngine : IMappingEngine
     public static string NormalizeKeyboardKeyToken(string keyboardKey) => InputTokenResolver.NormalizeKeyboardKeyToken(keyboardKey);
 
     public static bool IsMouseLookOutput(string token) => AnalogProcessor.IsMouseLookOutput(token);
+
+    /// <summary>Whether <paramref name="token"/> can be stored as a mapping output (keyboard, pointer alias, or mouse-look axis).</summary>
+    public static bool TryNormalizeMappedOutputStorage(string? token, out string stored)
+    {
+        stored = string.Empty;
+        var raw = (token ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        if (IsMouseLookOutput(raw))
+        {
+            stored = NormalizeKeyboardKeyToken(raw);
+            return true;
+        }
+
+        var key = ParseKey(raw);
+        if (key != Key.None)
+        {
+            stored = key.ToString();
+            return true;
+        }
+
+        if (InputTokenResolver.TryResolveMappedOutput(raw, out _, out _))
+        {
+            stored = NormalizeKeyboardKeyToken(raw);
+            return true;
+        }
+
+        return false;
+    }
 
     private void SyncComboHud()
     {
@@ -793,6 +830,37 @@ public sealed class MappingEngine : IMappingEngine
                 return true;
             }
 
+            // Solo combo-lead buttons (e.g. DPadUp) are deferred on Pressed when richer chords exist; item cycle uses an
+            // empty keyboardKey so it must be surfaced here on short release, not only via TryResolveMappedOutput.
+            if (pressed is not null &&
+                pressed.ItemCycle is { } deferredCycle &&
+                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredCycleToken))
+            {
+                if (!TryPrepareItemCycleStep(
+                        deferredCycle,
+                        out var defDigit,
+                        out var defCustom,
+                        out var defUseCustom,
+                        out var defMods,
+                        out var deferredLabel,
+                        out var defErr))
+                {
+                    _setMappingStatus(defErr);
+                    return false;
+                }
+
+                _setMappedOutput(deferredLabel);
+                _setMappingStatus($"Queued: {deferredCycleToken} (Tap) -> {deferredLabel}");
+                EnqueueItemCycleTap(
+                    deferredCycleToken,
+                    TriggerMoment.Tap,
+                    defMods,
+                    deferredLabel,
+                    defUseCustom ? defCustom : null,
+                    defUseCustom ? Key.None : defDigit);
+                return true;
+            }
+
             if (pressed is not null &&
                 ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var soloToken) &&
                 InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
@@ -801,6 +869,35 @@ public sealed class MappingEngine : IMappingEngine
                 _setMappedOutput(outLabel);
                 _setMappingStatus($"Queued: {soloToken} (Tap) -> {outLabel}");
                 QueueOutputDispatch(soloToken, TriggerMoment.Tap, soloOut, outLabel, pressed.KeyboardKey ?? string.Empty);
+                return true;
+            }
+
+            if (tap is not null &&
+                tap.ItemCycle is { } tapCycle &&
+                ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapCycleToken))
+            {
+                if (!TryPrepareItemCycleStep(
+                        tapCycle,
+                        out var tapDigit,
+                        out var tapCustom,
+                        out var tapUseCustom,
+                        out var tapMods,
+                        out var tapItemLabel,
+                        out var tapErr))
+                {
+                    _setMappingStatus(tapErr);
+                    return false;
+                }
+
+                _setMappedOutput(tapItemLabel);
+                _setMappingStatus($"Queued: {tapCycleToken} (Tap) -> {tapItemLabel}");
+                EnqueueItemCycleTap(
+                    tapCycleToken,
+                    TriggerMoment.Tap,
+                    tapMods,
+                    tapItemLabel,
+                    tapUseCustom ? tapCustom : null,
+                    tapUseCustom ? Key.None : tapDigit);
                 return true;
             }
 
@@ -931,24 +1028,90 @@ public sealed class MappingEngine : IMappingEngine
         _inputDispatcher.Enqueue(buttonName, trigger, output, outputLabel, sourceToken);
     }
 
-    private bool TryPrepareItemCycleStep(ItemCycleBinding cycle, out Key digitKey, out Key[] modifierKeys, out string label)
+    private static bool ItemCycleUsesCustomLoopKeys(ItemCycleBinding cycle)
+    {
+        var f = cycle.LoopForwardKey?.Trim() ?? string.Empty;
+        var b = cycle.LoopBackwardKey?.Trim() ?? string.Empty;
+        return f.Length > 0 && b.Length > 0;
+    }
+
+    private void EnqueueItemCycleTap(
+        string sourceToken,
+        TriggerMoment chordEnqueueTrigger,
+        Key[] modifierKeys,
+        string label,
+        DispatchedOutput? customOutput,
+        Key digitKey)
+    {
+        if (digitKey != Key.None)
+        {
+            _inputDispatcher.EnqueueChordTap(sourceToken, chordEnqueueTrigger, modifierKeys, digitKey, label, sourceToken);
+            return;
+        }
+
+        if (customOutput is not { } o)
+            throw new InvalidOperationException("Item cycle dispatch requires a digit or custom output.");
+
+        if (o.KeyboardKey is { } k && k != Key.None && modifierKeys.Length > 0)
+        {
+            _inputDispatcher.EnqueueChordTap(sourceToken, TriggerMoment.Tap, modifierKeys, k, label, sourceToken);
+            return;
+        }
+
+        QueueOutputDispatch(sourceToken, TriggerMoment.Tap, o, label, string.Empty);
+    }
+
+    private bool TryPrepareItemCycleStep(
+        ItemCycleBinding cycle,
+        out Key digitKey,
+        out DispatchedOutput customOutput,
+        out bool useCustomOutput,
+        out Key[] modifierKeys,
+        out string label,
+        out string errorStatus)
     {
         digitKey = Key.None;
+        customOutput = default;
+        useCustomOutput = false;
         modifierKeys = Array.Empty<Key>();
         label = string.Empty;
+        errorStatus = "Item cycle: invalid itemCycle fields.";
+
+        if (!InputTokenResolver.TryParseItemCycleModifierKeys(cycle.WithKeys, out modifierKeys))
+        {
+            errorStatus = "Item cycle: invalid key name in itemCycle.withKeys";
+            return false;
+        }
 
         var n = Math.Clamp(cycle.SlotCount, 1, 9);
-        if (cycle.Direction == ItemCycleDirection.Next)
-            _itemCycleSlotIndex = (_itemCycleSlotIndex + 1) % n;
+        int idx;
+        if (_itemCycleSlotIndex < 0)
+            idx = cycle.Direction == ItemCycleDirection.Next ? 0 : (n - 1);
+        else if (cycle.Direction == ItemCycleDirection.Next)
+            idx = (_itemCycleSlotIndex + 1) % n;
         else
-            _itemCycleSlotIndex = (_itemCycleSlotIndex - 1 + n) % n;
+            idx = (_itemCycleSlotIndex - 1 + n) % n;
 
-        var idx = _itemCycleSlotIndex;
-        digitKey = Key.D1 + idx;
-        if (!InputTokenResolver.TryParseItemCycleModifierKeys(cycle.WithKeys, out modifierKeys))
-            return false;
-
+        _itemCycleSlotIndex = idx;
         var modText = modifierKeys.Length > 0 ? string.Join('+', modifierKeys) + "+" : string.Empty;
+
+        if (ItemCycleUsesCustomLoopKeys(cycle))
+        {
+            useCustomOutput = true;
+            var token = cycle.Direction == ItemCycleDirection.Next
+                ? cycle.LoopForwardKey!.Trim()
+                : cycle.LoopBackwardKey!.Trim();
+            if (!InputTokenResolver.TryResolveMappedOutput(token, out customOutput, out var baseLabel))
+            {
+                errorStatus = "Item cycle: invalid loopForwardKey or loopBackwardKey token";
+                return false;
+            }
+
+            label = $"{modText}{baseLabel} (slot {idx + 1}/{n})";
+            return true;
+        }
+
+        digitKey = Key.D1 + idx;
         label = $"{modText}{digitKey} (slot {idx + 1}/{n})";
         return true;
     }

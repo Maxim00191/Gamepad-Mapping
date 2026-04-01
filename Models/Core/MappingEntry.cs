@@ -105,7 +105,7 @@ public class MappingEntry : ObservableObject
 
     private ItemCycleBinding? _itemCycle;
 
-    /// <summary>When set, this mapping cycles a shared 1..n item slot and taps digit keys instead of <see cref="KeyboardKey"/>.</summary>
+    /// <summary>When set, this mapping advances a shared 1..n slot and taps digit keys or custom loop keys instead of <see cref="KeyboardKey"/>.</summary>
     [JsonProperty("itemCycle", NullValueHandling = NullValueHandling.Ignore)]
     public ItemCycleBinding? ItemCycle
     {
@@ -130,6 +130,10 @@ public class MappingEntry : ObservableObject
                     ? string.Join("+", ic.WithKeys) + "+"
                     : string.Empty;
                 var dir = ic.Direction == ItemCycleDirection.Previous ? "prev" : "next";
+                var fwd = ic.LoopForwardKey?.Trim() ?? string.Empty;
+                var back = ic.LoopBackwardKey?.Trim() ?? string.Empty;
+                if (fwd.Length > 0 && back.Length > 0)
+                    return $"{mods}{fwd} / {back} ({dir}, 1–{n})";
                 return $"{mods}Items 1–{n} ({dir})";
             }
 

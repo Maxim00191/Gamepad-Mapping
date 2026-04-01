@@ -292,6 +292,10 @@ internal static class ComboHudBuilder
             var n = Math.Clamp(ic.SlotCount, 1, 9);
             var mods = ic.WithKeys is { Count: > 0 } ? string.Join("+", ic.WithKeys) + "+" : string.Empty;
             var dir = ic.Direction == ItemCycleDirection.Previous ? "prev" : "next";
+            var fwd = ic.LoopForwardKey?.Trim() ?? string.Empty;
+            var back = ic.LoopBackwardKey?.Trim() ?? string.Empty;
+            if (fwd.Length > 0 && back.Length > 0)
+                return $"{mods}{fwd}/{back} ({dir}, {n})";
             return $"{mods}1–{n} ({dir})";
         }
 

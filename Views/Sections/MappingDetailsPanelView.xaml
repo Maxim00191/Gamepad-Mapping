@@ -84,6 +84,97 @@
                         </ComboBox.Style>
                     </ComboBox>
 
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopForwardKey]}"
+                               Margin="0,8,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="{x:Type Grid}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding EditItemCycleForwardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"
+                                Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
+                                Command="{Binding RecordItemCycleForwardKeyCommand}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopBackwardKey]}"
+                               Margin="0,8,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="{x:Type Grid}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding EditItemCycleBackwardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"
+                                Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
+                                Command="{Binding RecordItemCycleBackwardKeyCommand}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="12"
+                               Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopKeysHint]}"
+                               Margin="0,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditItemCycleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleSlotCount]}" Margin="0,8,0,4">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">

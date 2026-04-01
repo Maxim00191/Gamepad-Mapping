@@ -255,7 +255,7 @@ public class MappingEngineTests
         mockKeyboard.Verify(
             k => k.TapKeyChord(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
-                Key.D2,
+                Key.D1,
                 It.IsAny<int>()),
             Times.Once);
 
@@ -265,7 +265,7 @@ public class MappingEngineTests
         mockKeyboard.Verify(
             k => k.TapKeyChord(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
-                Key.D3,
+                Key.D2,
                 It.IsAny<int>()),
             Times.Once);
 
@@ -275,7 +275,7 @@ public class MappingEngineTests
         mockKeyboard.Verify(
             k => k.TapKeyChord(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
-                Key.D1,
+                Key.D3,
                 It.IsAny<int>()),
             Times.Once);
 
@@ -314,7 +314,82 @@ public class MappingEngineTests
         mockKeyboard.Verify(
             k => k.TapKeyChord(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 1 && l[0] == Key.LeftAlt),
-                Key.D2,
+                Key.D1,
+                It.IsAny<int>()),
+            Times.Once);
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ProcessInputFrame_ItemCycleCustomLoopKeys_TapsConfiguredKeyForDirection()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                Trigger = TriggerMoment.Tap,
+                ItemCycle = new ItemCycleBinding
+                {
+                    Direction = ItemCycleDirection.Next,
+                    SlotCount = 3,
+                    LoopForwardKey = "Q",
+                    LoopBackwardKey = "E"
+                }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
+        await FlushMappedOutputQueueAsync();
+
+        mockKeyboard.Verify(k => k.TapKey(Key.Q, 1, 0, It.IsAny<int>()), Times.Once);
+        mockKeyboard.VerifyNoOtherCalls();
+        mockMouse.VerifyNoOtherCalls();
+    }
+
+    /// <summary>
+    /// D-pad keys are inferred combo leads when used in richer chords; solo presses defer to release.
+    /// Item cycle uses no <see cref="MappingEntry.KeyboardKey"/>, so it must still dispatch on that short release.
+    /// </summary>
+    [Fact]
+    public async Task ProcessInputFrame_DeferredComboLead_ItemCycleDispatchesOnShortRelease()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightThumb + DPadUp" },
+                KeyboardKey = "F5",
+                Trigger = TriggerMoment.Pressed
+            },
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "DPadUp" },
+                Trigger = TriggerMoment.Pressed,
+                ItemCycle = new ItemCycleBinding { Direction = ItemCycleDirection.Next, SlotCount = 3 }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.DPadUp), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.VerifyNoOtherCalls();
+
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
+        await FlushMappedOutputQueueAsync();
+        mockKeyboard.Verify(
+            k => k.TapKeyChord(
+                It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
+                Key.D1,
                 It.IsAny<int>()),
             Times.Once);
         mockKeyboard.VerifyNoOtherCalls();

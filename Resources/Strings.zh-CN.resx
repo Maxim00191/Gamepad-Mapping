@@ -246,6 +246,15 @@
   <data name="ItemCycleDirection" xml:space="preserve">
     <value>循环方向</value>
   </data>
+  <data name="ItemCycleLoopForwardKey" xml:space="preserve">
+    <value>向前循环按键</value>
+  </data>
+  <data name="ItemCycleLoopBackwardKey" xml:space="preserve">
+    <value>向后循环按键</value>
+  </data>
+  <data name="ItemCycleLoopKeysHint" xml:space="preserve">
+    <value>填写向前/向后两个按键后，将模拟对应输出（与键盘输出相同写法）。两者都留空则仍使用数字键 1–n。</value>
+  </data>
   <data name="ItemCycleSlotCount" xml:space="preserve">
     <value>槽位数量 n（1–9）</value>
   </data>

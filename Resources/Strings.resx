@@ -246,6 +246,15 @@
   <data name="ItemCycleDirection" xml:space="preserve">
     <value>Cycle direction</value>
   </data>
+  <data name="ItemCycleLoopForwardKey" xml:space="preserve">
+    <value>Loop forward key</value>
+  </data>
+  <data name="ItemCycleLoopBackwardKey" xml:space="preserve">
+    <value>Loop back key</value>
+  </data>
+  <data name="ItemCycleLoopKeysHint" xml:space="preserve">
+    <value>Set both loop keys to send those outputs for next/previous (same tokens as keyboard output). Leave both empty to send number keys 1–n instead.</value>
+  </data>
   <data name="ItemCycleSlotCount" xml:space="preserve">
     <value>Number of slots n (1–9)</value>
   </data>
