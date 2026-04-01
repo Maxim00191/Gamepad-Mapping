@@ -45,9 +45,68 @@
                                Margin="0,0,0,8" />
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Source]}" Margin="0,0,0,4" />
+
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{Binding Source={StaticResource Loc}, Path=[SourceIsCombination]}"
+                              IsChecked="{Binding EditSourceIsCombination, Mode=TwoWay}" />
+
                     <ComboBox ItemsSource="{Binding AvailableGamepadButtons}"
                               IsEditable="True"
-                              SelectedItem="{Binding EditBindingFromButton, Mode=TwoWay}" />
+                              SelectedItem="{Binding EditBindingFromButton, Mode=TwoWay}">
+                        <ComboBox.Style>
+                            <Style TargetType="{x:Type ComboBox}"
+                                   BasedOn="{StaticResource {x:Type ComboBox}}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditSourceIsCombination}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="{x:Type Grid}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditSourceIsCombination}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0"
+                                  ItemsSource="{Binding AvailableGamepadButtons}"
+                                  SelectedItem="{Binding EditBindingComboButton1, Mode=TwoWay}" />
+                        <TextBlock Grid.Column="1" Text="+" VerticalAlignment="Center" Margin="8,0" />
+                        <ComboBox Grid.Column="2"
+                                  ItemsSource="{Binding AvailableGamepadButtons}"
+                                  SelectedItem="{Binding EditBindingComboButton2, Mode=TwoWay}" />
+                    </Grid>
+
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="12"
+                               Margin="0,2,0,4"
+                               Text="{Binding Source={StaticResource Loc}, Path=[SourceCombinationHint]}">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditSourceIsCombination}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />
                     <ComboBox ItemsSource="{Binding AvailableTriggerModes}"

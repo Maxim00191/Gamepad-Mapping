@@ -276,4 +276,10 @@
   <data name="TemplateToggleHint" xml:space="preserve">
     <value>在每个模板中用同一按键绑定，并把对方的 profileId 填在「切换到的模板」里，即可一键在两种模式间切换（例如常规 ↔ 载具）。触发方式为按下或点按；不发出键盘按键。</value>
   </data>
+  <data name="SourceIsCombination" xml:space="preserve">
+    <value>使用组合按键作为来源</value>
+  </data>
+  <data name="SourceCombinationHint" xml:space="preserve">
+    <value>选择两个按钮以组成组合键映射。注意：如果需要 LT/RT 修饰键，仍可通过在单键输入框中手动输入来实现。</value>
+  </data>
 </root>

@@ -276,4 +276,10 @@
   <data name="TemplateToggleHint" xml:space="preserve">
     <value>Add the same button on each profile and point each at the other template’s ID so one press swaps modes (e.g. General ↔ Vehicle). Uses Pressed or Tap; no keyboard output.</value>
   </data>
+  <data name="SourceIsCombination" xml:space="preserve">
+    <value>Use combination / chord as source</value>
+  </data>
+  <data name="SourceCombinationHint" xml:space="preserve">
+    <value>Select two buttons to form a combination mapping. Note: LT/RT modifiers can still be added by typing in the single-button field if needed.</value>
+  </data>
 </root>

@@ -46,6 +46,18 @@ public partial class MappingEditorViewModel : ObservableObject
     private string editBindingFromButton = "A";
 
     [ObservableProperty]
+    private bool editSourceIsCombination;
+
+    [ObservableProperty]
+    private string editBindingComboText = string.Empty;
+
+    [ObservableProperty]
+    private string editBindingComboButton1 = "A";
+
+    [ObservableProperty]
+    private string editBindingComboButton2 = "B";
+
+    [ObservableProperty]
     private TriggerMoment editBindingTrigger = TriggerMoment.Tap;
 
     [ObservableProperty]
@@ -136,12 +148,39 @@ public partial class MappingEditorViewModel : ObservableObject
         if (value is null && IsCreatingNewMapping)
             return;
 
+        EditSourceIsCombination = false;
+        EditBindingComboText = string.Empty;
+        EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
+
         if (value?.From is not null && value.From.Type == GamepadBindingType.Button)
         {
-            var mappedButton = value.From.Value ?? string.Empty;
-            EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault(
-                b => string.Equals(b, mappedButton, StringComparison.OrdinalIgnoreCase))
-                ?? (AvailableGamepadButtons.FirstOrDefault() ?? "A");
+            var raw = value.From.Value ?? string.Empty;
+            if (ChordResolver.TryParseButtonChord(raw, out var chordButtons, out var reqRt, out var reqLt, out _)
+                && (chordButtons.Count > 1 || reqRt || reqLt))
+            {
+                EditSourceIsCombination = true;
+                EditBindingComboText = raw;
+
+                if (chordButtons.Count >= 2)
+                {
+                    EditBindingComboButton1 = chordButtons[0].ToString();
+                    EditBindingComboButton2 = chordButtons[1].ToString();
+                }
+                else if (chordButtons.Count == 1)
+                {
+                    EditBindingComboButton1 = chordButtons[0].ToString();
+                }
+
+                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+            }
+            else
+            {
+                var mappedButton = raw;
+                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault(
+                        b => string.Equals(b, mappedButton, StringComparison.OrdinalIgnoreCase))
+                    ?? (AvailableGamepadButtons.FirstOrDefault() ?? "A");
+            }
         }
         else
         {
@@ -276,11 +315,29 @@ public partial class MappingEditorViewModel : ObservableObject
             return;
 
         var sourceType = SelectedMapping.From?.Type ?? GamepadBindingType.Button;
-        if (sourceType == GamepadBindingType.Button &&
-            !AvailableGamepadButtons.Any(b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase)))
-            return;
-
-        SelectedMapping.From = new GamepadBinding { Type = sourceType, Value = button };
+        if (sourceType == GamepadBindingType.Button)
+        {
+            if (EditSourceIsCombination)
+            {
+                var b1 = EditBindingComboButton1;
+                var b2 = EditBindingComboButton2;
+                if (string.Equals(b1, b2, StringComparison.OrdinalIgnoreCase)) return;
+                var combo = $"{b1}+{b2}";
+                SelectedMapping.From = new GamepadBinding { Type = sourceType, Value = combo };
+            }
+            else
+            {
+                var isKnownSingleButton = AvailableGamepadButtons.Any(
+                    b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase));
+                if (!isKnownSingleButton)
+                    return;
+                SelectedMapping.From = new GamepadBinding { Type = sourceType, Value = button };
+            }
+        }
+        else
+        {
+            SelectedMapping.From = new GamepadBinding { Type = sourceType, Value = button };
+        }
         SelectedMapping.Trigger = EditBindingTrigger;
         SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
         SelectedMapping.AnalogThreshold = null;
@@ -356,6 +413,10 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel.SelectedMapping = null;
 
         EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        EditSourceIsCombination = false;
+        EditBindingComboText = string.Empty;
+        EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
         EditBindingTrigger = TriggerMoment.Tap;
         EditBindingKeyboardKey = string.Empty;
         EditBindingDescription = string.Empty;
@@ -403,14 +464,25 @@ public partial class MappingEditorViewModel : ObservableObject
             From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
         };
 
-        var button = (EditBindingFromButton ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(button))
-            return false;
-
-        if (!AvailableGamepadButtons.Any(b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        entry.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button };
+        if (EditSourceIsCombination)
+        {
+            var b1 = EditBindingComboButton1;
+            var b2 = EditBindingComboButton2;
+            if (string.Equals(b1, b2, StringComparison.OrdinalIgnoreCase)) return false;
+            var combo = $"{b1}+{b2}";
+            entry.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = combo };
+        }
+        else
+        {
+            var button = (EditBindingFromButton ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(button))
+                return false;
+            var isKnownSingleButton = AvailableGamepadButtons.Any(
+                b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase));
+            if (!isKnownSingleButton)
+                return false;
+            entry.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button };
+        }
         entry.Trigger = EditBindingTrigger;
         entry.Description = (EditBindingDescription ?? string.Empty).Trim();
         entry.AnalogThreshold = null;
