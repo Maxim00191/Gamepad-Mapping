@@ -19,11 +19,15 @@ public partial class ProfileService : IProfileService
     private static readonly Regex ValidIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", RegexOptions.Compiled);
     private readonly ISettingsService _settingsService;
     private readonly TranslationService _translationService;
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathProvider _pathProvider;
     private readonly AppSettings _settings;
 
-    public ProfileService(ISettingsService? settingsService = null, TranslationService? translationService = null)
+    public ProfileService(ISettingsService? settingsService = null, TranslationService? translationService = null, IFileSystem? fileSystem = null, IPathProvider? pathProvider = null)
     {
-        _settingsService = settingsService ?? new SettingsService();
+        _fileSystem = fileSystem ?? new PhysicalFileSystem();
+        _pathProvider = pathProvider ?? new AppPathProvider();
+        _settingsService = settingsService ?? new SettingsService(_fileSystem, _pathProvider);
         _translationService = translationService
             ?? Application.Current?.Resources["Loc"] as TranslationService
             ?? new TranslationService();
@@ -48,9 +52,9 @@ public partial class ProfileService : IProfileService
 
     public string LoadTemplateDirectory()
     {
-        var root = AppPaths.ResolveContentRoot();
+        var root = _pathProvider.GetContentRoot();
         var templatesDir = Path.Combine(root, _settings.TemplatesDirectory);
-        Directory.CreateDirectory(templatesDir);
+        _fileSystem.CreateDirectory(templatesDir);
         return templatesDir;
     }
 
@@ -60,10 +64,10 @@ public partial class ProfileService : IProfileService
             throw new ArgumentException("Profile id is required.", nameof(profileId));
 
         var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
-        if (!File.Exists(templatePath))
+        if (!_fileSystem.FileExists(templatePath))
             throw new FileNotFoundException($"Template not found: {templatePath}", templatePath);
 
-        var json = File.ReadAllText(templatePath, Encoding.UTF8);
+        var json = _fileSystem.ReadAllText(templatePath, Encoding.UTF8);
         var template = JsonConvert.DeserializeObject<GameProfileTemplate>(json);
         if (template is null)
             throw new InvalidOperationException($"Failed to parse template JSON: {templatePath}");
@@ -111,7 +115,7 @@ public partial class ProfileService : IProfileService
             return null;
         }
 
-        var jsonFiles = Directory.GetFiles(templatesDir, "*.json", SearchOption.TopDirectoryOnly);
+        var jsonFiles = _fileSystem.GetFiles(templatesDir, "*.json", SearchOption.TopDirectoryOnly);
         var options = new List<TemplateOption>();
         foreach (var file in jsonFiles)
         {
@@ -163,7 +167,7 @@ public partial class ProfileService : IProfileService
     {
         if (string.IsNullOrWhiteSpace(profileId)) return false;
         var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
-        return File.Exists(templatePath);
+        return _fileSystem.FileExists(templatePath);
     }
 
     /// <summary>
@@ -208,15 +212,21 @@ public partial class ProfileService : IProfileService
             ? normalizedTemplateGroupId
             : $"{normalizedTemplateGroupId}__{displaySegment}";
 
-        var candidate = baseId;
-        var index = 2;
-        while (TemplateExists(candidate))
+        if (!TemplateExists(baseId))
         {
-            candidate = $"{baseId}-{index}";
-            index++;
+            return baseId;
         }
 
-        return candidate;
+        var index = 2;
+        while (true)
+        {
+            var candidate = $"{baseId}-{index}";
+            if (!TemplateExists(candidate))
+            {
+                return candidate;
+            }
+            index++;
+        }
     }
 
     public void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true)
@@ -224,7 +234,7 @@ public partial class ProfileService : IProfileService
         if (template is null) throw new ArgumentNullException(nameof(template));
 
         var templatesDir = LoadTemplateDirectory();
-        Directory.CreateDirectory(templatesDir);
+        _fileSystem.CreateDirectory(templatesDir);
 
         if (template.SchemaVersion <= 0)
             template.SchemaVersion = 1;
@@ -239,11 +249,11 @@ public partial class ProfileService : IProfileService
             template.ProfileId = EnsureValidProfileId(template.ProfileId);
 
         var templatePath = Path.Combine(templatesDir, $"{template.ProfileId}.json");
-        if (!allowOverwrite && File.Exists(templatePath))
+        if (!allowOverwrite && _fileSystem.FileExists(templatePath))
             throw new InvalidOperationException($"A profile with id '{template.ProfileId}' already exists.");
 
         var json = JsonConvert.SerializeObject(template, Formatting.Indented);
-        File.WriteAllText(templatePath, json, Encoding.UTF8);
+        _fileSystem.WriteAllText(templatePath, json, Encoding.UTF8);
     }
 
     public void DeleteTemplate(string profileId)
@@ -251,8 +261,8 @@ public partial class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(profileId)) return;
         var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
 
-        if (File.Exists(templatePath))
-            File.Delete(templatePath);
+        if (_fileSystem.FileExists(templatePath))
+            _fileSystem.DeleteFile(templatePath);
     }
 
     private static string EnsureValidProfileId(string profileId)
