@@ -515,7 +515,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         MappingEditorPanel.SyncFromSelection(value);
     }
-    
+
     private void DispatchToUi(Action action)
     {
         if (action is null) return;
