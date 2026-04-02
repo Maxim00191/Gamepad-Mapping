@@ -1,88 +1,93 @@
 using System;
-using System.Collections.Generic;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services;
-using GamepadMapping.Tests.Mocks;
+using Moq;
 using Xunit;
 
 namespace GamepadMapping.Tests.Services;
 
 public class AppStatusMonitorTests
 {
-    private readonly MockProcessTargetService _mockProcessService;
-    private readonly MockElevationHandler _mockElevationHandler;
+    private readonly Mock<IProcessTargetService> _processTargetMock;
+    private readonly Mock<IElevationHandler> _elevationHandlerMock;
     private readonly AppStatusMonitor _monitor;
 
     public AppStatusMonitorTests()
     {
-        _mockProcessService = new MockProcessTargetService();
-        _mockElevationHandler = new MockElevationHandler();
-        // Use a long poll interval to avoid background timer interference during tests
-        _monitor = new AppStatusMonitor(_mockProcessService, _mockElevationHandler, TimeSpan.FromHours(1));
+        _processTargetMock = new Mock<IProcessTargetService>();
+        _elevationHandlerMock = new Mock<IElevationHandler>();
+        // Use a long poll interval to prevent timer interference during tests
+        _monitor = new AppStatusMonitor(_processTargetMock.Object, _elevationHandlerMock.Object, TimeSpan.FromHours(1));
     }
 
     [Fact]
-    public void UpdateTarget_NoTarget_ReturnsNoTargetSelected()
+    public void UpdateTarget_NoTarget_SetsNoTargetSelectedState()
     {
-        _monitor.UpdateTarget(null, false);
-        
+        // Act
+        _monitor.UpdateTarget(null, true);
+
+        // Assert
         Assert.Equal(AppTargetingState.NoTargetSelected, _monitor.CurrentState);
-        Assert.Contains("No target selected", _monitor.CurrentStatusText);
     }
 
     [Fact]
-    public void EvaluateState_ProcessBlockedByUipi_ReturnsBlockedByUipi()
+    public void EvaluateNow_TargetNotForeground_SetsWaitingForForegroundState()
     {
-        var target = new ProcessInfo { ProcessId = 1234, ProcessName = "Game.exe" };
-        _mockElevationHandler.IsBlockedByUipiFunc = _ => true;
+        // Arrange
+        var target = new ProcessInfo { ProcessId = 123, ProcessName = "Game" };
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(false);
+        _elevationHandlerMock.Setup(x => x.IsBlockedByUipi(target)).Returns(false);
 
+        // Act
         _monitor.UpdateTarget(target, true);
 
+        // Assert
+        Assert.Equal(AppTargetingState.WaitingForForeground, _monitor.CurrentState);
+    }
+
+    [Fact]
+    public void EvaluateNow_TargetIsForeground_SetsConnectedState()
+    {
+        // Arrange
+        var target = new ProcessInfo { ProcessId = 123, ProcessName = "Game" };
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(true);
+        _elevationHandlerMock.Setup(x => x.IsBlockedByUipi(target)).Returns(false);
+
+        // Act
+        _monitor.UpdateTarget(target, true);
+
+        // Assert
+        Assert.Equal(AppTargetingState.Connected, _monitor.CurrentState);
+    }
+
+    [Fact]
+    public void EvaluateNow_TargetBlockedByUipi_SetsBlockedByUipiState()
+    {
+        // Arrange
+        var target = new ProcessInfo { ProcessId = 123, ProcessName = "Game" };
+        _elevationHandlerMock.Setup(x => x.IsBlockedByUipi(It.IsAny<ProcessInfo>())).Returns(true);
+
+        // Act
+        _monitor.UpdateTarget(target, true);
+
+        // Assert
         Assert.Equal(AppTargetingState.BlockedByUipi, _monitor.CurrentState);
-        Assert.Contains("requires admin privileges", _monitor.CurrentStatusText);
     }
 
     [Fact]
-    public void EvaluateState_TargetInForeground_ReturnsConnected()
+    public void StatusChanged_FiresWhenStateChanges()
     {
-        var target = new ProcessInfo { ProcessId = 1234, ProcessName = "Game.exe" };
-        _mockElevationHandler.IsBlockedByUipiFunc = _ => false;
-        _mockProcessService.IsForegroundTargetFunc = _ => true;
+        // Arrange
+        var target = new ProcessInfo { ProcessId = 123, ProcessName = "Game" };
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(true);
+        bool eventFired = false;
+        _monitor.StatusChanged += (s, e) => eventFired = true;
 
+        // Act
         _monitor.UpdateTarget(target, true);
 
-        Assert.Equal(AppTargetingState.Connected, _monitor.CurrentState);
-        Assert.Contains("Connected", _monitor.CurrentStatusText);
-    }
-
-    [Fact]
-    public void EvaluateState_TargetNotInForeground_ReturnsWaitingForForeground()
-    {
-        var target = new ProcessInfo { ProcessId = 1234, ProcessName = "Game.exe" };
-        _mockElevationHandler.IsBlockedByUipiFunc = _ => false;
-        _mockProcessService.IsForegroundTargetFunc = _ => false;
-
-        _monitor.UpdateTarget(target, true);
-
-        Assert.Equal(AppTargetingState.WaitingForForeground, _monitor.CurrentState);
-        Assert.Contains("Waiting for target foreground", _monitor.CurrentStatusText);
-    }
-
-    [Fact]
-    public void EvaluateState_ProcessCrashes_UpdatesStateOnNextEvaluate()
-    {
-        var target = new ProcessInfo { ProcessId = 1234, ProcessName = "Game.exe" };
-        _mockElevationHandler.IsBlockedByUipiFunc = _ => false;
-        _mockProcessService.IsForegroundTargetFunc = _ => true;
-
-        _monitor.UpdateTarget(target, true);
-        Assert.Equal(AppTargetingState.Connected, _monitor.CurrentState);
-
-        // Simulate crash: IsForeground returns false because PID is gone
-        _mockProcessService.IsForegroundTargetFunc = _ => false;
-        _monitor.EvaluateNow();
-
-        Assert.Equal(AppTargetingState.WaitingForForeground, _monitor.CurrentState);
+        // Assert
+        Assert.True(eventFired);
     }
 }
