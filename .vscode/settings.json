@@ -2,7 +2,10 @@
     "dotnet.defaultSolution": "GamepadMapping.sln",
     "cSpell.words": [
         "deadzone",
+        "roco",
+        "Thumbstick",
         "thumbsticks",
-        "Vortice"
+        "Vortice",
+        "WASD"
     ]
 }

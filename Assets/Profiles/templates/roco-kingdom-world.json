@@ -20,6 +20,12 @@
     { "from": { "type": "Button", "value": "RightTrigger + B" }, "keyboardKey": "RightClick", "description": "Exit aiming mode", "descriptions": { "zh-CN": "退出瞄准模式" }, "trigger": "Pressed", "analogThreshold": 0.35 },
     { "from": { "type": "Button", "value": "RightTrigger + B" }, "keyboardKey": "RightClick", "description": "Exit aiming mode", "descriptions": { "zh-CN": "退出瞄准模式" }, "trigger": "Released", "analogThreshold": 0.35 },
 
+    { "from": { "type": "Button", "value": "RightTrigger + DPadLeft" }, "keyboardKey": "WheelUp", "description": "Mouse wheel up (one notch)", "descriptions": { "zh-CN": "鼠标滚轮向上（一刻度）" }, "trigger": "Pressed", "analogThreshold": 0.35 },
+    { "from": { "type": "Button", "value": "RightTrigger + DPadRight" }, "keyboardKey": "WheelDown", "description": "Mouse wheel down (one notch)", "descriptions": { "zh-CN": "鼠标滚轮向下（一刻度）" }, "trigger": "Pressed", "analogThreshold": 0.35 },
+
+    { "from": { "type": "Button", "value": "LeftShoulder + RightShoulder" }, "keyboardKey": "LeftClick", "description": "Hold left mouse button (drag map/UI; move cursor with right stick)", "descriptions": { "zh-CN": "按住鼠标左键拖动地图/界面（右摇杆移动光标）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + RightShoulder" }, "keyboardKey": "LeftClick", "description": "Hold left mouse button (drag map/UI; move cursor with right stick)", "descriptions": { "zh-CN": "按住鼠标左键拖动地图/界面（右摇杆移动光标）" }, "trigger": "Released", "analogThreshold": null },
+
     { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "description": "Jump", "descriptions": { "zh-CN": "跳跃" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "description": "Interact / pick up", "descriptions": { "zh-CN": "交互/拾取" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "description": "Cancel mount / climbing / companion / special state", "descriptions": { "zh-CN": "取消骑乘/攀爬/同行/特殊状态" }, "trigger": "Tap", "analogThreshold": null },
@@ -50,7 +56,7 @@
     { "from": { "type": "Button", "value": "DPadRight" }, "keyboardKey": "V", "description": "View quest details", "descriptions": { "zh-CN": "查看任务详情" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "LeftShoulder + A" }, "keyboardKey": "Tab", "description": "Open RolePlay interface", "descriptions": { "zh-CN": "打开RolePlay界面" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + B" }, "keyboardKey": "B", "description": "Open bag", "descriptions": { "zh-CN": "打开背包界面" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + a" }, "keyboardKey": "B", "description": "Open bag", "descriptions": { "zh-CN": "打开背包界面" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + X" }, "keyboardKey": "M", "description": "Open map", "descriptions": { "zh-CN": "打开地图" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "J", "description": "Open quest interface", "descriptions": { "zh-CN": "打开任务界面" }, "trigger": "Pressed", "analogThreshold": null },
 
