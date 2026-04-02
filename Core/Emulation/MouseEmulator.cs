@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
@@ -63,46 +64,56 @@ public sealed class MouseEmulator : IMouseEmulator
 
     public void LeftDown() => SendMouseInput(MouseeventfLeftdown);
     public void LeftUp() => SendMouseInput(MouseeventfLeftup);
-    public void LeftClick()
+    public void LeftClick() => LeftClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task LeftClickAsync(CancellationToken cancellationToken = default)
     {
         LeftDown();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         LeftUp();
     }
 
     public void RightDown() => SendMouseInput(MouseeventfRightdown);
     public void RightUp() => SendMouseInput(MouseeventfRightup);
-    public void RightClick()
+    public void RightClick() => RightClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task RightClickAsync(CancellationToken cancellationToken = default)
     {
         RightDown();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         RightUp();
     }
 
     public void MiddleDown() => SendMouseInput(MouseeventfMiddledown);
     public void MiddleUp() => SendMouseInput(MouseeventfMiddleup);
-    public void MiddleClick()
+    public void MiddleClick() => MiddleClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task MiddleClickAsync(CancellationToken cancellationToken = default)
     {
         MiddleDown();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         MiddleUp();
     }
 
     public void X1Down() => SendMouseInput(MouseeventfXdown, Xbutton1);
     public void X1Up() => SendMouseInput(MouseeventfXup, Xbutton1);
-    public void X1Click()
+    public void X1Click() => X1ClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task X1ClickAsync(CancellationToken cancellationToken = default)
     {
         X1Down();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         X1Up();
     }
 
     public void X2Down() => SendMouseInput(MouseeventfXdown, Xbutton2);
     public void X2Up() => SendMouseInput(MouseeventfXup, Xbutton2);
-    public void X2Click()
+    public void X2Click() => X2ClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task X2ClickAsync(CancellationToken cancellationToken = default)
     {
         X2Down();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         X2Up();
     }
 

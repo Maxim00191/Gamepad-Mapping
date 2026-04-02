@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
@@ -79,8 +81,8 @@ public sealed class MappingEngine : IMappingEngine
         _setMappingStatus = setMappingStatus;
         _setComboHud = setComboHud;
         _inputDispatcher = new InputDispatcher(
-            DispatchMappedOutput,
-            (modifiers, mainKey) => _keyboardEmulator.TapKeyChord(modifiers, mainKey),
+            DispatchMappedOutputAsync,
+            (modifiers, mainKey, ct) => _keyboardEmulator.TapKeyChordAsync(modifiers, mainKey, cancellationToken: ct),
             runOnUi,
             setMappedOutput,
             setMappingStatus);
@@ -384,7 +386,7 @@ public sealed class MappingEngine : IMappingEngine
         return false;
     }
 
-    private void DispatchMappedOutput(DispatchedOutput output, TriggerMoment trigger)
+    private async Task DispatchMappedOutputAsync(DispatchedOutput output, TriggerMoment trigger, CancellationToken cancellationToken)
     {
         if (output.KeyboardKey is Key key && key != Key.None)
         {
@@ -393,12 +395,12 @@ public sealed class MappingEngine : IMappingEngine
             else if (trigger == TriggerMoment.Released)
                 _keyboardEmulator.KeyUp(key);
             else
-                _keyboardEmulator.TapKey(key);
+                await _keyboardEmulator.TapKeyAsync(key, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
 
         if (output.PointerAction is PointerAction pointerAction)
-            SendPointerAction(pointerAction, trigger);
+            await SendPointerActionAsync(pointerAction, trigger, cancellationToken).ConfigureAwait(false);
     }
 
     private void ForceReleaseHeldOutputsForButton(GamepadButtons button, IReadOnlySet<DispatchedOutput>? outputsHandledByReleasedMappings = null)
@@ -411,34 +413,37 @@ public sealed class MappingEngine : IMappingEngine
         QueueOutputDispatch("ForceRelease", TriggerMoment.Released, output, "Forced release", "forced-release");
     }
 
-    private void SendPointerAction(PointerAction action, TriggerMoment trigger)
+    private void SendPointerAction(PointerAction action, TriggerMoment trigger) =>
+        SendPointerActionAsync(action, trigger, CancellationToken.None).GetAwaiter().GetResult();
+
+    private async Task SendPointerActionAsync(PointerAction action, TriggerMoment trigger, CancellationToken cancellationToken)
     {
         switch (action)
         {
             case PointerAction.LeftClick:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.LeftDown();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.LeftUp();
-                else _mouseEmulator.LeftClick();
+                else await _mouseEmulator.LeftClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.RightClick:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.RightDown();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.RightUp();
-                else _mouseEmulator.RightClick();
+                else await _mouseEmulator.RightClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.MiddleClick:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.MiddleDown();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.MiddleUp();
-                else _mouseEmulator.MiddleClick();
+                else await _mouseEmulator.MiddleClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.X1Click:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.X1Down();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.X1Up();
-                else _mouseEmulator.X1Click();
+                else await _mouseEmulator.X1ClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.X2Click:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.X2Down();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.X2Up();
-                else _mouseEmulator.X2Click();
+                else await _mouseEmulator.X2ClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.WheelUp:
                 if (trigger != TriggerMoment.Released) _mouseEmulator.WheelUp();

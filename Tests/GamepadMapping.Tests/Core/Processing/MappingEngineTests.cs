@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
@@ -272,7 +273,7 @@ public class MappingEngineTests
         await engine.WaitForIdleAsync();
 
         mockKeyboard.Verify(
-            k => k.TapKey(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()),
+            k => k.TapKeyAsync(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
         mockKeyboard.Verify(k => k.KeyDown(It.IsAny<Key>()), Times.Never);
         mockKeyboard.Verify(k => k.KeyUp(It.IsAny<Key>()), Times.Never);
@@ -336,34 +337,34 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         mockKeyboard.Verify(
-            k => k.TapKeyChord(
+            k => k.TapKeyChordAsync(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D1,
-                It.IsAny<int>()),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
         engine.ProcessInputFrame(Frame(3, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         mockKeyboard.Verify(
-            k => k.TapKeyChord(
+            k => k.TapKeyChordAsync(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D2,
-                It.IsAny<int>()),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         engine.ProcessInputFrame(Frame(4, GamepadButtons.None), mappings);
         engine.ProcessInputFrame(Frame(5, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         mockKeyboard.Verify(
-            k => k.TapKeyChord(
+            k => k.TapKeyChordAsync(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D3,
-                It.IsAny<int>()),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         mockKeyboard.Verify(
-            k => k.TapKeyChord(It.IsAny<IReadOnlyList<Key>>(), It.IsAny<Key>(), It.IsAny<int>()),
+            k => k.TapKeyChordAsync(It.IsAny<IReadOnlyList<Key>>(), It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
@@ -395,10 +396,10 @@ public class MappingEngineTests
         await engine.WaitForIdleAsync();
 
         mockKeyboard.Verify(
-            k => k.TapKeyChord(
+            k => k.TapKeyChordAsync(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 1 && l[0] == Key.LeftAlt),
                 Key.D1,
-                It.IsAny<int>()),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
@@ -431,7 +432,7 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKey(Key.Q, 1, 0, It.IsAny<int>()), Times.Once);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Q, 1, 0, It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -470,10 +471,10 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
         mockKeyboard.Verify(
-            k => k.TapKeyChord(
+            k => k.TapKeyChordAsync(
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D1,
-                It.IsAny<int>()),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
@@ -557,8 +558,8 @@ public class MappingEngineTests
 
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKey(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
-        mockKeyboard.Verify(k => k.TapKey(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -577,14 +578,14 @@ public class MappingEngineTests
         mockTime.Advance(250);
 
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.TapKey(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Release after hold fired
         engine.ProcessInputFrame(Frame(400, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
         // Should NOT trigger Tap on release if Hold already fired
-        mockKeyboard.Verify(k => k.TapKey(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -610,14 +611,14 @@ public class MappingEngineTests
         await engine.WaitForIdleAsync();
 
         // Hold should have been cancelled by the more specific chord
-        mockKeyboard.Verify(k => k.TapKey(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
 
         // Release both
         engine.ProcessInputFrame(Frame(400, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
         mockKeyboard.Verify(k => k.KeyUp(Key.C), Times.Once);
-        mockKeyboard.Verify(k => k.TapKey(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

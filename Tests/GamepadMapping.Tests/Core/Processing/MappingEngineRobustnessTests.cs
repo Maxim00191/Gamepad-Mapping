@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Numerics;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -129,7 +130,7 @@ public class MappingEngineRobustnessTests
 
         // Current behavior: Tap triggers on Pressed event.
         // So even a 1ms glitch will trigger a Tap.
-        mockKeyboard.Verify(k => k.TapKey(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -199,7 +200,7 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
 
         // Each press (50 times) should trigger a Tap
-        mockKeyboard.Verify(k => k.TapKey(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(50));
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(50));
     }
 
     [Fact]
@@ -235,9 +236,9 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
 
         // Should have 50 Taps of 'T'
-        mockKeyboard.Verify(k => k.TapKey(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(50));
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(50));
         // Should have 0 Taps of 'H' (Hold)
-        mockKeyboard.Verify(k => k.TapKey(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -820,7 +821,7 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
         
         mockKeyboard.Verify(k => k.KeyDown(Key.P), Times.Once);
-        mockKeyboard.Verify(k => k.TapKey(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never, "A (Tap) should be suppressed when RB is held");
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never, "A (Tap) should be suppressed when RB is held");
     }
 
     [Fact]
@@ -860,7 +861,7 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.B | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.TapKey(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Once, "A (Tap) should NOT be suppressed when a non-lead button is held");
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once, "A (Tap) should NOT be suppressed when a non-lead button is held");
     }
 
     [Fact]
@@ -954,6 +955,6 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
         
         // Should NOT trigger Space (Tap)
-        mockKeyboard.Verify(k => k.TapKey(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

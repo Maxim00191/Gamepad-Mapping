@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
@@ -15,6 +16,7 @@ namespace GamepadMapperGUI.Core
     {
         private readonly IWin32Service _win32;
         private readonly object _sendLock = new();
+        private readonly SemaphoreSlim _chordSequenceGate = new(1, 1);
         private const int DefaultTapHoldMs = 30;
         private const int MinTapHoldMs = 20;
         private const int MaxTapHoldMs = 50;
@@ -99,7 +101,15 @@ namespace GamepadMapperGUI.Core
             SendKeyboardKey(vk, keyUp: true);
         }
 
-        public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = DefaultTapHoldMs)
+        public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = DefaultTapHoldMs) =>
+            TapKeyAsync(key, repeatCount, interKeyDelayMs, keyHoldMs, CancellationToken.None).GetAwaiter().GetResult();
+
+        public async Task TapKeyAsync(
+            Key key,
+            int repeatCount = 1,
+            int interKeyDelayMs = 0,
+            int keyHoldMs = DefaultTapHoldMs,
+            CancellationToken cancellationToken = default)
         {
             if (repeatCount < 1)
                 throw new ArgumentOutOfRangeException(nameof(repeatCount), "repeatCount must be >= 1.");
@@ -108,16 +118,22 @@ namespace GamepadMapperGUI.Core
             for (var i = 0; i < repeatCount; i++)
             {
                 KeyDown(key);
-                // Brief key hold improves detection in engines that sample input state per-frame.
-                Thread.Sleep(effectiveHoldMs);
+                await Task.Delay(effectiveHoldMs, cancellationToken).ConfigureAwait(false);
                 KeyUp(key);
 
                 if (interKeyDelayMs > 0 && i < repeatCount - 1)
-                    Thread.Sleep(interKeyDelayMs);
+                    await Task.Delay(interKeyDelayMs, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs)
+        public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs) =>
+            TapKeyChordAsync(modifiers, mainKey, keyHoldMs, CancellationToken.None).GetAwaiter().GetResult();
+
+        public async Task TapKeyChordAsync(
+            IReadOnlyList<Key> modifiers,
+            Key mainKey,
+            int keyHoldMs = DefaultTapHoldMs,
+            CancellationToken cancellationToken = default)
         {
             if (mainKey == Key.None)
                 throw new ArgumentException("Main key cannot be Key.None.", nameof(mainKey));
@@ -131,17 +147,22 @@ namespace GamepadMapperGUI.Core
                     modList.Add(k);
             }
 
-            lock (_sendLock)
+            await _chordSequenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
                 foreach (var m in modList)
                     KeyDown(m);
 
                 KeyDown(mainKey);
-                Thread.Sleep(effectiveHoldMs);
+                await Task.Delay(effectiveHoldMs, cancellationToken).ConfigureAwait(false);
                 KeyUp(mainKey);
 
                 for (var i = modList.Count - 1; i >= 0; i--)
                     KeyUp(modList[i]);
+            }
+            finally
+            {
+                _chordSequenceGate.Release();
             }
         }
 
