@@ -13,28 +13,31 @@ internal sealed class InputFrameTransitionMiddleware : IInputFrameMiddleware
     public void Invoke(InputFrameContext context, Action<InputFrameContext> next)
     {
         var currentButtons = context.Frame.Buttons;
-        if (!_hasPrevious)
+        lock (this)
         {
-            context.IsFirstFrame = true;
-            context.PreviousButtonsMask = GamepadButtons.None;
-            context.PressedButtons = Array.Empty<GamepadButtons>();
-            context.ReleasedButtons = Array.Empty<GamepadButtons>();
+            if (!_hasPrevious)
+            {
+                context.IsFirstFrame = true;
+                context.PreviousButtonsMask = GamepadButtons.None;
+                context.PressedButtons = Array.Empty<GamepadButtons>();
+                context.ReleasedButtons = Array.Empty<GamepadButtons>();
+                _previousButtons = currentButtons;
+                _hasPrevious = true;
+                next(context);
+                return;
+            }
+
+            context.IsFirstFrame = false;
+            context.PreviousButtonsMask = _previousButtons;
+
+            var pressedMask = currentButtons & ~_previousButtons;
+            var releasedMask = _previousButtons & ~currentButtons;
+
+            context.PressedButtons = EnumerateSetFlags(pressedMask).ToArray();
+            context.ReleasedButtons = EnumerateSetFlags(releasedMask).ToArray();
+
             _previousButtons = currentButtons;
-            _hasPrevious = true;
-            next(context);
-            return;
         }
-
-        context.IsFirstFrame = false;
-        context.PreviousButtonsMask = _previousButtons;
-
-        var pressedMask = currentButtons & ~_previousButtons;
-        var releasedMask = _previousButtons & ~currentButtons;
-
-        context.PressedButtons = EnumerateSetFlags(pressedMask).ToArray();
-        context.ReleasedButtons = EnumerateSetFlags(releasedMask).ToArray();
-
-        _previousButtons = currentButtons;
         next(context);
     }
 

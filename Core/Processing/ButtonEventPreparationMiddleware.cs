@@ -63,6 +63,9 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
                 context.RightTriggerValue,
                 context.ReleasedButtonHeldMs);
             _handleHoldRelease(context.Button, context.ActiveButtons, context.LeftTriggerValue, context.RightTriggerValue, context.ReleasedButtonHeldMs);
+            
+            // CRITICAL: We MUST register the release BEFORE forcing release of held outputs.
+            // This ensures that any logic checking if the button is still down will see it as released.
             _registerButtonReleased(context.Button);
             _forceReleaseHeldOutputsForButton(context.Button, context.ReleasedOutputsHandledByMappings);
         }

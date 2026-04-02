@@ -17,6 +17,10 @@ namespace GamepadMapping.Tests.Core.Processing
         [InlineData("LT+B", new[] { GamepadButtons.B }, false, true, "LeftTrigger + B")]
         [InlineData("LT+RT+X", new[] { GamepadButtons.X }, true, true, "LeftTrigger + RightTrigger + X")]
         [InlineData("A,B;X", new[] { GamepadButtons.A, GamepadButtons.B, GamepadButtons.X }, false, false, "A + B + X")] // mixed separators
+        [InlineData(" A + B ", new[] { GamepadButtons.A, GamepadButtons.B }, false, false, "A + B")] // spaces
+        [InlineData("A++B", new[] { GamepadButtons.A, GamepadButtons.B }, false, false, "A + B")] // duplicate separators
+        [InlineData("a+B", new[] { GamepadButtons.A, GamepadButtons.B }, false, false, "A + B")] // casing
+        [InlineData("RT+RT+A", new[] { GamepadButtons.A }, true, false, "RightTrigger + A")] // duplicate triggers
         public void TryParseButtonChord_ValidInputs_ReturnsTrueAndNormalizes(
             string source,
             GamepadButtons[] expectedButtons,
@@ -49,6 +53,10 @@ namespace GamepadMapping.Tests.Core.Processing
         [InlineData("   ")]
         [InlineData("UnknownButton")]
         [InlineData("A+UnknownButton")]
+        [InlineData("DPadUp+DPadDown")] // Semantic error: physically impossible
+        [InlineData("DPadLeft+DPadRight")] // Semantic error: physically impossible
+        [InlineData("LeftThumbUp+LeftThumbDown")] // Semantic error: physically impossible
+        [InlineData("RightThumbLeft+RightThumbRight")] // Semantic error: physically impossible
         public void TryParseButtonChord_InvalidInputs_ReturnsFalse(string? source)
         {
             var ok = ChordResolver.TryParseButtonChord(

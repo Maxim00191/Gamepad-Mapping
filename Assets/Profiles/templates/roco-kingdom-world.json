@@ -7,6 +7,7 @@
   "displayNames": {
     "zh-CN": "洛克王国世界·探索"
   },
+  "comboLeadButtons": [ "LeftShoulder", "RightShoulder", "LeftThumb", "RightThumb", "Start", "Back" ],
   "mappings": [
     { "from": { "type": "LeftThumbstick", "value": "Up" }, "keyboardKey": "W", "description": "Move (WASD): forward", "descriptions": { "zh-CN": "向前移动" }, "trigger": "Pressed", "analogThreshold": 0.25 },
     { "from": { "type": "LeftThumbstick", "value": "Down" }, "keyboardKey": "S", "description": "Move (WASD): backward", "descriptions": { "zh-CN": "向后移动" }, "trigger": "Pressed", "analogThreshold": 0.25 },

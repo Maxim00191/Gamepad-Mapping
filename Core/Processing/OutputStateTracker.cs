@@ -10,6 +10,7 @@ internal sealed class OutputStateTracker
 {
     private readonly Dictionary<string, HashSet<DispatchedOutput>> _activeHeldOutputsBySource = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<GamepadButtons, HashSet<string>> _activeHeldSourcesByButton = new();
+    private readonly object _lock = new();
 
     public void TrackOutputHoldState(
         string sourceToken,
@@ -17,37 +18,40 @@ internal sealed class OutputStateTracker
         DispatchedOutput output,
         TriggerMoment trigger)
     {
-        if (trigger == TriggerMoment.Pressed && IsHoldableOutput(output))
+        lock (_lock)
         {
-            if (!_activeHeldOutputsBySource.TryGetValue(sourceToken, out var heldOutputs))
+            if (trigger == TriggerMoment.Pressed && IsHoldableOutput(output))
             {
-                heldOutputs = [];
-                _activeHeldOutputsBySource[sourceToken] = heldOutputs;
-            }
-
-            heldOutputs.Add(output);
-            foreach (var sourceButton in sourceButtons)
-            {
-                if (!_activeHeldSourcesByButton.TryGetValue(sourceButton, out var sourceSet))
+                if (!_activeHeldOutputsBySource.TryGetValue(sourceToken, out var heldOutputs))
                 {
-                    sourceSet = [];
-                    _activeHeldSourcesByButton[sourceButton] = sourceSet;
+                    heldOutputs = [];
+                    _activeHeldOutputsBySource[sourceToken] = heldOutputs;
                 }
 
-                sourceSet.Add(sourceToken);
+                heldOutputs.Add(output);
+                foreach (var sourceButton in sourceButtons)
+                {
+                    if (!_activeHeldSourcesByButton.TryGetValue(sourceButton, out var sourceSet))
+                    {
+                        sourceSet = [];
+                        _activeHeldSourcesByButton[sourceButton] = sourceSet;
+                    }
+
+                    sourceSet.Add(sourceToken);
+                }
+
+                return;
             }
 
-            return;
-        }
+            if (trigger != TriggerMoment.Released)
+                return;
 
-        if (trigger != TriggerMoment.Released)
-            return;
-
-        if (_activeHeldOutputsBySource.TryGetValue(sourceToken, out var existing))
-        {
-            existing.Remove(output);
-            if (existing.Count == 0)
-                RemoveTrackedHeldSource(sourceToken);
+            if (_activeHeldOutputsBySource.TryGetValue(sourceToken, out var existing))
+            {
+                existing.Remove(output);
+                if (existing.Count == 0)
+                    RemoveTrackedHeldSource(sourceToken);
+            }
         }
     }
 
@@ -56,35 +60,41 @@ internal sealed class OutputStateTracker
         Action<DispatchedOutput> forceReleaseOutput,
         IReadOnlySet<DispatchedOutput>? outputsHandledByReleasedMappings = null)
     {
-        if (!_activeHeldSourcesByButton.TryGetValue(button, out var sourceTokens) || sourceTokens.Count == 0)
-            return;
-
-        foreach (var sourceToken in sourceTokens.ToList())
+        lock (_lock)
         {
-            if (!_activeHeldOutputsBySource.TryGetValue(sourceToken, out var heldOutputs))
-                continue;
+            if (!_activeHeldSourcesByButton.TryGetValue(button, out var sourceTokens) || sourceTokens.Count == 0)
+                return;
 
-            foreach (var heldOutput in heldOutputs.ToList())
+            foreach (var sourceToken in sourceTokens.ToList())
             {
-                if (outputsHandledByReleasedMappings?.Contains(heldOutput) == true)
+                if (!_activeHeldOutputsBySource.TryGetValue(sourceToken, out var heldOutputs))
                     continue;
-                forceReleaseOutput(heldOutput);
-            }
 
-            RemoveTrackedHeldSource(sourceToken);
+                foreach (var heldOutput in heldOutputs.ToList())
+                {
+                    if (outputsHandledByReleasedMappings?.Contains(heldOutput) == true)
+                        continue;
+                    forceReleaseOutput(heldOutput);
+                }
+
+                RemoveTrackedHeldSource(sourceToken);
+            }
         }
     }
 
     public void ForceReleaseAllOutputs(Action<DispatchedOutput> forceReleaseOutput)
     {
-        foreach (var heldOutputs in _activeHeldOutputsBySource.Values)
+        lock (_lock)
         {
-            foreach (var heldOutput in heldOutputs.ToList())
-                forceReleaseOutput(heldOutput);
-        }
+            foreach (var heldOutputs in _activeHeldOutputsBySource.Values)
+            {
+                foreach (var heldOutput in heldOutputs.ToList())
+                    forceReleaseOutput(heldOutput);
+            }
 
-        _activeHeldOutputsBySource.Clear();
-        _activeHeldSourcesByButton.Clear();
+            _activeHeldOutputsBySource.Clear();
+            _activeHeldSourcesByButton.Clear();
+        }
     }
 
     private static bool IsHoldableOutput(DispatchedOutput output)

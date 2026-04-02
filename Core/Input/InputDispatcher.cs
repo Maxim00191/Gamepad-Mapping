@@ -20,6 +20,7 @@ internal sealed class InputDispatcher : IDisposable
     private readonly SemaphoreSlim _outputQueueSignal = new(0);
     private readonly CancellationTokenSource _outputQueueCts = new();
     private readonly Task _outputQueueWorkerTask;
+    private TaskCompletionSource _idleTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public InputDispatcher(
         Action<DispatchedOutput, TriggerMoment> dispatchMappedOutput,
@@ -33,6 +34,10 @@ internal sealed class InputDispatcher : IDisposable
         _runOnUi = runOnUi;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
+        
+        // Initially idle
+        _idleTcs.TrySetResult();
+        
         _outputQueueWorkerTask = Task.Run(ProcessOutputQueueAsync);
     }
 
@@ -45,6 +50,17 @@ internal sealed class InputDispatcher : IDisposable
     {
         lock (_outputQueueLock)
         {
+            if (_outputQueue.Count >= 10000)
+            {
+                // Drop oldest if queue is too large to prevent OOM
+                _outputQueue.Dequeue();
+            }
+
+            if (_outputQueue.Count == 0 && _idleTcs.Task.IsCompleted)
+            {
+                _idleTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
             _outputQueue.Enqueue(new QueuedOutputWork(
                 buttonName,
                 trigger,
@@ -68,6 +84,17 @@ internal sealed class InputDispatcher : IDisposable
     {
         lock (_outputQueueLock)
         {
+            if (_outputQueue.Count >= 10000)
+            {
+                // Drop oldest if queue is too large to prevent OOM
+                _outputQueue.Dequeue();
+            }
+
+            if (_outputQueue.Count == 0 && _idleTcs.Task.IsCompleted)
+            {
+                _idleTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
             _outputQueue.Enqueue(new QueuedOutputWork(
                 buttonName,
                 trigger,
@@ -79,6 +106,14 @@ internal sealed class InputDispatcher : IDisposable
         }
 
         _outputQueueSignal.Release();
+    }
+
+    public Task WaitForIdleAsync()
+    {
+        lock (_outputQueueLock)
+        {
+            return _idleTcs.Task;
+        }
     }
 
     public void Dispose()
@@ -107,7 +142,10 @@ internal sealed class InputDispatcher : IDisposable
             lock (_outputQueueLock)
             {
                 if (_outputQueue.Count == 0)
+                {
+                    _idleTcs.TrySetResult();
                     continue;
+                }
 
                 workItem = _outputQueue.Dequeue();
             }
@@ -131,6 +169,16 @@ internal sealed class InputDispatcher : IDisposable
             {
                 Debug.WriteLine($"Failed to send mapped output. token={workItem.SourceToken}, ex={ex.Message}");
                 _runOnUi(() => _setMappingStatus($"Error sending '{workItem.SourceToken}': {ex.Message}"));
+            }
+            finally
+            {
+                lock (_outputQueueLock)
+                {
+                    if (_outputQueue.Count == 0)
+                    {
+                        _idleTcs.TrySetResult();
+                    }
+                }
             }
         }
     }

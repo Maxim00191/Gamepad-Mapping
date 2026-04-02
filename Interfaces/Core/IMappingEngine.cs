@@ -12,4 +12,10 @@ public interface IMappingEngine : IDisposable
     InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot);
     void ForceReleaseAllOutputs();
     void ForceReleaseAnalogOutputs();
+
+    /// <summary>
+    /// Waits until all queued background outputs have been dispatched.
+    /// Used primarily in tests to avoid flaky assertions.
+    /// </summary>
+    Task WaitForIdleAsync();
 }

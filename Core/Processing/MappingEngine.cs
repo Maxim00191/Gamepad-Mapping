@@ -42,6 +42,7 @@ public sealed class MappingEngine : IMappingEngine
 
     /// <summary>Buttons whose solo <see cref="TriggerMoment.Pressed"/> was deferred because the profile has a richer chord using them.</summary>
     private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons = [];
+    private readonly object _deferredSoloLeadButtonsLock = new();
 
     /// <summary>Non-null = exact combo leads from profile JSON; null = infer from mappings each event.</summary>
     private HashSet<GamepadButtons>? _explicitComboLeadsFromTemplate;
@@ -49,6 +50,7 @@ public sealed class MappingEngine : IMappingEngine
     private readonly AnalogMappingProcessor _analogMappingProcessor;
     private readonly ComboHudManager? _comboHudManager;
     private readonly ButtonMappingProcessor _buttonMappingProcessor;
+    private readonly ITimeProvider _timeProvider;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
@@ -60,8 +62,10 @@ public sealed class MappingEngine : IMappingEngine
         Action<ComboHudContent?>? setComboHud = null,
         int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
         int leadKeyReleaseSuppressMs = 500,
-        Action<string>? requestTemplateSwitchToProfileId = null)
+        Action<string>? requestTemplateSwitchToProfileId = null,
+        ITimeProvider? timeProvider = null)
     {
+        _timeProvider = timeProvider ?? new RealTimeProvider();
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
@@ -83,6 +87,8 @@ public sealed class MappingEngine : IMappingEngine
             _setMappingStatus,
             QueueOutputDispatch,
             () => _comboHudManager?.Sync(),
+            mappings => ResolveComboLeads(mappings),
+            _timeProvider,
             modifierGraceMs,
             leadKeyReleaseSuppressMs);
 
@@ -118,7 +124,8 @@ public sealed class MappingEngine : IMappingEngine
             TryDispatchTemplateToggle,
             mappings => ResolveComboLeads(mappings),
             _leadKeyReleaseSuppressMs,
-            _deferredSoloLeadButtons);
+            _deferredSoloLeadButtons,
+            _deferredSoloLeadButtonsLock);
 
         _inputFramePipeline = new InputFramePipeline(
             middlewares: new IInputFrameMiddleware[] { new InputFrameTransitionMiddleware() },
@@ -163,15 +170,22 @@ public sealed class MappingEngine : IMappingEngine
 
     public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot)
     {
-        _lastButtonMappingsSnapshot = mappingsSnapshot;
-
-        var context = new InputFrameContext
+        lock (_inputFramePipeline)
         {
-            Frame = frame
-        };
+            _lastButtonMappingsSnapshot = mappingsSnapshot;
 
-        _inputFramePipeline.Invoke(context);
-        return new InputFrameProcessingResult(context.PressedButtons, context.ReleasedButtons);
+            var context = new InputFrameContext
+            {
+                Frame = frame
+            };
+
+            _inputFramePipeline.Invoke(context);
+            
+            // Return a copy of the results to ensure thread safety for the caller
+            return new InputFrameProcessingResult(
+                context.PressedButtons.ToArray(), 
+                context.ReleasedButtons.ToArray());
+        }
     }
 
     private void ProcessInputFrameTerminal(InputFrameContext context)
@@ -277,18 +291,28 @@ public sealed class MappingEngine : IMappingEngine
 
     public void ForceReleaseAllOutputs()
     {
-        _latestActiveButtons = Array.Empty<GamepadButtons>();
-        _deferredSoloLeadButtons.Clear();
-        _itemCycleProcessor.Reset();
-        _holdSessionManager.ClearButtonDownTicks();
-        _holdSessionManager.ClearAllHoldSessions();
-        _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
+        lock (_inputFramePipeline)
+        {
+            lock (_deferredSoloLeadButtonsLock)
+            {
+                _latestActiveButtons = Array.Empty<GamepadButtons>();
+                _deferredSoloLeadButtons.Clear();
+                _itemCycleProcessor.Reset();
+                _holdSessionManager.ClearButtonDownTicks();
+                _holdSessionManager.ClearAllHoldSessions();
+                _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
+                _analogMappingProcessor.ForceReleaseAnalogOutputs();
+            }
+        }
     }
 
     public void ForceReleaseAnalogOutputs()
     {
         _analogMappingProcessor.ForceReleaseAnalogOutputs();
     }
+
+    /// <inheritdoc />
+    public Task WaitForIdleAsync() => _inputDispatcher.WaitForIdleAsync();
 
     public void Dispose()
     {
