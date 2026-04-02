@@ -203,12 +203,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
+            App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.ProfileId})");
             LoadSelectedTemplate();
             _profileService.PersistLastSelectedTemplateProfileId(value?.ProfileId);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}': {ex.Message}");
+            App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
         }
     }
 

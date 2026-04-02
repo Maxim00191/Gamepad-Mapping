@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
@@ -74,21 +75,28 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
 
     public void EvaluateNow()
     {
-        ProcessInfo? selectedTargetProcess;
-        bool isProcessTargetingEnabled;
-        lock (_sync)
+        try
         {
-            selectedTargetProcess = _selectedTargetProcess;
-            isProcessTargetingEnabled = _isProcessTargetingEnabled;
+            ProcessInfo? selectedTargetProcess;
+            bool isProcessTargetingEnabled;
+            lock (_sync)
+            {
+                selectedTargetProcess = _selectedTargetProcess;
+                isProcessTargetingEnabled = _isProcessTargetingEnabled;
+            }
+
+            var (state, statusText) = EvaluateState(selectedTargetProcess, isProcessTargetingEnabled);
+            if (state == CurrentState && string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal))
+                return;
+
+            CurrentState = state;
+            CurrentStatusText = statusText;
+            StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
         }
-
-        var (state, statusText) = EvaluateState(selectedTargetProcess, isProcessTargetingEnabled);
-        if (state == CurrentState && string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal))
-            return;
-
-        CurrentState = state;
-        CurrentStatusText = statusText;
-        StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
+        catch (Exception ex)
+        {
+            App.Logger.Error("Error during AppStatusMonitor.EvaluateNow", ex);
+        }
     }
 
     public void Dispose()

@@ -4,13 +4,16 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Input;
-using System.Windows.Interop;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Services;
 
 namespace GamepadMapperGUI.Core
 {
     public sealed class KeyboardEmulator : IKeyboardEmulator
     {
+        private readonly IWin32Service _win32;
         private readonly object _sendLock = new();
         private const int DefaultTapHoldMs = 30;
         private const int MinTapHoldMs = 20;
@@ -22,12 +25,6 @@ namespace GamepadMapperGUI.Core
         private const uint KEYEVENTF_SCANCODE = 0x0008;
         private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
         private const uint MAPVK_VK_TO_VSC = 0;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-
-        [DllImport("user32.dll")]
-        private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct INPUT
@@ -71,6 +68,11 @@ namespace GamepadMapperGUI.Core
             public uint uMsg;
             public ushort wParamL;
             public ushort wParamH;
+        }
+
+        public KeyboardEmulator(IWin32Service? win32 = null)
+        {
+            _win32 = win32 ?? new Win32Service();
         }
 
         public void KeyDown(Key key)
@@ -191,7 +193,7 @@ namespace GamepadMapperGUI.Core
 
         private void SendKeyboardKey(ushort virtualKey, bool keyUp)
         {
-            var scanCode = (ushort)MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC);
+            var scanCode = (ushort)_win32.MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC);
             if (scanCode == 0)
             {
                 // Fallback for uncommon keys if scan code translation fails.
@@ -248,11 +250,25 @@ namespace GamepadMapperGUI.Core
                     }
                 };
 
-                var sent = SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>());
-                if (sent != 1)
+                var size = Marshal.SizeOf<INPUT>();
+                IntPtr ptr = Marshal.AllocHGlobal(size);
+                try
                 {
-                    var err = Marshal.GetLastWin32Error();
-                    Debug.WriteLine($"SendInput failed. key={wVk:X4} scan={wScan:X4} flags=0x{flags:X} err={err}");
+                    Marshal.StructureToPtr(input, ptr, false);
+                    var sent = _win32.SendInput(1, ptr, size);
+                    if (sent != 1)
+                    {
+                        var err = Marshal.GetLastWin32Error();
+                        App.Logger.Warning($"SendInput failed. key={wVk:X4} scan={wScan:X4} flags=0x{flags:X} err={err}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    App.Logger.Error("Exception during SendInput", ex);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(ptr);
                 }
             }
         }

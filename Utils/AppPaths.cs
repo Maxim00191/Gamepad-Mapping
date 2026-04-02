@@ -58,5 +58,16 @@ public static class AppPaths
         // Fallback: current directory (works for local runs).
         return Directory.GetCurrentDirectory();
     }
+
+    public static string GetLogsDirectory()
+    {
+        var root = ResolveContentRoot();
+        var logsDir = Path.Combine(root, "Logs");
+        if (!Directory.Exists(logsDir))
+        {
+            Directory.CreateDirectory(logsDir);
+        }
+        return logsDir;
+    }
 }
 

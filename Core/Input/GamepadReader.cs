@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;
@@ -112,14 +113,14 @@ namespace GamepadMapperGUI.Core
             _hasPreviousState = XInput.GetState(_userIndex, out _previousState);
             _isFirstFrameEmission = true;
             Task.Run(() => PollingLoop());
-            Debug.WriteLine("Gamepad reader started.");
+            App.Logger.Info("Gamepad reader started.");
         }
 
         public void Stop()
         {
             if (!_isRunning) return;
             _isRunning = false;
-            Debug.WriteLine("Gamepad reader stopped.");
+            App.Logger.Info("Gamepad reader stopped.");
         }
 
         private void PollingLoop()

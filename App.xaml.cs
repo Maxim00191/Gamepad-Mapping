@@ -1,3 +1,5 @@
+using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Services;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -13,6 +15,8 @@ public partial class App : Application
     private const string PersonalizeRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
     private const string AppsUseLightThemeValueName = "AppsUseLightTheme";
 
+    public static ILogger Logger { get; private set; } = new FileLogger();
+
     /// <summary>Matches the last-applied Windows app theme (updated in <see cref="ApplySystemTheme"/>).</summary>
     public static bool UsesLightTheme { get; private set; } = true;
 
@@ -22,6 +26,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        Logger.Info("Application starting...");
         ApplyLanguage();
         ApplySystemTheme();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
@@ -30,6 +35,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        Logger.Info($"Application exiting with code {e.ApplicationExitCode}");
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         base.OnExit(e);
     }

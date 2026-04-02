@@ -1,12 +1,17 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Services;
 
 namespace GamepadMapperGUI.Core;
 
 public sealed class MouseEmulator : IMouseEmulator
 {
+    private readonly IWin32Service _win32;
+
     /// <summary>
     /// Brief down-hold before up, aligned with <see cref="KeyboardEmulator"/> tap keys so games that poll input each frame register clicks.
     /// </summary>
@@ -26,9 +31,6 @@ public sealed class MouseEmulator : IMouseEmulator
     private const uint Xbutton1 = 0x0001;
     private const uint Xbutton2 = 0x0002;
     private const int WheelDelta = 120;
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
@@ -52,6 +54,11 @@ public sealed class MouseEmulator : IMouseEmulator
         public uint dwFlags;
         public uint time;
         public IntPtr dwExtraInfo;
+    }
+
+    public MouseEmulator(IWin32Service? win32 = null)
+    {
+        _win32 = win32 ?? new Win32Service();
     }
 
     public void LeftDown() => SendMouseInput(MouseeventfLeftdown);
@@ -103,7 +110,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void WheelDown() => SendMouseInput(MouseeventfWheel, unchecked((uint)-WheelDelta));
     public void MoveBy(int deltaX, int deltaY) => SendMouseInput(MouseeventfMove, 0, deltaX, deltaY);
 
-    private static void SendMouseInput(uint flags, uint mouseData = 0, int dx = 0, int dy = 0)
+    private void SendMouseInput(uint flags, uint mouseData = 0, int dx = 0, int dy = 0)
     {
         var input = new INPUT
         {
@@ -122,6 +129,25 @@ public sealed class MouseEmulator : IMouseEmulator
             }
         };
 
-        SendInput(1, [input], Marshal.SizeOf<INPUT>());
+        var size = Marshal.SizeOf<INPUT>();
+        IntPtr ptr = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(input, ptr, false);
+            var sent = _win32.SendInput(1, ptr, size);
+            if (sent != 1)
+            {
+                var err = Marshal.GetLastWin32Error();
+                App.Logger.Warning($"Mouse SendInput failed. flags=0x{flags:X} err={err}");
+            }
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error("Exception during Mouse SendInput", ex);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
     }
 }
