@@ -232,7 +232,7 @@
     <value>Timing, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
-    <value>Localization</value>
+    <value>Language Options</value>
   </data>
   <data name="AppLanguageLabel" xml:space="preserve">
     <value>Language</value>

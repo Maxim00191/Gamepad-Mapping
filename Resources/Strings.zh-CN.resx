@@ -232,7 +232,7 @@
     <value>调整全局时间、手柄轮询间隔、模拟触发阈值与键鼠模拟等。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
-    <value>本地化</value>
+    <value>选择语言</value>
   </data>
   <data name="AppLanguageLabel" xml:space="preserve">
     <value>语言</value>

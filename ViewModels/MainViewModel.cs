@@ -46,6 +46,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string? _lastLoadedTemplateGroupIdForTargetInherit;
     private ComboHudWindow? _comboHudWindow;
     private readonly AppSettings _appSettings;
+    private readonly ISettingsService _settingsService;
     private DispatcherTimer? _templateSwitchHudTimer;
     private bool _isTemplateSwitchHudActive;
     private bool _isInitializingUiLanguageSelection;
@@ -57,12 +58,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IKeyboardCaptureService? keyboardCaptureService = null,
         IElevationHandler? elevationHandler = null,
         IAppStatusMonitor? appStatusMonitor = null,
-        IMappingEngine? mappingEngine = null)
+        IMappingEngine? mappingEngine = null,
+        ISettingsService? settingsService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
+        _settingsService = settingsService ?? new SettingsService();
 
-        _appSettings = SettingsService.LoadSettings();
+        _appSettings = _settingsService.LoadSettings();
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;
@@ -304,7 +307,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             modifierGraceMsSetting = clamped;
         _appSettings.ModifierGraceMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -316,7 +319,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             leadKeyReleaseSuppressMsSetting = clamped;
         _appSettings.LeadKeyReleaseSuppressMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -328,7 +331,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             gamepadPollingIntervalMs = clamped;
         _appSettings.GamepadPollingIntervalMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -340,7 +343,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (Math.Abs(clamped - value) > float.Epsilon)
             defaultAnalogActivationThreshold = clamped;
         _appSettings.DefaultAnalogActivationThreshold = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -352,7 +355,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (Math.Abs(clamped - value) > float.Epsilon)
             mouseLookSensitivity = clamped;
         _appSettings.MouseLookSensitivity = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -364,7 +367,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (Math.Abs(clamped - value) > float.Epsilon)
             analogChangeEpsilon = clamped;
         _appSettings.AnalogChangeEpsilon = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -376,7 +379,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             keyboardTapHoldDurationMs = clamped;
         _appSettings.KeyboardTapHoldDurationMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -388,7 +391,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             tapInterKeyDelayMs = clamped;
         _appSettings.TapInterKeyDelayMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -400,7 +403,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             textInterCharDelayMs = clamped;
         _appSettings.TextInterCharDelayMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -409,7 +412,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value)
     {
         _appSettings.ComboHudPlacement = value.ToString();
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -592,7 +595,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var o = Math.Clamp(shadowOpacity, 0.08, 0.60);
         _appSettings.ComboHudPanelAlpha = a;
         _appSettings.ComboHudShadowOpacity = o;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
 
         DispatchToUi(() =>
         {
@@ -691,7 +694,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _appSettings.LeftThumbstickDeadzone = left;
         _appSettings.RightThumbstickDeadzone = right;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     private void OnTriggerDeadzonesChanged(float leftInner, float leftOuter, float rightInner, float rightOuter)
@@ -708,7 +711,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appSettings.LeftTriggerOuterDeadzone = leftOuter;
         _appSettings.RightTriggerInnerDeadzone = rightInner;
         _appSettings.RightTriggerOuterDeadzone = rightOuter;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     private static ComboHudPlacement ParseComboHudPlacement(string? raw)
@@ -772,7 +775,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (!string.Equals(_appSettings.UiCulture, culture.Name, StringComparison.OrdinalIgnoreCase))
         {
             _appSettings.UiCulture = culture.Name;
-            SettingsService.SaveSettings(_appSettings);
+            _settingsService.SaveSettings(_appSettings);
         }
     }
 }
