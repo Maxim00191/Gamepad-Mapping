@@ -63,18 +63,52 @@ jobs:
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false
           -o publish-fx
 
+      - name: Copy release docs into publish output
+        shell: pwsh
+        run: |
+          $docs = @('README.md', 'README_zh.md', 'CHANGELOG.md', 'RELEASE_NOTES.md')
+          foreach ($out in @('publish-single', 'publish-fx')) {
+            foreach ($f in $docs) {
+              if (Test-Path -LiteralPath $f) {
+                Copy-Item -LiteralPath $f -Destination $out -Force
+              }
+            }
+          }
+
       - name: Zip artifacts
         shell: pwsh
         run: |
           Compress-Archive -Path "publish-single\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip"
           Compress-Archive -Path "publish-fx\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip"
 
+      - name: Prepare release body from CHANGELOG.md
+        shell: pwsh
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          $raw = Get-Content -LiteralPath "CHANGELOG.md" -Raw
+          if ([string]::IsNullOrWhiteSpace($raw)) { throw "CHANGELOG.md is empty." }
+          $pattern = '(?ms)^## Changelog v.+?(?=^## Changelog v|\z)'
+          if ($raw -notmatch $pattern) {
+            throw "CHANGELOG.md must contain a top section starting with '## Changelog v...'."
+          }
+          $body = $matches[0].TrimEnd()
+          $ver = $env:TAG_NAME.TrimStart('v')
+          $firstLine = (($body -split "`r?`n")[0]).TrimEnd()
+          if ($firstLine -notmatch "^## Changelog v$([regex]::Escape($ver))(\s|—|$)") {
+            throw "CHANGELOG first heading must be '## Changelog v$ver ...' (tag $($env:TAG_NAME)); got: $firstLine"
+          }
+          $path = Join-Path (Get-Location) "release-body.md"
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllText($path, $body + [Environment]::NewLine, $utf8)
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release-body.md
           files: |
             Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip
             Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

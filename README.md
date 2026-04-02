@@ -27,7 +27,7 @@ A Windows desktop app that maps **XInput** gamepad input to **keyboard and mouse
 
 ## Build and run
 
-From the repository root (powershell or any shell):
+From the repository root (PowerShell or any shell):
 
 ```powershell
 dotnet build "Gamepad Mapping.csproj" -c Release
@@ -48,25 +48,9 @@ dotnet test "GamepadMapping.sln" -c Release
 
 On first launch, if `Assets/Config/local_settings.json` is missing, the app copies `Assets/Config/default_settings.json` to `local_settings.json`. Global options are read and written in **`local_settings.json`**. **Bindings** (mappings, process name, combo leads) live only in **`Assets/Profiles/templates/{profileId}.json`**, not in app settings.
 
-### Application settings (in-app)
+Open **Application settings** in the **top bar** (to the right of the template dropdown and the new-profile (+) button). The **Timing & keyboard** and **Analog & polling** groups edit the same keys as the table below. **Thumbstick deadzones** for live reading are adjusted under **Live Gamepad Monitor → Analog** (gear icon); those map to `leftThumbstickDeadzone` and `rightThumbstickDeadzone`, aligned with shared `thumbstickDeadzone` when per-stick values are unset.
 
-In the **top bar**, open **Application settings** (to the right of the template dropdown and the “new profile” (+) button). The panel has two groups:
-
-1. **Timing & keyboard**
-   - **Modifier grace / combo HUD delay (`modifierGraceMs`)** — Chord modifier grace, combo HUD timing, and **fallback** hold duration for tap/hold bindings when `holdThresholdMs` is not set on a mapping.
-   - **Lead key long-hold suppress (`leadKeyReleaseSuppressMs`)** — For combo lead buttons: suppress stray solo release / short-hold output when you cancel a long hold without finishing a combo path.
-   - **Keyboard tap hold (`keyboardTapHoldDurationMs`)** — How long a simulated key stays down for a tap (clamped in-app).
-   - **Tap repeat gap (`tapInterKeyDelayMs`)** — Delay between repeated taps when the mapper sends multiple taps.
-   - **Text between chars (`textInterCharDelayMs`)** — Delay between characters when sending text via the keyboard emulator.
-2. **Analog & polling**
-   - **Default analog threshold (`defaultAnalogActivationThreshold`)** — Normalized **0–1** default for stick/trigger mappings without `analogThreshold`.
-   - **Mouse-look sensitivity (`mouseLookSensitivity`)** — Default scale for mouse-look when a mapping does not override it.
-   - **Analog change epsilon (`analogChangeEpsilon`)** — Minimum change before analog input is treated as updated (smaller = more updates).
-   - **Gamepad poll interval (`gamepadPollingIntervalMs`)** — Milliseconds between XInput polls (lower = snappier, higher = less CPU).
-
-Edits save to `local_settings.json` as you change them. **Thumbstick deadzones** for live reading are adjusted under **Live Gamepad Monitor → Analog** (gear icon); those map to `leftThumbstickDeadzone` and `rightThumbstickDeadzone` in settings, aligned with the shared default `thumbstickDeadzone` when per-stick values are unset.
-
-### Settings reference (`local_settings.json`)
+### `local_settings.json` reference
 
 | Setting | Purpose |
 | -------- | -------- |
@@ -119,14 +103,14 @@ The app finds **content root** by locating `Assets/Config/default_settings.json`
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/build.yml) runs on every push and pull request to `main` (`dotnet build` Release). Pushing a tag matching `v*` (e.g. `v1.4.0`) **publishes** two `win-x64` artifacts and creates a **GitHub Release** ([softprops/action-gh-release](https://github.com/softprops/action-gh-release)):
+[GitHub Actions](.github/workflows/build.yml) runs `dotnet build` (Release) on push and PRs to `main`, with NuGet caching. Pushing a tag matching `v*` (for example `v1.4.3`) **publishes** two `win-x64` zip artifacts and creates a **GitHub Release** via [softprops/action-gh-release](https://github.com/softprops/action-gh-release) (release notes auto-generated). Each zip includes `README.md`, `README_zh.md`, `CHANGELOG.md`, and `RELEASE_NOTES.md` when those files exist in the repo.
 
 - **`Gamepad-Mapping-<tag>-win-x64-single.zip`** — self-contained **single-file** build (no separate runtime install).
 - **`Gamepad-Mapping-<tag>-win-x64-fx.zip`** — **framework-dependent** build (smaller; requires [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) on the machine).
 
 ```powershell
-git tag v1.4.0
-git push origin v1.4.0
+git tag v1.4.3
+git push origin v1.4.3
 ```
 
 ## License

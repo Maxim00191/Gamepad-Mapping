@@ -67,6 +67,16 @@ Write-Host "dotnet publish: framework-dependent win-x64 -> publish\fx" -Foregrou
     -o $publishFx
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+$docFiles = @('README.md', 'README_zh.md', 'CHANGELOG.md', 'RELEASE_NOTES.md')
+foreach ($outDir in @($publishSingle, $publishFx)) {
+    foreach ($rel in $docFiles) {
+        $src = Join-Path $repoRoot $rel
+        if (Test-Path -LiteralPath $src) {
+            Copy-Item -LiteralPath $src -Destination $outDir -Force
+        }
+    }
+}
+
 $zipSingle = Join-Path $publishRoot "Gamepad-Mapping-$Tag-win-x64-single.zip"
 $zipFx = Join-Path $publishRoot "Gamepad-Mapping-$Tag-win-x64-fx.zip"
 
