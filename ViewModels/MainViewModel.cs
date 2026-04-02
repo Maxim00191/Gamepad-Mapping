@@ -153,6 +153,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         MappingEditorPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
+
+        Func<string>? comboHudGateMessageFactory = null;
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            comboHudGateMessageFactory = () => loc["ComboHudGateHint"];
+
         _mappingEngine = mappingEngine ?? new MappingEngine(
             new KeyboardEmulator(),
             new MouseEmulator(),
@@ -163,7 +168,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
             OnComboHud,
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
-            requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)));
+            requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)),
+            setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
+            comboHudGateMessageFactory: comboHudGateMessageFactory,
+            isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive);
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
@@ -445,10 +453,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (string.Equals(SelectedTemplate?.ProfileId, opt.ProfileId, StringComparison.OrdinalIgnoreCase))
             return;
 
+        // Before ForceRelease: Sync() invokes OnComboHud(null) synchronously on the UI thread; guard must be on first.
+        if (GamepadMonitorPanel.IsHudEnabled)
+        {
+            _isTemplateSwitchHudActive = true;
+            _mappingEngine.InvalidateComboHudPresentation();
+        }
+
         _mappingEngine.ForceReleaseAllOutputs();
         _mappingEngine.ForceReleaseAnalogOutputs();
         SelectedTemplate = opt;
-        ShowTemplateSwitchHud(opt.DisplayName);
+
+        if (GamepadMonitorPanel.IsHudEnabled)
+            ShowTemplateSwitchHud(opt.DisplayName);
     }
 
     [RelayCommand(CanExecute = nameof(CanStartGamepad))]
@@ -550,7 +567,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void ShowTemplateSwitchHud(string profileDisplayName)
     {
         if (!GamepadMonitorPanel.IsHudEnabled)
+        {
+            _isTemplateSwitchHudActive = false;
             return;
+        }
 
         if (_templateSwitchHudTimer is not null)
         {
@@ -558,9 +578,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _templateSwitchHudTimer = null;
         }
 
-        _isTemplateSwitchHudActive = true;
+        _mappingEngine.InvalidateComboHudPresentation();
 
-        _templateSwitchHudTimer = new DispatcherTimer
+        _templateSwitchHudTimer = new DispatcherTimer(DispatcherPriority.Input, _dispatcher)
         {
             Interval = TimeSpan.FromSeconds(3)
         };
@@ -570,7 +590,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _templateSwitchHudTimer?.Stop();
             _templateSwitchHudTimer = null;
             _isTemplateSwitchHudActive = false;
-            _comboHudWindow?.HideHud();
+            _mappingEngine.InvalidateComboHudPresentation();
+            _mappingEngine.RefreshComboHud();
         };
 
         _comboHudWindow ??= new ComboHudWindow();
@@ -612,6 +633,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 }
 
                 _isTemplateSwitchHudActive = false;
+                GamepadMonitorPanel.ComboHudGateHint = string.Empty;
                 _comboHudWindow?.HideHud();
             });
     }

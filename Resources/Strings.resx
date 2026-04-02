@@ -312,4 +312,7 @@
   <data name="SourceCombinationHint" xml:space="preserve">
     <value>Select two buttons to form a combination mapping. Note: LT/RT modifiers can still be added by typing in the single-button field if needed.</value>
   </data>
+  <data name="ComboHudGateHint" xml:space="preserve">
+    <value>Combo HUD preview is off: keyboard/mouse output is blocked (check target process, foreground window, or elevation).</value>
+  </data>
 </root>

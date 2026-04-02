@@ -312,4 +312,7 @@
   <data name="SourceCombinationHint" xml:space="preserve">
     <value>选择两个按钮以组成组合键映射。注意：如果需要 LT/RT 修饰键，仍可通过在单键输入框中手动输入来实现。</value>
   </data>
+  <data name="ComboHudGateHint" xml:space="preserve">
+    <value>组合键 HUD 预览已关闭：当前不允许键鼠输出（请检查目标进程、前台窗口或权限提升）。</value>
+  </data>
 </root>

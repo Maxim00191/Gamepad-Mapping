@@ -17,12 +17,16 @@ internal sealed class ComboHudManager : IDisposable
     private readonly Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> _resolveComboLeads;
     private readonly HoldSessionManager _holdSessionManager;
     private readonly int _comboHudDelayMs;
+    private readonly Action<string?>? _setComboHudGateHint;
+    private readonly Func<string>? _comboHudGateMessageFactory;
+    private readonly Func<bool>? _isComboHudPresentationSuppressed;
 
     private DispatcherTimer? _comboHudDelayTimer;
     private bool _comboHudDelayConfirmed;
     private string? _pendingComboHudSignature;
     private long _comboHudArmTickCount64;
     private string? _lastPresentedSignature;
+    private string? _lastEmittedGateHint;
 
     public ComboHudManager(
         Action<ComboHudContent?> setComboHud,
@@ -31,7 +35,10 @@ internal sealed class ComboHudManager : IDisposable
         Func<IReadOnlyCollection<GamepadButtons>> getLatestActiveButtons,
         Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> resolveComboLeads,
         HoldSessionManager holdSessionManager,
-        int comboHudDelayMs)
+        int comboHudDelayMs,
+        Action<string?>? setComboHudGateHint = null,
+        Func<string>? comboHudGateMessageFactory = null,
+        Func<bool>? isComboHudPresentationSuppressed = null)
     {
         _setComboHud = setComboHud;
         _canDispatchOutput = canDispatchOutput;
@@ -40,50 +47,106 @@ internal sealed class ComboHudManager : IDisposable
         _resolveComboLeads = resolveComboLeads;
         _holdSessionManager = holdSessionManager;
         _comboHudDelayMs = comboHudDelayMs;
+        _setComboHudGateHint = setComboHudGateHint;
+        _comboHudGateMessageFactory = comboHudGateMessageFactory;
+        _isComboHudPresentationSuppressed = isComboHudPresentationSuppressed;
     }
+
+    internal void InvalidateLastPresentedSignature() => _lastPresentedSignature = null;
 
     internal bool AwaitingComboHudDelay =>
         !string.IsNullOrEmpty(_pendingComboHudSignature) && !_comboHudDelayConfirmed;
 
     public void Sync()
     {
-        if (!TryGetComboHudSignature(out var signature))
+        try
         {
-            CancelComboHudDelayTimer();
-            _comboHudDelayConfirmed = false;
-            _pendingComboHudSignature = null;
-            _lastPresentedSignature = null;
-            _setComboHud(null);
+            if (!TryGetComboHudSignature(out var signature))
+            {
+                CancelComboHudDelayTimer();
+                _comboHudDelayConfirmed = false;
+                _pendingComboHudSignature = null;
+                _lastPresentedSignature = null;
+                _setComboHud(null);
+                return;
+            }
+
+            if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
+            {
+                _pendingComboHudSignature = signature;
+                _comboHudDelayConfirmed = false;
+                _comboHudArmTickCount64 = Environment.TickCount64;
+                CancelComboHudDelayTimer();
+                StartComboHudDelayTimer();
+            }
+
+            if (!_comboHudDelayConfirmed)
+            {
+                var elapsedMs = Environment.TickCount64 - _comboHudArmTickCount64;
+                if (elapsedMs >= _comboHudDelayMs)
+                {
+                    CancelComboHudDelayTimer();
+                    _comboHudDelayConfirmed = true;
+                }
+                else
+                {
+                    EnsureComboHudDelayTimer();
+                    if (_comboHudDelayTimer is { IsEnabled: false })
+                        StartComboHudDelayTimer();
+                    return;
+                }
+            }
+
+            PresentComboHudForCurrentSignature(signature);
+        }
+        finally
+        {
+            UpdateComboHudGateHint();
+        }
+    }
+
+    private void UpdateComboHudGateHint()
+    {
+        if (_setComboHudGateHint is null)
+            return;
+
+        if (_holdSessionManager.TryGetFirstHoldSession(out var hs) && hs is not null)
+        {
+            EmitGateHintIfChanged(null);
             return;
         }
 
-        if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
+        var mappings = _getMappingsSnapshot();
+        var comboLeads = _resolveComboLeads(mappings);
+        var activeButtons = _getLatestActiveButtons();
+
+        if (!ComboHudBuilder.HasModifierPrefixHudContent(activeButtons, mappings, comboLeads))
         {
-            _pendingComboHudSignature = signature;
-            _comboHudDelayConfirmed = false;
-            _comboHudArmTickCount64 = Environment.TickCount64;
-            CancelComboHudDelayTimer();
-            StartComboHudDelayTimer();
+            EmitGateHintIfChanged(null);
+            return;
         }
 
-        if (!_comboHudDelayConfirmed)
+        if (!_canDispatchOutput())
         {
-            var elapsedMs = Environment.TickCount64 - _comboHudArmTickCount64;
-            if (elapsedMs >= _comboHudDelayMs)
-            {
-                CancelComboHudDelayTimer();
-                _comboHudDelayConfirmed = true;
-            }
-            else
-            {
-                EnsureComboHudDelayTimer();
-                if (_comboHudDelayTimer is { IsEnabled: false })
-                    StartComboHudDelayTimer();
-                return;
-            }
+            var msg = _comboHudGateMessageFactory?.Invoke();
+            if (string.IsNullOrEmpty(msg))
+                msg = "Combo HUD disabled: output is not allowed.";
+            EmitGateHintIfChanged(msg);
         }
+        else
+            EmitGateHintIfChanged(null);
+    }
 
-        PresentComboHudForCurrentSignature(signature);
+    private void EmitGateHintIfChanged(string? hint)
+    {
+        if (_setComboHudGateHint is null)
+            return;
+
+        if (string.Equals(_lastEmittedGateHint, hint, StringComparison.Ordinal))
+            return;
+
+        _lastEmittedGateHint = hint;
+        _setComboHudGateHint.Invoke(hint);
     }
 
     private bool TryGetComboHudSignature(out string signature)
@@ -114,6 +177,9 @@ internal sealed class ComboHudManager : IDisposable
 
     private void PresentComboHudForCurrentSignature(string signature)
     {
+        if (_isComboHudPresentationSuppressed?.Invoke() == true)
+            return;
+
         if (_comboHudDelayConfirmed &&
             string.Equals(signature, _lastPresentedSignature, StringComparison.Ordinal))
             return;
@@ -172,29 +238,38 @@ internal sealed class ComboHudManager : IDisposable
 
     private void OnComboHudDelayTimerTick(object? sender, EventArgs e)
     {
-        _comboHudDelayTimer?.Stop();
-
-        if (_comboHudDelayConfirmed)
-            return;
-
-        if (!TryGetComboHudSignature(out var signature))
+        try
         {
-            _comboHudDelayConfirmed = false;
-            _pendingComboHudSignature = null;
-            _lastPresentedSignature = null;
-            _setComboHud(null);
-            return;
+            _comboHudDelayTimer?.Stop();
+
+            if (_comboHudDelayConfirmed)
+                return;
+
+            if (!TryGetComboHudSignature(out var signature))
+            {
+                _comboHudDelayConfirmed = false;
+                _pendingComboHudSignature = null;
+                _lastPresentedSignature = null;
+                _setComboHud(null);
+                return;
+            }
+
+            if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
+                return;
+
+            _comboHudDelayConfirmed = true;
+            PresentComboHudForCurrentSignature(signature);
         }
-
-        if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
-            return;
-
-        _comboHudDelayConfirmed = true;
-        PresentComboHudForCurrentSignature(signature);
+        finally
+        {
+            UpdateComboHudGateHint();
+        }
     }
 
     public void Dispose()
     {
+        EmitGateHintIfChanged(null);
+
         if (_comboHudDelayTimer is null)
             return;
 

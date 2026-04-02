@@ -68,6 +68,9 @@ public sealed class MappingEngine : IMappingEngine
         int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
         int leadKeyReleaseSuppressMs = 500,
         Action<string>? requestTemplateSwitchToProfileId = null,
+        Action<string?>? setComboHudGateHint = null,
+        Func<string>? comboHudGateMessageFactory = null,
+        Func<bool>? isComboHudPresentationSuppressed = null,
         ITimeProvider? timeProvider = null)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
@@ -119,7 +122,10 @@ public sealed class MappingEngine : IMappingEngine
                 () => _latestActiveButtons,
                 mappings => ResolveComboLeads(mappings),
                 _holdSessionManager,
-                _comboHudDelayMs);
+                _comboHudDelayMs,
+                setComboHudGateHint,
+                comboHudGateMessageFactory,
+                isComboHudPresentationSuppressed);
         }
 
         _buttonMappingProcessor = new ButtonMappingProcessor(
@@ -343,6 +349,20 @@ public sealed class MappingEngine : IMappingEngine
     public void ForceReleaseAnalogOutputs()
     {
         _analogMappingProcessor.ForceReleaseAnalogOutputs();
+    }
+
+    /// <inheritdoc />
+    public void RefreshComboHud()
+    {
+        lock (_inputFrameSync)
+            _comboHudManager?.Sync();
+    }
+
+    /// <inheritdoc />
+    public void InvalidateComboHudPresentation()
+    {
+        lock (_inputFrameSync)
+            _comboHudManager?.InvalidateLastPresentedSignature();
     }
 
     /// <inheritdoc />

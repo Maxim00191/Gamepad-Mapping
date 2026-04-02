@@ -153,6 +153,10 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string lastMappingStatus = "Waiting for gamepad input";
 
+    /// <summary>Non-empty when combo HUD preview is suppressed because output dispatch is blocked (targeting / focus / UIPI).</summary>
+    [ObservableProperty]
+    private string comboHudGateHint = string.Empty;
+
     [ObservableProperty]
     private float leftThumbX;
 

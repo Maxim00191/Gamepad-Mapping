@@ -15,6 +15,16 @@ public interface IMappingEngine : IDisposable
     void ForceReleaseAnalogOutputs();
 
     /// <summary>
+    /// Re-evaluates combo HUD state (e.g. after UI-only transitions such as template-switch HUD timeout).
+    /// </summary>
+    void RefreshComboHud();
+
+    /// <summary>
+    /// Clears combo HUD de-duplication state so the next sync can push content again (e.g. after template-switch HUD).
+    /// </summary>
+    void InvalidateComboHudPresentation();
+
+    /// <summary>
     /// Waits until all queued background outputs have been dispatched.
     /// Used primarily in tests to avoid flaky assertions.
     /// </summary>
