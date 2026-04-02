@@ -9,6 +9,7 @@
 
 - Roco battle template: slot selection layout updated; bindings and copy aligned with skill slots (1–5 cycle + RB shortcuts).
 - Roco exploration: bag shortcut chord updated to `LeftShoulder + a` (vs. `LeftShoulder + A`).
+- Roco exploration: updated `LeftShoulder + X` to map to `Q` for star magic action (previously `M` for map).
 - Bumped app version to 1.4.3.
 
 ### Note
@@ -26,6 +27,7 @@
 
 - Roco 战斗模板：槽位选择布局已更新；绑定和复制已与技能槽位对齐（1-5 循环+RB 快捷键）。
 - Roco 探索：背包快捷键已更新为“左肩键+a”（原为“左肩键+A”）。
+- Roco 探索：更新 `LeftShoulder + X` 映射至 `Q` 以执行星星魔法操作（原为 `M` 打开地图）。
 - 将应用程序版本更新至 1.4.3。
 
 ### 备注
