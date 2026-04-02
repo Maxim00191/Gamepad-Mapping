@@ -3,6 +3,7 @@
 ### Added
 
 - Roco exploration template: RT + D-pad left/right → mouse wheel up/down; LB + RB → hold/release left mouse button (map/UI drag with right stick).
+- Roco exploration template: LT + D-pad Up → reveal mouse (LeftAlt).
 - Roco battle template: RB alone → left click; RB + D-pad (up/right/down/left) → keys 1–4; D-pad up/down → item cycle across slots 1–5.
 
 ### Changed
@@ -21,6 +22,7 @@
 ### 添加
 
 - Roco 探索模板：RT + 方向键左/右 → 鼠标滚轮上/下；LB + RB → 按住/释放鼠标左键（使用右摇杆进行地图/用户界面拖动）。
+- Roco 探索模板：LT + 方向键上 → 显示鼠标。
 - Roco 战斗模板：仅使用 RB 键 → 左键点击；RB 键 + 方向键（上/右/下/左）→ 对应 1-4 键；方向键上/下 → 在 1-5 个槽位间循环切换物品。
 
 ### 更改
