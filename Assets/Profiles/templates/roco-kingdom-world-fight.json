@@ -7,6 +7,7 @@
   "displayNames": {
     "zh-CN": "洛克王国世界·战斗"
   },
+  "comboLeadButtons": [ "LeftShoulder", "RightShoulder", "LeftThumb", "RightThumb", "Start" ],
   "mappings": [
     { "from": { "type": "LeftThumbstick", "value": "Left" }, "keyboardKey": "A", "description": "Battle: move/select left (A)", "descriptions": { "zh-CN": "战斗：向左选择（A）" }, "trigger": "Pressed", "analogThreshold": 0.25 },
     { "from": { "type": "LeftThumbstick", "value": "Right" }, "keyboardKey": "D", "description": "Battle: move/select right (D)", "descriptions": { "zh-CN": "战斗：向右选择（D）" }, "trigger": "Pressed", "analogThreshold": 0.25 },

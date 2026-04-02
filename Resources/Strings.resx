@@ -37,7 +37,7 @@
     <value>Create profile</value>
   </data>
   <data name="ReloadTemplate" xml:space="preserve">
-    <value>Reload template</value>
+    <value>Reload current template</value>
   </data>
   <data name="CreateNewBinding" xml:space="preserve">
     <value>Create New KB/M Binding</value>
@@ -136,7 +136,7 @@
     <value>From Type</value>
   </data>
   <data name="FromValue" xml:space="preserve">
-    <value>From Value</value>
+    <value>Gamepad Input</value>
   </data>
   <data name="KbmOutputShort" xml:space="preserve">
     <value>KB/M Output</value>

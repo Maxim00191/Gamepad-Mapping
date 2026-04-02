@@ -37,7 +37,7 @@
     <value>创建配置</value>
   </data>
   <data name="ReloadTemplate" xml:space="preserve">
-    <value>重新加载模板</value>
+    <value>重新加载当前模板</value>
   </data>
   <data name="CreateNewBinding" xml:space="preserve">
     <value>创建新的键鼠映射</value>
@@ -136,7 +136,7 @@
     <value>来源类型</value>
   </data>
   <data name="FromValue" xml:space="preserve">
-    <value>来源值</value>
+    <value>手柄输入</value>
   </data>
   <data name="KbmOutputShort" xml:space="preserve">
     <value>键鼠输出</value>

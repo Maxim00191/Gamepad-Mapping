@@ -510,10 +510,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             _gamepadReader.Stop();
+            if (_templateSwitchHudTimer is not null)
+            {
+                _templateSwitchHudTimer.Stop();
+                _templateSwitchHudTimer = null;
+            }
             if (_comboHudWindow is not null)
             {
                 _comboHudWindow.Close();
                 _comboHudWindow = null;
+            }
+            if (_templateSwitchHudWindow is not null)
+            {
+                _templateSwitchHudWindow.Close();
+                _templateSwitchHudWindow = null;
             }
             _mappingEngine.Dispose();
             GamepadMonitorPanel.Dispose();

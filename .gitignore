@@ -186,6 +186,7 @@ DocProject/Help/html
 publish/single/
 publish/fx/
 publish/*.zip
+publish/Gamepad-Mapping-v*-win-x64-*/*
 
 # Publish Web Output
 *.[Pp]ublish.xml

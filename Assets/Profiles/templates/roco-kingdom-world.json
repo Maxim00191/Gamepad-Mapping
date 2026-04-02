@@ -7,7 +7,7 @@
   "displayNames": {
     "zh-CN": "洛克王国世界·探索"
   },
-  "comboLeadButtons": [ "LeftShoulder", "RightShoulder", "LeftThumb", "RightThumb", "Start", "Back" ],
+  "comboLeadButtons": [ "LeftShoulder", "RightShoulder", "LeftThumb", "RightThumb", "Start" ],
   "mappings": [
     { "from": { "type": "LeftThumbstick", "value": "Up" }, "keyboardKey": "W", "description": "Move (WASD): forward", "descriptions": { "zh-CN": "向前移动" }, "trigger": "Pressed", "analogThreshold": 0.25 },
     { "from": { "type": "LeftThumbstick", "value": "Down" }, "keyboardKey": "S", "description": "Move (WASD): backward", "descriptions": { "zh-CN": "向后移动" }, "trigger": "Pressed", "analogThreshold": 0.25 },
@@ -16,13 +16,13 @@
     { "from": { "type": "RightThumbstick", "value": "X" }, "keyboardKey": "MouseX", "description": "Rotate camera horizontally", "descriptions": { "zh-CN": "水平旋转视角" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "RightThumbstick", "value": "Y" }, "keyboardKey": "MouseY", "description": "Rotate camera vertically", "descriptions": { "zh-CN": "垂直旋转视角" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "RightTrigger", "value": "RightTrigger" }, "keyboardKey": "LeftClick", "description": "Enter aiming mode", "descriptions": { "zh-CN": "进入瞄准模式" }, "trigger": "Pressed", "analogThreshold": 0.35 },
-    { "from": { "type": "LeftTrigger", "value": "LeftTrigger" }, "keyboardKey": "R", "description": "Use mount skill / mount or dismount / cast on self", "descriptions": { "zh-CN": "骑乘技能；上下坐骑；对自己施法" }, "trigger": "Pressed", "analogThreshold": 0.35 },
+    { "from": { "type": "LeftTrigger", "value": "LeftTrigger" }, "keyboardKey": "R", "description": "Use mount skill / mount or dismount / cast on self", "descriptions": { "zh-CN": "骑乘技能；上下坐骑；对自己施法" }, "trigger": "Pressed" },
     { "from": { "type": "Button", "value": "RightTrigger + B" }, "keyboardKey": "RightClick", "description": "Exit aiming mode", "descriptions": { "zh-CN": "退出瞄准模式" }, "trigger": "Pressed", "analogThreshold": 0.35 },
     { "from": { "type": "Button", "value": "RightTrigger + B" }, "keyboardKey": "RightClick", "description": "Exit aiming mode", "descriptions": { "zh-CN": "退出瞄准模式" }, "trigger": "Released", "analogThreshold": 0.35 },
 
     { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "description": "Jump", "descriptions": { "zh-CN": "跳跃" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "description": "Interact / pick up", "descriptions": { "zh-CN": "交互/拾取" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "description": "Cancel mount / climbing / companion / special state (tap); Escape (hold)", "descriptions": { "zh-CN": "取消骑乘/攀爬/同行/特殊状态（短按）；Escape（长按）" }, "trigger": "Tap", "holdKeyboardKey": "Escape", "holdThresholdMs": 200, "analogThreshold": null },
+    { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "description": "Cancel mount / climbing / companion / special state", "descriptions": { "zh-CN": "取消骑乘/攀爬/同行/特殊状态" }, "trigger": "Tap", "analogThreshold": null },
     { "from": { "type": "Button", "value": "X" }, "keyboardKey": "E", "description": "Switch to Spirit Ball mode; in home: equip food / plant seeds", "descriptions": { "zh-CN": "切换至精灵球模式；家园：装备食物/种植种子" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "LeftThumb + Y" }, "keyboardKey": "F1", "description": "Open season screen / quick chat channel", "descriptions": { "zh-CN": "打开赛季界面/快捷发言打开聊天频道" }, "trigger": "Pressed", "analogThreshold": null },
@@ -39,8 +39,8 @@
     { "from": { "type": "Button", "value": "RightThumb" }, "keyboardKey": "C", "description": "Crouch/stand in grass; call in home; clear crops in farm", "descriptions": { "zh-CN": "草丛中蹲下/站起；家园中呼唤；农场中铲除作物" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "M", "description": "Open map", "descriptions": { "zh-CN": "打开地图" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "LeftAlt", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Released", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "Escape", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "Back" }, "keyboardKey": "Escape", "description": "Show / unlock cursor", "descriptions": { "zh-CN": "显示 / 解锁光标" }, "trigger": "Released", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "Start + Back" }, "keyboardKey": "", "description": "Switch profile: battle", "descriptions": { "zh-CN": "切换配置：战斗" }, "trigger": "Pressed", "analogThreshold": null, "templateToggle": { "alternateProfileId": "roco-kingdom-world-fight" } },
 
