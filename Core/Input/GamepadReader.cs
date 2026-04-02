@@ -141,6 +141,7 @@ namespace GamepadMapperGUI.Core
                         _isFirstFrameEmission ||
                         (_hasPreviousState && currentButtons != _previousState.Gamepad.Buttons) ||
                         (_hasPreviousState && HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.LeftThumbX, _previousState.Gamepad.LeftThumbY, _leftThumbstickDeadzone), currentLeftThumb, AnalogChangeEpsilon)) ||
+                        // Right stick: emit while engaged (steady aim) so mouse-look stays continuous; left stick is delta-only.
                         (_hasPreviousState &&
                          (HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY, _rightThumbstickDeadzone), currentRightThumb, AnalogChangeEpsilon) ||
                           IsAnalogEngaged(currentRightThumb, AnalogChangeEpsilon))) ||

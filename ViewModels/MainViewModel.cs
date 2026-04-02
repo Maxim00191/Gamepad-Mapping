@@ -157,7 +157,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             new KeyboardEmulator(),
             new MouseEmulator(),
             () => _appStatusMonitor.CanSendOutput,
-            DispatchToUi,
+            a => DispatchToUi(a),
             value => GamepadMonitorPanel.LastMappedOutput = value,
             value => GamepadMonitorPanel.LastMappingStatus = value,
             OnComboHud,
@@ -512,13 +512,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         MappingEditorPanel.SyncFromSelection(value);
     }
 
-    private void DispatchToUi(Action action)
+    private void DispatchToUi(Action action, DispatcherPriority priority = DispatcherPriority.Normal)
     {
         if (action is null) return;
         if (_dispatcher.CheckAccess())
             action();
         else
-            _dispatcher.BeginInvoke(action);
+            _dispatcher.BeginInvoke(action, priority);
     }
 
     private void OnComboHud(ComboHudContent? content)
@@ -544,7 +544,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
             var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
             _comboHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
-        });
+        }, DispatcherPriority.Input);
     }
 
     private void ShowTemplateSwitchHud(string profileDisplayName)

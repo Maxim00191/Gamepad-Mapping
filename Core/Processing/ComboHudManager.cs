@@ -21,6 +21,8 @@ internal sealed class ComboHudManager : IDisposable
     private DispatcherTimer? _comboHudDelayTimer;
     private bool _comboHudDelayConfirmed;
     private string? _pendingComboHudSignature;
+    private long _comboHudArmTickCount64;
+    private string? _lastPresentedSignature;
 
     public ComboHudManager(
         Action<ComboHudContent?> setComboHud,
@@ -40,6 +42,9 @@ internal sealed class ComboHudManager : IDisposable
         _comboHudDelayMs = comboHudDelayMs;
     }
 
+    internal bool AwaitingComboHudDelay =>
+        !string.IsNullOrEmpty(_pendingComboHudSignature) && !_comboHudDelayConfirmed;
+
     public void Sync()
     {
         if (!TryGetComboHudSignature(out var signature))
@@ -47,6 +52,7 @@ internal sealed class ComboHudManager : IDisposable
             CancelComboHudDelayTimer();
             _comboHudDelayConfirmed = false;
             _pendingComboHudSignature = null;
+            _lastPresentedSignature = null;
             _setComboHud(null);
             return;
         }
@@ -55,16 +61,28 @@ internal sealed class ComboHudManager : IDisposable
         {
             _pendingComboHudSignature = signature;
             _comboHudDelayConfirmed = false;
+            _comboHudArmTickCount64 = Environment.TickCount64;
             CancelComboHudDelayTimer();
+            StartComboHudDelayTimer();
         }
 
         if (!_comboHudDelayConfirmed)
         {
-            ScheduleComboHudDelay();
-            return;
+            var elapsedMs = Environment.TickCount64 - _comboHudArmTickCount64;
+            if (elapsedMs >= _comboHudDelayMs)
+            {
+                CancelComboHudDelayTimer();
+                _comboHudDelayConfirmed = true;
+            }
+            else
+            {
+                EnsureComboHudDelayTimer();
+                if (_comboHudDelayTimer is { IsEnabled: false })
+                    StartComboHudDelayTimer();
+                return;
+            }
         }
 
-        CancelComboHudDelayTimer();
         PresentComboHudForCurrentSignature(signature);
     }
 
@@ -79,7 +97,7 @@ internal sealed class ComboHudManager : IDisposable
         var mappings = _getMappingsSnapshot();
         var comboLeads = _resolveComboLeads(mappings);
         var activeButtons = _getLatestActiveButtons();
-        
+
         var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, activeButtons, mappings, comboLeads);
         if (prefix is null)
         {
@@ -96,6 +114,10 @@ internal sealed class ComboHudManager : IDisposable
 
     private void PresentComboHudForCurrentSignature(string signature)
     {
+        if (_comboHudDelayConfirmed &&
+            string.Equals(signature, _lastPresentedSignature, StringComparison.Ordinal))
+            return;
+
         var mappings = _getMappingsSnapshot();
         var comboLeads = _resolveComboLeads(mappings);
 
@@ -103,6 +125,7 @@ internal sealed class ComboHudManager : IDisposable
             _holdSessionManager.TryGetFirstHoldSession(out var holdSession) &&
             holdSession is not null)
         {
+            _lastPresentedSignature = signature;
             _setComboHud(ComboHudBuilder.BuildComboHud(holdSession, mappings, comboLeads));
             return;
         }
@@ -110,15 +133,22 @@ internal sealed class ComboHudManager : IDisposable
         var activeButtons = _getLatestActiveButtons();
         var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, activeButtons, mappings, comboLeads);
         if (prefix is not null)
+        {
+            _lastPresentedSignature = signature;
             _setComboHud(prefix);
+        }
         else
+        {
+            _lastPresentedSignature = null;
             _setComboHud(null);
+        }
     }
 
-    private void ScheduleComboHudDelay()
+    private void StartComboHudDelayTimer()
     {
         EnsureComboHudDelayTimer();
         _comboHudDelayTimer!.Stop();
+        _comboHudDelayTimer.Interval = TimeSpan.FromMilliseconds(_comboHudDelayMs);
         _comboHudDelayTimer.Start();
     }
 
@@ -133,7 +163,7 @@ internal sealed class ComboHudManager : IDisposable
             return;
 
         var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-        _comboHudDelayTimer = new DispatcherTimer(DispatcherPriority.Background, dispatcher)
+        _comboHudDelayTimer = new DispatcherTimer(DispatcherPriority.Input, dispatcher)
         {
             Interval = TimeSpan.FromMilliseconds(_comboHudDelayMs)
         };
@@ -144,13 +174,20 @@ internal sealed class ComboHudManager : IDisposable
     {
         _comboHudDelayTimer?.Stop();
 
+        if (_comboHudDelayConfirmed)
+            return;
+
         if (!TryGetComboHudSignature(out var signature))
         {
             _comboHudDelayConfirmed = false;
             _pendingComboHudSignature = null;
+            _lastPresentedSignature = null;
             _setComboHud(null);
             return;
         }
+
+        if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
+            return;
 
         _comboHudDelayConfirmed = true;
         PresentComboHudForCurrentSignature(signature);
@@ -158,11 +195,11 @@ internal sealed class ComboHudManager : IDisposable
 
     public void Dispose()
     {
-        if (_comboHudDelayTimer is not null)
-        {
-            _comboHudDelayTimer.Stop();
-            _comboHudDelayTimer.Tick -= OnComboHudDelayTimerTick;
-            _comboHudDelayTimer = null;
-        }
+        if (_comboHudDelayTimer is null)
+            return;
+
+        _comboHudDelayTimer.Stop();
+        _comboHudDelayTimer.Tick -= OnComboHudDelayTimerTick;
+        _comboHudDelayTimer = null;
     }
 }

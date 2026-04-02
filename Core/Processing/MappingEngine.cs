@@ -267,7 +267,20 @@ public sealed class MappingEngine : IMappingEngine
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
 
-        _comboHudManager?.Sync();
+        TrySyncComboHud(context);
+    }
+
+    private void TrySyncComboHud(InputFrameContext context)
+    {
+        if (_comboHudManager is null)
+            return;
+
+        var frameHasButtonEdges = context.IsFirstFrame ||
+            context.PressedButtons.Length > 0 ||
+            context.ReleasedButtons.Length > 0;
+
+        if (frameHasButtonEdges || _comboHudManager.AwaitingComboHudDelay)
+            _comboHudManager.Sync();
     }
 
     private static HashSet<GamepadButtons> ToActiveButtonsSet(GamepadButtons buttons)
