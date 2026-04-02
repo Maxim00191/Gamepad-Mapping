@@ -119,14 +119,14 @@ The app finds **content root** by locating `Assets/Config/default_settings.json`
 
 ## CI/CD
 
-[GitHub Actions](.github/workflows/build.yml) runs on every push and pull request to `main` (`dotnet build` Release). Pushing a tag matching `v*` (e.g. `v1.3.0`) **publishes** two `win-x64` artifacts and creates a **GitHub Release** ([softprops/action-gh-release](https://github.com/softprops/action-gh-release)):
+[GitHub Actions](.github/workflows/build.yml) runs on every push and pull request to `main` (`dotnet build` Release). Pushing a tag matching `v*` (e.g. `v1.4.0`) **publishes** two `win-x64` artifacts and creates a **GitHub Release** ([softprops/action-gh-release](https://github.com/softprops/action-gh-release)):
 
 - **`Gamepad-Mapping-<tag>-win-x64-single.zip`** — self-contained **single-file** build (no separate runtime install).
 - **`Gamepad-Mapping-<tag>-win-x64-fx.zip`** — **framework-dependent** build (smaller; requires [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) on the machine).
 
 ```powershell
-git tag v1.3.0
-git push origin v1.3.0
+git tag v1.4.0
+git push origin v1.4.0
 ```
 
 ## License
