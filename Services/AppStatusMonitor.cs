@@ -56,11 +56,20 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
 
     public event EventHandler<AppStatusChangedEventArgs>? StatusChanged;
 
+    private readonly object _stateLock = new();
+
     public AppTargetingState CurrentState { get; private set; }
 
     public string CurrentStatusText { get; private set; }
 
-    public bool CanSendOutput => CurrentState == AppTargetingState.Connected;
+    public bool CanSendOutput
+    {
+        get
+        {
+            lock (_stateLock)
+                return CurrentState == AppTargetingState.Connected;
+        }
+    }
 
     public void UpdateTarget(ProcessInfo? selectedTargetProcess, bool isProcessTargetingEnabled)
     {
@@ -73,7 +82,7 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
         EvaluateNow();
     }
 
-    public void EvaluateNow()
+    public bool EvaluateNow()
     {
         try
         {
@@ -86,16 +95,29 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
             }
 
             var (state, statusText) = EvaluateState(selectedTargetProcess, isProcessTargetingEnabled);
-            if (state == CurrentState && string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal))
-                return;
+            bool shouldNotify;
+            bool canSend;
+            lock (_stateLock)
+            {
+                shouldNotify = state != CurrentState || !string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal);
+                if (shouldNotify)
+                {
+                    CurrentState = state;
+                    CurrentStatusText = statusText;
+                }
 
-            CurrentState = state;
-            CurrentStatusText = statusText;
-            StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
+                canSend = CurrentState == AppTargetingState.Connected;
+            }
+
+            if (shouldNotify)
+                StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
+
+            return canSend;
         }
         catch (Exception ex)
         {
             App.Logger.Error("Error during AppStatusMonitor.EvaluateNow", ex);
+            return false;
         }
     }
 

@@ -147,7 +147,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             triggerDeadzonesChanged: OnTriggerDeadzonesChanged,
             initialComboHudPanelAlpha: Math.Clamp(_appSettings.ComboHudPanelAlpha, 24, 220),
             initialComboHudShadowOpacity: Math.Clamp(_appSettings.ComboHudShadowOpacity, 0.08, 0.60),
-            comboHudChromeChanged: OnComboHudChromeChanged);
+            comboHudChromeChanged: OnComboHudChromeChanged,
+            uiDispatcher: _dispatcher);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -155,7 +156,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _mappingEngine = mappingEngine ?? new MappingEngine(
             new KeyboardEmulator(),
             new MouseEmulator(),
-            CanDispatchMappedOutput,
+            () => _appStatusMonitor.CanSendOutput,
             DispatchToUi,
             value => GamepadMonitorPanel.LastMappedOutput = value,
             value => GamepadMonitorPanel.LastMappingStatus = value,
@@ -167,25 +168,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
         _gamepadReader.OnInputFrame += frame =>
-            DispatchToUi(() =>
+        {
+            var allow = _appStatusMonitor.EvaluateNow();
+            float leftDz;
+            float rightDz;
+            if (_gamepadReader is GamepadReader gr)
             {
-                var leftDz = GamepadMonitorPanel.LeftThumbstickDeadzone;
-                var rightDz = GamepadMonitorPanel.RightThumbstickDeadzone;
-                static float ClampDeadzone(float v, float dz) => MathF.Abs(v) < dz ? 0f : v;
+                leftDz = gr.LeftThumbstickDeadzone;
+                rightDz = gr.RightThumbstickDeadzone;
+            }
+            else
+            {
+                leftDz = GamepadMonitorPanel.LeftThumbstickDeadzone;
+                rightDz = GamepadMonitorPanel.RightThumbstickDeadzone;
+            }
 
-                GamepadMonitorPanel.LeftThumbX = ClampDeadzone(frame.LeftThumbstick.X, leftDz);
-                GamepadMonitorPanel.LeftThumbY = ClampDeadzone(frame.LeftThumbstick.Y, leftDz);
-                GamepadMonitorPanel.RightThumbX = ClampDeadzone(frame.RightThumbstick.X, rightDz);
-                GamepadMonitorPanel.RightThumbY = ClampDeadzone(frame.RightThumbstick.Y, rightDz);
-                GamepadMonitorPanel.LeftTrigger = frame.LeftTrigger;
-                GamepadMonitorPanel.RightTrigger = frame.RightTrigger;
-
-                var result = _mappingEngine.ProcessInputFrame(frame, _mappingsSnapshot);
-                if (result.PressedButtons.Length > 0)
-                    GamepadMonitorPanel.LastButtonPressed = result.PressedButtons[^1].ToString();
-                if (result.ReleasedButtons.Length > 0)
-                    GamepadMonitorPanel.LastButtonReleased = result.ReleasedButtons[^1].ToString();
-            });
+            var result = _mappingEngine.ProcessInputFrame(frame, _mappingsSnapshot, allow);
+            GamepadMonitorPanel.RecordInputFrameSnapshot(frame, result, leftDz, rightDz);
+        };
 
         SelectedTemplate = _profileService.ReloadTemplates(_profileService.LastSelectedTemplateProfileId);
         LoadSelectedTemplate();
@@ -431,12 +431,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ReloadLocalizedTemplateContent();
     }
 
-    private bool CanDispatchMappedOutput()
-    {
-        _appStatusMonitor.EvaluateNow();
-        return _appStatusMonitor.CanSendOutput;
-    }
-
     private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
     {
         var id = (targetProfileId ?? string.Empty).Trim();
@@ -502,6 +496,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 _comboHudWindow = null;
             }
             _mappingEngine.Dispose();
+            GamepadMonitorPanel.Dispose();
             _appStatusMonitor.StatusChanged -= _appStatusChangedHandler;
             _appStatusMonitor.Dispose();
             _profileService.ProfilesLoaded -= _profilesLoadedHandler;

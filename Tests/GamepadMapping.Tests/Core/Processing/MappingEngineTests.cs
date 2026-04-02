@@ -288,8 +288,8 @@ public class MappingEngineTests
         using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object, () => false);
         var mappings = SpacePressReleaseOnA();
 
-        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
-        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings, canDispatchMappedOutput: false);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings, canDispatchMappedOutput: false);
         await engine.WaitForIdleAsync();
 
         mockKeyboard.VerifyNoOtherCalls();

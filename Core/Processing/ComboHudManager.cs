@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using System.Windows.Threading;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;
@@ -131,7 +132,11 @@ internal sealed class ComboHudManager : IDisposable
         if (_comboHudDelayTimer is not null)
             return;
 
-        _comboHudDelayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_comboHudDelayMs) };
+        var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        _comboHudDelayTimer = new DispatcherTimer(DispatcherPriority.Background, dispatcher)
+        {
+            Interval = TimeSpan.FromMilliseconds(_comboHudDelayMs)
+        };
         _comboHudDelayTimer.Tick += OnComboHudDelayTimerTick;
     }
 

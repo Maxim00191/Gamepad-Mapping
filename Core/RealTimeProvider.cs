@@ -1,5 +1,5 @@
 using System;
-using System.Windows.Threading;
+using System.Threading;
 using GamepadMapperGUI.Interfaces.Core;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
@@ -9,29 +9,55 @@ public sealed class RealTimeProvider : ITimeProvider
 {
     public long GetTickCount64() => Environment.TickCount64;
 
-    public ITimer CreateTimer(TimeSpan interval, Action onTick)
-    {
-        return new DispatcherTimerWrapper(interval, onTick);
-    }
+    /// <summary>
+    /// Input runs on a dedicated polling thread without a WPF message pump; <see cref="System.Windows.Threading.DispatcherTimer"/> never fires there.
+    /// </summary>
+    public ITimer CreateTimer(TimeSpan interval, Action onTick) =>
+        new ThreadPoolOneShotTimer(interval, onTick);
 
-    private sealed class DispatcherTimerWrapper : ITimer
+    private sealed class ThreadPoolOneShotTimer : ITimer
     {
-        private readonly DispatcherTimer _timer;
+        private readonly Action _onTick;
+        private Timer? _timer;
 
-        public DispatcherTimerWrapper(TimeSpan interval, Action onTick)
+        public ThreadPoolOneShotTimer(TimeSpan interval, Action onTick)
         {
-            _timer = new DispatcherTimer { Interval = interval };
-            _timer.Tick += (_, _) => onTick();
+            Interval = interval;
+            _onTick = onTick;
         }
 
-        public TimeSpan Interval
+        public TimeSpan Interval { get; set; }
+
+        public void Start()
         {
-            get => _timer.Interval;
-            set => _timer.Interval = value;
+            _timer?.Dispose();
+            var ms = (int)Math.Clamp(Interval.TotalMilliseconds, 0, int.MaxValue);
+            _timer = new Timer(
+                _ =>
+                {
+                    try
+                    {
+                        _onTick();
+                    }
+                    catch
+                    {
+                        // Timer callback must not throw.
+                    }
+                },
+                null,
+                dueTime: ms,
+                period: Timeout.Infinite);
         }
 
-        public void Start() => _timer.Start();
-        public void Stop() => _timer.Stop();
-        public void Dispose() => _timer.Stop();
+        public void Stop()
+        {
+            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+        }
+
+        public void Dispose()
+        {
+            _timer?.Dispose();
+            _timer = null;
+        }
     }
 }

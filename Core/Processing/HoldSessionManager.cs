@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;
@@ -25,6 +24,7 @@ internal sealed class HoldSessionManager
     private readonly ITimeProvider _timeProvider;
     private readonly int _modifierGraceMs;
     private readonly int _leadKeyReleaseSuppressMs;
+    private readonly Action<Action>? _runSynchronizedWithInputFrame;
 
     private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
     private readonly Dictionary<GamepadButtons, long> _buttonDownTicks = new();
@@ -42,7 +42,8 @@ internal sealed class HoldSessionManager
         Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> resolveComboLeads,
         ITimeProvider timeProvider,
         int modifierGraceMs,
-        int leadKeyReleaseSuppressMs)
+        int leadKeyReleaseSuppressMs,
+        Action<Action>? runSynchronizedWithInputFrame = null)
     {
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
@@ -53,6 +54,7 @@ internal sealed class HoldSessionManager
         _timeProvider = timeProvider;
         _modifierGraceMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
+        _runSynchronizedWithInputFrame = runSynchronizedWithInputFrame;
     }
 
     /// <summary>
@@ -255,7 +257,15 @@ internal sealed class HoldSessionManager
 
             var thresholdMs = ResolveHoldThresholdMs(candidate.Mapping);
             HoldSession session = null!;
-            var timer = _timeProvider.CreateTimer(TimeSpan.FromMilliseconds(thresholdMs), () => OnHoldTimerElapsed(session));
+            var timer = _timeProvider.CreateTimer(
+                TimeSpan.FromMilliseconds(thresholdMs),
+                () =>
+                {
+                    if (_runSynchronizedWithInputFrame is not null)
+                        _runSynchronizedWithInputFrame(() => OnHoldTimerElapsed(session));
+                    else
+                        OnHoldTimerElapsed(session);
+                });
             session = new HoldSession
             {
                 SourceToken = candidate.SourceToken,

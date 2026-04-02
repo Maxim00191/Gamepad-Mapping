@@ -15,13 +15,16 @@ public sealed class MappingEngine : IMappingEngine
 {
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
-    private readonly Func<bool> _canDispatchOutput;
+    private readonly Func<bool> _canDispatchOutputLive;
+    private bool _processingInputFrame;
+    private bool _frameDispatchAllowed;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
     private readonly OutputStateTracker _outputStateTracker = new();
     private readonly AnalogProcessor _analogProcessor = new();
     private readonly InputDispatcher _inputDispatcher;
     private readonly Action<ComboHudContent?>? _setComboHud;
+    private readonly object _inputFrameSync = new();
     private readonly HoldSessionManager _holdSessionManager;
     private readonly InputFramePipeline _inputFramePipeline;
     private readonly ButtonEventPipeline _buttonEventPipeline;
@@ -55,7 +58,7 @@ public sealed class MappingEngine : IMappingEngine
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
         IMouseEmulator mouseEmulator,
-        Func<bool> canDispatchOutput,
+        Func<bool> canDispatchOutputLive,
         Action<Action> runOnUi,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus,
@@ -71,7 +74,7 @@ public sealed class MappingEngine : IMappingEngine
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
-        _canDispatchOutput = canDispatchOutput;
+        _canDispatchOutputLive = canDispatchOutputLive;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
         _setComboHud = setComboHud;
@@ -82,7 +85,7 @@ public sealed class MappingEngine : IMappingEngine
             setMappedOutput,
             setMappingStatus);
         _holdSessionManager = new HoldSessionManager(
-            _canDispatchOutput,
+            () => CanDispatchOutputMerged(),
             _setMappedOutput,
             _setMappingStatus,
             QueueOutputDispatch,
@@ -90,13 +93,18 @@ public sealed class MappingEngine : IMappingEngine
             mappings => ResolveComboLeads(mappings),
             _timeProvider,
             modifierGraceMs,
-            leadKeyReleaseSuppressMs);
+            leadKeyReleaseSuppressMs,
+            runSynchronizedWithInputFrame: action =>
+            {
+                lock (_inputFrameSync)
+                    action();
+            });
 
         _analogMappingProcessor = new AnalogMappingProcessor(
             _analogProcessor,
             _keyboardEmulator,
             _mouseEmulator,
-            _canDispatchOutput,
+            () => CanDispatchOutputMerged(),
             _setMappedOutput,
             _setMappingStatus);
 
@@ -104,7 +112,7 @@ public sealed class MappingEngine : IMappingEngine
         {
             _comboHudManager = new ComboHudManager(
                 _setComboHud,
-                _canDispatchOutput,
+                () => CanDispatchOutputMerged(),
                 () => _lastButtonMappingsSnapshot,
                 () => _latestActiveButtons,
                 mappings => ResolveComboLeads(mappings),
@@ -116,7 +124,7 @@ public sealed class MappingEngine : IMappingEngine
             _holdSessionManager,
             _outputStateTracker,
             _itemCycleProcessor,
-            _canDispatchOutput,
+            () => CanDispatchOutputMerged(),
             _setMappedOutput,
             _setMappingStatus,
             QueueOutputDispatch,
@@ -155,7 +163,7 @@ public sealed class MappingEngine : IMappingEngine
                     forceReleaseHeldOutputsForButton: ForceReleaseHeldOutputsForButton,
                     collectReleasedOutputsHandledByMappings: (btn, active, snap, lt, rt, heldMs) => _buttonMappingProcessor.CollectReleasedOutputsHandledByMappings(btn, active, snap, lt, rt, heldMs),
                     setLatestActiveButtons: activeButtons => _latestActiveButtons = activeButtons,
-                    canDispatchOutput: _canDispatchOutput,
+                    canDispatchOutput: () => CanDispatchOutputMerged(),
                     setMappingStatus: _setMappingStatus)
             ],
             terminal: _buttonMappingProcessor.ProcessButtonEventTerminal);
@@ -168,23 +176,34 @@ public sealed class MappingEngine : IMappingEngine
     private HashSet<GamepadButtons> ResolveComboLeads(IReadOnlyCollection<MappingEntry> mappings) =>
         ComboLeadSemantics.ResolveLeads(mappings, _explicitComboLeadsFromTemplate);
 
-    public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    private bool CanDispatchOutputMerged() =>
+        _processingInputFrame ? _frameDispatchAllowed : _canDispatchOutputLive();
+
+    public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot, bool canDispatchMappedOutput = true)
     {
-        lock (_inputFramePipeline)
+        lock (_inputFrameSync)
         {
-            _lastButtonMappingsSnapshot = mappingsSnapshot;
-
-            var context = new InputFrameContext
+            _processingInputFrame = true;
+            _frameDispatchAllowed = canDispatchMappedOutput;
+            try
             {
-                Frame = frame
-            };
+                _lastButtonMappingsSnapshot = mappingsSnapshot;
 
-            _inputFramePipeline.Invoke(context);
-            
-            // Return a copy of the results to ensure thread safety for the caller
-            return new InputFrameProcessingResult(
-                context.PressedButtons.ToArray(), 
-                context.ReleasedButtons.ToArray());
+                var context = new InputFrameContext
+                {
+                    Frame = frame
+                };
+
+                _inputFramePipeline.Invoke(context);
+
+                return new InputFrameProcessingResult(
+                    context.PressedButtons.ToArray(),
+                    context.ReleasedButtons.ToArray());
+            }
+            finally
+            {
+                _processingInputFrame = false;
+            }
         }
     }
 
@@ -291,7 +310,7 @@ public sealed class MappingEngine : IMappingEngine
 
     public void ForceReleaseAllOutputs()
     {
-        lock (_inputFramePipeline)
+        lock (_inputFrameSync)
         {
             lock (_deferredSoloLeadButtonsLock)
             {
@@ -479,7 +498,7 @@ public sealed class MappingEngine : IMappingEngine
         if (trigger == TriggerMoment.Released)
             return true;
 
-        if (!_canDispatchOutput())
+        if (!CanDispatchOutputMerged())
             return true;
 
         var profileId = tt.AlternateProfileId?.Trim() ?? string.Empty;
