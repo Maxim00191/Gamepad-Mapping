@@ -67,6 +67,8 @@
     { "from": { "type": "Button", "value": "RightShoulder + Y" }, "keyboardKey": "I", "description": "Enter photo mode", "descriptions": { "zh-CN": "进入拍照模式" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "Start + DPadUp" }, "keyboardKey": "U", "description": "Open visitor management popup", "descriptions": { "zh-CN": "打开互访管理弹窗" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "Start + DPadDown" }, "keyboardKey": "G", "description": "Check new messages (first unlock tutorial)", "descriptions": { "zh-CN": "查看新信息（初次解锁-教学）" }, "trigger": "Pressed", "analogThreshold": null }
+    { "from": { "type": "Button", "value": "Start + DPadDown" }, "keyboardKey": "G", "description": "Check new messages (first unlock tutorial)", "descriptions": { "zh-CN": "查看新信息（初次解锁-教学）" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + DpadUp" }, "keyboardKey": "LeftAlt", "description": "Reveal Cursor", "descriptions": { "zh-CN": "显示光标" }, "trigger": "Pressed", "analogThreshold": null }
   ]
+
 }

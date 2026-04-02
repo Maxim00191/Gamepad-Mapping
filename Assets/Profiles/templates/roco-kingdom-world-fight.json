@@ -38,6 +38,8 @@
 
     { "from": { "type": "Button", "value": "Start" }, "keyboardKey": "Enter", "description": "Battle: open chat (Enter)", "descriptions": { "zh-CN": "战斗：打开聊天界面（Enter）" }, "trigger": "Pressed", "analogThreshold": null },
 
-    { "from": { "type": "Button", "value": "Start + Back" }, "keyboardKey": "", "description": "Switch profile: overworld / exploration", "descriptions": { "zh-CN": "切换配置：大世界探索" }, "trigger": "Pressed", "analogThreshold": null, "templateToggle": { "alternateProfileId": "roco-kingdom-world" } }
+    { "from": { "type": "Button", "value": "Start + Back" }, "keyboardKey": "", "description": "Switch profile: overworld / exploration", "descriptions": { "zh-CN": "切换配置：大世界探索" }, "trigger": "Pressed", "analogThreshold": null, "templateToggle": { "alternateProfileId": "roco-kingdom-world" } },
+    { "from": { "type": "Button", "value": "LeftShoulder + DpadUp" }, "keyboardKey": "LeftAlt", "description": "Reveal Cursor", "descriptions": { "zh-CN": "显示光标" }, "trigger": "Pressed", "analogThreshold": null }
+
   ]
 }
