@@ -37,15 +37,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IAppStatusMonitor _appStatusMonitor;
     private readonly IMappingEngine _mappingEngine;
     private readonly EventHandler _profilesLoadedHandler;
-    private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
+        private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
 
     /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
-    private string? _lastLoadedTemplateGroupIdForTargetInherit;
-    private ComboHudWindow? _comboHudWindow;
+        private string? _lastLoadedTemplateGroupIdForTargetInherit;
+        private ComboHudWindow? _comboHudWindow;
+        private TemplateSwitchHudWindow? _templateSwitchHudWindow;
     private readonly AppSettings _appSettings;
+    private readonly ISettingsService _settingsService;
     private DispatcherTimer? _templateSwitchHudTimer;
     private bool _isTemplateSwitchHudActive;
     private bool _isInitializingUiLanguageSelection;
@@ -57,12 +59,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IKeyboardCaptureService? keyboardCaptureService = null,
         IElevationHandler? elevationHandler = null,
         IAppStatusMonitor? appStatusMonitor = null,
-        IMappingEngine? mappingEngine = null)
+        IMappingEngine? mappingEngine = null,
+        ISettingsService? settingsService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
+        _settingsService = settingsService ?? new SettingsService();
 
-        _appSettings = SettingsService.LoadSettings();
+        _appSettings = _settingsService.LoadSettings();
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;
@@ -144,45 +148,55 @@ public partial class MainViewModel : ObservableObject, IDisposable
             triggerDeadzonesChanged: OnTriggerDeadzonesChanged,
             initialComboHudPanelAlpha: Math.Clamp(_appSettings.ComboHudPanelAlpha, 24, 220),
             initialComboHudShadowOpacity: Math.Clamp(_appSettings.ComboHudShadowOpacity, 0.08, 0.60),
-            comboHudChromeChanged: OnComboHudChromeChanged);
+            comboHudChromeChanged: OnComboHudChromeChanged,
+            initialTemplateSwitchHudSeconds: Math.Clamp(_appSettings.TemplateSwitchHudSeconds, 0.5, 5.0),
+            templateSwitchHudChanged: OnTemplateSwitchHudSecondsChanged,
+            uiDispatcher: _dispatcher);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
         MappingEditorPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
+
+        Func<string>? comboHudGateMessageFactory = null;
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            comboHudGateMessageFactory = () => loc["ComboHudGateHint"];
+
         _mappingEngine = mappingEngine ?? new MappingEngine(
             new KeyboardEmulator(),
             new MouseEmulator(),
-            CanDispatchMappedOutput,
-            DispatchToUi,
+            () => _appStatusMonitor.CanSendOutput,
+            a => DispatchToUi(a),
             value => GamepadMonitorPanel.LastMappedOutput = value,
             value => GamepadMonitorPanel.LastMappingStatus = value,
             OnComboHud,
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
-            requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)));
+            requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)),
+            setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
+            comboHudGateMessageFactory: comboHudGateMessageFactory,
+            isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive);
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
         _gamepadReader.OnInputFrame += frame =>
-            DispatchToUi(() =>
+        {
+            var allow = _appStatusMonitor.EvaluateNow();
+            float leftDz;
+            float rightDz;
+            if (_gamepadReader is GamepadReader gr)
             {
-                var leftDz = GamepadMonitorPanel.LeftThumbstickDeadzone;
-                var rightDz = GamepadMonitorPanel.RightThumbstickDeadzone;
-                static float ClampDeadzone(float v, float dz) => MathF.Abs(v) < dz ? 0f : v;
+                leftDz = gr.LeftThumbstickDeadzone;
+                rightDz = gr.RightThumbstickDeadzone;
+            }
+            else
+            {
+                leftDz = GamepadMonitorPanel.LeftThumbstickDeadzone;
+                rightDz = GamepadMonitorPanel.RightThumbstickDeadzone;
+            }
 
-                GamepadMonitorPanel.LeftThumbX = ClampDeadzone(frame.LeftThumbstick.X, leftDz);
-                GamepadMonitorPanel.LeftThumbY = ClampDeadzone(frame.LeftThumbstick.Y, leftDz);
-                GamepadMonitorPanel.RightThumbX = ClampDeadzone(frame.RightThumbstick.X, rightDz);
-                GamepadMonitorPanel.RightThumbY = ClampDeadzone(frame.RightThumbstick.Y, rightDz);
-                GamepadMonitorPanel.LeftTrigger = frame.LeftTrigger;
-                GamepadMonitorPanel.RightTrigger = frame.RightTrigger;
-
-                var result = _mappingEngine.ProcessInputFrame(frame, _mappingsSnapshot);
-                if (result.PressedButtons.Length > 0)
-                    GamepadMonitorPanel.LastButtonPressed = result.PressedButtons[^1].ToString();
-                if (result.ReleasedButtons.Length > 0)
-                    GamepadMonitorPanel.LastButtonReleased = result.ReleasedButtons[^1].ToString();
-            });
+            var result = _mappingEngine.ProcessInputFrame(frame, _mappingsSnapshot, allow);
+            GamepadMonitorPanel.RecordInputFrameSnapshot(frame, result, leftDz, rightDz);
+        };
 
         SelectedTemplate = _profileService.ReloadTemplates(_profileService.LastSelectedTemplateProfileId);
         LoadSelectedTemplate();
@@ -200,12 +214,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
+            App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.ProfileId})");
             LoadSelectedTemplate();
             _profileService.PersistLastSelectedTemplateProfileId(value?.ProfileId);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}': {ex.Message}");
+            App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
         }
     }
 
@@ -304,7 +319,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             modifierGraceMsSetting = clamped;
         _appSettings.ModifierGraceMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -316,7 +331,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             leadKeyReleaseSuppressMsSetting = clamped;
         _appSettings.LeadKeyReleaseSuppressMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -328,7 +343,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             gamepadPollingIntervalMs = clamped;
         _appSettings.GamepadPollingIntervalMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -340,7 +355,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (Math.Abs(clamped - value) > float.Epsilon)
             defaultAnalogActivationThreshold = clamped;
         _appSettings.DefaultAnalogActivationThreshold = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -352,7 +367,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (Math.Abs(clamped - value) > float.Epsilon)
             mouseLookSensitivity = clamped;
         _appSettings.MouseLookSensitivity = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -364,7 +379,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (Math.Abs(clamped - value) > float.Epsilon)
             analogChangeEpsilon = clamped;
         _appSettings.AnalogChangeEpsilon = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -376,7 +391,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             keyboardTapHoldDurationMs = clamped;
         _appSettings.KeyboardTapHoldDurationMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -388,7 +403,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             tapInterKeyDelayMs = clamped;
         _appSettings.TapInterKeyDelayMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -400,7 +415,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             textInterCharDelayMs = clamped;
         _appSettings.TextInterCharDelayMs = clamped;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -409,7 +424,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value)
     {
         _appSettings.ComboHudPlacement = value.ToString();
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     [ObservableProperty]
@@ -427,12 +442,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ReloadLocalizedTemplateContent();
     }
 
-    private bool CanDispatchMappedOutput()
-    {
-        _appStatusMonitor.EvaluateNow();
-        return _appStatusMonitor.CanSendOutput;
-    }
-
     private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
     {
         var id = (targetProfileId ?? string.Empty).Trim();
@@ -447,10 +456,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (string.Equals(SelectedTemplate?.ProfileId, opt.ProfileId, StringComparison.OrdinalIgnoreCase))
             return;
 
+        // Before ForceRelease: Sync() invokes OnComboHud(null) synchronously on the UI thread; guard must be on first.
+        if (GamepadMonitorPanel.IsHudEnabled)
+        {
+            _isTemplateSwitchHudActive = true;
+            _mappingEngine.InvalidateComboHudPresentation();
+        }
+
         _mappingEngine.ForceReleaseAllOutputs();
         _mappingEngine.ForceReleaseAnalogOutputs();
         SelectedTemplate = opt;
-        ShowTemplateSwitchHud(opt.DisplayName);
+
+        if (GamepadMonitorPanel.IsHudEnabled)
+            ShowTemplateSwitchHud(opt.DisplayName);
     }
 
     [RelayCommand(CanExecute = nameof(CanStartGamepad))]
@@ -498,6 +516,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 _comboHudWindow = null;
             }
             _mappingEngine.Dispose();
+            GamepadMonitorPanel.Dispose();
             _appStatusMonitor.StatusChanged -= _appStatusChangedHandler;
             _appStatusMonitor.Dispose();
             _profileService.ProfilesLoaded -= _profilesLoadedHandler;
@@ -512,14 +531,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         MappingEditorPanel.SyncFromSelection(value);
     }
-    
-    private void DispatchToUi(Action action)
+
+    private void DispatchToUi(Action action, DispatcherPriority priority = DispatcherPriority.Normal)
     {
         if (action is null) return;
         if (_dispatcher.CheckAccess())
             action();
         else
-            _dispatcher.BeginInvoke(action);
+            _dispatcher.BeginInvoke(action, priority);
     }
 
     private void OnComboHud(ComboHudContent? content)
@@ -545,13 +564,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
             var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
             var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
             _comboHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
-        });
+        }, DispatcherPriority.Input);
     }
 
     private void ShowTemplateSwitchHud(string profileDisplayName)
     {
         if (!GamepadMonitorPanel.IsHudEnabled)
+        {
+            _isTemplateSwitchHudActive = false;
             return;
+        }
 
         if (_templateSwitchHudTimer is not null)
         {
@@ -559,11 +581,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _templateSwitchHudTimer = null;
         }
 
-        _isTemplateSwitchHudActive = true;
+        _mappingEngine.InvalidateComboHudPresentation();
 
-        _templateSwitchHudTimer = new DispatcherTimer
+        var seconds = Math.Clamp(GamepadMonitorPanel.TemplateSwitchHudSeconds, 0.5, 5.0);
+
+        _templateSwitchHudTimer = new DispatcherTimer(DispatcherPriority.Input, _dispatcher)
         {
-            Interval = TimeSpan.FromSeconds(3)
+            Interval = TimeSpan.FromSeconds(seconds)
         };
 
         _templateSwitchHudTimer.Tick += (_, _) =>
@@ -571,17 +595,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _templateSwitchHudTimer?.Stop();
             _templateSwitchHudTimer = null;
             _isTemplateSwitchHudActive = false;
-            _comboHudWindow?.HideHud();
+            _mappingEngine.InvalidateComboHudPresentation();
+            _mappingEngine.RefreshComboHud();
+
+            _templateSwitchHudWindow?.HideHud();
         };
 
-        _comboHudWindow ??= new ComboHudWindow();
         var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
         var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
 
         var title = "Profile switched";
         var line = new ComboHudLine($"→ {profileDisplayName}", null);
         var content = new ComboHudContent(title, new[] { line });
-        _comboHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
+
+        // Fade out the combo HUD while fading in the template switch HUD.
+        _comboHudWindow?.HideHud();
+
+        _templateSwitchHudWindow ??= new TemplateSwitchHudWindow();
+        _templateSwitchHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
 
         _templateSwitchHudTimer.Start();
     }
@@ -592,13 +623,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var o = Math.Clamp(shadowOpacity, 0.08, 0.60);
         _appSettings.ComboHudPanelAlpha = a;
         _appSettings.ComboHudShadowOpacity = o;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
 
         DispatchToUi(() =>
         {
             if (_comboHudWindow is { IsVisible: true })
                 _comboHudWindow.ApplyVisualSettings((byte)a, o);
         });
+    }
+
+    private void OnTemplateSwitchHudSecondsChanged(double seconds)
+    {
+        var clamped = Math.Clamp(seconds, 0.5, 5.0);
+        _appSettings.TemplateSwitchHudSeconds = clamped;
+        _settingsService.SaveSettings(_appSettings);
     }
 
     private void OnHudEnabledChanged(bool isEnabled)
@@ -613,7 +651,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 }
 
                 _isTemplateSwitchHudActive = false;
+                GamepadMonitorPanel.ComboHudGateHint = string.Empty;
                 _comboHudWindow?.HideHud();
+                _templateSwitchHudWindow?.HideHud();
             });
     }
 
@@ -691,7 +731,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _appSettings.LeftThumbstickDeadzone = left;
         _appSettings.RightThumbstickDeadzone = right;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     private void OnTriggerDeadzonesChanged(float leftInner, float leftOuter, float rightInner, float rightOuter)
@@ -708,7 +748,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appSettings.LeftTriggerOuterDeadzone = leftOuter;
         _appSettings.RightTriggerInnerDeadzone = rightInner;
         _appSettings.RightTriggerOuterDeadzone = rightOuter;
-        SettingsService.SaveSettings(_appSettings);
+        _settingsService.SaveSettings(_appSettings);
     }
 
     private static ComboHudPlacement ParseComboHudPlacement(string? raw)
@@ -772,7 +812,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (!string.Equals(_appSettings.UiCulture, culture.Name, StringComparison.OrdinalIgnoreCase))
         {
             _appSettings.UiCulture = culture.Name;
-            SettingsService.SaveSettings(_appSettings);
+            _settingsService.SaveSettings(_appSettings);
         }
     }
 }

@@ -232,7 +232,7 @@
     <value>Timing, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
-    <value>Localization</value>
+    <value>Language Options</value>
   </data>
   <data name="AppLanguageLabel" xml:space="preserve">
     <value>Language</value>
@@ -311,5 +311,11 @@
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
     <value>Select two buttons to form a combination mapping. Note: LT/RT modifiers can still be added by typing in the single-button field if needed.</value>
+  </data>
+  <data name="ComboHudGateHint" xml:space="preserve">
+    <value>Combo HUD preview is off: keyboard/mouse output is blocked (check target process, foreground window, or elevation).</value>
+  </data>
+  <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
+    <value>Template-switch HUD duration (s)</value>
   </data>
 </root>

@@ -25,7 +25,12 @@ public sealed class ElevationHandler : IElevationHandler
         if (_isCurrentProcessElevated)
             return false;
 
-        return _processTargetService.IsProcessElevated(target.ProcessId);
+        var isElevated = _processTargetService.IsProcessElevated(target.ProcessId);
+        if (isElevated)
+        {
+            Gamepad_Mapping.App.Logger.Warning($"Target process {target.ProcessName} (PID {target.ProcessId}) is elevated, but current process is not. Input may be blocked by UIPI.");
+        }
+        return isElevated;
     }
 
     public void CheckAndPromptElevation(ProcessInfo target)
@@ -37,6 +42,8 @@ public sealed class ElevationHandler : IElevationHandler
             return;
 
         _lastElevationPromptedProcessId = target.ProcessId;
+        Gamepad_Mapping.App.Logger.Info($"Prompting for elevation due to target {target.ProcessName} (PID {target.ProcessId})");
+        
         var relaunch = MessageBox.Show(
             $"The selected target '{target.ProcessName}' is running as administrator.\n\n" +
             "This mapper is not elevated, so Windows UIPI can block injected input.\n\n" +
@@ -46,7 +53,14 @@ public sealed class ElevationHandler : IElevationHandler
             MessageBoxImage.Warning);
 
         if (relaunch == MessageBoxResult.Yes)
+        {
+            Gamepad_Mapping.App.Logger.Info("User accepted elevation relaunch.");
             RelaunchAsAdministrator();
+        }
+        else
+        {
+            Gamepad_Mapping.App.Logger.Warning("User declined elevation relaunch. Input may be non-functional for the target.");
+        }
     }
 
     private static void RelaunchAsAdministrator()

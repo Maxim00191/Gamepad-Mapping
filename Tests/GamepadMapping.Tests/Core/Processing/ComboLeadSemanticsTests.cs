@@ -70,4 +70,23 @@ public class ComboLeadSemanticsTests
         Assert.Contains(GamepadButtons.Back, resolved);
         Assert.DoesNotContain(GamepadButtons.LeftShoulder, resolved);
     }
+
+    [Fact]
+    public void InferFromMappings_AmbiguousRole_ButtonIsBothLeadAndAction()
+    {
+        // LB+A (LB is lead)
+        // RB+LB (RB is lead, LB is action)
+        var mappings = new List<MappingEntry>
+        {
+            new() { From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LeftShoulder+A" } },
+            new() { From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightShoulder+LeftShoulder" } }
+        };
+
+        var leads = ComboLeadSemantics.InferFromMappings(mappings);
+
+        // LB should be a lead because it's part of LB+A and not a face button
+        Assert.Contains(GamepadButtons.LeftShoulder, leads);
+        // RB should be a lead because it's part of RB+LB and not a face button
+        Assert.Contains(GamepadButtons.RightShoulder, leads);
+    }
 }

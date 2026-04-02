@@ -11,5 +11,6 @@ public interface IAppStatusMonitor : IDisposable
     string CurrentStatusText { get; }
     bool CanSendOutput { get; }
     void UpdateTarget(ProcessInfo? selectedTargetProcess, bool isProcessTargetingEnabled);
-    void EvaluateNow();
+    /// <summary>Re-evaluates foreground/targeting and updates status when it changes. Returns whether mapped output is allowed right now.</summary>
+    bool EvaluateNow();
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
@@ -55,11 +56,20 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
 
     public event EventHandler<AppStatusChangedEventArgs>? StatusChanged;
 
+    private readonly object _stateLock = new();
+
     public AppTargetingState CurrentState { get; private set; }
 
     public string CurrentStatusText { get; private set; }
 
-    public bool CanSendOutput => CurrentState == AppTargetingState.Connected;
+    public bool CanSendOutput
+    {
+        get
+        {
+            lock (_stateLock)
+                return CurrentState == AppTargetingState.Connected;
+        }
+    }
 
     public void UpdateTarget(ProcessInfo? selectedTargetProcess, bool isProcessTargetingEnabled)
     {
@@ -72,23 +82,43 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
         EvaluateNow();
     }
 
-    public void EvaluateNow()
+    public bool EvaluateNow()
     {
-        ProcessInfo? selectedTargetProcess;
-        bool isProcessTargetingEnabled;
-        lock (_sync)
+        try
         {
-            selectedTargetProcess = _selectedTargetProcess;
-            isProcessTargetingEnabled = _isProcessTargetingEnabled;
+            ProcessInfo? selectedTargetProcess;
+            bool isProcessTargetingEnabled;
+            lock (_sync)
+            {
+                selectedTargetProcess = _selectedTargetProcess;
+                isProcessTargetingEnabled = _isProcessTargetingEnabled;
+            }
+
+            var (state, statusText) = EvaluateState(selectedTargetProcess, isProcessTargetingEnabled);
+            bool shouldNotify;
+            bool canSend;
+            lock (_stateLock)
+            {
+                shouldNotify = state != CurrentState || !string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal);
+                if (shouldNotify)
+                {
+                    CurrentState = state;
+                    CurrentStatusText = statusText;
+                }
+
+                canSend = CurrentState == AppTargetingState.Connected;
+            }
+
+            if (shouldNotify)
+                StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
+
+            return canSend;
         }
-
-        var (state, statusText) = EvaluateState(selectedTargetProcess, isProcessTargetingEnabled);
-        if (state == CurrentState && string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal))
-            return;
-
-        CurrentState = state;
-        CurrentStatusText = statusText;
-        StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
+        catch (Exception ex)
+        {
+            App.Logger.Error("Error during AppStatusMonitor.EvaluateNow", ex);
+            return false;
+        }
     }
 
     public void Dispose()

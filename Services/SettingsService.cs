@@ -13,36 +13,70 @@ public class SettingsService : ISettingsService
     private static readonly string DefaultSettingsPath = Path.Combine("Assets", "Config", "default_settings.json");
     private static readonly string LocalSettingsPath = Path.Combine("Assets", "Config", "local_settings.json");
 
-    public static AppSettings LoadSettings()
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathProvider _pathProvider;
+
+    public SettingsService(IFileSystem? fileSystem = null, IPathProvider? pathProvider = null)
     {
-        var root = AppPaths.ResolveContentRoot();
+        _fileSystem = fileSystem ?? new PhysicalFileSystem();
+        _pathProvider = pathProvider ?? new AppPathProvider();
+    }
+
+    // Instance method for interface implementation
+    AppSettings ISettingsService.LoadSettings() => LoadSettingsInternal();
+    void ISettingsService.SaveSettings(AppSettings settings) => SaveSettingsInternal(settings);
+
+    // Internal implementation
+    public AppSettings LoadSettingsInternal()
+    {
+        var root = _pathProvider.GetContentRoot();
 
         var defaultPath = Path.Combine(root, DefaultSettingsPath);
         var localPath = Path.Combine(root, LocalSettingsPath);
 
-        if (!File.Exists(localPath) && File.Exists(defaultPath))
+        if (!_fileSystem.FileExists(localPath) && _fileSystem.FileExists(defaultPath))
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
-            File.Copy(defaultPath, localPath, overwrite: false);
+            _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(localPath)!);
+            _fileSystem.CopyFile(defaultPath, localPath, overwrite: false);
         }
 
-        var pathToLoad = File.Exists(localPath) ? localPath : defaultPath;
-        if (!File.Exists(pathToLoad))
+        var pathToLoad = _fileSystem.FileExists(localPath) ? localPath : defaultPath;
+        if (!_fileSystem.FileExists(pathToLoad))
         {
             return new AppSettings();
         }
 
-        var json = File.ReadAllText(pathToLoad, Encoding.UTF8);
-        var settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
-        NormalizeTriggerDeadzones(settings);
-        return settings;
+        try
+        {
+            var json = _fileSystem.ReadAllText(pathToLoad, Encoding.UTF8);
+            var settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
+            NormalizeTriggerDeadzones(settings);
+            return settings;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load settings from {pathToLoad}: {ex.Message}");
+            return new AppSettings();
+        }
     }
+
+    public void SaveSettingsInternal(AppSettings settings)
+    {
+        if (settings is null) throw new ArgumentNullException(nameof(settings));
+
+        var root = _pathProvider.GetContentRoot();
+        var localPath = Path.Combine(root, LocalSettingsPath);
+        _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(localPath)!);
+        var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+        _fileSystem.WriteAllText(localPath, json, Encoding.UTF8);
+    }
+
+    // Static version for backward compatibility
+    public static AppSettings LoadSettings() => new SettingsService().LoadSettingsInternal();
+    public static void SaveSettings(AppSettings settings) => new SettingsService().SaveSettingsInternal(settings);
 
     private const float TriggerDeadzoneMinSpan = 0.02f;
 
-    /// <summary>
-    /// Ensures trigger outer &gt; inner and outer defaults to 1 when missing from older JSON (stored as 0).
-    /// </summary>
     public static void NormalizeTriggerDeadzones(AppSettings s)
     {
         static void FixPair(ref float inner, ref float outer)
@@ -64,20 +98,4 @@ public class SettingsService : ISettingsService
         s.RightTriggerInnerDeadzone = ri;
         s.RightTriggerOuterDeadzone = ro;
     }
-
-    AppSettings ISettingsService.LoadSettings() => LoadSettings();
-
-    public static void SaveSettings(AppSettings settings)
-    {
-        if (settings is null) throw new ArgumentNullException(nameof(settings));
-
-        var root = AppPaths.ResolveContentRoot();
-        var localPath = Path.Combine(root, LocalSettingsPath);
-        Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
-        var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
-        File.WriteAllText(localPath, json, Encoding.UTF8);
-    }
-
-    void ISettingsService.SaveSettings(AppSettings settings) => SaveSettings(settings);
 }
-

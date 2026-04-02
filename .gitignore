@@ -494,6 +494,8 @@ Assets/Config/local_settings.json
 *.log
 Logs/
 
+.cursor/
 .cursorrules
 .cursor-tree.txt
+.cursorignore
 Scripts-Tests/

@@ -1,12 +1,18 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Services;
 
 namespace GamepadMapperGUI.Core;
 
 public sealed class MouseEmulator : IMouseEmulator
 {
+    private readonly IWin32Service _win32;
+
     /// <summary>
     /// Brief down-hold before up, aligned with <see cref="KeyboardEmulator"/> tap keys so games that poll input each frame register clicks.
     /// </summary>
@@ -26,9 +32,6 @@ public sealed class MouseEmulator : IMouseEmulator
     private const uint Xbutton1 = 0x0001;
     private const uint Xbutton2 = 0x0002;
     private const int WheelDelta = 120;
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
@@ -54,48 +57,63 @@ public sealed class MouseEmulator : IMouseEmulator
         public IntPtr dwExtraInfo;
     }
 
+    public MouseEmulator(IWin32Service? win32 = null)
+    {
+        _win32 = win32 ?? new Win32Service();
+    }
+
     public void LeftDown() => SendMouseInput(MouseeventfLeftdown);
     public void LeftUp() => SendMouseInput(MouseeventfLeftup);
-    public void LeftClick()
+    public void LeftClick() => LeftClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task LeftClickAsync(CancellationToken cancellationToken = default)
     {
         LeftDown();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         LeftUp();
     }
 
     public void RightDown() => SendMouseInput(MouseeventfRightdown);
     public void RightUp() => SendMouseInput(MouseeventfRightup);
-    public void RightClick()
+    public void RightClick() => RightClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task RightClickAsync(CancellationToken cancellationToken = default)
     {
         RightDown();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         RightUp();
     }
 
     public void MiddleDown() => SendMouseInput(MouseeventfMiddledown);
     public void MiddleUp() => SendMouseInput(MouseeventfMiddleup);
-    public void MiddleClick()
+    public void MiddleClick() => MiddleClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task MiddleClickAsync(CancellationToken cancellationToken = default)
     {
         MiddleDown();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         MiddleUp();
     }
 
     public void X1Down() => SendMouseInput(MouseeventfXdown, Xbutton1);
     public void X1Up() => SendMouseInput(MouseeventfXup, Xbutton1);
-    public void X1Click()
+    public void X1Click() => X1ClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task X1ClickAsync(CancellationToken cancellationToken = default)
     {
         X1Down();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         X1Up();
     }
 
     public void X2Down() => SendMouseInput(MouseeventfXdown, Xbutton2);
     public void X2Up() => SendMouseInput(MouseeventfXup, Xbutton2);
-    public void X2Click()
+    public void X2Click() => X2ClickAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task X2ClickAsync(CancellationToken cancellationToken = default)
     {
         X2Down();
-        Thread.Sleep(ClickHoldMs);
+        await Task.Delay(ClickHoldMs, cancellationToken).ConfigureAwait(false);
         X2Up();
     }
 
@@ -103,7 +121,7 @@ public sealed class MouseEmulator : IMouseEmulator
     public void WheelDown() => SendMouseInput(MouseeventfWheel, unchecked((uint)-WheelDelta));
     public void MoveBy(int deltaX, int deltaY) => SendMouseInput(MouseeventfMove, 0, deltaX, deltaY);
 
-    private static void SendMouseInput(uint flags, uint mouseData = 0, int dx = 0, int dy = 0)
+    private void SendMouseInput(uint flags, uint mouseData = 0, int dx = 0, int dy = 0)
     {
         var input = new INPUT
         {
@@ -122,6 +140,25 @@ public sealed class MouseEmulator : IMouseEmulator
             }
         };
 
-        SendInput(1, [input], Marshal.SizeOf<INPUT>());
+        var size = Marshal.SizeOf<INPUT>();
+        IntPtr ptr = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(input, ptr, false);
+            var sent = _win32.SendInput(1, ptr, size);
+            if (sent != 1)
+            {
+                var err = Marshal.GetLastWin32Error();
+                App.Logger.Warning($"Mouse SendInput failed. flags=0x{flags:X} err={err}");
+            }
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error("Exception during Mouse SendInput", ex);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
     }
 }

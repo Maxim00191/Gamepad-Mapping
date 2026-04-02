@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Threading;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;
+using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
 namespace GamepadMapperGUI.Core;
 
@@ -19,8 +20,11 @@ internal sealed class HoldSessionManager
     private readonly Action<string> _setMappingStatus;
     private readonly Action<string, TriggerMoment, DispatchedOutput, string, string> _queueOutputDispatch;
     private readonly Action _onHoldSessionsChanged;
+    private readonly Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> _resolveComboLeads;
+    private readonly ITimeProvider _timeProvider;
     private readonly int _modifierGraceMs;
     private readonly int _leadKeyReleaseSuppressMs;
+    private readonly Action<Action>? _runSynchronizedWithInputFrame;
 
     private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
     private readonly Dictionary<GamepadButtons, long> _buttonDownTicks = new();
@@ -35,16 +39,22 @@ internal sealed class HoldSessionManager
         Action<string> setMappingStatus,
         Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch,
         Action onHoldSessionsChanged,
+        Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> resolveComboLeads,
+        ITimeProvider timeProvider,
         int modifierGraceMs,
-        int leadKeyReleaseSuppressMs)
+        int leadKeyReleaseSuppressMs,
+        Action<Action>? runSynchronizedWithInputFrame = null)
     {
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
         _queueOutputDispatch = queueOutputDispatch;
         _onHoldSessionsChanged = onHoldSessionsChanged;
+        _resolveComboLeads = resolveComboLeads;
+        _timeProvider = timeProvider;
         _modifierGraceMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
+        _runSynchronizedWithInputFrame = runSynchronizedWithInputFrame;
     }
 
     /// <summary>
@@ -52,11 +62,14 @@ internal sealed class HoldSessionManager
     /// </summary>
     public long? TryGetPressedDurationMs(GamepadButtons button)
     {
-        if (!_buttonDownTicks.TryGetValue(button, out var downTick))
-            return null;
-        var now = Environment.TickCount64;
-        var delta = (long)((ulong)((ulong)now - (ulong)downTick));
-        return delta;
+        lock (_buttonDownTicks)
+        {
+            if (!_buttonDownTicks.TryGetValue(button, out var downTick))
+                return null;
+            var now = _timeProvider.GetTickCount64();
+            var delta = (long)((ulong)((ulong)now - (ulong)downTick));
+            return delta;
+        }
     }
 
     internal sealed class HoldSession
@@ -69,7 +82,7 @@ internal sealed class HoldSessionManager
         public required bool RequiresLeftTrigger { get; init; }
         public required float TriggerMatchThreshold { get; init; }
         public required int HoldThresholdMs { get; init; }
-        public required DispatcherTimer Timer { get; init; }
+        public required ITimer Timer { get; init; }
         public bool LongFired { get; set; }
     }
 
@@ -103,13 +116,29 @@ internal sealed class HoldSessionManager
     /// <summary>
     /// Records when a physical button transition entered the pressed state (chord modifier grace and hold timing share this timeline).
     /// </summary>
-    public void RegisterButtonPressed(GamepadButtons button) =>
-        _buttonDownTicks[button] = Environment.TickCount64;
+    public void RegisterButtonPressed(GamepadButtons button)
+    {
+        lock (_buttonDownTicks)
+        {
+            _buttonDownTicks[button] = _timeProvider.GetTickCount64();
+        }
+    }
 
-    public void RegisterButtonReleased(GamepadButtons button) =>
-        _buttonDownTicks.Remove(button);
+    public void RegisterButtonReleased(GamepadButtons button)
+    {
+        lock (_buttonDownTicks)
+        {
+            _buttonDownTicks.Remove(button);
+        }
+    }
 
-    public void ClearButtonDownTicks() => _buttonDownTicks.Clear();
+    public void ClearButtonDownTicks()
+    {
+        lock (_buttonDownTicks)
+        {
+            _buttonDownTicks.Clear();
+        }
+    }
 
     /// <summary>
     /// Blocks chord Tap/Pressed when another chord member was already held longer than the configured modifier grace window.
@@ -119,18 +148,21 @@ internal sealed class HoldSessionManager
         if (chordButtons.Count < 2)
             return false;
 
-        var now = Environment.TickCount64;
-        foreach (var member in chordButtons)
+        var now = _timeProvider.GetTickCount64();
+        lock (_buttonDownTicks)
         {
-            if (member == changedButton)
-                continue;
-            if (!_buttonDownTicks.TryGetValue(member, out var downTick))
-                continue;
-            var heldMs = now - downTick;
-            if (heldMs < 0)
-                continue;
-            if (heldMs > _modifierGraceMs)
-                return true;
+            foreach (var member in chordButtons)
+            {
+                if (member == changedButton)
+                    continue;
+                if (!_buttonDownTicks.TryGetValue(member, out var downTick))
+                    continue;
+                var heldMs = now - downTick;
+                if (heldMs < 0)
+                    continue;
+                if (heldMs > _modifierGraceMs)
+                    return true;
+            }
         }
 
         return false;
@@ -177,6 +209,15 @@ internal sealed class HoldSessionManager
         if (!_canDispatchOutput())
             return false;
 
+        var comboLeads = _resolveComboLeads(snapshot);
+        if (activeButtons.Any(b => b != buttons && comboLeads.Contains(b)))
+        {
+            // If a lead button is held, we don't arm a solo hold-dual session.
+            // This prevents the short-release (Tap) from firing when the button is released
+            // as part of a chord.
+            return false;
+        }
+
         var holdCandidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool ReqRt, bool ReqLt, string SourceToken)>();
         foreach (var mapping in snapshot)
         {
@@ -215,8 +256,17 @@ internal sealed class HoldSessionManager
                 continue;
 
             var thresholdMs = ResolveHoldThresholdMs(candidate.Mapping);
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(thresholdMs) };
-            var session = new HoldSession
+            HoldSession session = null!;
+            var timer = _timeProvider.CreateTimer(
+                TimeSpan.FromMilliseconds(thresholdMs),
+                () =>
+                {
+                    if (_runSynchronizedWithInputFrame is not null)
+                        _runSynchronizedWithInputFrame(() => OnHoldTimerElapsed(session));
+                    else
+                        OnHoldTimerElapsed(session);
+                });
+            session = new HoldSession
             {
                 SourceToken = candidate.SourceToken,
                 ShortKeyToken = candidate.Mapping.KeyboardKey ?? string.Empty,
@@ -229,7 +279,6 @@ internal sealed class HoldSessionManager
                 Timer = timer
             };
 
-            timer.Tick += (_, _) => OnHoldTimerElapsed(session);
             timer.Start();
             _holdSessions[candidate.SourceToken] = session;
             _setMappingStatus($"Hold armed: {candidate.SourceToken} ({thresholdMs} ms)");

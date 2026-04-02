@@ -8,15 +8,29 @@ namespace GamepadMapperGUI.Core;
 
 internal static class ComboHudBuilder
 {
+    /// <summary>Whether a modifier combo HUD would have rows if output dispatch were allowed (ignores the dispatch gate).</summary>
+    internal static bool HasModifierPrefixHudContent(
+        IReadOnlyCollection<GamepadButtons> activeButtons,
+        IReadOnlyList<MappingEntry> mappingsSnapshot,
+        IReadOnlySet<GamepadButtons> comboLeads)
+    {
+        if (activeButtons is null || activeButtons.Count == 0)
+            return false;
+
+        var aChord = OrderHeldButtonsForTitle(activeButtons);
+        const bool aReqRt = false;
+        const bool aReqLt = false;
+
+        var lines = CollectChordExtensionLines(aChord, aReqRt, aReqLt, mappingsSnapshot, comboLeads);
+        return lines.Count > 0;
+    }
+
     public static ComboHudContent? BuildModifierPrefixHud(
         Func<bool> canDispatchOutput,
         IReadOnlyCollection<GamepadButtons> activeButtons,
         IReadOnlyList<MappingEntry> mappingsSnapshot,
         IReadOnlySet<GamepadButtons> comboLeads)
     {
-        if (!canDispatchOutput())
-            return null;
-
         if (activeButtons is null || activeButtons.Count == 0)
             return null;
 
@@ -26,6 +40,9 @@ internal static class ComboHudBuilder
 
         var lines = CollectChordExtensionLines(aChord, aReqRt, aReqLt, mappingsSnapshot, comboLeads);
         if (lines.Count == 0)
+            return null;
+
+        if (!canDispatchOutput())
             return null;
 
         var title = string.Join(" + ", aChord.Select(FormatHudButton));

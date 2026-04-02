@@ -1,18 +1,27 @@
 using System;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GamepadMapperGUI.Models;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class GamepadMonitorViewModel : ObservableObject
+public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
 {
     private const float TriggerDeadzoneMinSpan = 0.02f;
+    private const double UiRefreshHz = 60.0;
 
     private readonly Action<bool>? _setHudEnabled;
     private readonly Action<float, float>? _deadzoneChanged;
     private readonly Action<float, float, float, float>? _triggerDeadzonesChanged;
     private readonly Action<int, double>? _comboHudChromeChanged;
+    private readonly Action<double>? _templateSwitchHudChanged;
+    private readonly object _monitorSnapshotLock = new();
+    private GamepadMonitorUiSnapshot _pendingSnapshot;
+    private DispatcherTimer? _uiRefreshTimer;
+    private readonly Dispatcher _uiDispatcher;
 
     public GamepadMonitorViewModel(
         ICommand stopGamepadCommand,
@@ -28,7 +37,10 @@ public partial class GamepadMonitorViewModel : ObservableObject
         Action<float, float, float, float>? triggerDeadzonesChanged = null,
         int initialComboHudPanelAlpha = 96,
         double initialComboHudShadowOpacity = 0.28,
-        Action<int, double>? comboHudChromeChanged = null)
+        Action<int, double>? comboHudChromeChanged = null,
+        double initialTemplateSwitchHudSeconds = 3.0,
+        Action<double>? templateSwitchHudChanged = null,
+        Dispatcher? uiDispatcher = null)
     {
         StopGamepadCommand = stopGamepadCommand;
         StartGamepadCommand = startGamepadCommand;
@@ -36,6 +48,8 @@ public partial class GamepadMonitorViewModel : ObservableObject
         _deadzoneChanged = deadzoneChanged;
         _triggerDeadzonesChanged = triggerDeadzonesChanged;
         _comboHudChromeChanged = comboHudChromeChanged;
+        _templateSwitchHudChanged = templateSwitchHudChanged;
+        _uiDispatcher = uiDispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         leftThumbstickDeadzone = initialLeftThumbstickDeadzone;
         rightThumbstickDeadzone = initialRightThumbstickDeadzone;
         leftTriggerInnerDeadzone = initialLeftTriggerInnerDeadzone;
@@ -44,7 +58,90 @@ public partial class GamepadMonitorViewModel : ObservableObject
         rightTriggerOuterDeadzone = initialRightTriggerOuterDeadzone;
         comboHudPanelAlpha = initialComboHudPanelAlpha;
         comboHudShadowOpacity = initialComboHudShadowOpacity;
+        templateSwitchHudSeconds = initialTemplateSwitchHudSeconds;
+        _pendingSnapshot = new GamepadMonitorUiSnapshot(0, 0, 0, 0, 0, 0, string.Empty, string.Empty);
     }
+
+    /// <summary>Called from the gamepad polling thread; values are applied to observable properties on <see cref="UiRefreshHz"/>.</summary>
+    public void RecordInputFrameSnapshot(InputFrame frame, InputFrameProcessingResult result, float leftDeadzone, float rightDeadzone)
+    {
+        static float ClampDeadzone(float v, float dz) => MathF.Abs(v) < dz ? 0f : v;
+
+        var pressed = result.PressedButtons.Length > 0 ? result.PressedButtons[^1].ToString() : string.Empty;
+        var released = result.ReleasedButtons.Length > 0 ? result.ReleasedButtons[^1].ToString() : string.Empty;
+
+        if (!frame.IsConnected)
+        {
+            lock (_monitorSnapshotLock)
+            {
+                _pendingSnapshot = new GamepadMonitorUiSnapshot(0, 0, 0, 0, 0, 0, string.Empty, string.Empty);
+            }
+
+            return;
+        }
+
+        var snap = new GamepadMonitorUiSnapshot(
+            ClampDeadzone(frame.LeftThumbstick.X, leftDeadzone),
+            ClampDeadzone(frame.LeftThumbstick.Y, leftDeadzone),
+            ClampDeadzone(frame.RightThumbstick.X, rightDeadzone),
+            ClampDeadzone(frame.RightThumbstick.Y, rightDeadzone),
+            frame.LeftTrigger,
+            frame.RightTrigger,
+            pressed,
+            released);
+
+        lock (_monitorSnapshotLock)
+            _pendingSnapshot = snap;
+    }
+
+    partial void OnIsGamepadRunningChanged(bool value)
+    {
+        if (value)
+            StartUiRefreshTimer();
+        else
+            StopUiRefreshTimer();
+    }
+
+    private void StartUiRefreshTimer()
+    {
+        if (_uiRefreshTimer is not null)
+            return;
+
+        _uiRefreshTimer = new DispatcherTimer(DispatcherPriority.Background, _uiDispatcher)
+        {
+            Interval = TimeSpan.FromMilliseconds(1000.0 / UiRefreshHz)
+        };
+        _uiRefreshTimer.Tick += OnUiRefreshTick;
+        _uiRefreshTimer.Start();
+    }
+
+    private void StopUiRefreshTimer()
+    {
+        if (_uiRefreshTimer is null)
+            return;
+
+        _uiRefreshTimer.Tick -= OnUiRefreshTick;
+        _uiRefreshTimer.Stop();
+        _uiRefreshTimer = null;
+    }
+
+    private void OnUiRefreshTick(object? sender, EventArgs e)
+    {
+        GamepadMonitorUiSnapshot snap;
+        lock (_monitorSnapshotLock)
+            snap = _pendingSnapshot;
+
+        LeftThumbX = snap.LeftThumbX;
+        LeftThumbY = snap.LeftThumbY;
+        RightThumbX = snap.RightThumbX;
+        RightThumbY = snap.RightThumbY;
+        LeftTrigger = snap.LeftTrigger;
+        RightTrigger = snap.RightTrigger;
+        LastButtonPressed = snap.LastButtonPressed;
+        LastButtonReleased = snap.LastButtonReleased;
+    }
+
+    public void Dispose() => StopUiRefreshTimer();
 
     [ObservableProperty]
     private bool isGamepadRunning;
@@ -60,6 +157,10 @@ public partial class GamepadMonitorViewModel : ObservableObject
 
     [ObservableProperty]
     private string lastMappingStatus = "Waiting for gamepad input";
+
+    /// <summary>Non-empty when combo HUD preview is suppressed because output dispatch is blocked (targeting / focus / UIPI).</summary>
+    [ObservableProperty]
+    private string comboHudGateHint = string.Empty;
 
     [ObservableProperty]
     private float leftThumbX;
@@ -111,6 +212,10 @@ public partial class GamepadMonitorViewModel : ObservableObject
     [ObservableProperty]
     private double comboHudShadowOpacity;
 
+    /// <summary>Display duration in seconds for the template-switch HUD (typical 0.5–5.0).</summary>
+    [ObservableProperty]
+    private double templateSwitchHudSeconds;
+
     partial void OnIsHudEnabledChanged(bool value)
     {
         _setHudEnabled?.Invoke(value);
@@ -121,6 +226,9 @@ public partial class GamepadMonitorViewModel : ObservableObject
 
     partial void OnComboHudShadowOpacityChanged(double value) =>
         _comboHudChromeChanged?.Invoke(ComboHudPanelAlpha, ComboHudShadowOpacity);
+
+    partial void OnTemplateSwitchHudSecondsChanged(double value) =>
+        _templateSwitchHudChanged?.Invoke(TemplateSwitchHudSeconds);
 
     partial void OnLeftThumbstickDeadzoneChanged(float value)
     {

@@ -52,6 +52,14 @@ public partial class ComboHudWindow : Window
 
     public void ShowHud(ComboHudContent content, byte panelAlpha, double shadowOpacity, ComboHudPlacement placement)
     {
+        if (Resources["FadeInStoryboard"] is Storyboard fadeIn)
+            fadeIn.Stop();
+        if (Resources["FadeOutStoryboard"] is Storyboard fadeOut)
+        {
+            fadeOut.Stop();
+            fadeOut.Completed -= OnFadeOutCompleted;
+        }
+
         ApplyVisualSettings(panelAlpha, shadowOpacity);
         ApplyHudLayoutBounds();
         TitleBlock.Text = content.Title;
@@ -59,14 +67,24 @@ public partial class ComboHudWindow : Window
         var wasHidden = !IsVisible;
         if (wasHidden)
             RootBorder.Opacity = 0;
+        else
+            RootBorder.Opacity = 1;
+
         if (wasHidden)
             Show();
-        Dispatcher.BeginInvoke(() =>
+
+        void PositionAndMaybeFadeIn()
         {
+            UpdateLayout();
             PositionHud(placement);
-            if (wasHidden && Resources["FadeInStoryboard"] is Storyboard fadeIn)
-                fadeIn.Begin(this);
-        }, DispatcherPriority.Loaded);
+            if (wasHidden && Resources["FadeInStoryboard"] is Storyboard fi)
+                fi.Begin(this);
+        }
+
+        if (wasHidden)
+            Dispatcher.BeginInvoke(PositionAndMaybeFadeIn, DispatcherPriority.Loaded);
+        else
+            Dispatcher.BeginInvoke(PositionAndMaybeFadeIn, DispatcherPriority.Render);
     }
 
     public void HideHud()

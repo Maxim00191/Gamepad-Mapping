@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;
@@ -112,14 +113,14 @@ namespace GamepadMapperGUI.Core
             _hasPreviousState = XInput.GetState(_userIndex, out _previousState);
             _isFirstFrameEmission = true;
             Task.Run(() => PollingLoop());
-            Debug.WriteLine("Gamepad reader started.");
+            App.Logger.Info("Gamepad reader started.");
         }
 
         public void Stop()
         {
             if (!_isRunning) return;
             _isRunning = false;
-            Debug.WriteLine("Gamepad reader stopped.");
+            App.Logger.Info("Gamepad reader stopped.");
         }
 
         private void PollingLoop()
@@ -140,6 +141,7 @@ namespace GamepadMapperGUI.Core
                         _isFirstFrameEmission ||
                         (_hasPreviousState && currentButtons != _previousState.Gamepad.Buttons) ||
                         (_hasPreviousState && HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.LeftThumbX, _previousState.Gamepad.LeftThumbY, _leftThumbstickDeadzone), currentLeftThumb, AnalogChangeEpsilon)) ||
+                        // Right stick: emit while engaged (steady aim) so mouse-look stays continuous; left stick is delta-only.
                         (_hasPreviousState &&
                          (HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY, _rightThumbstickDeadzone), currentRightThumb, AnalogChangeEpsilon) ||
                           IsAnalogEngaged(currentRightThumb, AnalogChangeEpsilon))) ||

@@ -2,9 +2,9 @@ using System.Windows.Input;
 
 namespace GamepadMapperGUI.Models;
 
-internal readonly record struct DispatchedOutput(Key? KeyboardKey, PointerAction? PointerAction);
+public readonly record struct DispatchedOutput(Key? KeyboardKey, PointerAction? PointerAction);
 
-internal readonly record struct QueuedOutputWork(
+public readonly record struct QueuedOutputWork(
     string ButtonName,
     TriggerMoment Trigger,
     string OutputLabel,
@@ -13,7 +13,7 @@ internal readonly record struct QueuedOutputWork(
     System.Windows.Input.Key[]? ChordModifiers,
     System.Windows.Input.Key? ChordMainKey);
 
-internal enum PointerAction
+public enum PointerAction
 {
     LeftClick,
     RightClick,

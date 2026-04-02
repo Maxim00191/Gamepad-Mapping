@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
@@ -15,16 +17,20 @@ public sealed class MappingEngine : IMappingEngine
 {
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
-    private readonly Func<bool> _canDispatchOutput;
+    private readonly Func<bool> _canDispatchOutputLive;
+    private bool _processingInputFrame;
+    private bool _frameDispatchAllowed;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
     private readonly OutputStateTracker _outputStateTracker = new();
     private readonly AnalogProcessor _analogProcessor = new();
     private readonly InputDispatcher _inputDispatcher;
     private readonly Action<ComboHudContent?>? _setComboHud;
+    private readonly object _inputFrameSync = new();
     private readonly HoldSessionManager _holdSessionManager;
     private readonly InputFramePipeline _inputFramePipeline;
     private readonly ButtonEventPipeline _buttonEventPipeline;
+    private readonly ItemCycleProcessor _itemCycleProcessor = new();
 
     private readonly int _comboHudDelayMs;
     private readonly int _leadKeyReleaseSuppressMs;
@@ -38,54 +44,104 @@ public sealed class MappingEngine : IMappingEngine
     private float _latestLeftTrigger;
     private float _latestRightTrigger;
     private IReadOnlyList<MappingEntry> _lastButtonMappingsSnapshot = Array.Empty<MappingEntry>();
-    private DispatcherTimer? _comboHudDelayTimer;
-    private bool _comboHudDelayConfirmed;
-    private string? _pendingComboHudSignature;
-
-    /// <summary>0..n-1 = last emitted slot; -1 = no step yet (first Next emits slot 1, first Previous emits slot n).</summary>
-    private int _itemCycleSlotIndex = -1;
 
     /// <summary>Buttons whose solo <see cref="TriggerMoment.Pressed"/> was deferred because the profile has a richer chord using them.</summary>
     private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons = [];
+    private readonly object _deferredSoloLeadButtonsLock = new();
 
     /// <summary>Non-null = exact combo leads from profile JSON; null = infer from mappings each event.</summary>
     private HashSet<GamepadButtons>? _explicitComboLeadsFromTemplate;
 
+    private readonly AnalogMappingProcessor _analogMappingProcessor;
+    private readonly ComboHudManager? _comboHudManager;
+    private readonly ButtonMappingProcessor _buttonMappingProcessor;
+    private readonly ITimeProvider _timeProvider;
+
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
         IMouseEmulator mouseEmulator,
-        Func<bool> canDispatchOutput,
+        Func<bool> canDispatchOutputLive,
         Action<Action> runOnUi,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus,
         Action<ComboHudContent?>? setComboHud = null,
         int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
         int leadKeyReleaseSuppressMs = 500,
-        Action<string>? requestTemplateSwitchToProfileId = null)
+        Action<string>? requestTemplateSwitchToProfileId = null,
+        Action<string?>? setComboHudGateHint = null,
+        Func<string>? comboHudGateMessageFactory = null,
+        Func<bool>? isComboHudPresentationSuppressed = null,
+        ITimeProvider? timeProvider = null)
     {
+        _timeProvider = timeProvider ?? new RealTimeProvider();
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
-        _canDispatchOutput = canDispatchOutput;
+        _canDispatchOutputLive = canDispatchOutputLive;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
         _setComboHud = setComboHud;
         _inputDispatcher = new InputDispatcher(
-            DispatchMappedOutput,
-            (modifiers, mainKey) => _keyboardEmulator.TapKeyChord(modifiers, mainKey),
+            DispatchMappedOutputAsync,
+            (modifiers, mainKey, ct) => _keyboardEmulator.TapKeyChordAsync(modifiers, mainKey, cancellationToken: ct),
             runOnUi,
             setMappedOutput,
             setMappingStatus);
         _holdSessionManager = new HoldSessionManager(
-            _canDispatchOutput,
+            () => CanDispatchOutputMerged(),
             _setMappedOutput,
             _setMappingStatus,
             QueueOutputDispatch,
-            SyncComboHud,
+            () => _comboHudManager?.Sync(),
+            mappings => ResolveComboLeads(mappings),
+            _timeProvider,
             modifierGraceMs,
-            leadKeyReleaseSuppressMs);
+            leadKeyReleaseSuppressMs,
+            runSynchronizedWithInputFrame: action =>
+            {
+                lock (_inputFrameSync)
+                    action();
+            });
+
+        _analogMappingProcessor = new AnalogMappingProcessor(
+            _analogProcessor,
+            _keyboardEmulator,
+            _mouseEmulator,
+            () => CanDispatchOutputMerged(),
+            _setMappedOutput,
+            _setMappingStatus);
+
+        if (_setComboHud != null)
+        {
+            _comboHudManager = new ComboHudManager(
+                _setComboHud,
+                () => CanDispatchOutputMerged(),
+                () => _lastButtonMappingsSnapshot,
+                () => _latestActiveButtons,
+                mappings => ResolveComboLeads(mappings),
+                _holdSessionManager,
+                _comboHudDelayMs,
+                setComboHudGateHint,
+                comboHudGateMessageFactory,
+                isComboHudPresentationSuppressed);
+        }
+
+        _buttonMappingProcessor = new ButtonMappingProcessor(
+            _holdSessionManager,
+            _outputStateTracker,
+            _itemCycleProcessor,
+            () => CanDispatchOutputMerged(),
+            _setMappedOutput,
+            _setMappingStatus,
+            QueueOutputDispatch,
+            EnqueueItemCycleTap,
+            TryDispatchTemplateToggle,
+            mappings => ResolveComboLeads(mappings),
+            _leadKeyReleaseSuppressMs,
+            _deferredSoloLeadButtons,
+            _deferredSoloLeadButtonsLock);
 
         _inputFramePipeline = new InputFramePipeline(
             middlewares: new IInputFrameMiddleware[] { new InputFrameTransitionMiddleware() },
@@ -113,12 +169,12 @@ public sealed class MappingEngine : IMappingEngine
                         ResolveComboLeads(_lastButtonMappingsSnapshot).Contains(btn)),
                     getReleasedButtonHeldMs: btn => _holdSessionManager.TryGetPressedDurationMs(btn),
                     forceReleaseHeldOutputsForButton: ForceReleaseHeldOutputsForButton,
-                    collectReleasedOutputsHandledByMappings: CollectReleasedOutputsHandledByMappings,
+                    collectReleasedOutputsHandledByMappings: (btn, active, snap, lt, rt, heldMs) => _buttonMappingProcessor.CollectReleasedOutputsHandledByMappings(btn, active, snap, lt, rt, heldMs),
                     setLatestActiveButtons: activeButtons => _latestActiveButtons = activeButtons,
-                    canDispatchOutput: _canDispatchOutput,
+                    canDispatchOutput: () => CanDispatchOutputMerged(),
                     setMappingStatus: _setMappingStatus)
             ],
-            terminal: ProcessButtonEventTerminal);
+            terminal: _buttonMappingProcessor.ProcessButtonEventTerminal);
     }
 
     /// <inheritdoc />
@@ -128,17 +184,35 @@ public sealed class MappingEngine : IMappingEngine
     private HashSet<GamepadButtons> ResolveComboLeads(IReadOnlyCollection<MappingEntry> mappings) =>
         ComboLeadSemantics.ResolveLeads(mappings, _explicitComboLeadsFromTemplate);
 
-    public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    private bool CanDispatchOutputMerged() =>
+        _processingInputFrame ? _frameDispatchAllowed : _canDispatchOutputLive();
+
+    public InputFrameProcessingResult ProcessInputFrame(InputFrame frame, IReadOnlyList<MappingEntry> mappingsSnapshot, bool canDispatchMappedOutput = true)
     {
-        _lastButtonMappingsSnapshot = mappingsSnapshot;
-
-        var context = new InputFrameContext
+        lock (_inputFrameSync)
         {
-            Frame = frame
-        };
+            _processingInputFrame = true;
+            _frameDispatchAllowed = canDispatchMappedOutput;
+            try
+            {
+                _lastButtonMappingsSnapshot = mappingsSnapshot;
 
-        _inputFramePipeline.Invoke(context);
-        return new InputFrameProcessingResult(context.PressedButtons, context.ReleasedButtons);
+                var context = new InputFrameContext
+                {
+                    Frame = frame
+                };
+
+                _inputFramePipeline.Invoke(context);
+
+                return new InputFrameProcessingResult(
+                    context.PressedButtons.ToArray(),
+                    context.ReleasedButtons.ToArray());
+            }
+            finally
+            {
+                _processingInputFrame = false;
+            }
+        }
     }
 
     private void ProcessInputFrameTerminal(InputFrameContext context)
@@ -194,12 +268,25 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         // Continuous analog evaluation (for output transitions + relative mouse look).
-        HandleThumbstickMappingsInternal(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot);
-        HandleThumbstickMappingsInternal(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot);
-        HandleTriggerMappingsInternal(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot);
-        HandleTriggerMappingsInternal(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot);
+        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot);
+        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot);
+        _analogMappingProcessor.ProcessTrigger(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
+        _analogMappingProcessor.ProcessTrigger(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
 
-        SyncComboHud();
+        TrySyncComboHud(context);
+    }
+
+    private void TrySyncComboHud(InputFrameContext context)
+    {
+        if (_comboHudManager is null)
+            return;
+
+        var frameHasButtonEdges = context.IsFirstFrame ||
+            context.PressedButtons.Length > 0 ||
+            context.ReleasedButtons.Length > 0;
+
+        if (frameHasButtonEdges || _comboHudManager.AwaitingComboHudDelay)
+            _comboHudManager.Sync();
     }
 
     private static HashSet<GamepadButtons> ToActiveButtonsSet(GamepadButtons buttons)
@@ -242,323 +329,50 @@ public sealed class MappingEngine : IMappingEngine
         _buttonEventPipeline.Invoke(context);
     }
 
-    private void ProcessButtonEventTerminal(ButtonEventContext context)
-    {
-        if (context.IsSuppressed)
-            return;
-
-        var comboLeads = ResolveComboLeads(context.MappingsSnapshot);
-
-        if (context.Trigger == TriggerMoment.Released &&
-            _deferredSoloLeadButtons.Remove(context.Button))
-        {
-            var heldMs = context.ReleasedButtonHeldMs;
-            if (heldMs.HasValue && heldMs.Value > _leadKeyReleaseSuppressMs)
-            {
-                _setMappingStatus($"Suppressed solo ({context.ButtonName}) - lead held past {_leadKeyReleaseSuppressMs} ms");
-            }
-            else if (_canDispatchOutput())
-            {
-                if (TryDispatchDeferredSoloShortRelease(context.Button, context.MappingsSnapshot))
-                {
-                    context.DeferredSoloLeadHandledOnRelease = true;
-                    _setMappingStatus($"Deferred solo (short): {context.ButtonName}");
-                }
-            }
-        }
-
-        var matched = false;
-        var suppressedByHoldDual = false;
-        var candidates = new List<(MappingEntry Mapping, List<GamepadButtons> ChordButtons, bool RequiresRightTrigger, bool RequiresLeftTrigger, string SourceToken)>();
-
-        foreach (var mapping in context.MappingsSnapshot)
-        {
-            if (mapping?.From is null) continue;
-            if (mapping.From.Type != GamepadBindingType.Button) continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
-                continue;
-            var triggerThreshold = GetTriggerMatchThreshold(mapping);
-            if (!ChordResolver.DoesChordMatchEvent(
-                    chordButtons,
-                    reqRt,
-                    reqLt,
-                    context.LeftTriggerValue,
-                    context.RightTriggerValue,
-                    triggerThreshold,
-                    context.Button,
-                    context.ActiveButtons))
-                continue;
-            if (mapping.Trigger != context.Trigger) continue;
-            if (context.Trigger == TriggerMoment.Pressed &&
-                chordButtons.Count == 1 &&
-                !reqRt &&
-                !reqLt &&
-                SnapshotHasMultiButtonChordContaining(chordButtons[0], context.MappingsSnapshot) &&
-                comboLeads.Contains(chordButtons[0]))
-            {
-                _deferredSoloLeadButtons.Add(context.Button);
-                continue;
-            }
-            if (context.Trigger == TriggerMoment.Released &&
-                context.DeferredSoloLeadHandledOnRelease &&
-                chordButtons.Count == 1 &&
-                !reqRt &&
-                !reqLt &&
-                chordButtons[0] == context.Button)
-                continue;
-            if (context.Trigger == TriggerMoment.Released &&
-                ShouldSuppressLeadKeyReleasedOutput(chordButtons, context.ReleasedButtonHeldMs, context.MappingsSnapshot, comboLeads))
-                continue;
-            if (context.Trigger == TriggerMoment.Tap && _holdSessionManager.HasHoldSessionForSourceToken(sourceToken))
-                continue;
-            if (HoldSessionManager.IsHoldDualMapping(mapping))
-            {
-                suppressedByHoldDual = true;
-                continue;
-            }
-
-            candidates.Add((mapping, chordButtons, reqRt, reqLt, sourceToken));
-        }
-
-        for (var i = 0; i < candidates.Count; i++)
-        {
-            var candidate = candidates[i];
-            var hasMoreSpecificMatch = candidates.Any(other =>
-                !ReferenceEquals(other.Mapping, candidate.Mapping) &&
-                ChordResolver.IsOtherChordStrictlyMoreSpecific(
-                    candidate.ChordButtons,
-                    candidate.RequiresRightTrigger,
-                    candidate.RequiresLeftTrigger,
-                    other.ChordButtons,
-                    other.RequiresRightTrigger,
-                    other.RequiresLeftTrigger));
-            if (hasMoreSpecificMatch)
-                continue;
-
-            matched = true;
-            ClearDeferredSoloLeadsForRichChord(
-                candidate.ChordButtons,
-                candidate.RequiresRightTrigger,
-                candidate.RequiresLeftTrigger);
-
-            try
-            {
-                if (candidate.Mapping.ItemCycle is { } cycle)
-                {
-                    if (context.Trigger == TriggerMoment.Released)
-                        continue;
-                    if (!_canDispatchOutput())
-                        continue;
-                    if (!TryPrepareItemCycleStep(
-                            cycle,
-                            out var digitKey,
-                            out var customOut,
-                            out var useCustomOut,
-                            out var modifierKeys,
-                            out var itemLabel,
-                            out var itemCycleError))
-                    {
-                        _setMappingStatus(itemCycleError);
-                        continue;
-                    }
-
-                    _setMappedOutput(itemLabel);
-                    _setMappingStatus($"Queued: {candidate.SourceToken} ({context.Trigger}) -> {itemLabel}");
-                    EnqueueItemCycleTap(
-                        candidate.SourceToken,
-                        context.Trigger,
-                        modifierKeys,
-                        itemLabel,
-                        useCustomOut ? customOut : null,
-                        useCustomOut ? Key.None : digitKey);
-                    continue;
-                }
-
-                if (TryDispatchTemplateToggle(
-                        candidate.Mapping,
-                        context.Trigger,
-                        candidate.SourceToken,
-                        out var toggleErr))
-                {
-                    if (toggleErr is not null)
-                        _setMappingStatus(toggleErr);
-                    continue;
-                }
-
-                if (!InputTokenResolver.TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out var output, out var baseLabel))
-                    continue;
-
-                _outputStateTracker.TrackOutputHoldState(candidate.SourceToken, candidate.ChordButtons, output, context.Trigger);
-                var outputLabel = $"{baseLabel} ({context.Trigger})";
-                _setMappedOutput(outputLabel);
-                _setMappingStatus($"Queued: {candidate.SourceToken} ({context.Trigger}) -> {outputLabel}");
-                QueueOutputDispatch(candidate.SourceToken, context.Trigger, output, outputLabel, candidate.Mapping.KeyboardKey ?? string.Empty);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to send key mapping. key={candidate.Mapping.KeyboardKey}, ex={ex.Message}");
-                _setMappingStatus($"Error sending '{candidate.Mapping.KeyboardKey}': {ex.Message}");
-            }
-        }
-
-        var holdArmed = false;
-        if (context.Trigger == TriggerMoment.Pressed)
-            holdArmed = _holdSessionManager.TryArmHoldBinding(
-                context.Button,
-                context.ActiveButtons,
-                context.MappingsSnapshot,
-                context.LeftTriggerValue,
-                context.RightTriggerValue);
-
-        if (!matched && !suppressedByHoldDual && !holdArmed)
-            _setMappingStatus($"No mapping for {context.ButtonName} ({context.Trigger})");
-    }
-
-    private void HandleThumbstickMappingsInternal(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot)
-    {
-        if (!_canDispatchOutput())
-        {
-            ForceReleaseAnalogOutputs();
-            return;
-        }
-        var mouseDeltaX = 0f;
-        var mouseDeltaY = 0f;
-
-        foreach (var mapping in mappingsSnapshot)
-        {
-            if (mapping?.From is null || mapping.From.Type != sourceType)
-                continue;
-
-            if (!AnalogProcessor.TryParseAnalogSource(mapping.From.Value, out var source))
-                continue;
-
-            var outputToken = InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
-            if (string.IsNullOrWhiteSpace(outputToken))
-                continue;
-
-            if (AnalogProcessor.TryResolveMouseLookOutput(outputToken, out var isVerticalLook))
-            {
-                var axisValue = AnalogProcessor.ResolveStickAxisValue(stickValue, source);
-                if (MathF.Abs(axisValue) < 0.01f)
-                    continue;
-
-                var delta = axisValue * AnalogProcessor.DefaultLookSensitivity;
-                if (isVerticalLook)
-                    mouseDeltaY += -delta;
-                else
-                    mouseDeltaX += delta;
-                continue;
-            }
-
-            var key = InputTokenResolver.ParseKey(outputToken);
-            if (key == Key.None)
-                continue;
-
-            HandleAnalogKeyboardOutput(mapping, source, stickValue, key);
-        }
-
-        if (MathF.Abs(mouseDeltaX) > 0f || MathF.Abs(mouseDeltaY) > 0f)
-            SendMouseLookDelta(mouseDeltaX, mouseDeltaY);
-    }
-
-    private void HandleTriggerMappingsInternal(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot)
-    {
-        if (!_canDispatchOutput())
-        {
-            ForceReleaseAnalogOutputs();
-            return;
-        }
-        foreach (var mapping in mappingsSnapshot)
-        {
-            if (mapping?.From is null || mapping.From.Type != triggerBindingType)
-                continue;
-
-            if (!InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out var output, out var baseLabel))
-                continue;
-
-            var stateKey =
-                $"Trigger|{mapping.From.Type}|{mapping.From.Value}|{InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty)}|{mapping.Trigger}";
-            var transition = _analogProcessor.EvaluateTriggerTransition(mapping, triggerValue, stateKey);
-            if (!transition.HasChanged)
-                continue;
-
-            try
-            {
-                if (output.KeyboardKey is Key key && key != Key.None)
-                {
-                    if (transition.IsActive)
-                    {
-                        if (mapping.Trigger == TriggerMoment.Tap)
-                            _keyboardEmulator.TapKey(key);
-                        else if (mapping.Trigger != TriggerMoment.Released)
-                            _keyboardEmulator.KeyDown(key);
-                    }
-                    else
-                    {
-                        if (mapping.Trigger == TriggerMoment.Released)
-                            _keyboardEmulator.TapKey(key);
-                        else if (mapping.Trigger != TriggerMoment.Tap)
-                            _keyboardEmulator.KeyUp(key);
-                    }
-                }
-                else if (output.PointerAction is PointerAction pointerAction)
-                {
-                    if (transition.IsActive)
-                    {
-                        if (mapping.Trigger == TriggerMoment.Tap)
-                            SendPointerAction(pointerAction, TriggerMoment.Tap);
-                        else if (mapping.Trigger != TriggerMoment.Released)
-                            SendPointerAction(pointerAction, TriggerMoment.Pressed);
-                    }
-                    else
-                    {
-                        if (mapping.Trigger == TriggerMoment.Released)
-                            SendPointerAction(pointerAction, TriggerMoment.Tap);
-                        else if (mapping.Trigger != TriggerMoment.Tap)
-                            SendPointerAction(pointerAction, TriggerMoment.Released);
-                    }
-                }
-
-                var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
-                _setMappedOutput($"{baseLabel} ({moment})");
-                _setMappingStatus($"Trigger {mapping.From.Type}: {baseLabel} ({moment})");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed trigger mapping. key={mapping.KeyboardKey}, ex={ex.Message}");
-                _setMappingStatus($"Error sending '{mapping.KeyboardKey}': {ex.Message}");
-            }
-        }
-    }
-
     public void ForceReleaseAllOutputs()
     {
-        _latestActiveButtons = Array.Empty<GamepadButtons>();
-        _deferredSoloLeadButtons.Clear();
-        _holdSessionManager.ClearButtonDownTicks();
-        _holdSessionManager.ClearAllHoldSessions();
-        _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
+        lock (_inputFrameSync)
+        {
+            lock (_deferredSoloLeadButtonsLock)
+            {
+                _latestActiveButtons = Array.Empty<GamepadButtons>();
+                _deferredSoloLeadButtons.Clear();
+                _itemCycleProcessor.Reset();
+                _holdSessionManager.ClearButtonDownTicks();
+                _holdSessionManager.ClearAllHoldSessions();
+                _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
+                _analogMappingProcessor.ForceReleaseAnalogOutputs();
+            }
+        }
     }
 
     public void ForceReleaseAnalogOutputs()
     {
-        foreach (var active in _analogProcessor.GetActiveNonTapOutputs())
-        {
-            _keyboardEmulator.KeyUp(active.Key);
-        }
-        _analogProcessor.Reset();
+        _analogMappingProcessor.ForceReleaseAnalogOutputs();
     }
+
+    /// <inheritdoc />
+    public void RefreshComboHud()
+    {
+        lock (_inputFrameSync)
+            _comboHudManager?.Sync();
+    }
+
+    /// <inheritdoc />
+    public void InvalidateComboHudPresentation()
+    {
+        lock (_inputFrameSync)
+            _comboHudManager?.InvalidateLastPresentedSignature();
+    }
+
+    /// <inheritdoc />
+    public Task WaitForIdleAsync() => _inputDispatcher.WaitForIdleAsync();
 
     public void Dispose()
     {
         try
         {
-            if (_comboHudDelayTimer is not null)
-            {
-                _comboHudDelayTimer.Stop();
-                _comboHudDelayTimer.Tick -= OnComboHudDelayTimerTick;
-                _comboHudDelayTimer = null;
-            }
+            _comboHudManager?.Dispose();
             ForceReleaseAllOutputs();
             ForceReleaseAnalogOutputs();
             _inputDispatcher.Dispose();
@@ -605,364 +419,7 @@ public sealed class MappingEngine : IMappingEngine
         return false;
     }
 
-    private void SyncComboHud()
-    {
-        if (_setComboHud is null)
-            return;
-
-        if (!TryGetComboHudSignature(out var signature))
-        {
-            CancelComboHudDelayTimer();
-            _comboHudDelayConfirmed = false;
-            _pendingComboHudSignature = null;
-            _setComboHud(null);
-            return;
-        }
-
-        if (!string.Equals(signature, _pendingComboHudSignature, StringComparison.Ordinal))
-        {
-            _pendingComboHudSignature = signature;
-            _comboHudDelayConfirmed = false;
-            CancelComboHudDelayTimer();
-        }
-
-        if (!_comboHudDelayConfirmed)
-        {
-            ScheduleComboHudDelay();
-            return;
-        }
-
-        CancelComboHudDelayTimer();
-        PresentComboHudForCurrentSignature(signature);
-    }
-
-    private bool TryGetComboHudSignature(out string signature)
-    {
-        if (_holdSessionManager.TryGetFirstHoldSession(out var holdSession) && holdSession is not null)
-        {
-            signature = $"hold|{holdSession.SourceToken}";
-            return true;
-        }
-
-        var comboLeads = ResolveComboLeads(_lastButtonMappingsSnapshot);
-        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot, comboLeads);
-        if (prefix is null)
-        {
-            signature = string.Empty;
-            return false;
-        }
-
-        var thumbprint = string.Join(
-            ',',
-            _latestActiveButtons.OrderBy(b => b.ToString(), StringComparer.OrdinalIgnoreCase));
-        signature = $"prefix|{thumbprint}";
-        return true;
-    }
-
-    private void PresentComboHudForCurrentSignature(string signature)
-    {
-        if (_setComboHud is null)
-            return;
-
-        var comboLeads = ResolveComboLeads(_lastButtonMappingsSnapshot);
-
-        if (signature.StartsWith("hold|", StringComparison.Ordinal) &&
-            _holdSessionManager.TryGetFirstHoldSession(out var holdSession) &&
-            holdSession is not null)
-        {
-            _setComboHud(ComboHudBuilder.BuildComboHud(holdSession, _lastButtonMappingsSnapshot, comboLeads));
-            return;
-        }
-
-        var prefix = ComboHudBuilder.BuildModifierPrefixHud(_canDispatchOutput, _latestActiveButtons, _lastButtonMappingsSnapshot, comboLeads);
-        if (prefix is not null)
-            _setComboHud(prefix);
-        else
-            _setComboHud(null);
-    }
-
-    private void EnsureComboHudDelayTimer()
-    {
-        if (_comboHudDelayTimer is not null)
-            return;
-
-        _comboHudDelayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_comboHudDelayMs) };
-        _comboHudDelayTimer.Tick += OnComboHudDelayTimerTick;
-    }
-
-    private void OnComboHudDelayTimerTick(object? sender, EventArgs e)
-    {
-        _comboHudDelayTimer?.Stop();
-        if (_setComboHud is null)
-            return;
-
-        if (!TryGetComboHudSignature(out var signature))
-        {
-            _comboHudDelayConfirmed = false;
-            _pendingComboHudSignature = null;
-            _setComboHud(null);
-            return;
-        }
-
-        _comboHudDelayConfirmed = true;
-        PresentComboHudForCurrentSignature(signature);
-    }
-
-    private void ScheduleComboHudDelay()
-    {
-        EnsureComboHudDelayTimer();
-        _comboHudDelayTimer!.Stop();
-        _comboHudDelayTimer.Start();
-    }
-
-    private void CancelComboHudDelayTimer()
-    {
-        _comboHudDelayTimer?.Stop();
-    }
-
-    private HashSet<DispatchedOutput> CollectReleasedOutputsHandledByMappings(
-        GamepadButtons changedButton,
-        IReadOnlyCollection<GamepadButtons> activeButtons,
-        IReadOnlyCollection<MappingEntry> snapshot,
-        float leftTriggerValue,
-        float rightTriggerValue,
-        long? releasedButtonHeldMs)
-    {
-        var handledOutputs = new HashSet<DispatchedOutput>();
-        var comboLeads = ResolveComboLeads(snapshot);
-        foreach (var mapping in snapshot)
-        {
-            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
-                continue;
-            if (mapping.Trigger != TriggerMoment.Released)
-                continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chordButtons, out var reqRt, out var reqLt, out _))
-                continue;
-            if (ShouldSuppressLeadKeyReleasedOutput(chordButtons, releasedButtonHeldMs, snapshot, comboLeads))
-                continue;
-            var triggerThreshold = GetTriggerMatchThreshold(mapping);
-            if (!ChordResolver.DoesChordMatchEvent(chordButtons, reqRt, reqLt, leftTriggerValue, rightTriggerValue, triggerThreshold, changedButton, activeButtons))
-                continue;
-            if (!InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out var output, out _))
-                continue;
-
-            handledOutputs.Add(output);
-        }
-
-        return handledOutputs;
-    }
-
-    private bool ShouldSuppressLeadKeyReleasedOutput(
-        IReadOnlyList<GamepadButtons> chordButtons,
-        long? releasedButtonHeldMs,
-        IReadOnlyCollection<MappingEntry> snapshot,
-        HashSet<GamepadButtons> comboLeads)
-    {
-        if (releasedButtonHeldMs is null || releasedButtonHeldMs <= _leadKeyReleaseSuppressMs)
-            return false;
-        if (chordButtons.Count != 1)
-            return false;
-        if (!comboLeads.Contains(chordButtons[0]))
-            return false;
-        return SnapshotHasMultiButtonChordContaining(chordButtons[0], snapshot);
-    }
-
-    private static bool SnapshotHasMultiButtonChordContaining(
-        GamepadButtons button,
-        IReadOnlyCollection<MappingEntry> snapshot)
-    {
-        foreach (var mapping in snapshot)
-        {
-            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
-                continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var reqRt, out var reqLt, out _))
-                continue;
-            if (!chord.Contains(button))
-                continue;
-            if (ChordResolver.ChordSpecificity(chord, reqRt, reqLt) >= 2)
-                return true;
-        }
-
-        return false;
-    }
-
-    private void ClearDeferredSoloLeadsForRichChord(
-        IReadOnlyList<GamepadButtons> chordButtons,
-        bool requiresRightTrigger,
-        bool requiresLeftTrigger)
-    {
-        if (ChordResolver.ChordSpecificity(chordButtons, requiresRightTrigger, requiresLeftTrigger) < 2)
-            return;
-        foreach (var b in chordButtons)
-            _deferredSoloLeadButtons.Remove(b);
-    }
-
-    private bool TryDispatchDeferredSoloShortRelease(GamepadButtons button, IReadOnlyList<MappingEntry> snapshot)
-    {
-        MappingEntry? pressed = null;
-        MappingEntry? released = null;
-        MappingEntry? tap = null;
-        foreach (var mapping in snapshot)
-        {
-            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
-                continue;
-            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var rt, out var lt, out var token))
-                continue;
-            if (rt || lt || chord.Count != 1 || chord[0] != button)
-                continue;
-            switch (mapping.Trigger)
-            {
-                case TriggerMoment.Pressed:
-                    pressed = mapping;
-                    break;
-                case TriggerMoment.Released:
-                    released = mapping;
-                    break;
-                case TriggerMoment.Tap:
-                    tap = mapping;
-                    break;
-            }
-        }
-
-        try
-        {
-            if (pressed is not null &&
-                released is not null &&
-                string.Equals(pressed.KeyboardKey, released.KeyboardKey, StringComparison.Ordinal) &&
-                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var pressToken) &&
-                InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var output, out var baseLabel))
-            {
-                var soloChord = new List<GamepadButtons> { button };
-                _outputStateTracker.TrackOutputHoldState(pressToken, soloChord, output, TriggerMoment.Pressed);
-                var pressLabel = $"{baseLabel} (Pressed)";
-                _setMappedOutput(pressLabel);
-                QueueOutputDispatch(pressToken, TriggerMoment.Pressed, output, pressLabel, pressed.KeyboardKey ?? string.Empty);
-
-                _outputStateTracker.TrackOutputHoldState(pressToken, soloChord, output, TriggerMoment.Released);
-                var relLabel = $"{baseLabel} (Released)";
-                _setMappedOutput(relLabel);
-                QueueOutputDispatch(pressToken, TriggerMoment.Released, output, relLabel, released.KeyboardKey ?? string.Empty);
-                return true;
-            }
-
-            // Solo combo-lead buttons (e.g. DPadUp) are deferred on Pressed when richer chords exist; item cycle uses an
-            // empty keyboardKey so it must be surfaced here on short release, not only via TryResolveMappedOutput.
-            if (pressed is not null &&
-                pressed.ItemCycle is { } deferredCycle &&
-                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredCycleToken))
-            {
-                if (!TryPrepareItemCycleStep(
-                        deferredCycle,
-                        out var defDigit,
-                        out var defCustom,
-                        out var defUseCustom,
-                        out var defMods,
-                        out var deferredLabel,
-                        out var defErr))
-                {
-                    _setMappingStatus(defErr);
-                    return false;
-                }
-
-                _setMappedOutput(deferredLabel);
-                _setMappingStatus($"Queued: {deferredCycleToken} (Tap) -> {deferredLabel}");
-                EnqueueItemCycleTap(
-                    deferredCycleToken,
-                    TriggerMoment.Tap,
-                    defMods,
-                    deferredLabel,
-                    defUseCustom ? defCustom : null,
-                    defUseCustom ? Key.None : defDigit);
-                return true;
-            }
-
-            if (pressed is not null &&
-                pressed.TemplateToggle is { } deferredToggle &&
-                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredToggleToken))
-            {
-                if (TryDispatchTemplateToggle(pressed, TriggerMoment.Tap, deferredToggleToken, out var defTtErr))
-                {
-                    if (defTtErr is not null)
-                        _setMappingStatus(defTtErr);
-                    return true;
-                }
-            }
-
-            if (pressed is not null &&
-                ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var soloToken) &&
-                InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
-            {
-                var outLabel = $"{tapLabel} (Tap)";
-                _setMappedOutput(outLabel);
-                _setMappingStatus($"Queued: {soloToken} (Tap) -> {outLabel}");
-                QueueOutputDispatch(soloToken, TriggerMoment.Tap, soloOut, outLabel, pressed.KeyboardKey ?? string.Empty);
-                return true;
-            }
-
-            if (tap is not null &&
-                tap.ItemCycle is { } tapCycle &&
-                ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapCycleToken))
-            {
-                if (!TryPrepareItemCycleStep(
-                        tapCycle,
-                        out var tapDigit,
-                        out var tapCustom,
-                        out var tapUseCustom,
-                        out var tapMods,
-                        out var tapItemLabel,
-                        out var tapErr))
-                {
-                    _setMappingStatus(tapErr);
-                    return false;
-                }
-
-                _setMappedOutput(tapItemLabel);
-                _setMappingStatus($"Queued: {tapCycleToken} (Tap) -> {tapItemLabel}");
-                EnqueueItemCycleTap(
-                    tapCycleToken,
-                    TriggerMoment.Tap,
-                    tapMods,
-                    tapItemLabel,
-                    tapUseCustom ? tapCustom : null,
-                    tapUseCustom ? Key.None : tapDigit);
-                return true;
-            }
-
-            if (tap is not null &&
-                tap.TemplateToggle is { } tapToggle &&
-                ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapToggleToken))
-            {
-                if (TryDispatchTemplateToggle(tap, TriggerMoment.Tap, tapToggleToken, out var tapTtErr))
-                {
-                    if (tapTtErr is not null)
-                        _setMappingStatus(tapTtErr);
-                    return true;
-                }
-            }
-
-            if (tap is not null &&
-                ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapTok) &&
-                InputTokenResolver.TryResolveMappedOutput(tap.KeyboardKey, out var tOut, out var bLab))
-            {
-                var ol = $"{bLab} (Tap)";
-                _setMappedOutput(ol);
-                QueueOutputDispatch(tapTok, TriggerMoment.Tap, tOut, ol, tap.KeyboardKey ?? string.Empty);
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Deferred solo release failed: {ex.Message}");
-            _setMappingStatus($"Deferred solo error: {ex.Message}");
-        }
-
-        return false;
-    }
-
-    private static float GetTriggerMatchThreshold(MappingEntry mapping) =>
-        mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : 0.35f;
-
-    private void DispatchMappedOutput(DispatchedOutput output, TriggerMoment trigger)
+    private async Task DispatchMappedOutputAsync(DispatchedOutput output, TriggerMoment trigger, CancellationToken cancellationToken)
     {
         if (output.KeyboardKey is Key key && key != Key.None)
         {
@@ -971,12 +428,12 @@ public sealed class MappingEngine : IMappingEngine
             else if (trigger == TriggerMoment.Released)
                 _keyboardEmulator.KeyUp(key);
             else
-                _keyboardEmulator.TapKey(key);
+                await _keyboardEmulator.TapKeyAsync(key, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
 
         if (output.PointerAction is PointerAction pointerAction)
-            SendPointerAction(pointerAction, trigger);
+            await SendPointerActionAsync(pointerAction, trigger, cancellationToken).ConfigureAwait(false);
     }
 
     private void ForceReleaseHeldOutputsForButton(GamepadButtons button, IReadOnlySet<DispatchedOutput>? outputsHandledByReleasedMappings = null)
@@ -989,64 +446,37 @@ public sealed class MappingEngine : IMappingEngine
         QueueOutputDispatch("ForceRelease", TriggerMoment.Released, output, "Forced release", "forced-release");
     }
 
-    private void HandleAnalogKeyboardOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, Key key)
-    {
-        var transition = _analogProcessor.EvaluateKeyboardTransition(mapping, source, stickValue, key);
-        if (!transition.HasChanged)
-            return;
+    private void SendPointerAction(PointerAction action, TriggerMoment trigger) =>
+        SendPointerActionAsync(action, trigger, CancellationToken.None).GetAwaiter().GetResult();
 
-        if (transition.IsActive)
-        {
-            if (mapping.Trigger == TriggerMoment.Tap)
-                _keyboardEmulator.TapKey(key);
-            else if (mapping.Trigger != TriggerMoment.Released)
-                _keyboardEmulator.KeyDown(key);
-        }
-        else
-        {
-            if (mapping.Trigger == TriggerMoment.Released)
-                _keyboardEmulator.TapKey(key);
-            else if (mapping.Trigger != TriggerMoment.Tap)
-                _keyboardEmulator.KeyUp(key);
-        }
-    }
-
-    private void SendMouseLookDelta(float deltaX, float deltaY)
-    {
-        var delta = _analogProcessor.AccumulateMouseLookDelta(deltaX, deltaY);
-
-        if (delta.PixelDx != 0 || delta.PixelDy != 0)
-            _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy);
-    }
-
-    private void SendPointerAction(PointerAction action, TriggerMoment trigger)
+    private async Task SendPointerActionAsync(PointerAction action, TriggerMoment trigger, CancellationToken cancellationToken)
     {
         switch (action)
         {
             case PointerAction.LeftClick:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.LeftDown();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.LeftUp();
-                else _mouseEmulator.LeftClick();
+                else await _mouseEmulator.LeftClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.RightClick:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.RightDown();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.RightUp();
-                else _mouseEmulator.RightClick();
+                else await _mouseEmulator.RightClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.MiddleClick:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.MiddleDown();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.MiddleUp();
-                else _mouseEmulator.MiddleClick();
+                else await _mouseEmulator.MiddleClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.X1Click:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.X1Down();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.X1Up();
-                else _mouseEmulator.X1Click();
+                else await _mouseEmulator.X1ClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.X2Click:
                 if (trigger == TriggerMoment.Pressed) _mouseEmulator.X2Down();
                 else if (trigger == TriggerMoment.Released) _mouseEmulator.X2Up();
-                else _mouseEmulator.X2Click();
+                else await _mouseEmulator.X2ClickAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case PointerAction.WheelUp:
                 if (trigger != TriggerMoment.Released) _mouseEmulator.WheelUp();
@@ -1065,13 +495,6 @@ public sealed class MappingEngine : IMappingEngine
         string sourceToken)
     {
         _inputDispatcher.Enqueue(buttonName, trigger, output, outputLabel, sourceToken);
-    }
-
-    private static bool ItemCycleUsesCustomLoopKeys(ItemCycleBinding cycle)
-    {
-        var f = cycle.LoopForwardKey?.Trim() ?? string.Empty;
-        var b = cycle.LoopBackwardKey?.Trim() ?? string.Empty;
-        return f.Length > 0 && b.Length > 0;
     }
 
     private void EnqueueItemCycleTap(
@@ -1100,61 +523,6 @@ public sealed class MappingEngine : IMappingEngine
         QueueOutputDispatch(sourceToken, TriggerMoment.Tap, o, label, string.Empty);
     }
 
-    private bool TryPrepareItemCycleStep(
-        ItemCycleBinding cycle,
-        out Key digitKey,
-        out DispatchedOutput customOutput,
-        out bool useCustomOutput,
-        out Key[] modifierKeys,
-        out string label,
-        out string errorStatus)
-    {
-        digitKey = Key.None;
-        customOutput = default;
-        useCustomOutput = false;
-        modifierKeys = Array.Empty<Key>();
-        label = string.Empty;
-        errorStatus = "Item cycle: invalid itemCycle fields.";
-
-        if (!InputTokenResolver.TryParseItemCycleModifierKeys(cycle.WithKeys, out modifierKeys))
-        {
-            errorStatus = "Item cycle: invalid key name in itemCycle.withKeys";
-            return false;
-        }
-
-        var n = Math.Clamp(cycle.SlotCount, 1, 9);
-        int idx;
-        if (_itemCycleSlotIndex < 0)
-            idx = cycle.Direction == ItemCycleDirection.Next ? 0 : (n - 1);
-        else if (cycle.Direction == ItemCycleDirection.Next)
-            idx = (_itemCycleSlotIndex + 1) % n;
-        else
-            idx = (_itemCycleSlotIndex - 1 + n) % n;
-
-        _itemCycleSlotIndex = idx;
-        var modText = modifierKeys.Length > 0 ? string.Join('+', modifierKeys) + "+" : string.Empty;
-
-        if (ItemCycleUsesCustomLoopKeys(cycle))
-        {
-            useCustomOutput = true;
-            var token = cycle.Direction == ItemCycleDirection.Next
-                ? cycle.LoopForwardKey!.Trim()
-                : cycle.LoopBackwardKey!.Trim();
-            if (!InputTokenResolver.TryResolveMappedOutput(token, out customOutput, out var baseLabel))
-            {
-                errorStatus = "Item cycle: invalid loopForwardKey or loopBackwardKey token";
-                return false;
-            }
-
-            label = $"{modText}{baseLabel} (slot {idx + 1}/{n})";
-            return true;
-        }
-
-        digitKey = Key.D1 + idx;
-        label = $"{modText}{digitKey} (slot {idx + 1}/{n})";
-        return true;
-    }
-
     private bool TryDispatchTemplateToggle(
         MappingEntry mapping,
         TriggerMoment trigger,
@@ -1168,7 +536,7 @@ public sealed class MappingEngine : IMappingEngine
         if (trigger == TriggerMoment.Released)
             return true;
 
-        if (!_canDispatchOutput())
+        if (!CanDispatchOutputMerged())
             return true;
 
         var profileId = tt.AlternateProfileId?.Trim() ?? string.Empty;

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 
@@ -11,6 +12,13 @@ namespace GamepadMapperGUI.Services;
 
 public sealed class ProcessTargetService : IProcessTargetService
 {
+    private readonly IWin32Service _win32;
+
+    public ProcessTargetService(IWin32Service? win32 = null)
+    {
+        _win32 = win32 ?? new Win32Service();
+    }
+
     /// <inheritdoc />
     public ProcessInfo CreateTargetFromDeclaredProcessName(string? rawName)
     {
@@ -63,8 +71,9 @@ public sealed class ProcessTargetService : IProcessTargetService
                     p.Dispose();
             }
         }
-        catch
+        catch (Exception ex)
         {
+            App.Logger.Error($"Failed to get process by name: {processNameWithoutExtension}", ex);
             return 0;
         }
     }
@@ -72,32 +81,6 @@ public sealed class ProcessTargetService : IProcessTargetService
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint TokenQuery = 0x0008;
     private const int TokenElevationClass = 20;
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern bool GetTokenInformation(
-        IntPtr tokenHandle,
-        int tokenInformationClass,
-        out TOKEN_ELEVATION tokenInformation,
-        int tokenInformationLength,
-        out int returnLength);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CloseHandle(IntPtr hObject);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct TOKEN_ELEVATION
@@ -135,9 +118,9 @@ public sealed class ProcessTargetService : IProcessTargetService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort enumeration.
+            App.Logger.Error("Failed to enumerate windowed processes", ex);
         }
 
         return results;
@@ -145,12 +128,20 @@ public sealed class ProcessTargetService : IProcessTargetService
 
     public int GetForegroundProcessId()
     {
-        var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero)
-            return 0;
+        try
+        {
+            var hwnd = _win32.GetForegroundWindow();
+            if (hwnd == IntPtr.Zero)
+                return 0;
 
-        GetWindowThreadProcessId(hwnd, out var pid);
-        return (int)pid;
+            _win32.GetWindowThreadProcessId(hwnd, out var pid);
+            return (int)pid;
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error("Failed to get foreground process ID", ex);
+            return 0;
+        }
     }
 
     public bool IsForeground(int processId)
@@ -172,7 +163,7 @@ public sealed class ProcessTargetService : IProcessTargetService
 
         try
         {
-            var fgProcess = Process.GetProcessById(fgPid);
+            using var fgProcess = Process.GetProcessById(fgPid);
             return string.Equals(fgProcess.ProcessName, processName, StringComparison.OrdinalIgnoreCase);
         }
         catch
@@ -183,16 +174,24 @@ public sealed class ProcessTargetService : IProcessTargetService
 
     public string GetForegroundWindowTitle()
     {
-        var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero)
-            return string.Empty;
+        try
+        {
+            var hwnd = _win32.GetForegroundWindow();
+            if (hwnd == IntPtr.Zero)
+                return string.Empty;
 
-        var buffer = new StringBuilder(512);
-        var copied = GetWindowText(hwnd, buffer, buffer.Capacity);
-        if (copied <= 0)
-            return string.Empty;
+            var buffer = new StringBuilder(512);
+            var copied = _win32.GetWindowText(hwnd, buffer, buffer.Capacity);
+            if (copied <= 0)
+                return string.Empty;
 
-        return buffer.ToString();
+            return buffer.ToString();
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error("Failed to get foreground window title", ex);
+            return string.Empty;
+        }
     }
 
     public bool IsForeground(ProcessInfo target)
@@ -220,8 +219,16 @@ public sealed class ProcessTargetService : IProcessTargetService
 
     public bool IsCurrentProcessElevated()
     {
-        using var current = Process.GetCurrentProcess();
-        return IsProcessHandleElevated(current.Handle, closeProcessHandle: false);
+        try
+        {
+            using var current = Process.GetCurrentProcess();
+            return IsProcessHandleElevated(current.Handle, closeProcessHandle: false);
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error("Failed to check if current process is elevated", ex);
+            return false;
+        }
     }
 
     public bool IsProcessElevated(int processId)
@@ -229,7 +236,7 @@ public sealed class ProcessTargetService : IProcessTargetService
         if (processId <= 0)
             return false;
 
-        var processHandle = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        var processHandle = _win32.OpenProcess(ProcessQueryLimitedInformation, false, processId);
         if (processHandle == IntPtr.Zero)
             return false;
 
@@ -239,33 +246,47 @@ public sealed class ProcessTargetService : IProcessTargetService
         }
         finally
         {
-            CloseHandle(processHandle);
+            _win32.CloseHandle(processHandle);
         }
     }
 
-    private static bool IsProcessHandleElevated(IntPtr processHandle, bool closeProcessHandle)
+    private bool IsProcessHandleElevated(IntPtr processHandle, bool closeProcessHandle)
     {
         if (processHandle == IntPtr.Zero)
             return false;
 
-        if (!OpenProcessToken(processHandle, TokenQuery, out var tokenHandle) || tokenHandle == IntPtr.Zero)
+        if (!_win32.OpenProcessToken(processHandle, TokenQuery, out var tokenHandle) || tokenHandle == IntPtr.Zero)
             return false;
 
+        IntPtr elevationPtr = IntPtr.Zero;
         try
         {
-            var ok = GetTokenInformation(
+            var size = Marshal.SizeOf<TOKEN_ELEVATION>();
+            elevationPtr = Marshal.AllocHGlobal(size);
+            var ok = _win32.GetTokenInformation(
                 tokenHandle,
                 TokenElevationClass,
-                out var elevation,
-                Marshal.SizeOf<TOKEN_ELEVATION>(),
+                elevationPtr,
+                size,
                 out _);
-            return ok && elevation.TokenIsElevated != 0;
+            
+            if (!ok) return false;
+
+            var elevation = Marshal.PtrToStructure<TOKEN_ELEVATION>(elevationPtr);
+            return elevation.TokenIsElevated != 0;
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error("Error checking process elevation", ex);
+            return false;
         }
         finally
         {
-            CloseHandle(tokenHandle);
+            if (elevationPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(elevationPtr);
+            _win32.CloseHandle(tokenHandle);
             if (closeProcessHandle)
-                CloseHandle(processHandle);
+                _win32.CloseHandle(processHandle);
         }
     }
 }

@@ -60,6 +60,16 @@ internal static class ChordResolver
         if (chordButtons.Count == 0)
             return false;
 
+        // Semantic validation: physically impossible combinations
+        if (HasImpossibleCombination(chordButtons))
+        {
+            chordButtons = [];
+            requiresRightTrigger = false;
+            requiresLeftTrigger = false;
+            normalizedSourceToken = string.Empty;
+            return false;
+        }
+
         var parts = new List<string>();
         if (requiresLeftTrigger)
             parts.Add(nameof(GamepadBindingType.LeftTrigger));
@@ -124,5 +134,20 @@ internal static class ChordResolver
             return false;
         return ChordSpecificity(otherChord, otherReqRt, otherReqLt) >
                ChordSpecificity(candidateChord, candidateReqRt, candidateReqLt);
+    }
+
+    private static bool HasImpossibleCombination(List<GamepadButtons> buttons)
+    {
+        bool Has(GamepadButtons b) => buttons.Contains(b);
+
+        // D-Pad opposites
+        if (Has(GamepadButtons.DPadUp) && Has(GamepadButtons.DPadDown)) return true;
+        if (Has(GamepadButtons.DPadLeft) && Has(GamepadButtons.DPadRight)) return true;
+
+        // Thumbstick opposites (if defined in GamepadButtons, which they are in some XInput wrappers)
+        // Vortice.XInput.GamepadButtons typically only includes digital buttons.
+        // Let's check if there are any other digital buttons that are mutually exclusive.
+        
+        return false;
     }
 }

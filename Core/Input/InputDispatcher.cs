@@ -10,8 +10,10 @@ namespace GamepadMapperGUI.Core;
 
 internal sealed class InputDispatcher : IDisposable
 {
-    private readonly Action<DispatchedOutput, TriggerMoment> _dispatchMappedOutput;
-    private readonly Action<IReadOnlyList<Key>, Key> _dispatchChordTap;
+    private static readonly TimeSpan MappedOutputUiThrottle = TimeSpan.FromMilliseconds(50);
+
+    private readonly Func<DispatchedOutput, TriggerMoment, CancellationToken, Task> _dispatchMappedOutputAsync;
+    private readonly Func<IReadOnlyList<Key>, Key, CancellationToken, Task> _dispatchChordTapAsync;
     private readonly Action<Action> _runOnUi;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
@@ -20,19 +22,27 @@ internal sealed class InputDispatcher : IDisposable
     private readonly SemaphoreSlim _outputQueueSignal = new(0);
     private readonly CancellationTokenSource _outputQueueCts = new();
     private readonly Task _outputQueueWorkerTask;
+    private TaskCompletionSource _idleTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private string? _pendingMappedOutputLabel;
+    private string? _pendingMappingStatus;
+    private long _lastMappedOutputUiFlushTimestamp = Stopwatch.GetTimestamp();
 
     public InputDispatcher(
-        Action<DispatchedOutput, TriggerMoment> dispatchMappedOutput,
-        Action<IReadOnlyList<Key>, Key> dispatchChordTap,
+        Func<DispatchedOutput, TriggerMoment, CancellationToken, Task> dispatchMappedOutputAsync,
+        Func<IReadOnlyList<Key>, Key, CancellationToken, Task> dispatchChordTapAsync,
         Action<Action> runOnUi,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus)
     {
-        _dispatchMappedOutput = dispatchMappedOutput;
-        _dispatchChordTap = dispatchChordTap;
+        _dispatchMappedOutputAsync = dispatchMappedOutputAsync;
+        _dispatchChordTapAsync = dispatchChordTapAsync;
         _runOnUi = runOnUi;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
+
+        _idleTcs.TrySetResult();
+
         _outputQueueWorkerTask = Task.Run(ProcessOutputQueueAsync);
     }
 
@@ -45,6 +55,16 @@ internal sealed class InputDispatcher : IDisposable
     {
         lock (_outputQueueLock)
         {
+            if (_outputQueue.Count >= 10000)
+            {
+                _outputQueue.Dequeue();
+            }
+
+            if (_outputQueue.Count == 0 && _idleTcs.Task.IsCompleted)
+            {
+                _idleTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
             _outputQueue.Enqueue(new QueuedOutputWork(
                 buttonName,
                 trigger,
@@ -68,6 +88,16 @@ internal sealed class InputDispatcher : IDisposable
     {
         lock (_outputQueueLock)
         {
+            if (_outputQueue.Count >= 10000)
+            {
+                _outputQueue.Dequeue();
+            }
+
+            if (_outputQueue.Count == 0 && _idleTcs.Task.IsCompleted)
+            {
+                _idleTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
             _outputQueue.Enqueue(new QueuedOutputWork(
                 buttonName,
                 trigger,
@@ -79,6 +109,14 @@ internal sealed class InputDispatcher : IDisposable
         }
 
         _outputQueueSignal.Release();
+    }
+
+    public Task WaitForIdleAsync()
+    {
+        lock (_outputQueueLock)
+        {
+            return _idleTcs.Task;
+        }
     }
 
     public void Dispose()
@@ -107,31 +145,74 @@ internal sealed class InputDispatcher : IDisposable
             lock (_outputQueueLock)
             {
                 if (_outputQueue.Count == 0)
+                {
+                    _idleTcs.TrySetResult();
                     continue;
+                }
 
                 workItem = _outputQueue.Dequeue();
             }
 
+            var dispatchSucceeded = false;
             try
             {
                 if (workItem.ChordMainKey is { } mainKey && workItem.ChordModifiers is not null)
-                    _dispatchChordTap(workItem.ChordModifiers, mainKey);
+                    await _dispatchChordTapAsync(workItem.ChordModifiers, mainKey, _outputQueueCts.Token)
+                        .ConfigureAwait(false);
                 else if (workItem.DirectOutput is { } direct)
-                    _dispatchMappedOutput(direct, workItem.Trigger);
+                    await _dispatchMappedOutputAsync(direct, workItem.Trigger, _outputQueueCts.Token)
+                        .ConfigureAwait(false);
                 else
                     throw new InvalidOperationException("Queued output has neither direct output nor chord keys.");
 
-                _runOnUi(() =>
-                {
-                    _setMappedOutput(workItem.OutputLabel);
-                    _setMappingStatus($"Sent: {workItem.ButtonName} ({workItem.Trigger}) -> {workItem.OutputLabel}");
-                });
+                _pendingMappedOutputLabel = workItem.OutputLabel;
+                _pendingMappingStatus = $"Sent: {workItem.ButtonName} ({workItem.Trigger}) -> {workItem.OutputLabel}";
+                dispatchSucceeded = true;
+            }
+            catch (OperationCanceledException)
+            {
+                break;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to send mapped output. token={workItem.SourceToken}, ex={ex.Message}");
                 _runOnUi(() => _setMappingStatus($"Error sending '{workItem.SourceToken}': {ex.Message}"));
             }
+            finally
+            {
+                lock (_outputQueueLock)
+                {
+                    if (_outputQueue.Count == 0)
+                    {
+                        _idleTcs.TrySetResult();
+                    }
+                }
+
+                if (dispatchSucceeded)
+                    FlushMappedOutputUiThrottled();
+            }
         }
+    }
+
+    private void FlushMappedOutputUiThrottled()
+    {
+        bool queueEmpty;
+        lock (_outputQueueLock)
+        {
+            queueEmpty = _outputQueue.Count == 0;
+        }
+
+        var elapsed = Stopwatch.GetElapsedTime(_lastMappedOutputUiFlushTimestamp);
+        if (!queueEmpty && elapsed < MappedOutputUiThrottle)
+            return;
+
+        var label = _pendingMappedOutputLabel ?? string.Empty;
+        var status = _pendingMappingStatus ?? string.Empty;
+        _runOnUi(() =>
+        {
+            _setMappedOutput(label);
+            _setMappingStatus(status);
+        });
+        _lastMappedOutputUiFlushTimestamp = Stopwatch.GetTimestamp();
     }
 }

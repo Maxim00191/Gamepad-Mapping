@@ -130,4 +130,8 @@ public class AppSettings
     /// <summary>Combo HUD anchor position on screen (TopLeft, TopRight, BottomLeft, BottomRight, Center).</summary>
     [JsonProperty("comboHudPlacement")]
     public string ComboHudPlacement { get; set; } = "BottomRight";
+
+    /// <summary>Display duration in seconds for the template-switch HUD. Clamped when applied.</summary>
+    [JsonProperty("templateSwitchHudSeconds")]
+    public double TemplateSwitchHudSeconds { get; set; } = 3.0;
 }
