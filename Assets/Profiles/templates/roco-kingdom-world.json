@@ -57,7 +57,7 @@
 
     { "from": { "type": "Button", "value": "LeftShoulder + A" }, "keyboardKey": "Tab", "description": "Open RolePlay interface", "descriptions": { "zh-CN": "打开RolePlay界面" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + a" }, "keyboardKey": "B", "description": "Open bag", "descriptions": { "zh-CN": "打开背包界面" }, "trigger": "Pressed", "analogThreshold": null },
-    { "from": { "type": "Button", "value": "LeftShoulder + X" }, "keyboardKey": "M", "description": "Open map", "descriptions": { "zh-CN": "打开地图" }, "trigger": "Pressed", "analogThreshold": null },
+    { "from": { "type": "Button", "value": "LeftShoulder + X" }, "keyboardKey": "Q", "description": "Switch to star magic", "descriptions": { "zh-CN": "切换至星星魔法" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "J", "description": "Open quest interface", "descriptions": { "zh-CN": "打开任务界面" }, "trigger": "Pressed", "analogThreshold": null },
 
     { "from": { "type": "Button", "value": "RightShoulder" }, "keyboardKey": "LeftClick", "description": "Primary action (mouse left click)", "descriptions": { "zh-CN": "主要操作（鼠标左键单击）" }, "trigger": "Pressed", "analogThreshold": null },
