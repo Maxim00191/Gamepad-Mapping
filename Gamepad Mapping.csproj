@@ -1,13 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.4.1</Version>
+    <Version>1.4.2</Version>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <RootNamespace>Gamepad_Mapping</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\Icons\Gamepad Mapping.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,10 @@
   <ItemGroup>
     <Content Include="Assets\Config\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Profiles\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Icons\Gamepad Mapping.ico" />
   </ItemGroup>
 
   <!-- Unit tests live under Tests/; default SDK glob would compile them into this executable. -->

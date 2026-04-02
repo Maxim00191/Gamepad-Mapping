@@ -6,6 +6,7 @@
         xmlns:views="clr-namespace:Gamepad_Mapping.Views"
         mc:Ignorable="d"
         Title="Gamepad Mapping"
+        Icon="pack://application:,,,/Assets/Icons/Gamepad%20Mapping.ico"
         Height="720"
         Width="960"
         MinHeight="560"
