@@ -315,4 +315,7 @@
   <data name="ComboHudGateHint" xml:space="preserve">
     <value>Combo HUD preview is off: keyboard/mouse output is blocked (check target process, foreground window, or elevation).</value>
   </data>
+  <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
+    <value>Template-switch HUD duration (s)</value>
+  </data>
 </root>

@@ -37,14 +37,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IAppStatusMonitor _appStatusMonitor;
     private readonly IMappingEngine _mappingEngine;
     private readonly EventHandler _profilesLoadedHandler;
-    private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
+        private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
 
     /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
-    private string? _lastLoadedTemplateGroupIdForTargetInherit;
-    private ComboHudWindow? _comboHudWindow;
+        private string? _lastLoadedTemplateGroupIdForTargetInherit;
+        private ComboHudWindow? _comboHudWindow;
+        private TemplateSwitchHudWindow? _templateSwitchHudWindow;
     private readonly AppSettings _appSettings;
     private readonly ISettingsService _settingsService;
     private DispatcherTimer? _templateSwitchHudTimer;
@@ -148,6 +149,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             initialComboHudPanelAlpha: Math.Clamp(_appSettings.ComboHudPanelAlpha, 24, 220),
             initialComboHudShadowOpacity: Math.Clamp(_appSettings.ComboHudShadowOpacity, 0.08, 0.60),
             comboHudChromeChanged: OnComboHudChromeChanged,
+            initialTemplateSwitchHudSeconds: Math.Clamp(_appSettings.TemplateSwitchHudSeconds, 0.5, 5.0),
+            templateSwitchHudChanged: OnTemplateSwitchHudSecondsChanged,
             uiDispatcher: _dispatcher);
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
         ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
@@ -580,9 +583,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _mappingEngine.InvalidateComboHudPresentation();
 
+        var seconds = Math.Clamp(GamepadMonitorPanel.TemplateSwitchHudSeconds, 0.5, 5.0);
+
         _templateSwitchHudTimer = new DispatcherTimer(DispatcherPriority.Input, _dispatcher)
         {
-            Interval = TimeSpan.FromSeconds(3)
+            Interval = TimeSpan.FromSeconds(seconds)
         };
 
         _templateSwitchHudTimer.Tick += (_, _) =>
@@ -592,16 +597,22 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _isTemplateSwitchHudActive = false;
             _mappingEngine.InvalidateComboHudPresentation();
             _mappingEngine.RefreshComboHud();
+
+            _templateSwitchHudWindow?.HideHud();
         };
 
-        _comboHudWindow ??= new ComboHudWindow();
         var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
         var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
 
         var title = "Profile switched";
         var line = new ComboHudLine($"→ {profileDisplayName}", null);
         var content = new ComboHudContent(title, new[] { line });
-        _comboHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
+
+        // Fade out the combo HUD while fading in the template switch HUD.
+        _comboHudWindow?.HideHud();
+
+        _templateSwitchHudWindow ??= new TemplateSwitchHudWindow();
+        _templateSwitchHudWindow.ShowHud(content, a, o, ComboHudPlacementSetting);
 
         _templateSwitchHudTimer.Start();
     }
@@ -621,6 +632,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         });
     }
 
+    private void OnTemplateSwitchHudSecondsChanged(double seconds)
+    {
+        var clamped = Math.Clamp(seconds, 0.5, 5.0);
+        _appSettings.TemplateSwitchHudSeconds = clamped;
+        _settingsService.SaveSettings(_appSettings);
+    }
+
     private void OnHudEnabledChanged(bool isEnabled)
     {
         if (!isEnabled)
@@ -635,6 +653,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 _isTemplateSwitchHudActive = false;
                 GamepadMonitorPanel.ComboHudGateHint = string.Empty;
                 _comboHudWindow?.HideHud();
+                _templateSwitchHudWindow?.HideHud();
             });
     }
 

@@ -315,4 +315,7 @@
   <data name="ComboHudGateHint" xml:space="preserve">
     <value>组合键 HUD 预览已关闭：当前不允许键鼠输出（请检查目标进程、前台窗口或权限提升）。</value>
   </data>
+  <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
+    <value>模板切换 HUD 显示时长（秒）</value>
+  </data>
 </root>

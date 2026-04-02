@@ -20,7 +20,7 @@
     { "from": { "type": "Button", "value": "RightTrigger + B" }, "keyboardKey": "RightClick", "description": "Exit aiming mode", "descriptions": { "zh-CN": "退出瞄准模式" }, "trigger": "Pressed", "analogThreshold": 0.35 },
     { "from": { "type": "Button", "value": "RightTrigger + B" }, "keyboardKey": "RightClick", "description": "Exit aiming mode", "descriptions": { "zh-CN": "退出瞄准模式" }, "trigger": "Released", "analogThreshold": 0.35 },
 
-    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "description": "Jump (tap); mouse left click (hold)", "descriptions": { "zh-CN": "跳跃（短按）；鼠标左键单击（长按）" }, "trigger": "Tap", "holdKeyboardKey": "LeftClick", "holdThresholdMs": 300, "analogThreshold": null },
+    { "from": { "type": "Button", "value": "A" }, "keyboardKey": "Space", "description": "Jump", "descriptions": { "zh-CN": "跳跃" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "Y" }, "keyboardKey": "F", "description": "Interact / pick up", "descriptions": { "zh-CN": "交互/拾取" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "B" }, "keyboardKey": "X", "description": "Cancel mount / climbing / companion / special state (tap); Escape (hold)", "descriptions": { "zh-CN": "取消骑乘/攀爬/同行/特殊状态（短按）；Escape（长按）" }, "trigger": "Tap", "holdKeyboardKey": "Escape", "holdThresholdMs": 200, "analogThreshold": null },
     { "from": { "type": "Button", "value": "X" }, "keyboardKey": "E", "description": "Switch to Spirit Ball mode; in home: equip food / plant seeds", "descriptions": { "zh-CN": "切换至精灵球模式；家园：装备食物/种植种子" }, "trigger": "Pressed", "analogThreshold": null },
@@ -54,6 +54,7 @@
     { "from": { "type": "Button", "value": "LeftShoulder + X" }, "keyboardKey": "M", "description": "Open map", "descriptions": { "zh-CN": "打开地图" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "LeftShoulder + Y" }, "keyboardKey": "J", "description": "Open quest interface", "descriptions": { "zh-CN": "打开任务界面" }, "trigger": "Pressed", "analogThreshold": null },
 
+    { "from": { "type": "Button", "value": "RightShoulder" }, "keyboardKey": "LeftClick", "description": "Primary action (mouse left click)", "descriptions": { "zh-CN": "主要操作（鼠标左键单击）" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "RightShoulder + A" }, "keyboardKey": "P", "description": "Open spirit interface", "descriptions": { "zh-CN": "打开精灵界面" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "RightShoulder + B" }, "keyboardKey": "O", "description": "Open friends interface", "descriptions": { "zh-CN": "打开好友界面" }, "trigger": "Pressed", "analogThreshold": null },
     { "from": { "type": "Button", "value": "RightShoulder + X" }, "keyboardKey": "K", "description": "Open quick wardrobe", "descriptions": { "zh-CN": "打开便捷换装界面" }, "trigger": "Pressed", "analogThreshold": null },

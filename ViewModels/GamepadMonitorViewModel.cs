@@ -17,6 +17,7 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     private readonly Action<float, float>? _deadzoneChanged;
     private readonly Action<float, float, float, float>? _triggerDeadzonesChanged;
     private readonly Action<int, double>? _comboHudChromeChanged;
+    private readonly Action<double>? _templateSwitchHudChanged;
     private readonly object _monitorSnapshotLock = new();
     private GamepadMonitorUiSnapshot _pendingSnapshot;
     private DispatcherTimer? _uiRefreshTimer;
@@ -37,6 +38,8 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
         int initialComboHudPanelAlpha = 96,
         double initialComboHudShadowOpacity = 0.28,
         Action<int, double>? comboHudChromeChanged = null,
+        double initialTemplateSwitchHudSeconds = 3.0,
+        Action<double>? templateSwitchHudChanged = null,
         Dispatcher? uiDispatcher = null)
     {
         StopGamepadCommand = stopGamepadCommand;
@@ -45,6 +48,7 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
         _deadzoneChanged = deadzoneChanged;
         _triggerDeadzonesChanged = triggerDeadzonesChanged;
         _comboHudChromeChanged = comboHudChromeChanged;
+        _templateSwitchHudChanged = templateSwitchHudChanged;
         _uiDispatcher = uiDispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         leftThumbstickDeadzone = initialLeftThumbstickDeadzone;
         rightThumbstickDeadzone = initialRightThumbstickDeadzone;
@@ -54,6 +58,7 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
         rightTriggerOuterDeadzone = initialRightTriggerOuterDeadzone;
         comboHudPanelAlpha = initialComboHudPanelAlpha;
         comboHudShadowOpacity = initialComboHudShadowOpacity;
+        templateSwitchHudSeconds = initialTemplateSwitchHudSeconds;
         _pendingSnapshot = new GamepadMonitorUiSnapshot(0, 0, 0, 0, 0, 0, string.Empty, string.Empty);
     }
 
@@ -207,6 +212,10 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private double comboHudShadowOpacity;
 
+    /// <summary>Display duration in seconds for the template-switch HUD (typical 0.5–5.0).</summary>
+    [ObservableProperty]
+    private double templateSwitchHudSeconds;
+
     partial void OnIsHudEnabledChanged(bool value)
     {
         _setHudEnabled?.Invoke(value);
@@ -217,6 +226,9 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
 
     partial void OnComboHudShadowOpacityChanged(double value) =>
         _comboHudChromeChanged?.Invoke(ComboHudPanelAlpha, ComboHudShadowOpacity);
+
+    partial void OnTemplateSwitchHudSecondsChanged(double value) =>
+        _templateSwitchHudChanged?.Invoke(TemplateSwitchHudSeconds);
 
     partial void OnLeftThumbstickDeadzoneChanged(float value)
     {

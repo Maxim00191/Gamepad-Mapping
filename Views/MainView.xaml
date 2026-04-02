@@ -383,6 +383,22 @@
                                                 <ComboBoxItem Tag="{x:Static models:ComboHudPlacement.Center}"
                                                               Content="{Binding Source={StaticResource Loc}, Path=[ComboHudPlacementCenter]}" />
                                             </ComboBox>
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateSwitchHudDurationHeader]}"
+                                                       Margin="0,8,0,2"
+                                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                            <StackPanel Orientation="Horizontal"
+                                                        VerticalAlignment="Center">
+                                                <Slider Width="200"
+                                                        Minimum="0.5"
+                                                        Maximum="5"
+                                                        Value="{Binding GamepadMonitorPanel.TemplateSwitchHudSeconds, Mode=TwoWay}"
+                                                        TickFrequency="0.1"
+                                                        IsSnapToTickEnabled="True"
+                                                        AutoToolTipPlacement="TopLeft" />
+                                                <TextBlock Text="{Binding GamepadMonitorPanel.TemplateSwitchHudSeconds, StringFormat={}{0:0.0}s}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="10,0,0,0" />
+                                            </StackPanel>
                                         </StackPanel>
                                     </Border>
                                 </Popup>
