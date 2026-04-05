@@ -130,7 +130,7 @@ public class RadialHudLayoutTests
             var step = 2 * Math.PI / n;
             var gapRad = Math.Min(RadialHudLayout.SectorGapLength / r, step * 0.45);
             var arcLen = gapRad * r;
-            Assert.InRange(arcLen, 2.0, 4.0);
+            Assert.InRange(arcLen, 5.0, 7.0);
         }
         finally
         {

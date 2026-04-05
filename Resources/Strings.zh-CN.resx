@@ -291,6 +291,9 @@
   <data name="RadialMenuHudLabelModeKeyboardKeyOnly" xml:space="preserve">
     <value>仅按键</value>
   </data>
+  <data name="RadialHudScaleLabel" xml:space="preserve">
+    <value>径向转盘 HUD 缩放</value>
+  </data>
   <data name="CatalogExpanderHeader" xml:space="preserve">
     <value>键盘动作与转盘（JSON 目录）</value>
   </data>

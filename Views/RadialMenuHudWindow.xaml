@@ -57,7 +57,15 @@
 
     <Grid x:Name="RootGrid"
           Opacity="0"
+          UseLayoutRounding="True"
           RenderTransformOrigin="0.5,0.5">
+        <Grid.Effect>
+            <!-- Single shadow for the whole HUD avoids per-layer effect rendering shifts between the ring and center plate. -->
+            <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.DiscDropShadowBlur}"
+                              ShadowDepth="0"
+                              Opacity="0.52"
+                              Color="Black" />
+        </Grid.Effect>
         <Grid.Margin>
             <Thickness Left="{x:Static utils:RadialHudLayout.RootOuterMarginLength}"
                        Top="{x:Static utils:RadialHudLayout.RootOuterMarginLength}"
@@ -70,13 +78,8 @@
 
         <!-- Key ring: annulus split into sector slices (same angular convention as layout / mapping engine). -->
         <Grid Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
-              Height="{x:Static utils:RadialHudLayout.DiscDiameter}">
-            <Grid.Effect>
-                <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.DiscDropShadowBlur}"
-                                  ShadowDepth="0"
-                                  Opacity="0.55"
-                                  Color="Black" />
-            </Grid.Effect>
+              Height="{x:Static utils:RadialHudLayout.DiscDiameter}"
+              SnapsToDevicePixels="True">
             <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -94,7 +97,8 @@
                 </ItemsControl.ItemContainerStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Path Stroke="#55FFFFFF"
+                        <Path SnapsToDevicePixels="True"
+                              StrokeLineJoin="Round"
                               StrokeThickness="{x:Static utils:RadialHudLayout.HudStrokeThickness}">
                             <Path.Data>
                                 <MultiBinding Converter="{StaticResource SectorGeometryConverter}">
@@ -102,18 +106,18 @@
                                     <Binding Path="SegmentCount" />
                                 </MultiBinding>
                             </Path.Data>
-                            <Path.Fill>
-                                <SolidColorBrush Color="#F01A1A1E" />
-                            </Path.Fill>
                             <Path.Style>
                                 <Style TargetType="Path">
+                                    <Setter Property="Fill"
+                                            Value="{Binding DataContext.SectorNormalFillBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Setter Property="Stroke"
+                                            Value="{Binding DataContext.SectorStrokeBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                            <Setter Property="Fill">
-                                                <Setter.Value>
-                                                    <SolidColorBrush Color="#40FFFFFF" />
-                                                </Setter.Value>
-                                            </Setter>
+                                            <Setter Property="Fill"
+                                                    Value="{Binding DataContext.SectorSelectedFillBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <Setter Property="Stroke"
+                                                    Value="{Binding DataContext.SectorSelectedStrokeBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -129,17 +133,9 @@
                  Height="{x:Static utils:RadialHudLayout.TitlePlateDiameter}"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center"
-                 Stroke="#45FFFFFF"
+                 Fill="{Binding TitlePlateFillBrush}"
+                 Stroke="{Binding TitlePlateStrokeBrush}"
                  StrokeThickness="{x:Static utils:RadialHudLayout.HudStrokeThickness}">
-            <Ellipse.Fill>
-                <SolidColorBrush Color="#E8282830" />
-            </Ellipse.Fill>
-            <Ellipse.Effect>
-                <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.TitlePlateDropShadowBlur}"
-                                  ShadowDepth="0"
-                                  Opacity="0.4"
-                                  Color="Black" />
-            </Ellipse.Effect>
         </Ellipse>
 
         <!-- Items on Canvas: slot top-left from RadialHudLayout (centers on inner ring, outer edge flush with disc). -->
@@ -227,20 +223,6 @@
                             </StackPanel>
                         </Border>
                     </Grid>
-                    <DataTemplate.Triggers>
-                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                            <Setter TargetName="ItemBorder" Property="Background" Value="#40FFFFFF" />
-                            <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-                            <Setter TargetName="ItemBorder" Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.SelectedItemGlowBlur}"
-                                                      ShadowDepth="0"
-                                                      Color="White"
-                                                      Opacity="0.5" />
-                                </Setter.Value>
-                            </Setter>
-                        </DataTrigger>
-                    </DataTemplate.Triggers>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

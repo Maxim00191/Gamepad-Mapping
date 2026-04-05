@@ -63,8 +63,8 @@ public partial class App : Application
             SetBrush("AppControlSurfaceAltBrush", Color.FromRgb(241, 241, 241));
             SetBrush("AppControlHoverBrush", Color.FromRgb(232, 232, 232));
             SetBrush("AppControlPressedBrush", Color.FromRgb(220, 220, 220));
-            SetBrush("AppAccentBrush", Color.FromRgb(46, 107, 216));
-            SetBrush("AppAccentHoverBrush", Color.FromRgb(37, 88, 177));
+            SetBrush("AppAccentBrush", Color.FromRgb(28, 65, 138));
+            SetBrush("AppAccentHoverBrush", Color.FromRgb(22, 52, 115));
             SetBrush("AppSelectionBrush", Color.FromRgb(225, 235, 255));
             SetBrush("AppSelectionTextBrush", Color.FromRgb(17, 17, 17));
             SetBrush("AppScrollTrackBrush", Color.FromRgb(229, 229, 229));
@@ -72,7 +72,7 @@ public partial class App : Application
             SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(154, 154, 154));
             SetBrush("AppSeparatorBrush", Color.FromRgb(218, 218, 224));
             SetBrush("AppGridSplitterBrush", Color.FromRgb(200, 200, 210));
-            SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(46, 107, 216));
+            SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(28, 65, 138));
             SetBrush("AppHudTitleBrush", Color.FromRgb(26, 26, 30));
             SetBrush("AppHudDetailBrush", Color.FromRgb(75, 78, 90));
         }
@@ -88,8 +88,8 @@ public partial class App : Application
             SetBrush("AppControlSurfaceAltBrush", Color.FromRgb(50, 50, 58));
             SetBrush("AppControlHoverBrush", Color.FromRgb(62, 62, 72));
             SetBrush("AppControlPressedBrush", Color.FromRgb(78, 78, 91));
-            SetBrush("AppAccentBrush", Color.FromRgb(79, 140, 255));
-            SetBrush("AppAccentHoverBrush", Color.FromRgb(104, 157, 255));
+            SetBrush("AppAccentBrush", Color.FromRgb(50, 100, 198));
+            SetBrush("AppAccentHoverBrush", Color.FromRgb(72, 120, 225));
             SetBrush("AppSelectionBrush", Color.FromRgb(62, 83, 122));
             SetBrush("AppSelectionTextBrush", Color.FromRgb(245, 247, 250));
             SetBrush("AppScrollTrackBrush", Color.FromRgb(54, 54, 63));
@@ -97,7 +97,7 @@ public partial class App : Application
             SetBrush("AppScrollThumbHoverBrush", Color.FromRgb(132, 132, 146));
             SetBrush("AppSeparatorBrush", Color.FromRgb(62, 62, 72));
             SetBrush("AppGridSplitterBrush", Color.FromRgb(72, 72, 84));
-            SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(79, 140, 255));
+            SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(50, 100, 198));
             SetBrush("AppHudTitleBrush", Color.FromRgb(245, 246, 250));
             SetBrush("AppHudDetailBrush", Color.FromRgb(205, 210, 220));
         }

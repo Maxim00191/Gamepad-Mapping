@@ -146,4 +146,10 @@ public class AppSettings
     /// </summary>
     [JsonProperty("radialMenuHudLabelMode")]
     public string RadialMenuHudLabelMode { get; set; } = "both";
+
+    /// <summary>
+    /// Overall scale for the on-screen radial menu HUD (disc, slots, type). Clamped when applied; 1.0 = 400px disc diameter.
+    /// </summary>
+    [JsonProperty("radialHudScale")]
+    public double RadialHudScale { get; set; } = 1.5;
 }

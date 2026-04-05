@@ -20,7 +20,7 @@ public partial class RadialMenuHudWindow : Window
         SourceInitialized += (_, _) => TopMostOverlayHelper.ApplyToWindow(this);
     }
 
-    public void ShowMenu(string title, IEnumerable<RadialMenuItemViewModel> items)
+    public void ShowMenu(string title, IEnumerable<RadialMenuItemViewModel> items, int comboHudPanelAlpha)
     {
         if (Resources["FadeInStoryboard"] is Storyboard fadeIn)
             fadeIn.Stop();
@@ -30,6 +30,7 @@ public partial class RadialMenuHudWindow : Window
             fadeOut.Completed -= OnFadeOutCompleted;
         }
 
+        _viewModel.ApplyHudBackingAlpha(comboHudPanelAlpha);
         _viewModel.Title = title;
         _viewModel.Items.Clear();
         foreach (var item in items)

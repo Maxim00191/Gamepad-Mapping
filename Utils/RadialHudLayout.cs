@@ -16,12 +16,18 @@ public static class RadialHudLayout
     /// <summary>Single factor for overall HUD size. At 1.0, disc diameter is <c>400</c>; default <c>1.5</c> yields the previous 600px disc.</summary>
     public static double HudScale { get; set; } = 1.5;
 
+    public const double MinHudScale = 0.75;
+    public const double MaxHudScale = 2.0;
+
+    public static double ClampHudScale(double value) =>
+        Math.Clamp(value, MinHudScale, MaxHudScale);
+
     private const double BaseDiscDiameter = 400;
     private const double BaseItemSize = 96;
     private const double BaseInnerHoleDiameter = 200;
     private const double BaseTitlePlateDiameter = 112;
 
-    private const double BasePrimaryItemFontSize = 15;
+    private const double BasePrimaryItemFontSize = 12;
     private const double BaseSecondaryItemFontSize = 12;
     private const double BaseTitleFontSize = 20;
 
@@ -38,16 +44,19 @@ public static class RadialHudLayout
 
     private const double BaseHudStrokeThickness = 2.0 / 3.0;
 
-    /// <summary>Target arc length between sectors at the outer edge before capping (scales with <see cref="HudScale"/>).</summary>
-    private const double BaseSectorGapLength = 3.0;
+    /// <summary>Target arc length between sectors at the outer edge (scales with <see cref="HudScale"/>).</summary>
+    private const double BaseSectorGapLength = 6.0;
 
-    /// <summary>Hard cap so gaps stay in the 2–4px visual range at typical HUD scales.</summary>
-    private const double MaxSectorGapLength = 4.0;
+    /// <summary>Base fillet radius at sector tips (outer/inner arc meeting radial edges); scales with <see cref="HudScale"/>.</summary>
+    private const double BaseSectorCornerRadius = 6.0;
 
     public static double HudStrokeThickness => BaseHudStrokeThickness * HudScale;
 
     /// <summary>Radial-menu sector spacing at the outer ring (arc length ≈ this value when not limited by wedge count).</summary>
-    public static double SectorGapLength => Math.Min(BaseSectorGapLength * HudScale, MaxSectorGapLength);
+    public static double SectorGapLength => BaseSectorGapLength * HudScale;
+
+    /// <summary>Fillet radius where each sector’s outer/inner arcs meet the radial edges (clamped to wedge geometry).</summary>
+    public static double SectorCornerRadius => BaseSectorCornerRadius * HudScale;
 
     public static double DiscDiameter => BaseDiscDiameter * HudScale;
     public static double ItemSize => BaseItemSize * HudScale;
@@ -159,6 +168,67 @@ public static class RadialHudLayout
         var ro = DiscRadius;
         var ri = InnerHoleRadius;
 
+        var sweepRad = endRad - startRad;
+        var cr = Math.Min(
+            SectorCornerRadius,
+            Math.Min(sweepRad * ro * 0.12, (ro - ri) * 0.35));
+
+        var trimOuter = cr / ro;
+        var trimInner = cr / ri;
+        var trim = Math.Min(trimOuter, Math.Min(trimInner, sweepRad * 0.225));
+        var s0 = startRad + trim;
+        var e0 = endRad - trim;
+        if (e0 <= s0 || cr < 0.5)
+            return CreateAnnulusSectorPathGeometrySharp(startRad, endRad);
+
+        var oS = RingPoint(cx, cy, ro, s0);
+        var oE = RingPoint(cx, cy, ro, e0);
+        var iE = RingPoint(cx, cy, ri, e0);
+        var iS = RingPoint(cx, cy, ri, s0);
+
+        var oCornerEnd = RingPoint(cx, cy, ro, endRad);
+        var iCornerEnd = RingPoint(cx, cy, ri, endRad);
+        var iCornerStart = RingPoint(cx, cy, ri, startRad);
+        var oCornerStart = RingPoint(cx, cy, ro, startRad);
+
+        var b = Point.Add(oCornerEnd, RadialInVector(endRad) * cr);
+        var c = Point.Add(iCornerEnd, RadialOutVector(endRad) * cr);
+        var d = Point.Add(iCornerStart, RadialOutVector(startRad) * cr);
+        var g = Point.Add(oCornerStart, RadialInVector(startRad) * cr);
+
+        var outerLarge = e0 - s0 > Math.PI;
+        var innerLarge = e0 - s0 > Math.PI;
+
+        var fig = new PathFigure { StartPoint = oS, IsClosed = true };
+        fig.Segments.Add(new ArcSegment(oE, new Size(ro, ro), 0, outerLarge, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new ArcSegment(b, new Size(cr, cr), 0, false, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new LineSegment(c, true));
+        fig.Segments.Add(new ArcSegment(iE, new Size(cr, cr), 0, false, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new ArcSegment(iS, new Size(ri, ri), 0, innerLarge, SweepDirection.Counterclockwise, true));
+        fig.Segments.Add(new ArcSegment(d, new Size(cr, cr), 0, false, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new LineSegment(g, true));
+        fig.Segments.Add(new ArcSegment(oS, new Size(cr, cr), 0, false, SweepDirection.Clockwise, true));
+
+        var pg = new PathGeometry();
+        pg.Figures.Add(fig);
+        pg.Freeze();
+        return pg;
+    }
+
+    private static Point RingPoint(double cx, double cy, double radius, double angleRad) =>
+        new(cx + radius * Math.Cos(angleRad), cy + radius * Math.Sin(angleRad));
+
+    private static Vector RadialOutVector(double angleRad) => new(Math.Cos(angleRad), Math.Sin(angleRad));
+
+    private static Vector RadialInVector(double angleRad) => new(-Math.Cos(angleRad), -Math.Sin(angleRad));
+
+    private static PathGeometry CreateAnnulusSectorPathGeometrySharp(double startRad, double endRad)
+    {
+        var cx = DiscRadius;
+        var cy = DiscRadius;
+        var ro = DiscRadius;
+        var ri = InnerHoleRadius;
+
         var outerStart = new Point(cx + ro * Math.Cos(startRad), cy + ro * Math.Sin(startRad));
         var outerEnd = new Point(cx + ro * Math.Cos(endRad), cy + ro * Math.Sin(endRad));
         var innerEnd = new Point(cx + ri * Math.Cos(endRad), cy + ri * Math.Sin(endRad));
@@ -167,8 +237,6 @@ public static class RadialHudLayout
         var sweepRad = endRad - startRad;
         var largeArc = sweepRad > Math.PI;
         var fig = new PathFigure { StartPoint = outerStart, IsClosed = true };
-        // Outer arc: clockwise along the outer ring. Inner arc: counter-clockwise so the short arc hugs the
-        // hole (same sweep angle); both CW on the inner circle would pick the outward-bulging arc ("petal" bug).
         fig.Segments.Add(new ArcSegment(outerEnd, new Size(ro, ro), 0, largeArc, SweepDirection.Clockwise, true));
         fig.Segments.Add(new LineSegment(innerEnd, true));
         fig.Segments.Add(new ArcSegment(innerStart, new Size(ri, ri), 0, largeArc, SweepDirection.Counterclockwise, true));

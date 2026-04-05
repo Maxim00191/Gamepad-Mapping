@@ -291,6 +291,9 @@
   <data name="RadialMenuHudLabelModeKeyboardKeyOnly" xml:space="preserve">
     <value>Keyboard key only</value>
   </data>
+  <data name="RadialHudScaleLabel" xml:space="preserve">
+    <value>Radial menu HUD scale</value>
+  </data>
   <data name="CatalogExpanderHeader" xml:space="preserve">
     <value>Keyboard actions &amp; radial menus (JSON catalog)</value>
   </data>

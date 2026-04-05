@@ -7,6 +7,7 @@
              xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
              xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views"
+             xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              mc:Ignorable="d"
              behaviors:MainViewKeyboardCaptureBehavior.EnableKeyboardCapture="True"
              Focusable="True"
@@ -227,6 +228,26 @@
                                                     <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeDescriptionOnly]}" />
                                                     <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeKeyboardKeyOnly]}" />
                                                 </ComboBox>
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialHudScaleLabel]}"
+                                                           Margin="0,8,8,4"
+                                                           TextWrapping="Wrap" />
+                                                <StackPanel Orientation="Horizontal"
+                                                            Margin="0,8,0,0"
+                                                            VerticalAlignment="Center">
+                                                    <Slider Width="168"
+                                                            Minimum="{x:Static utils:RadialHudLayout.MinHudScale}"
+                                                            Maximum="{x:Static utils:RadialHudLayout.MaxHudScale}"
+                                                            SmallChange="0.05"
+                                                            LargeChange="0.25"
+                                                            TickFrequency="0.25"
+                                                            IsSnapToTickEnabled="False"
+                                                            VerticalAlignment="Center"
+                                                            Value="{Binding RadialHudScaleSetting, Mode=TwoWay}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Margin="10,0,0,0"
+                                                               MinWidth="40"
+                                                               Text="{Binding RadialHudScaleSetting, StringFormat={}{0:0.##}}" />
+                                                </StackPanel>
                                             </UniformGrid>
                                         </StackPanel>
                                     </Border>

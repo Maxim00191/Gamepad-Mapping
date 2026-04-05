@@ -15,6 +15,7 @@ using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services;
+using Gamepad_Mapping.Utils;
 using Gamepad_Mapping.Views;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
 using Vortice.XInput;
@@ -79,6 +80,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 ? 1
                 : 0;
         RadialMenuHudLabelModeIndex = (int)RadialMenuHudLabelModeParser.Parse(_appSettings.RadialMenuHudLabelMode);
+        RadialHudScaleSetting = RadialHudLayout.ClampHudScale(_appSettings.RadialHudScale);
         DefaultAnalogActivationThreshold = _appSettings.DefaultAnalogActivationThreshold;
         MouseLookSensitivity = _appSettings.MouseLookSensitivity;
         AnalogChangeEpsilon = _appSettings.AnalogChangeEpsilon;
@@ -185,7 +187,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
             setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
             comboHudGateMessageFactory: comboHudGateMessageFactory,
             isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive,
-            radialMenuHud: new RadialMenuHudPresenter(() => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex),
+            radialMenuHud: new RadialMenuHudPresenter(
+                () => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex,
+                () => Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220)),
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
             getRadialMenuConfirmMode: () => (RadialMenuConfirmMode)RadialMenuConfirmModeIndex);
         _keyboardActions.CollectionChanged += (_, _) => RefreshRadialDefinitionsInEngine();
@@ -411,6 +415,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
             radialMenuHudLabelModeIndex = clamped;
         _appSettings.RadialMenuHudLabelMode =
             RadialMenuHudLabelModeParser.ToSettingString((RadialMenuHudLabelMode)clamped);
+        _settingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private double radialHudScaleSetting;
+
+    partial void OnRadialHudScaleSettingChanged(double value)
+    {
+        var clamped = RadialHudLayout.ClampHudScale(value);
+        if (Math.Abs(clamped - value) > 1e-6)
+            radialHudScaleSetting = clamped;
+        RadialHudLayout.HudScale = clamped;
+        _appSettings.RadialHudScale = clamped;
         _settingsService.SaveSettings(_appSettings);
     }
 
