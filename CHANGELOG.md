@@ -1,4 +1,4 @@
-## Changelog `v2.0.0-alpha` - 2026-04-05
+## Changelog v2.0.0-alpha - 2026-04-05
 
 ### Added
 
@@ -16,7 +16,7 @@
 
 - **Version Bump:** Updated project version to `2.0.0-alpha`.
 
-## 更新日志 `v2.0.0-alpha` - 2026-04-05
+## 更新日志 v2.0.0-alpha - 2026-04-05
 
 ### 新增
 
