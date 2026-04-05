@@ -1,3 +1,43 @@
+## Changelog `v2.0.0-alpha` - 2026-04-05
+
+### Added
+
+- **Radial Menu System:** Introduced a new radial menu functionality for quick action selection.
+- **Radial HUD:** Added a highly customizable radial HUD with support for scaling, color adjustments, and dynamic geometry.
+- **Enhanced Localization:** Added comprehensive localization support for radial menus and HUD elements.
+- **New Actions:** Implemented new action classes for item cycling, keyboard actions, radial menus, and template toggling.
+- **Roco Kingdom Templates:** Added new keyboard action catalogs for exploration and battle, including 'Reveal Mouse' action.
+
+### Fixed
+
+- **Radial Menu Logic:** Improved radial menu closing logic and input handling for a smoother user experience.
+
+### Changed
+
+- **Version Bump:** Updated project version to `2.0.0-alpha`.
+
+## 更新日志 `v2.0.0-alpha` - 2026-04-05
+
+### 新增
+
+- **轮盘菜单系统：** 引入了全新的轮盘菜单功能，用于快速选择操作。
+- **轮盘 HUD：** 添加了高度可定制的轮盘 HUD，支持缩放、颜色调整和动态几何图形。
+- **增强的本地化：** 为轮盘菜单和 HUD 元素添加了全面的本地化支持。
+- **新操作类型：** 实现了用于物品循环、键盘操作、轮盘菜单和模板切换的新操作类。
+- **洛克王国模板：** 为探索和战斗添加了新的键盘操作目录，包括“显示鼠标”操作。
+
+### 修复
+
+- **轮盘菜单逻辑：** 改进了轮盘菜单的关闭逻辑和输入处理，提供更流畅的用户体验。
+
+### 更改
+
+- **版本更新：** 将项目版本更新至 `2.0.0-alpha`。
+
+**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.3...v2.0.0-alpha
+
+
+
 ## Changelog `v1.4.3` — 2026-04-03
 
 ### Added
