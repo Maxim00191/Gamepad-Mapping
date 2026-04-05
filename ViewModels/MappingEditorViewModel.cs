@@ -42,6 +42,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public ObservableCollection<TemplateOption> AvailableProfileTemplates => _mainViewModel.AvailableTemplates;
 
+    public ObservableCollection<RadialMenuDefinition> AvailableRadialMenus => 
+        new(_mainViewModel.SelectedTemplate?.RadialMenus ?? new List<RadialMenuDefinition>());
+
     [ObservableProperty]
     private string editBindingFromButton = "A";
 
@@ -97,10 +100,16 @@ public partial class MappingEditorViewModel : ObservableObject
     private string editTemplateToggleAlternateProfileId = string.Empty;
 
     [ObservableProperty]
+    private bool editRadialMenuEnabled;
+
+    [ObservableProperty]
+    private string editRadialMenuId = string.Empty;
+
+    [ObservableProperty]
     private bool isCreatingNewMapping;
 
-    /// <summary>When false, KB/M output and hold bind fields apply; item cycle / template toggle use their own outputs.</summary>
-    public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled && !EditTemplateToggleEnabled;
+    /// <summary>When false, KB/M output and hold bind fields apply; item cycle / template toggle / radial menu use their own outputs.</summary>
+    public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled && !EditTemplateToggleEnabled && !EditRadialMenuEnabled;
 
     public IReadOnlyList<ItemCycleDirection> AvailableItemCycleDirections { get; } =
         new[] { ItemCycleDirection.Next, ItemCycleDirection.Previous };
@@ -212,6 +221,24 @@ public partial class MappingEditorViewModel : ObservableObject
             EditItemCycleBackwardKey = string.Empty;
             EditTemplateToggleEnabled = true;
             EditTemplateToggleAlternateProfileId = tt.AlternateProfileId ?? string.Empty;
+            EditRadialMenuEnabled = false;
+            EditRadialMenuId = string.Empty;
+            EditBindingKeyboardKey = string.Empty;
+            EditBindingHoldKeyboardKey = string.Empty;
+            EditBindingHoldThresholdText = string.Empty;
+        }
+        else if (value?.RadialMenu is { } rm)
+        {
+            EditItemCycleEnabled = false;
+            EditItemCycleDirection = ItemCycleDirection.Next;
+            EditItemCycleSlotText = "9";
+            EditItemCycleWithKeys = string.Empty;
+            EditItemCycleForwardKey = string.Empty;
+            EditItemCycleBackwardKey = string.Empty;
+            EditTemplateToggleEnabled = false;
+            EditTemplateToggleAlternateProfileId = string.Empty;
+            EditRadialMenuEnabled = true;
+            EditRadialMenuId = rm.RadialMenuId ?? string.Empty;
             EditBindingKeyboardKey = string.Empty;
             EditBindingHoldKeyboardKey = string.Empty;
             EditBindingHoldThresholdText = string.Empty;
@@ -221,6 +248,8 @@ public partial class MappingEditorViewModel : ObservableObject
             EditItemCycleEnabled = false;
             EditTemplateToggleEnabled = false;
             EditTemplateToggleAlternateProfileId = string.Empty;
+            EditRadialMenuEnabled = false;
+            EditRadialMenuId = string.Empty;
             EditItemCycleDirection = ItemCycleDirection.Next;
             EditItemCycleSlotText = "9";
             EditItemCycleWithKeys = string.Empty;
@@ -258,7 +287,10 @@ public partial class MappingEditorViewModel : ObservableObject
             {
                 EditBindingKeyboardKey = key.ToString();
                 if (SelectedMapping is not null)
+                {
+                    SelectedMapping.ActionId = null;
                     SelectedMapping.KeyboardKey = EditBindingKeyboardKey;
+                }
                 ConfigurationChanged?.Invoke(this, EventArgs.Empty);
             });
     }
@@ -349,6 +381,7 @@ public partial class MappingEditorViewModel : ObservableObject
 
             SelectedMapping.ItemCycle = icBinding;
             SelectedMapping.TemplateToggle = null;
+            SelectedMapping.ActionId = null;
             SelectedMapping.KeyboardKey = string.Empty;
             SelectedMapping.HoldKeyboardKey = string.Empty;
             SelectedMapping.HoldThresholdMs = null;
@@ -363,6 +396,19 @@ public partial class MappingEditorViewModel : ObservableObject
 
             SelectedMapping.ItemCycle = null;
             SelectedMapping.TemplateToggle = new TemplateToggleBinding { AlternateProfileId = alt };
+            SelectedMapping.RadialMenu = null;
+            SelectedMapping.ActionId = null;
+            SelectedMapping.KeyboardKey = string.Empty;
+            SelectedMapping.HoldKeyboardKey = string.Empty;
+            SelectedMapping.HoldThresholdMs = null;
+        }
+        else if (EditRadialMenuEnabled)
+        {
+            var rmId = (EditRadialMenuId ?? string.Empty).Trim();
+            SelectedMapping.ItemCycle = null;
+            SelectedMapping.TemplateToggle = null;
+            SelectedMapping.RadialMenu = new RadialMenuBinding { RadialMenuId = rmId };
+            SelectedMapping.ActionId = null;
             SelectedMapping.KeyboardKey = string.Empty;
             SelectedMapping.HoldKeyboardKey = string.Empty;
             SelectedMapping.HoldThresholdMs = null;
@@ -371,6 +417,7 @@ public partial class MappingEditorViewModel : ObservableObject
         {
             SelectedMapping.ItemCycle = null;
             SelectedMapping.TemplateToggle = null;
+            SelectedMapping.RadialMenu = null;
 
             var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
             var key = MappingEngine.ParseKey(keyToken);
@@ -378,6 +425,7 @@ public partial class MappingEditorViewModel : ObservableObject
             if (key == Key.None && !isMouseLookOutput)
                 return;
 
+            SelectedMapping.ActionId = null;
             SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
 
             var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
@@ -430,6 +478,8 @@ public partial class MappingEditorViewModel : ObservableObject
         EditItemCycleBackwardKey = string.Empty;
         EditTemplateToggleEnabled = false;
         EditTemplateToggleAlternateProfileId = string.Empty;
+        EditRadialMenuEnabled = false;
+        EditRadialMenuId = string.Empty;
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
@@ -494,6 +544,7 @@ public partial class MappingEditorViewModel : ObservableObject
 
             entry.ItemCycle = ic;
             entry.TemplateToggle = null;
+            entry.ActionId = null;
             entry.KeyboardKey = string.Empty;
             entry.HoldKeyboardKey = string.Empty;
             entry.HoldThresholdMs = null;
@@ -510,6 +561,21 @@ public partial class MappingEditorViewModel : ObservableObject
 
             entry.ItemCycle = null;
             entry.TemplateToggle = new TemplateToggleBinding { AlternateProfileId = alt };
+            entry.RadialMenu = null;
+            entry.ActionId = null;
+            entry.KeyboardKey = string.Empty;
+            entry.HoldKeyboardKey = string.Empty;
+            entry.HoldThresholdMs = null;
+            return true;
+        }
+
+        if (EditRadialMenuEnabled)
+        {
+            var rmId = (EditRadialMenuId ?? string.Empty).Trim();
+            entry.ItemCycle = null;
+            entry.TemplateToggle = null;
+            entry.RadialMenu = new RadialMenuBinding { RadialMenuId = rmId };
+            entry.ActionId = null;
             entry.KeyboardKey = string.Empty;
             entry.HoldKeyboardKey = string.Empty;
             entry.HoldThresholdMs = null;
@@ -518,6 +584,7 @@ public partial class MappingEditorViewModel : ObservableObject
 
         entry.ItemCycle = null;
         entry.TemplateToggle = null;
+        entry.RadialMenu = null;
 
         var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
         var key = MappingEngine.ParseKey(keyToken);
@@ -525,6 +592,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (key == Key.None && !isMouseLookOutput)
             return false;
 
+        entry.ActionId = null;
         entry.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
 
         var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
@@ -618,14 +686,30 @@ public partial class MappingEditorViewModel : ObservableObject
     partial void OnEditItemCycleEnabledChanged(bool value)
     {
         if (value)
+        {
             EditTemplateToggleEnabled = false;
+            EditRadialMenuEnabled = false;
+        }
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
     partial void OnEditTemplateToggleEnabledChanged(bool value)
     {
         if (value)
+        {
             EditItemCycleEnabled = false;
+            EditRadialMenuEnabled = false;
+        }
+        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+    }
+
+    partial void OnEditRadialMenuEnabledChanged(bool value)
+    {
+        if (value)
+        {
+            EditItemCycleEnabled = false;
+            EditTemplateToggleEnabled = false;
+        }
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
@@ -663,6 +747,9 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.AvailableTemplates):
                 OnPropertyChanged(nameof(AvailableProfileTemplates));
+                break;
+            case nameof(MainViewModel.SelectedTemplate):
+                OnPropertyChanged(nameof(AvailableRadialMenus));
                 break;
         }
     }

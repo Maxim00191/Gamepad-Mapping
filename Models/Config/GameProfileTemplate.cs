@@ -49,6 +49,13 @@ public class GameProfileTemplate
     [JsonProperty("comboLeadButtons", NullValueHandling = NullValueHandling.Ignore)]
     public List<string>? ComboLeadButtons { get; set; }
 
+    /// <summary>Optional catalog of game actions (keyboard outputs). Mappings can use <see cref="MappingEntry.ActionId"/> instead of repeating <c>keyboardKey</c>.</summary>
+    [JsonProperty("keyboardActions", NullValueHandling = NullValueHandling.Ignore)]
+    public List<KeyboardActionDefinition>? KeyboardActions { get; set; }
+
+    [JsonProperty("radialMenus", NullValueHandling = NullValueHandling.Ignore)]
+    public List<RadialMenuDefinition>? RadialMenus { get; set; }
+
     [JsonProperty("mappings")]
     public List<MappingEntry> Mappings { get; set; } = new();
 }

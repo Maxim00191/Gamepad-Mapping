@@ -87,6 +87,22 @@ public partial class ProfileService : IProfileService
         if (TryPickCultureString(template.DisplayNames, culture, out var displayForCulture))
             template.DisplayName = displayForCulture;
 
+        if (template.KeyboardActions is { Count: > 0 } keyboardActions)
+        {
+            foreach (var action in keyboardActions)
+            {
+                if (!string.IsNullOrWhiteSpace(action.DescriptionKey))
+                {
+                    var localized = _translationService[action.DescriptionKey];
+                    if (!IsMissingLocalization(localized))
+                        action.Description = localized;
+                }
+
+                if (TryPickCultureString(action.Descriptions, culture, out var actionDesc))
+                    action.Description = actionDesc;
+            }
+        }
+
         foreach (var mapping in template.Mappings)
         {
             if (!string.IsNullOrWhiteSpace(mapping.DescriptionKey))
@@ -99,6 +115,8 @@ public partial class ProfileService : IProfileService
             if (TryPickCultureString(mapping.Descriptions, culture, out var descForCulture))
                 mapping.Description = descForCulture;
         }
+
+        TemplateKeyboardActionResolver.Apply(template);
 
         return template;
     }
@@ -127,7 +145,8 @@ public partial class ProfileService : IProfileService
                 {
                     ProfileId = profileId,
                     TemplateGroupId = template.TemplateGroupId,
-                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName
+                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName,
+                    RadialMenus = template.RadialMenus?.ToList()
                 });
             }
             catch

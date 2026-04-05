@@ -26,6 +26,16 @@ public class MappingEntry : ObservableObject
 
     private string _keyboardKey = string.Empty;
 
+    private string? _actionId;
+
+    /// <summary>When set, <see cref="KeyboardKey"/> is taken from <see cref="GameProfileTemplate.KeyboardActions"/> on load (see ProfileService).</summary>
+    [JsonProperty("actionId", NullValueHandling = NullValueHandling.Ignore)]
+    public string? ActionId
+    {
+        get => _actionId;
+        set => SetProperty(ref _actionId, value);
+    }
+
     [JsonProperty("keyboardKey")]
     public string KeyboardKey
     {
@@ -36,6 +46,9 @@ public class MappingEntry : ObservableObject
                 OnPropertyChanged(nameof(OutputSummaryForGrid));
         }
     }
+
+    /// <summary>Omit redundant <c>keyboardKey</c> when the mapping uses the <c>keyboardActions</c> catalog.</summary>
+    public bool ShouldSerializeKeyboardKey() => string.IsNullOrWhiteSpace(_actionId);
 
     private string _description = string.Empty;
 
@@ -145,12 +158,31 @@ public class MappingEntry : ObservableObject
         }
     }
 
+    private RadialMenuBinding? _radialMenu;
+
+    /// <summary>When set, pressing the trigger button opens a radial menu for selection via joystick.</summary>
+    [JsonProperty("radialMenu", NullValueHandling = NullValueHandling.Ignore)]
+    public RadialMenuBinding? RadialMenu
+    {
+        get => _radialMenu;
+        set
+        {
+            if (SetProperty(ref _radialMenu, value))
+                OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+    }
+
     /// <summary>Compact label for the mapping grid (item cycle summary or <see cref="KeyboardKey"/>).</summary>
     [JsonIgnore]
     public string OutputSummaryForGrid
     {
         get
         {
+            if (RadialMenu is { } rm)
+            {
+                return $"Radial Menu: {rm.RadialMenuId}";
+            }
+
             if (ItemCycle is { } ic)
             {
                 var n = Math.Clamp(ic.SlotCount, 1, 9);
@@ -173,6 +205,22 @@ public class MappingEntry : ObservableObject
             }
 
             return _keyboardKey ?? string.Empty;
+        }
+    }
+
+    internal void ApplyKeyboardActionResolution(string keyboardKey, string? defaultDescription)
+    {
+        if (!string.Equals(_keyboardKey, keyboardKey, StringComparison.Ordinal))
+        {
+            _keyboardKey = keyboardKey ?? string.Empty;
+            OnPropertyChanged(nameof(KeyboardKey));
+            OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+
+        if (!string.IsNullOrWhiteSpace(defaultDescription) && string.IsNullOrWhiteSpace(_description))
+        {
+            _description = defaultDescription.Trim();
+            OnPropertyChanged(nameof(Description));
         }
     }
 }

@@ -128,7 +128,7 @@ public sealed class MappingEngine : IMappingEngine
                 isComboHudPresentationSuppressed);
         }
 
-        _buttonMappingProcessor = new ButtonMappingProcessor(
+            _buttonMappingProcessor = new ButtonMappingProcessor(
             _holdSessionManager,
             _outputStateTracker,
             _itemCycleProcessor,
@@ -138,6 +138,7 @@ public sealed class MappingEngine : IMappingEngine
             QueueOutputDispatch,
             EnqueueItemCycleTap,
             TryDispatchTemplateToggle,
+            TryDispatchRadialMenu,
             mappings => ResolveComboLeads(mappings),
             _leadKeyReleaseSuppressMs,
             _deferredSoloLeadButtons,
@@ -550,6 +551,32 @@ public sealed class MappingEngine : IMappingEngine
         _setMappedOutput($"{label} ({trigger})");
         _setMappingStatus($"Queued: {sourceToken} ({trigger}) -> {label}");
         _requestTemplateSwitchToProfileId?.Invoke(profileId);
+        return true;
+    }
+
+    private bool TryDispatchRadialMenu(
+        MappingEntry mapping,
+        TriggerMoment trigger,
+        string sourceToken,
+        out string? errorStatus)
+    {
+        errorStatus = null;
+        if (mapping.RadialMenu is not { } rm)
+            return false;
+
+        // For now, just log that we would open a radial menu.
+        // We will implement the actual HUD and joystick logic next.
+        if (trigger == TriggerMoment.Pressed)
+        {
+            var label = $"Open Radial Menu: {rm.RadialMenuId}";
+            _setMappedOutput(label);
+            _setMappingStatus($"Radial Menu triggered: {rm.RadialMenuId}");
+        }
+        else if (trigger == TriggerMoment.Released)
+        {
+            _setMappedOutput($"Close Radial Menu");
+        }
+
         return true;
     }
 }

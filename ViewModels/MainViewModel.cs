@@ -42,6 +42,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
 
+    /// <summary>From template JSON; preserved when saving so <c>keyboardActions</c> is not stripped.</summary>
+    private List<KeyboardActionDefinition>? _keyboardActionsPersist;
+
+    /// <summary>From template JSON; preserved when saving so <c>radialMenus</c> is not stripped.</summary>
+    private List<RadialMenuDefinition>? _radialMenusPersist;
+
     /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
         private string? _lastLoadedTemplateGroupIdForTargetInherit;
         private ComboHudWindow? _comboHudWindow;
@@ -676,6 +682,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         CurrentTemplateDisplayName = template.DisplayName;
 
         _comboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
+        _keyboardActionsPersist = template.KeyboardActions?.ToList();
+        _radialMenusPersist = template.RadialMenus?.ToList();
         _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
 
         Mappings.Clear();
@@ -710,6 +718,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Combo lead names from the loaded template; written back unchanged on Save profile.</summary>
     public IReadOnlyList<string>? ComboLeadButtonsPersist => _comboLeadButtonsPersist;
+
+    /// <summary>Keyboard action catalog from the loaded template; written back unchanged on Save profile.</summary>
+    public List<KeyboardActionDefinition>? KeyboardActionsPersist => _keyboardActionsPersist;
+
+    /// <summary>Radial menu definitions from the loaded template; written back unchanged on Save profile.</summary>
+    public List<RadialMenuDefinition>? RadialMenusPersist => _radialMenusPersist;
 
     public IProfileService GetProfileService() => _profileService;
 

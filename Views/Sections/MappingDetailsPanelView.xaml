@@ -120,6 +120,10 @@
                               Content="{Binding Source={StaticResource Loc}, Path=[TemplateToggleEnabled]}"
                               IsChecked="{Binding EditTemplateToggleEnabled, Mode=TwoWay}" />
 
+                    <CheckBox Margin="0,0,0,8"
+                              Content="Enable Radial Menu"
+                              IsChecked="{Binding EditRadialMenuEnabled, Mode=TwoWay}" />
+
                     <TextBlock TextWrapping="Wrap"
                                Foreground="{DynamicResource AppSecondaryTextBrush}"
                                FontSize="12"
@@ -159,6 +163,36 @@
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding EditTemplateToggleEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Style>
+                    </ComboBox>
+
+                    <TextBlock Text="Select Radial Menu"
+                               Margin="0,8,0,4">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditRadialMenuEnabled}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ComboBox ItemsSource="{Binding AvailableRadialMenus}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding EditRadialMenuId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <ComboBox.Style>
+                            <Style TargetType="{x:Type ComboBox}"
+                                   BasedOn="{StaticResource {x:Type ComboBox}}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EditRadialMenuEnabled}" Value="True">
                                         <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </Style.Triggers>
