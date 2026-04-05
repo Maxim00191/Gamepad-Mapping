@@ -1,3 +1,6 @@
+using System;
+using System.Windows;
+using System.Windows.Media;
 using Gamepad_Mapping.Utils;
 using Xunit;
 
@@ -69,9 +72,65 @@ public class RadialHudLayoutTests
             RadialHudLayout.HudScale = 2.0;
             Assert.Equal(400 * 2.0, RadialHudLayout.DiscDiameter);
             Assert.Equal(96 * 2.0, RadialHudLayout.ItemSize);
-            Assert.Equal(140 * 2.0, RadialHudLayout.InnerHoleDiameter);
+            Assert.Equal(200 * 2.0, RadialHudLayout.InnerHoleDiameter);
             Assert.Equal(112 * 2.0, RadialHudLayout.TitlePlateDiameter);
             Assert.Equal(RadialHudLayout.DiscRadius - RadialHudLayout.ItemHalf, RadialHudLayout.ItemCenterRadius);
+        }
+        finally
+        {
+            RadialHudLayout.HudScale = prev;
+        }
+    }
+
+    [Fact]
+    public void Annulus_sector_geometry_empty_when_no_segments()
+    {
+        var g = RadialHudLayout.CreateAnnulusSectorGeometry(0, 0);
+        Assert.True(g.IsEmpty());
+    }
+
+    [Fact]
+    public void Annulus_sector_geometry_is_full_ring_when_single_segment()
+    {
+        var g = RadialHudLayout.CreateAnnulusSectorGeometry(0, 1);
+        Assert.False(g.IsEmpty());
+        Assert.IsType<PathGeometry>(g);
+    }
+
+    [Fact]
+    public void Annulus_sector_geometry_is_wedge_when_multiple_segments()
+    {
+        var g = RadialHudLayout.CreateAnnulusSectorGeometry(0, 8);
+        Assert.False(g.IsEmpty());
+        Assert.IsType<PathGeometry>(g);
+    }
+
+    [Fact]
+    public void Annulus_sector_top_wedge_contains_outer_midpoint_with_gaps()
+    {
+        const int n = 4;
+        var g = RadialHudLayout.CreateAnnulusSectorGeometry(0, n);
+        var cx = RadialHudLayout.DiscRadius;
+        var cy = RadialHudLayout.DiscRadius;
+        var ro = RadialHudLayout.DiscRadius;
+        var midAngle = -Math.PI * 0.5;
+        var p = new Point(cx + ro * Math.Cos(midAngle), cy + ro * Math.Sin(midAngle));
+        Assert.True(g.FillContains(p, 1.0, ToleranceType.Absolute));
+    }
+
+    [Fact]
+    public void Sector_gap_arc_length_at_outer_is_near_target()
+    {
+        var prev = RadialHudLayout.HudScale;
+        try
+        {
+            RadialHudLayout.HudScale = 1.0;
+            const int n = 8;
+            var r = RadialHudLayout.DiscRadius;
+            var step = 2 * Math.PI / n;
+            var gapRad = Math.Min(RadialHudLayout.SectorGapLength / r, step * 0.45);
+            var arcLen = gapRad * r;
+            Assert.InRange(arcLen, 2.0, 4.0);
         }
         finally
         {

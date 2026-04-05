@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Gamepad_Mapping.Utils;
 
@@ -37,7 +38,16 @@ public static class RadialHudLayout
 
     private const double BaseHudStrokeThickness = 2.0 / 3.0;
 
+    /// <summary>Target arc length between sectors at the outer edge before capping (scales with <see cref="HudScale"/>).</summary>
+    private const double BaseSectorGapLength = 3.0;
+
+    /// <summary>Hard cap so gaps stay in the 2–4px visual range at typical HUD scales.</summary>
+    private const double MaxSectorGapLength = 4.0;
+
     public static double HudStrokeThickness => BaseHudStrokeThickness * HudScale;
+
+    /// <summary>Radial-menu sector spacing at the outer ring (arc length ≈ this value when not limited by wedge count).</summary>
+    public static double SectorGapLength => Math.Min(BaseSectorGapLength * HudScale, MaxSectorGapLength);
 
     public static double DiscDiameter => BaseDiscDiameter * HudScale;
     public static double ItemSize => BaseItemSize * HudScale;
@@ -87,5 +97,85 @@ public static class RadialHudLayout
     {
         var c = ItemCenterOffset(segmentIndex, segmentCount);
         return new Point(DiscRadius + c.X - ItemHalf, DiscRadius + c.Y - ItemHalf);
+    }
+
+    /// <summary>
+    /// Annulus sector built only from <see cref="PathFigure"/> + <see cref="ArcSegment"/> (no <see cref="EllipseGeometry"/>).
+    /// Adjacent sectors are separated by a constant angular gap so arc length at the outer edge ≈ <see cref="SectorGapLength"/>.
+    /// Wedge bisectors use the same angles as <see cref="ItemCenterOffset"/> (matches stick sector math in <c>MappingEngine</c>).
+    /// </summary>
+    public static Geometry CreateAnnulusSectorGeometry(int segmentIndex, int segmentCount)
+    {
+        if (segmentCount <= 0)
+            return Geometry.Empty;
+
+        if (segmentCount == 1)
+            return CreateFullAnnulusPathGeometry();
+
+        var idx = ((segmentIndex % segmentCount) + segmentCount) % segmentCount;
+        var stepRad = 2 * Math.PI / segmentCount;
+        var gapRad = SectorGapLength / DiscRadius;
+        if (gapRad >= stepRad)
+            gapRad = stepRad * 0.45;
+        var sweepRad = stepRad - gapRad;
+
+        var centerRad = -Math.PI * 0.5 + stepRad * idx;
+        var startRad = centerRad - sweepRad * 0.5;
+        var endRad = centerRad + sweepRad * 0.5;
+
+        return CreateAnnulusSectorPathGeometry(startRad, endRad);
+    }
+
+    /// <summary>Single annulus ring as one closed <see cref="PathGeometry"/> (two 180° outer arcs + two 180° inner arcs).</summary>
+    private static PathGeometry CreateFullAnnulusPathGeometry()
+    {
+        var cx = DiscRadius;
+        var cy = DiscRadius;
+        var ro = DiscRadius;
+        var ri = InnerHoleRadius;
+
+        var outerTop = new Point(cx, cy - ro);
+        var outerBottom = new Point(cx, cy + ro);
+        var innerTop = new Point(cx, cy - ri);
+        var innerBottom = new Point(cx, cy + ri);
+
+        var fig = new PathFigure { StartPoint = outerTop, IsClosed = true };
+        fig.Segments.Add(new ArcSegment(outerBottom, new Size(ro, ro), 0, true, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new ArcSegment(outerTop, new Size(ro, ro), 0, true, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new LineSegment(innerTop, true));
+        fig.Segments.Add(new ArcSegment(innerBottom, new Size(ri, ri), 0, true, SweepDirection.Counterclockwise, true));
+        fig.Segments.Add(new ArcSegment(innerTop, new Size(ri, ri), 0, true, SweepDirection.Counterclockwise, true));
+
+        var pg = new PathGeometry();
+        pg.Figures.Add(fig);
+        pg.Freeze();
+        return pg;
+    }
+
+    private static PathGeometry CreateAnnulusSectorPathGeometry(double startRad, double endRad)
+    {
+        var cx = DiscRadius;
+        var cy = DiscRadius;
+        var ro = DiscRadius;
+        var ri = InnerHoleRadius;
+
+        var outerStart = new Point(cx + ro * Math.Cos(startRad), cy + ro * Math.Sin(startRad));
+        var outerEnd = new Point(cx + ro * Math.Cos(endRad), cy + ro * Math.Sin(endRad));
+        var innerEnd = new Point(cx + ri * Math.Cos(endRad), cy + ri * Math.Sin(endRad));
+        var innerStart = new Point(cx + ri * Math.Cos(startRad), cy + ri * Math.Sin(startRad));
+
+        var sweepRad = endRad - startRad;
+        var largeArc = sweepRad > Math.PI;
+        var fig = new PathFigure { StartPoint = outerStart, IsClosed = true };
+        // Outer arc: clockwise along the outer ring. Inner arc: counter-clockwise so the short arc hugs the
+        // hole (same sweep angle); both CW on the inner circle would pick the outward-bulging arc ("petal" bug).
+        fig.Segments.Add(new ArcSegment(outerEnd, new Size(ro, ro), 0, largeArc, SweepDirection.Clockwise, true));
+        fig.Segments.Add(new LineSegment(innerEnd, true));
+        fig.Segments.Add(new ArcSegment(innerStart, new Size(ri, ri), 0, largeArc, SweepDirection.Counterclockwise, true));
+
+        var pg = new PathGeometry();
+        pg.Figures.Add(fig);
+        pg.Freeze();
+        return pg;
     }
 }

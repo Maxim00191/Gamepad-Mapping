@@ -19,6 +19,7 @@
         d:DataContext="{d:DesignInstance vm:RadialMenuHudViewModel}">
     <Window.Resources>
         <utils:RadialItemPositionConverter x:Key="PosConverter" />
+        <utils:RadialSectorGeometryConverter x:Key="SectorGeometryConverter" />
         
         <Storyboard x:Key="FadeInStoryboard">
             <DoubleAnimation Storyboard.TargetName="RootGrid"
@@ -67,43 +68,61 @@
             <ScaleTransform x:Name="ScaleTransform" ScaleX="0.8" ScaleY="0.8" />
         </Grid.RenderTransform>
 
-        <!-- Key ring: annulus only (outer disc minus inner hole). -->
-        <Path Stroke="#55FFFFFF"
-              StrokeThickness="{x:Static utils:RadialHudLayout.HudStrokeThickness}"
-              Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
+        <!-- Key ring: annulus split into sector slices (same angular convention as layout / mapping engine). -->
+        <Grid Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
               Height="{x:Static utils:RadialHudLayout.DiscDiameter}">
-            <Path.Data>
-                <CombinedGeometry GeometryCombineMode="Exclude">
-                    <CombinedGeometry.Geometry1>
-                        <EllipseGeometry RadiusX="{x:Static utils:RadialHudLayout.DiscRadius}"
-                                         RadiusY="{x:Static utils:RadialHudLayout.DiscRadius}">
-                            <EllipseGeometry.Center>
-                                <Point X="{x:Static utils:RadialHudLayout.DiscRadius}"
-                                       Y="{x:Static utils:RadialHudLayout.DiscRadius}" />
-                            </EllipseGeometry.Center>
-                        </EllipseGeometry>
-                    </CombinedGeometry.Geometry1>
-                    <CombinedGeometry.Geometry2>
-                        <EllipseGeometry RadiusX="{x:Static utils:RadialHudLayout.InnerHoleRadius}"
-                                         RadiusY="{x:Static utils:RadialHudLayout.InnerHoleRadius}">
-                            <EllipseGeometry.Center>
-                                <Point X="{x:Static utils:RadialHudLayout.DiscRadius}"
-                                       Y="{x:Static utils:RadialHudLayout.DiscRadius}" />
-                            </EllipseGeometry.Center>
-                        </EllipseGeometry>
-                    </CombinedGeometry.Geometry2>
-                </CombinedGeometry>
-            </Path.Data>
-            <Path.Fill>
-                <SolidColorBrush Color="#F01A1A1E" />
-            </Path.Fill>
-            <Path.Effect>
+            <Grid.Effect>
                 <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.DiscDropShadowBlur}"
                                   ShadowDepth="0"
                                   Opacity="0.55"
                                   Color="Black" />
-            </Path.Effect>
-        </Path>
+            </Grid.Effect>
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
+                                Height="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="0" />
+                        <Setter Property="Canvas.Top" Value="0" />
+                        <Setter Property="Width" Value="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                        <Setter Property="Height" Value="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Path Stroke="#55FFFFFF"
+                              StrokeThickness="{x:Static utils:RadialHudLayout.HudStrokeThickness}">
+                            <Path.Data>
+                                <MultiBinding Converter="{StaticResource SectorGeometryConverter}">
+                                    <Binding Path="SegmentIndex" />
+                                    <Binding Path="SegmentCount" />
+                                </MultiBinding>
+                            </Path.Data>
+                            <Path.Fill>
+                                <SolidColorBrush Color="#F01A1A1E" />
+                            </Path.Fill>
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="Fill">
+                                                <Setter.Value>
+                                                    <SolidColorBrush Color="#40FFFFFF" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
 
         <!-- Title plate: filled circle inside the hole; gap to donut inner edge = hollow band. -->
         <Ellipse Width="{x:Static utils:RadialHudLayout.TitlePlateDiameter}"
