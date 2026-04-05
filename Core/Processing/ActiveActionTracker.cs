@@ -53,9 +53,6 @@ internal sealed class ActiveActionTracker
             action.HandleButtonReleased(button);
         }
 
-        // ELEGANT FIX: If a button is released, and it was part of an active chord,
-        // we should proactively check if that action is still valid.
-        // This prevents 'ghost' actions from suppressing future inputs.
         foreach (var action in snapshot)
         {
             if (action is IActionSession session && session.ActiveChord.Contains(button))

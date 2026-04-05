@@ -72,7 +72,7 @@ internal sealed class ButtonMappingProcessor
         if (context.Trigger == TriggerMoment.Released && 
             _activeActionTracker.IsButtonSuppressedByActiveChord(context.Button))
         {
-            // ELEGANT FIX: Even if suppressed, we must ensure the button is unregistered from any tracking
+            // Even if suppressed, we must ensure the button is unregistered from any tracking
             // to prevent stale state from blocking future presses.
             _activeActionTracker.ProcessButtonReleased(context.Button);
             

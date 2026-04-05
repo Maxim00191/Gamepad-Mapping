@@ -140,7 +140,7 @@ internal sealed class HoldSessionManager
     {
         lock (_buttonDownTicks)
         {
-            // ELEGANT FIX: Ensure we only remove the specific button down tick.
+            // Ensure we only remove the specific button down tick.
             _buttonDownTicks.Remove(button);
         }
     }

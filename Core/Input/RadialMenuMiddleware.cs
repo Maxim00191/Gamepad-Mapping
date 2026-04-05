@@ -41,9 +41,6 @@ internal sealed class RadialMenuMiddleware(
         // Update selection and check if the stick is actually being used for the menu
         controller.UpdateSelection(stickValue, getEngagementThreshold(), getConfirmMode());
 
-        // ELEGANT FIX: Only consume the input if the stick is actually engaged (beyond threshold)
-        // AND it is the stick assigned to this radial menu.
-        // This ensures that the OTHER stick (e.g., movement) remains completely smooth.
         if (stickValue.Length() >= getEngagementThreshold())
         {
             context.ConsumedInputs.Add(stickType);

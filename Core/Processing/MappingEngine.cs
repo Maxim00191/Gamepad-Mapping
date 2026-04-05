@@ -278,7 +278,7 @@ public sealed class MappingEngine : IMappingEngine
             }
         }
 
-        // ELEGANT FIX: Always reset consumed inputs at the start of a frame terminal.
+        // Always reset consumed inputs at the start of a frame terminal.
         // This ensures that any previous frame's consumption doesn't leak into the current frame's processing.
         // The middleware will re-add them if necessary.
         context.ConsumedInputs.Clear();

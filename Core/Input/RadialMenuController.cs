@@ -122,9 +122,6 @@ internal sealed class RadialMenuController : IRadialMenuController
         if (_activeRadial is null || _openMapping is null)
             return;
 
-        // ELEGANT FIX: If the released button is part of the chord that opened this menu,
-        // we must close the menu. This ensures that the menu doesn't stay open 'ghostly'
-        // if the release event was processed slightly out of order.
         if (_activeChord.Contains(releasedButton))
         {
             var confirmOnRelease = _getConfirmMode() != RadialMenuConfirmMode.ReturnStickToCenter;
@@ -208,9 +205,6 @@ internal sealed class RadialMenuController : IRadialMenuController
 
     public bool TryClose(string radialMenuId, string sourceToken, bool dispatchSelection, bool suppressChord = false)
     {
-        // ELEGANT FIX: If the requested ID matches the active one, close it normally.
-        // If it doesn't match but we have an active radial, we don't close the WRONG one,
-        // but we ensure the controller isn't in a hung state.
         if (_activeRadial is null)
             return false;
 
@@ -265,9 +259,6 @@ internal sealed class RadialMenuController : IRadialMenuController
             _activeChord.Clear();
         }
 
-        // ELEGANT FIX: Unregister from the tracker BEFORE clearing internal state.
-        // If we clear state first, the Id property (which depends on _activeRadial) 
-        // will return string.Empty, causing the unregistration to fail.
         _unregisterActiveAction(id);
         ClearState();
     }
