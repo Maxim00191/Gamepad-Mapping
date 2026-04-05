@@ -23,7 +23,13 @@ public partial class RadialMenuItemViewModel : ObservableObject
     private string actionId = string.Empty;
 
     [ObservableProperty]
-    private string displayName = string.Empty;
+    private string primaryCaption = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSecondaryCaption))]
+    private string? secondaryCaption;
+
+    public bool HasSecondaryCaption => !string.IsNullOrEmpty(SecondaryCaption);
 
     [ObservableProperty]
     private string? icon;

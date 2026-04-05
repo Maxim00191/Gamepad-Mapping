@@ -6,6 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
              xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections"
+             xmlns:local="clr-namespace:Gamepad_Mapping.Views"
              mc:Ignorable="d"
              behaviors:MainViewKeyboardCaptureBehavior.EnableKeyboardCapture="True"
              Focusable="True"
@@ -211,11 +212,20 @@
                                                            Margin="0,4,8,4"
                                                            TextWrapping="Wrap" />
                                                 <ComboBox SelectedIndex="{Binding RadialMenuConfirmModeIndex, Mode=TwoWay}"
-                                                          Width="220"
-                                                          HorizontalAlignment="Left"
+                                                          HorizontalAlignment="Stretch"
                                                           Margin="0,4,0,0">
                                                     <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
                                                     <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReturnCenter]}" />
+                                                </ComboBox>
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeLabel]}"
+                                                           Margin="0,4,8,4"
+                                                           TextWrapping="Wrap" />
+                                                <ComboBox SelectedIndex="{Binding RadialMenuHudLabelModeIndex, Mode=TwoWay}"
+                                                          HorizontalAlignment="Stretch"
+                                                          Margin="0,4,0,0">
+                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeBoth]}" />
+                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeDescriptionOnly]}" />
+                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeKeyboardKeyOnly]}" />
                                                 </ComboBox>
                                             </UniformGrid>
                                         </StackPanel>
@@ -506,30 +516,61 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="7*" MinWidth="340" />
                 <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="3*" MinWidth="240" />
+                <ColumnDefinition Width="3*" MinWidth="280" />
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MappingListTitle]}"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center"
-                               DockPanel.Dock="Left" />
-                    <Button Content="{Binding Source={StaticResource Loc}, Path=[AddMappingPlus]}"
-                            Command="{Binding MappingEditorPanel.AddMappingCommand}"
-                            Padding="12,4"
-                            HorizontalAlignment="Right"
-                            DockPanel.Dock="Right" />
-                </DockPanel>
-
-                <sections:MappingEditorView Grid.Row="1"
-                                            DataContext="{Binding MappingEditorPanel}" />
-            </Grid>
+            <Border Grid.Column="0"
+                    Style="{StaticResource SectionCardBorder}"
+                    Padding="0">
+                <TabControl Style="{StaticResource MainWorkspaceTabControl}"
+                            ItemContainerStyle="{StaticResource MainWorkspaceTabItem}"
+                            SelectedIndex="{Binding ProfileListTabIndex, Mode=TwoWay}">
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabMappings]}" />
+                        </TabItem.Header>
+                        <Grid Margin="12"
+                              VerticalAlignment="Stretch">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" MinHeight="0" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Style="{StaticResource WorkspaceSectionTitleStyle}"
+                                       Text="{Binding Source={StaticResource Loc}, Path=[MappingListTitle]}" />
+                            <WrapPanel Grid.Row="1"
+                                       Orientation="Horizontal"
+                                       Margin="0,0,0,8">
+                                <Button Content="{Binding Source={StaticResource Loc}, Path=[AddMappingPlus]}"
+                                        Command="{Binding MappingEditorPanel.AddMappingCommand}"
+                                        Padding="10,4"
+                                        Margin="0,0,0,4" />
+                            </WrapPanel>
+                            <sections:MappingEditorView Grid.Row="2"
+                                                        DataContext="{Binding MappingEditorPanel}" />
+                        </Grid>
+                    </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabKeyboardActions]}" />
+                        </TabItem.Header>
+                        <Grid Margin="12"
+                              VerticalAlignment="Stretch">
+                            <sections:ProfileKeyboardActionsListView DataContext="{Binding CatalogPanel}" />
+                        </Grid>
+                    </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabRadialMenus]}" />
+                        </TabItem.Header>
+                        <Grid Margin="12"
+                              VerticalAlignment="Stretch">
+                            <sections:ProfileRadialMenusListView DataContext="{Binding CatalogPanel}" />
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Border>
 
             <GridSplitter Grid.Column="1"
                           Width="6"
@@ -541,8 +582,47 @@
 
             <Border Grid.Column="2"
                     Margin="12,0,0,0"
+                    ClipToBounds="True"
                     Style="{StaticResource SectionCardBorder}">
-                <sections:MappingDetailsPanelView DataContext="{Binding MappingEditorPanel}" />
+                <Border.Resources>
+                    <DataTemplate x:Key="RightPanelMappingTemplate">
+                        <!-- Content is ProfileRightPanelSurface enum; template root DataContext would be that enum unless we bind from the host ContentControl (MainViewModel). -->
+                        <sections:MappingDetailsPanelView MinHeight="0"
+                                                          VerticalAlignment="Stretch"
+                                                          DataContext="{Binding DataContext.MappingEditorPanel, RelativeSource={RelativeSource AncestorType=ContentControl, Mode=FindAncestor, AncestorLevel=1}}" />
+                    </DataTemplate>
+                    <DataTemplate x:Key="RightPanelKeyboardTemplate">
+                        <sections:KeyboardActionEditorPanelView MinHeight="0"
+                                                                 VerticalAlignment="Stretch"
+                                                                 DataContext="{Binding DataContext.CatalogPanel, RelativeSource={RelativeSource AncestorType=ContentControl, Mode=FindAncestor, AncestorLevel=1}}" />
+                    </DataTemplate>
+                    <DataTemplate x:Key="RightPanelRadialTemplate">
+                        <sections:RadialMenuEditorPanelView MinHeight="0"
+                                                             VerticalAlignment="Stretch"
+                                                             DataContext="{Binding DataContext.CatalogPanel, RelativeSource={RelativeSource AncestorType=ContentControl, Mode=FindAncestor, AncestorLevel=1}}" />
+                    </DataTemplate>
+                    <DataTemplate x:Key="RightPanelPlaceholderTemplate">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileEditorPlaceholder]}"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Margin="20"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    </DataTemplate>
+                    <local:RightPanelTemplateSelector x:Key="RightPanelTemplateSelector"
+                                                        MappingTemplate="{StaticResource RightPanelMappingTemplate}"
+                                                        KeyboardActionTemplate="{StaticResource RightPanelKeyboardTemplate}"
+                                                        RadialMenuTemplate="{StaticResource RightPanelRadialTemplate}"
+                                                        PlaceholderTemplate="{StaticResource RightPanelPlaceholderTemplate}" />
+                </Border.Resources>
+                <ContentControl Content="{Binding RightPanelSurface}"
+                                ContentTemplateSelector="{StaticResource RightPanelTemplateSelector}"
+                                VerticalAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Focusable="False" />
             </Border>
         </Grid>
     </Grid>

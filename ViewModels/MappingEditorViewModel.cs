@@ -42,8 +42,7 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public ObservableCollection<TemplateOption> AvailableProfileTemplates => _mainViewModel.AvailableTemplates;
 
-    public ObservableCollection<RadialMenuDefinition> AvailableRadialMenus => 
-        new(_mainViewModel.SelectedTemplate?.RadialMenus ?? new List<RadialMenuDefinition>());
+    public ObservableCollection<RadialMenuDefinition> AvailableRadialMenus => _mainViewModel.RadialMenus;
 
     [ObservableProperty]
     private string editBindingFromButton = "A";
@@ -107,6 +106,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isCreatingNewMapping;
+
+    partial void OnIsCreatingNewMappingChanged(bool value) => _mainViewModel.RefreshRightPanelSurface();
 
     /// <summary>When false, KB/M output and hold bind fields apply; item cycle / template toggle / radial menu use their own outputs.</summary>
     public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled && !EditTemplateToggleEnabled && !EditRadialMenuEnabled;

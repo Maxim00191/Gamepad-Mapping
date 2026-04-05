@@ -45,6 +45,7 @@ public class MainViewModelTests
         Assert.NotNull(vm.ProfileTemplatePanel);
         Assert.NotNull(vm.NewBindingPanel);
         Assert.NotNull(vm.MappingEditorPanel);
+        Assert.NotNull(vm.CatalogPanel);
         Assert.NotNull(vm.GamepadMonitorPanel);
         Assert.NotNull(vm.ProcessTargetPanel);
     }

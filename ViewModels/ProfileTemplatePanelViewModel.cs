@@ -85,8 +85,8 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
             DisplayName = CurrentTemplateDisplayName,
             TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
             ComboLeadButtons = comboLeads,
-            KeyboardActions = _mainViewModel.KeyboardActionsPersist,
-            RadialMenus = _mainViewModel.RadialMenusPersist,
+            KeyboardActions = _mainViewModel.KeyboardActions.Count == 0 ? null : _mainViewModel.KeyboardActions.ToList(),
+            RadialMenus = _mainViewModel.RadialMenus.Count == 0 ? null : _mainViewModel.RadialMenus.ToList(),
             Mappings = _mainViewModel.Mappings.ToList()
         };
 

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Models;
@@ -17,7 +18,7 @@ public class RadialMenuDefinition
     public string Joystick { get; set; } = "RightStick";
 
     [JsonProperty("items")]
-    public List<RadialMenuItem> Items { get; set; } = new();
+    public ObservableCollection<RadialMenuItem> Items { get; set; } = new();
 }
 
 public class RadialMenuItem

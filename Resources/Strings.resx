@@ -279,6 +279,84 @@
   <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
     <value>Return selection stick to center</value>
   </data>
+  <data name="RadialMenuHudLabelModeLabel" xml:space="preserve">
+    <value>Radial menu item labels</value>
+  </data>
+  <data name="RadialMenuHudLabelModeBoth" xml:space="preserve">
+    <value>Description and key</value>
+  </data>
+  <data name="RadialMenuHudLabelModeDescriptionOnly" xml:space="preserve">
+    <value>Description only</value>
+  </data>
+  <data name="RadialMenuHudLabelModeKeyboardKeyOnly" xml:space="preserve">
+    <value>Keyboard key only</value>
+  </data>
+  <data name="CatalogExpanderHeader" xml:space="preserve">
+    <value>Keyboard actions &amp; radial menus (JSON catalog)</value>
+  </data>
+  <data name="CatalogKeyboardActionsHeader" xml:space="preserve">
+    <value>Keyboard actions</value>
+  </data>
+  <data name="CatalogRadialMenusHeader" xml:space="preserve">
+    <value>Radial menus</value>
+  </data>
+  <data name="CatalogRadialSlotsHeader" xml:space="preserve">
+    <value>Slots for selected radial menu</value>
+  </data>
+  <data name="CatalogRadialSlotsHint" xml:space="preserve">
+    <value>Each slot references a keyboard action id. Save profile to persist.</value>
+  </data>
+  <data name="CatalogAddRow" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="CatalogColumnId" xml:space="preserve">
+    <value>Id</value>
+  </data>
+  <data name="CatalogColumnKeyboardKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="CatalogColumnDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CatalogColumnDisplayName" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="CatalogColumnJoystick" xml:space="preserve">
+    <value>Stick</value>
+  </data>
+  <data name="CatalogColumnActionId" xml:space="preserve">
+    <value>Action id</value>
+  </data>
+  <data name="CatalogColumnIcon" xml:space="preserve">
+    <value>Icon (optional)</value>
+  </data>
+  <data name="ProfileTabMappings" xml:space="preserve">
+    <value>Mappings</value>
+  </data>
+  <data name="ProfileTabKeyboardActions" xml:space="preserve">
+    <value>Keyboard actions</value>
+  </data>
+  <data name="ProfileTabRadialMenus" xml:space="preserve">
+    <value>Radial menus</value>
+  </data>
+  <data name="ProfileEditorPlaceholder" xml:space="preserve">
+    <value>Select a row in the list or add one to edit details here.</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
+    <value>Keyboard action</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionHint" xml:space="preserve">
+    <value>Ids are referenced by mappings and radial slots. Save profile to persist.</value>
+  </data>
+  <data name="ProfileEditorRadialMenuTitle" xml:space="preserve">
+    <value>Radial menu</value>
+  </data>
+  <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
+    <value>Configure the stick and slots below. Save profile to persist.</value>
+  </data>
+  <data name="ProfileEditorColumnTitle" xml:space="preserve">
+    <value>Details</value>
+  </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
     <value>Cycle hotbar / inventory slots</value>
   </data>

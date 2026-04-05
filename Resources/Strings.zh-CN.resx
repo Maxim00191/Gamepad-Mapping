@@ -279,6 +279,84 @@
   <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
     <value>选区摇杆回中</value>
   </data>
+  <data name="RadialMenuHudLabelModeLabel" xml:space="preserve">
+    <value>转盘条目显示</value>
+  </data>
+  <data name="RadialMenuHudLabelModeBoth" xml:space="preserve">
+    <value>简介与按键</value>
+  </data>
+  <data name="RadialMenuHudLabelModeDescriptionOnly" xml:space="preserve">
+    <value>仅简介</value>
+  </data>
+  <data name="RadialMenuHudLabelModeKeyboardKeyOnly" xml:space="preserve">
+    <value>仅按键</value>
+  </data>
+  <data name="CatalogExpanderHeader" xml:space="preserve">
+    <value>键盘动作与转盘（JSON 目录）</value>
+  </data>
+  <data name="CatalogKeyboardActionsHeader" xml:space="preserve">
+    <value>键盘动作</value>
+  </data>
+  <data name="CatalogRadialMenusHeader" xml:space="preserve">
+    <value>转盘列表</value>
+  </data>
+  <data name="CatalogRadialSlotsHeader" xml:space="preserve">
+    <value>当前转盘扇位</value>
+  </data>
+  <data name="CatalogRadialSlotsHint" xml:space="preserve">
+    <value>每个扇位引用上方「键盘动作」里的 Id。修改后请保存配置。</value>
+  </data>
+  <data name="CatalogAddRow" xml:space="preserve">
+    <value>+ 添加</value>
+  </data>
+  <data name="CatalogColumnId" xml:space="preserve">
+    <value>标识</value>
+  </data>
+  <data name="CatalogColumnKeyboardKey" xml:space="preserve">
+    <value>按键</value>
+  </data>
+  <data name="CatalogColumnDescription" xml:space="preserve">
+    <value>简介</value>
+  </data>
+  <data name="CatalogColumnDisplayName" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="CatalogColumnJoystick" xml:space="preserve">
+    <value>选区摇杆</value>
+  </data>
+  <data name="CatalogColumnActionId" xml:space="preserve">
+    <value>动作 Id</value>
+  </data>
+  <data name="CatalogColumnIcon" xml:space="preserve">
+    <value>图标（可选）</value>
+  </data>
+  <data name="ProfileTabMappings" xml:space="preserve">
+    <value>按键映射</value>
+  </data>
+  <data name="ProfileTabKeyboardActions" xml:space="preserve">
+    <value>键盘动作</value>
+  </data>
+  <data name="ProfileTabRadialMenus" xml:space="preserve">
+    <value>转盘</value>
+  </data>
+  <data name="ProfileEditorPlaceholder" xml:space="preserve">
+    <value>在左侧列表中选择一行，或添加新行，即可在此编辑详情。</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
+    <value>键盘动作详情</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionHint" xml:space="preserve">
+    <value>标识（Id）会被映射与转盘扇位引用。修改后请保存配置。</value>
+  </data>
+  <data name="ProfileEditorRadialMenuTitle" xml:space="preserve">
+    <value>转盘详情</value>
+  </data>
+  <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
+    <value>设置摇杆与下方扇位。修改后请保存配置。</value>
+  </data>
+  <data name="ProfileEditorColumnTitle" xml:space="preserve">
+    <value>详情</value>
+  </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
     <value>循环热键栏 / 物品栏槽位</value>
   </data>

@@ -140,4 +140,10 @@ public class AppSettings
     /// </summary>
     [JsonProperty("radialMenuConfirmMode")]
     public string RadialMenuConfirmMode { get; set; } = "releaseGuideKey";
+
+    /// <summary>
+    /// Radial HUD item labels: <c>both</c> (default), <c>descriptionOnly</c>, or <c>keyboardKeyOnly</c>.
+    /// </summary>
+    [JsonProperty("radialMenuHudLabelMode")]
+    public string RadialMenuHudLabelMode { get; set; } = "both";
 }

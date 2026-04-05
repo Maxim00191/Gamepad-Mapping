@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
@@ -10,20 +11,21 @@ namespace GamepadMapperGUI.Services;
 
 public sealed class RadialMenuHudPresenter : IRadialMenuHud
 {
+    private readonly Func<RadialMenuHudLabelMode> _getLabelMode;
     private RadialMenuHudWindow? _window;
+
+    public RadialMenuHudPresenter(Func<RadialMenuHudLabelMode> getLabelMode)
+    {
+        _getLabelMode = getLabelMode;
+    }
 
     public void ShowMenu(string title, IReadOnlyList<RadialMenuHudItem> items)
     {
         _window ??= new RadialMenuHudWindow();
         var n = items.Count;
-        var vms = items.Select((i, idx) => new RadialMenuItemViewModel
-        {
-            ActionId = i.ActionId,
-            DisplayName = i.DisplayName,
-            Icon = i.Icon,
-            SegmentIndex = idx,
-            SegmentCount = n
-        });
+        var mode = _getLabelMode();
+        var vms = items.Select((i, idx) =>
+            RadialMenuHudItemViewModelFactory.Create(i, idx, n, mode));
         _window.ShowMenu(title, vms);
     }
 
