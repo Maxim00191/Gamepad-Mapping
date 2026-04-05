@@ -333,6 +333,27 @@
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>Icon (optional)</value>
   </data>
+  <data name="CatalogRadialMenuDisplayNameKey" xml:space="preserve">
+    <value>Title resource key (optional)</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameZhCn" xml:space="preserve">
+    <value>Title (zh-CN)</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameEnUs" xml:space="preserve">
+    <value>Title (en-US)</value>
+  </data>
+  <data name="CatalogColumnHudLabel" xml:space="preserve">
+    <value>HUD label</value>
+  </data>
+  <data name="CatalogColumnHudLabelKey" xml:space="preserve">
+    <value>HUD label key</value>
+  </data>
+  <data name="CatalogColumnHudLabelZhCn" xml:space="preserve">
+    <value>HUD label (zh-CN)</value>
+  </data>
+  <data name="CatalogColumnHudLabelEnUs" xml:space="preserve">
+    <value>HUD label (en-US)</value>
+  </data>
   <data name="ProfileTabMappings" xml:space="preserve">
     <value>Mappings</value>
   </data>
@@ -355,7 +376,7 @@
     <value>Radial menu</value>
   </data>
   <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
-    <value>Configure the stick and slots below. Save profile to persist.</value>
+    <value>Configure the stick and slots below. Optional title/slot HUD strings support resource keys and zh-CN / en-US overrides (same pattern as profile display names). Save profile to persist.</value>
   </data>
   <data name="ProfileEditorColumnTitle" xml:space="preserve">
     <value>Details</value>

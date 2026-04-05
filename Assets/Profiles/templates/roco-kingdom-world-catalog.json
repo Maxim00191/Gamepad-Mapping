@@ -58,9 +58,8 @@
     {"from": {"type": "Button", "value": "LeftShoulder + DpadUp"}, "description": "Reveal Cursor", "descriptions": {"zh-CN": "显示光标"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "leftalt--reveal-cursor"},
     {"from": {"type": "Button", "value": "LeftThumb"}, "description": "Quick Menu (F1-F8)", "descriptions": {"zh-CN": "快捷菜单 (F1-F8)"}, "trigger": "Pressed", "radialMenu": {"radialMenuId": "f_keys_wheel"}}
   ],
-  "radialMenus": [
-    {"id": "f_keys_wheel", "radialMenuId": "f_keys_wheel", "displayName": "Quick Menu","joystick": "RightStick","items": [
-        { "actionId": "f1--open-season-screen-quick-chat-ch" }, { "actionId": "f2--open-events-screen" }, { "actionId": "f3--open-magic-handbook" }, { "actionId": "f4--open-compendium" }, { "actionId": "f5--open-shop" }, { "actionId": "f6--open-pika-shop" }, { "actionId": "f7--open-furniture-compendium" }, { "actionId": "f8--open-decoration-mode" }]}],
+  "radialMenus": [{"id": "f_keys_wheel","displayName": "Quick Menu","displayNames": { "zh-CN": "快捷菜单" },"joystick": "RightStick","items": [
+        { "actionId": "f1--open-season-screen-quick-chat-ch" },{ "actionId": "f2--open-events-screen" },{ "actionId": "f3--open-magic-handbook" },{ "actionId": "f4--open-compendium" },{ "actionId": "f5--open-shop" },{ "actionId": "f6--open-pika-shop" },{ "actionId": "f7--open-furniture-compendium" },{ "actionId": "f8--open-decoration-mode" }]}],
   "keyboardActions": [
     {"id": "w--move-wasd-forward", "keyboardKey": "W", "description": "Move (WASD): forward", "descriptions": {"zh-CN": "向前移动"}},
     {"id": "s--move-wasd-backward", "keyboardKey": "S", "description": "Move (WASD): backward", "descriptions": {"zh-CN": "向后移动"}},

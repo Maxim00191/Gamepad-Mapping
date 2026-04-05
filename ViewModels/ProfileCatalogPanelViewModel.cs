@@ -32,9 +32,85 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     [ObservableProperty]
     private RadialMenuItem? selectedRadialSlot;
 
+    private bool _loadingRadialMenuLocalizationFields;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNameKey = string.Empty;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNameZhCn = string.Empty;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNameEnUs = string.Empty;
+
     partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value) => _main.RefreshRightPanelSurface();
 
-    partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value) => _main.RefreshRightPanelSurface();
+    partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)
+    {
+        _loadingRadialMenuLocalizationFields = true;
+        try
+        {
+            if (value is null)
+            {
+                RadialMenuDisplayNameKey = string.Empty;
+                RadialMenuDisplayNameZhCn = string.Empty;
+                RadialMenuDisplayNameEnUs = string.Empty;
+            }
+            else
+            {
+                RadialMenuDisplayNameKey = value.DisplayNameKey ?? string.Empty;
+                RadialMenuDisplayNameZhCn =
+                    value.DisplayNames != null && value.DisplayNames.TryGetValue("zh-CN", out var z) ? z : string.Empty;
+                RadialMenuDisplayNameEnUs =
+                    value.DisplayNames != null && value.DisplayNames.TryGetValue("en-US", out var e) ? e : string.Empty;
+            }
+        }
+        finally
+        {
+            _loadingRadialMenuLocalizationFields = false;
+        }
+
+        _main.RefreshRightPanelSurface();
+    }
+
+    partial void OnRadialMenuDisplayNameKeyChanged(string value)
+    {
+        if (_loadingRadialMenuLocalizationFields || SelectedRadialMenu is null)
+            return;
+
+        var t = (value ?? string.Empty).Trim();
+        SelectedRadialMenu.DisplayNameKey = string.IsNullOrEmpty(t) ? null : t;
+    }
+
+    partial void OnRadialMenuDisplayNameZhCnChanged(string value)
+    {
+        if (_loadingRadialMenuLocalizationFields || SelectedRadialMenu is null)
+            return;
+
+        SelectedRadialMenu.DisplayNames ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(value))
+            SelectedRadialMenu.DisplayNames.Remove("zh-CN");
+        else
+            SelectedRadialMenu.DisplayNames["zh-CN"] = value.Trim();
+
+        if (SelectedRadialMenu.DisplayNames.Count == 0)
+            SelectedRadialMenu.DisplayNames = null;
+    }
+
+    partial void OnRadialMenuDisplayNameEnUsChanged(string value)
+    {
+        if (_loadingRadialMenuLocalizationFields || SelectedRadialMenu is null)
+            return;
+
+        SelectedRadialMenu.DisplayNames ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(value))
+            SelectedRadialMenu.DisplayNames.Remove("en-US");
+        else
+            SelectedRadialMenu.DisplayNames["en-US"] = value.Trim();
+
+        if (SelectedRadialMenu.DisplayNames.Count == 0)
+            SelectedRadialMenu.DisplayNames = null;
+    }
 
     [RelayCommand]
     private void AddKeyboardAction()

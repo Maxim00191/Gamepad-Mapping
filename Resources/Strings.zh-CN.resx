@@ -333,6 +333,27 @@
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>图标（可选）</value>
   </data>
+  <data name="CatalogRadialMenuDisplayNameKey" xml:space="preserve">
+    <value>标题资源键（可选）</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameZhCn" xml:space="preserve">
+    <value>标题（简体中文）</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameEnUs" xml:space="preserve">
+    <value>标题（美式英语）</value>
+  </data>
+  <data name="CatalogColumnHudLabel" xml:space="preserve">
+    <value>HUD 文案</value>
+  </data>
+  <data name="CatalogColumnHudLabelKey" xml:space="preserve">
+    <value>HUD 文案资源键</value>
+  </data>
+  <data name="CatalogColumnHudLabelZhCn" xml:space="preserve">
+    <value>HUD 文案（简体中文）</value>
+  </data>
+  <data name="CatalogColumnHudLabelEnUs" xml:space="preserve">
+    <value>HUD 文案（美式英语）</value>
+  </data>
   <data name="ProfileTabMappings" xml:space="preserve">
     <value>按键映射</value>
   </data>
@@ -355,7 +376,7 @@
     <value>转盘详情</value>
   </data>
   <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
-    <value>设置摇杆与下方扇位。修改后请保存配置。</value>
+    <value>设置摇杆与下方扇位。标题与扇位 HUD 文案可填资源键，以及简体中文/美式英语覆盖（与配置显示名相同机制）。修改后请保存配置。</value>
   </data>
   <data name="ProfileEditorColumnTitle" xml:space="preserve">
     <value>详情</value>

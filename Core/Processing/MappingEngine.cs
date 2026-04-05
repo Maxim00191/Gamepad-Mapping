@@ -709,14 +709,19 @@ public sealed class MappingEngine : IMappingEngine
             var items = definition.Items.Select(item =>
             {
                 var action = _keyboardActionsPersist?.FirstOrDefault(a => a.Id == item.ActionId);
-                var desc = (action?.Description ?? string.Empty).Trim();
-                if (string.IsNullOrEmpty(desc))
-                    desc = item.ActionId;
+                var hudLine = (item.Label ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(hudLine))
+                {
+                    hudLine = (action?.Description ?? string.Empty).Trim();
+                    if (string.IsNullOrEmpty(hudLine))
+                        hudLine = item.ActionId;
+                }
+
                 var keyLabel = (action?.KeyboardKey ?? string.Empty).Trim();
                 return new RadialMenuHudItem
                 {
                     ActionId = item.ActionId,
-                    DisplayName = desc,
+                    DisplayName = hudLine,
                     KeyboardKeyLabel = keyLabel,
                     Icon = item.Icon
                 };

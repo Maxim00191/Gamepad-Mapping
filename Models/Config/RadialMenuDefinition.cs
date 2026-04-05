@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Newtonsoft.Json;
 
@@ -11,6 +12,14 @@ public class RadialMenuDefinition
     [JsonProperty("displayName")]
     public string DisplayName { get; set; } = string.Empty;
 
+    /// <summary>Optional resource key for the center title, resolved like <see cref="GameProfileTemplate.DisplayNameKey"/>.</summary>
+    [JsonProperty("displayNameKey", NullValueHandling = NullValueHandling.Ignore)]
+    public string? DisplayNameKey { get; set; }
+
+    /// <summary>Optional per-culture center titles (e.g. <c>zh-CN</c>), same pattern as <see cref="GameProfileTemplate.DisplayNames"/>.</summary>
+    [JsonProperty("displayNames", NullValueHandling = NullValueHandling.Ignore)]
+    public Dictionary<string, string>? DisplayNames { get; set; }
+
     /// <summary>
     /// Which joystick to use for selection: "LeftStick" or "RightStick"
     /// </summary>
@@ -19,19 +28,4 @@ public class RadialMenuDefinition
 
     [JsonProperty("items")]
     public ObservableCollection<RadialMenuItem> Items { get; set; } = new();
-}
-
-public class RadialMenuItem
-{
-    /// <summary>
-    /// Reference to an Id in keyboardActions
-    /// </summary>
-    [JsonProperty("actionId")]
-    public string ActionId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Optional icon path or key
-    /// </summary>
-    [JsonProperty("icon", NullValueHandling = NullValueHandling.Ignore)]
-    public string? Icon { get; set; }
 }

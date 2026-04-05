@@ -137,6 +137,45 @@ public sealed class MappingEngineRadialMenuTests
         };
 
     [Fact]
+    public void OpenRadial_UsesSlotLabel_OverKeyboardActionDescription()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        var mockHud = new Mock<IRadialMenuHud>();
+
+        using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object, mockHud.Object);
+
+        var radial = new List<RadialMenuDefinition>
+        {
+            new()
+            {
+                Id = "rm1",
+                DisplayName = "Test Radial",
+                Joystick = "RightStick",
+                Items = new ObservableCollection<RadialMenuItem>
+                {
+                    new RadialMenuItem { ActionId = "a1", Label = "HUD override" }
+                }
+            }
+        };
+
+        engine.SetRadialMenuDefinitions(radial, ActionsA1A2());
+        var mappings = RadialOnLeftThumbPress();
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.LeftThumb, Vector2.Zero, Vector2.Zero), mappings);
+
+        mockHud.Verify(
+            h => h.ShowMenu(
+                "Test Radial",
+                It.Is<IReadOnlyList<RadialMenuHudItem>>(items =>
+                    items.Count == 1
+                    && items[0].DisplayName == "HUD override"
+                    && items[0].KeyboardKeyLabel == "E")),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ReleaseGuide_SelectsSector_DispatchesTapOnChordRelease()
     {
         var mockKeyboard = new Mock<IKeyboardEmulator>();
