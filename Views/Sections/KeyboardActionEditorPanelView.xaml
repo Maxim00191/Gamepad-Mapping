@@ -5,7 +5,7 @@
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
-        <utils:StringHasContentToVisibilityConverter x:Key="StringHasContentToVis" />
+        <utils:KeyboardCatalogOutputKindToLocalizationConverter x:Key="CatalogOutputKindToLoc" />
     </UserControl.Resources>
     <Grid MinHeight="0">
         <Grid.RowDefinitions>
@@ -15,7 +15,7 @@
                       MinHeight="0"
                       VerticalAlignment="Stretch"
                       VerticalScrollBarVisibility="Auto">
-        <StackPanel DataContext="{Binding SelectedKeyboardAction}" Margin="0,0,0,16">
+        <StackPanel Margin="0,0,0,16">
             <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
                        Text="{Binding Source={StaticResource Loc}, Path=[ProfileEditorKeyboardActionTitle]}" />
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileEditorKeyboardActionHint]}"
@@ -24,73 +24,73 @@
                        TextWrapping="Wrap"
                        Margin="0,0,0,12" />
 
-            <TextBlock Text="{Binding DataContext.KeyboardKeyCapturePrompt, RelativeSource={RelativeSource AncestorType=UserControl}}"
+            <TextBlock Text="{Binding KeyboardKeyCapturePrompt}"
                        Foreground="{DynamicResource AppAccentTextBrush}"
                        Margin="0,0,0,8" />
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnId]}"
                        Margin="0,0,0,4" />
-            <TextBox Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBox Text="{Binding SelectedKeyboardAction.Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      Margin="0,0,0,10" />
 
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnKeyboardKey]}"
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnOutputKind]}"
                        Margin="0,0,0,4" />
-            <Grid Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0"
-                          ItemsSource="{Binding DataContext.AvailableKeys, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          SelectedItem="{Binding KeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                          IsEditable="True" />
-                <Button Grid.Column="1"
-                        Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
-                        Command="{Binding DataContext.RecordKeyboardKeyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                        Margin="8,0,0,0" />
-            </Grid>
+            <ComboBox Margin="0,0,0,10"
+                      ItemsSource="{Binding CatalogOutputKindOptions}"
+                      SelectedItem="{Binding CatalogOutputKind, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Converter={StaticResource CatalogOutputKindToLoc}}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <StackPanel Visibility="{Binding IsCatalogKeyboardSectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnKeyboardKey]}"
+                           Margin="0,0,0,4" />
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox Grid.Column="0"
+                              ItemsSource="{Binding AvailableKeys}"
+                              SelectedItem="{Binding SelectedKeyboardAction.KeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="True" />
+                    <Button Grid.Column="1"
+                            Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"
+                            Command="{Binding RecordKeyboardKeyCommand}"
+                            Margin="8,0,0,0" />
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding IsCatalogTemplateToggleSectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateToggleAlternateProfile]}"
+                           Margin="0,0,0,4" />
+                <ComboBox Margin="0,0,0,10"
+                          ItemsSource="{Binding AvailableProfileTemplates}"
+                          DisplayMemberPath="DisplayName"
+                          SelectedValuePath="ProfileId"
+                          SelectedValue="{Binding SelectedKeyboardAction.TemplateToggle.AlternateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding IsCatalogRadialMenuSectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MappingSelectRadialMenu]}"
+                           Margin="0,0,0,4" />
+                <ComboBox Margin="0,0,0,10"
+                          ItemsSource="{Binding AvailableRadialMenus}"
+                          DisplayMemberPath="DisplayName"
+                          SelectedValuePath="Id"
+                          SelectedValue="{Binding SelectedKeyboardAction.RadialMenu.RadialMenuId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnDescription]}"
                        Margin="0,0,0,4" />
-            <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBox Text="{Binding SelectedKeyboardAction.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
                      MinHeight="72"
                      VerticalScrollBarVisibility="Auto" />
-            
-            <Border Visibility="{Binding DataContext.CatalogPanel.ValidationError, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource StringHasContentToVis}}"
-                    Background="#1AEB5757"
-                    BorderBrush="#EB5757"
-                    BorderThickness="1,0,0,0"
-                    Padding="12,8"
-                    Margin="0,20,0,0">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2Zm1,15h-2v-2h2v2Zm0-4h-2V7h2v6Z"
-                              Fill="#EB5757" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Validation Errors" Foreground="#EB5757" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <TextBlock Text="{Binding DataContext.CatalogPanel.ValidationError, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                               Foreground="{DynamicResource AppTextBrush}" TextWrapping="Wrap" FontSize="12" Opacity="0.9"/>
-                </StackPanel>
-            </Border>
-
-            <Border Visibility="{Binding DataContext.CatalogPanel.ValidationWarning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource StringHasContentToVis}}"
-                    Background="#1AF2994A"
-                    BorderBrush="#F2994A"
-                    BorderThickness="1,0,0,0"
-                    Padding="12,8"
-                    Margin="0,12,0,0">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <Path Data="M1,21H23L12,2L1,21ZM13,18H11V16H13V18ZM13,14H11V10H13V14Z"
-                              Fill="#F2994A" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Validation Warnings" Foreground="#F2994A" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <TextBlock Text="{Binding DataContext.CatalogPanel.ValidationWarning, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                               Foreground="{DynamicResource AppTextBrush}" TextWrapping="Wrap" FontSize="12" Opacity="0.9"/>
-                </StackPanel>
-            </Border>
         </StackPanel>
         </ScrollViewer>
     </Grid>

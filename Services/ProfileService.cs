@@ -18,6 +18,10 @@ namespace GamepadMapperGUI.Services;
 public partial class ProfileService : IProfileService
 {
     private static readonly Regex ValidIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", RegexOptions.Compiled);
+
+    /// <summary>Maps filename stem or in-file <see cref="GameProfileTemplate.ProfileId"/> to the filename stem under the templates directory.</summary>
+    private readonly Dictionary<string, string> _templateLookupKeyToFileStem = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly ISettingsService _settingsService;
     private readonly TranslationService _translationService;
     private readonly IFileSystem _fileSystem;
@@ -133,6 +137,7 @@ public partial class ProfileService : IProfileService
     public TemplateOption? ReloadTemplates(string? preferredProfileId = null)
     {
         AvailableTemplates.Clear();
+        _templateLookupKeyToFileStem.Clear();
         var templatesDir = LoadTemplateDirectory();
         if (!Directory.Exists(templatesDir))
         {
@@ -148,6 +153,11 @@ public partial class ProfileService : IProfileService
             try
             {
                 var template = LoadTemplate(profileId);
+                _templateLookupKeyToFileStem[profileId] = profileId;
+                var logicalId = template.ProfileId?.Trim();
+                if (!string.IsNullOrEmpty(logicalId))
+                    _templateLookupKeyToFileStem[logicalId] = profileId;
+
                 options.Add(new TemplateOption
                 {
                     ProfileId = profileId,
@@ -189,11 +199,37 @@ public partial class ProfileService : IProfileService
         return LoadTemplate(selectedTemplate.ProfileId);
     }
 
+    public bool TryResolveTemplateFileStem(string requestedProfileId, out string fileStem)
+    {
+        fileStem = string.Empty;
+        var id = (requestedProfileId ?? string.Empty).Trim();
+        if (id.Length == 0)
+            return false;
+
+        var dir = LoadTemplateDirectory();
+        var directPath = Path.Combine(dir, $"{id}.json");
+        if (_fileSystem.FileExists(directPath))
+        {
+            fileStem = id;
+            return true;
+        }
+
+        if (_templateLookupKeyToFileStem.TryGetValue(id, out var stem))
+        {
+            var resolvedPath = Path.Combine(dir, $"{stem}.json");
+            if (_fileSystem.FileExists(resolvedPath))
+            {
+                fileStem = stem;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public bool TemplateExists(string profileId)
     {
-        if (string.IsNullOrWhiteSpace(profileId)) return false;
-        var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
-        return _fileSystem.FileExists(templatePath);
+        return TryResolveTemplateFileStem(profileId ?? string.Empty, out _);
     }
 
     /// <summary>

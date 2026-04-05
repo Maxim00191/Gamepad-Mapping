@@ -531,11 +531,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
     {
         var id = (targetProfileId ?? string.Empty).Trim();
-        if (id.Length == 0 || !_profileService.TemplateExists(id))
+        if (id.Length == 0 || !_profileService.TryResolveTemplateFileStem(id, out var fileStem))
             return;
 
         var opt = _profileService.AvailableTemplates.FirstOrDefault(t =>
-            string.Equals(t.ProfileId, id, StringComparison.OrdinalIgnoreCase));
+            string.Equals(t.ProfileId, fileStem, StringComparison.OrdinalIgnoreCase));
         if (opt is null)
             return;
 

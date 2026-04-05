@@ -318,6 +318,30 @@
   <data name="CatalogColumnKeyboardKey" xml:space="preserve">
     <value>按键</value>
   </data>
+  <data name="CatalogColumnOutputKind" xml:space="preserve">
+    <value>输出类型</value>
+  </data>
+  <data name="CatalogOutputKind_Keyboard" xml:space="preserve">
+    <value>按键</value>
+  </data>
+  <data name="CatalogOutputKind_TemplateToggle" xml:space="preserve">
+    <value>切换配置</value>
+  </data>
+  <data name="CatalogOutputKind_RadialMenu" xml:space="preserve">
+    <value>转盘</value>
+  </data>
+  <data name="MappingCatalogSummaryRadial" xml:space="preserve">
+    <value>转盘：{0}</value>
+  </data>
+  <data name="MappingCatalogSummaryTemplateToggle" xml:space="preserve">
+    <value>切换配置：{0}</value>
+  </data>
+  <data name="MappingCatalogSummaryKeyboard" xml:space="preserve">
+    <value>按键：{0}</value>
+  </data>
+  <data name="MappingCatalogSummaryEmpty" xml:space="preserve">
+    <value>（目录中未定义输出）</value>
+  </data>
   <data name="CatalogColumnDescription" xml:space="preserve">
     <value>简介</value>
   </data>

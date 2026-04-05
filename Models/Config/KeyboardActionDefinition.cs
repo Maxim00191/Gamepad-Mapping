@@ -71,4 +71,35 @@ public sealed class KeyboardActionDefinition : ObservableObject
         !string.IsNullOrWhiteSpace(KeyboardKey) ||
         TemplateToggle != null ||
         RadialMenu != null;
+
+    /// <summary>Matches <see cref="MappingEntry.ActionType"/> precedence: radial, then template toggle, then keyboard.</summary>
+    public KeyboardCatalogOutputKind ResolveCatalogOutputKind()
+    {
+        if (RadialMenu != null) return KeyboardCatalogOutputKind.RadialMenu;
+        if (TemplateToggle != null) return KeyboardCatalogOutputKind.TemplateToggle;
+        return KeyboardCatalogOutputKind.Keyboard;
+    }
+
+    /// <summary>Sets mutually exclusive catalog outputs for UI editing (JSON may still contain legacy combinations).</summary>
+    public void ApplyCatalogOutputKind(KeyboardCatalogOutputKind kind)
+    {
+        switch (kind)
+        {
+            case KeyboardCatalogOutputKind.Keyboard:
+                TemplateToggle = null;
+                RadialMenu = null;
+                KeyboardKey ??= string.Empty;
+                break;
+            case KeyboardCatalogOutputKind.TemplateToggle:
+                RadialMenu = null;
+                KeyboardKey = null;
+                TemplateToggle ??= new TemplateToggleBinding();
+                break;
+            case KeyboardCatalogOutputKind.RadialMenu:
+                TemplateToggle = null;
+                KeyboardKey = null;
+                RadialMenu ??= new RadialMenuBinding();
+                break;
+        }
+    }
 }

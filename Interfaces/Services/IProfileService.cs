@@ -24,6 +24,12 @@ public interface IProfileService
     TemplateOption? SelectTemplate(string? preferredProfileId = null);
     GameProfileTemplate? LoadSelectedTemplate(TemplateOption? selectedTemplate);
     bool TemplateExists(string profileId);
+
+    /// <summary>
+    /// Resolves a template reference to the file stem used for <c>{stem}.json</c> and <see cref="TemplateOption.ProfileId"/>.
+    /// Accepts either the filename stem or the <see cref="GameProfileTemplate.ProfileId"/> stored inside that JSON when they differ.
+    /// </summary>
+    bool TryResolveTemplateFileStem(string requestedProfileId, out string fileStem);
     string CreateUniqueProfileId(string templateGroupId, string? displayName);
     void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true);
     GamepadMapperGUI.Interfaces.Core.IValidationResult ValidateTemplate(GameProfileTemplate template);

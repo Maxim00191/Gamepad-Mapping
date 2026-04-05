@@ -36,6 +36,14 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
+                <TextBlock Text="{Binding CatalogBehaviorSummary}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                           FontSize="12"
+                           Margin="0,0,0,4"
+                           Visibility="{Binding ShowCatalogBehaviorSummary, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <StackPanel Visibility="{Binding ShowTapAndHoldKeyEditors, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[KbmOutputTap]}" Margin="0,8,0,4" />
                 <Grid>
                     <Grid.Style>
@@ -82,6 +90,7 @@
 
                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldThresholdDefault]}" Margin="0,8,0,4" />
                 <TextBox Text="{Binding HoldThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
             </StackPanel>
         </DataTemplate>
 

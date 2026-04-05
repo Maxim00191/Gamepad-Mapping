@@ -318,6 +318,30 @@
   <data name="CatalogColumnKeyboardKey" xml:space="preserve">
     <value>Key</value>
   </data>
+  <data name="CatalogColumnOutputKind" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="CatalogOutputKind_Keyboard" xml:space="preserve">
+    <value>Keyboard key</value>
+  </data>
+  <data name="CatalogOutputKind_TemplateToggle" xml:space="preserve">
+    <value>Switch profile</value>
+  </data>
+  <data name="CatalogOutputKind_RadialMenu" xml:space="preserve">
+    <value>Radial menu</value>
+  </data>
+  <data name="MappingCatalogSummaryRadial" xml:space="preserve">
+    <value>Radial menu: {0}</value>
+  </data>
+  <data name="MappingCatalogSummaryTemplateToggle" xml:space="preserve">
+    <value>Switch profile: {0}</value>
+  </data>
+  <data name="MappingCatalogSummaryKeyboard" xml:space="preserve">
+    <value>Key: {0}</value>
+  </data>
+  <data name="MappingCatalogSummaryEmpty" xml:space="preserve">
+    <value>(No output in catalog)</value>
+  </data>
   <data name="CatalogColumnDescription" xml:space="preserve">
     <value>Description</value>
   </data>

@@ -23,6 +23,7 @@ public partial class MappingEditorViewModel : ObservableObject
     private readonly MainViewModel _mainViewModel;
     private readonly IActionEditorFactory _actionEditorFactory;
     private bool _resolvingActionId;
+    private bool _syncingActionEditorFromSelection;
     private readonly HashSet<MappingEntry> _mappingActionIdListeners = [];
 
     [ObservableProperty]
@@ -36,6 +37,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     partial void OnSelectedActionTypeChanged(MappingActionType value)
     {
+        if (_syncingActionEditorFromSelection)
+            return;
+
         CurrentActionEditor = _actionEditorFactory.Create(value);
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
         OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
@@ -241,11 +245,28 @@ public partial class MappingEditorViewModel : ObservableObject
         EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
         EditBindingDescription = value?.Description ?? string.Empty;
 
-        // Use factory to create and sync strategy
         if (value is not null)
         {
-            SelectedActionType = value.ActionType;
-            CurrentActionEditor = _actionEditorFactory.CreateForMapping(value);
+            _syncingActionEditorFromSelection = true;
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(value.ActionId))
+                {
+                    SelectedActionType = MappingActionType.Keyboard;
+                    var keyboardEditor = _actionEditorFactory.Create(MappingActionType.Keyboard);
+                    keyboardEditor.SyncFrom(value);
+                    CurrentActionEditor = keyboardEditor;
+                }
+                else
+                {
+                    SelectedActionType = value.ActionType;
+                    CurrentActionEditor = _actionEditorFactory.CreateForMapping(value);
+                }
+            }
+            finally
+            {
+                _syncingActionEditorFromSelection = false;
+            }
         }
         else
         {

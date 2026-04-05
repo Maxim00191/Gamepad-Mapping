@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services;
 
 namespace Gamepad_Mapping.ViewModels.Strategies;
 
@@ -22,6 +24,9 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsKeyboardKeyReadOnly))]
+    [NotifyPropertyChangedFor(nameof(ShowCatalogBehaviorSummary))]
+    [NotifyPropertyChangedFor(nameof(CatalogBehaviorSummary))]
+    [NotifyPropertyChangedFor(nameof(ShowTapAndHoldKeyEditors))]
     private string _actionId = string.Empty;
 
     [ObservableProperty]
@@ -34,6 +39,60 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     private string _holdThresholdText = string.Empty;
 
     public bool IsKeyboardKeyReadOnly => !string.IsNullOrWhiteSpace(ActionId);
+
+    /// <summary>True when the catalog entry defines a keyboard key (tap/hold editing applies).</summary>
+    public bool ShowTapAndHoldKeyEditors
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ActionId))
+                return true;
+            var def = TryResolveCatalogDefinition();
+            return def is null || !string.IsNullOrWhiteSpace((def.KeyboardKey ?? string.Empty).Trim());
+        }
+    }
+
+    public bool ShowCatalogBehaviorSummary =>
+        !string.IsNullOrWhiteSpace(ActionId) && TryResolveCatalogDefinition() is not null;
+
+    public string CatalogBehaviorSummary
+    {
+        get
+        {
+            var def = TryResolveCatalogDefinition();
+            if (def is null)
+                return string.Empty;
+
+            if (def.RadialMenu is { } rm && !string.IsNullOrWhiteSpace(rm.RadialMenuId))
+                return string.Format(Loc("MappingCatalogSummaryRadial"), rm.RadialMenuId.Trim());
+
+            if (def.TemplateToggle is { } tt && !string.IsNullOrWhiteSpace(tt.AlternateProfileId))
+                return string.Format(Loc("MappingCatalogSummaryTemplateToggle"), tt.AlternateProfileId.Trim());
+
+            var key = (def.KeyboardKey ?? string.Empty).Trim();
+            if (key.Length > 0)
+                return string.Format(Loc("MappingCatalogSummaryKeyboard"), key);
+
+            return Loc("MappingCatalogSummaryEmpty");
+        }
+    }
+
+    private KeyboardActionDefinition? TryResolveCatalogDefinition()
+    {
+        var id = ActionId?.Trim() ?? string.Empty;
+        if (id.Length == 0)
+            return null;
+
+        return _keyboardActions.FirstOrDefault(a =>
+            string.Equals((a.Id ?? string.Empty).Trim(), id, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string Loc(string key)
+    {
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            return loc[key];
+        return key;
+    }
 
     [RelayCommand]
     private void RecordKeyboardKey()

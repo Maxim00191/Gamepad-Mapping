@@ -17,6 +17,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 {
     private readonly MainViewModel _main;
     private readonly IKeyboardCaptureService _keyboardCaptureService;
+    private bool _syncingCatalogOutputKind;
 
     public ProfileCatalogPanelViewModel(MainViewModel mainViewModel)
     {
@@ -26,6 +27,38 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
         _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
     }
+
+    public ObservableCollection<TemplateOption> AvailableProfileTemplates => _main.AvailableTemplates;
+
+    public ObservableCollection<RadialMenuDefinition> AvailableRadialMenus => _main.RadialMenus;
+
+    public KeyboardCatalogOutputKind[] CatalogOutputKindOptions { get; } = Enum.GetValues<KeyboardCatalogOutputKind>();
+
+    [ObservableProperty]
+    private KeyboardCatalogOutputKind _catalogOutputKind = KeyboardCatalogOutputKind.Keyboard;
+
+    partial void OnCatalogOutputKindChanged(KeyboardCatalogOutputKind value)
+    {
+        NotifyCatalogOutputKindSectionVisibility();
+        if (_syncingCatalogOutputKind || SelectedKeyboardAction is null)
+            return;
+
+        SelectedKeyboardAction.ApplyCatalogOutputKind(value);
+        ValidateCurrentState();
+    }
+
+    private void NotifyCatalogOutputKindSectionVisibility()
+    {
+        OnPropertyChanged(nameof(IsCatalogKeyboardSectionVisible));
+        OnPropertyChanged(nameof(IsCatalogTemplateToggleSectionVisible));
+        OnPropertyChanged(nameof(IsCatalogRadialMenuSectionVisible));
+    }
+
+    public bool IsCatalogKeyboardSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.Keyboard;
+
+    public bool IsCatalogTemplateToggleSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.TemplateToggle;
+
+    public bool IsCatalogRadialMenuSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.RadialMenu;
 
     private void KeyboardCaptureServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -54,24 +87,39 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         var profile = _main.GetProfileService().LoadSelectedTemplate(_main.SelectedTemplate);
         if (profile == null)
         {
-            HasValidationError = false;
-            ValidationError = string.Empty;
-            HasValidationWarning = false;
-            ValidationWarning = string.Empty;
+            ValidationErrors.Clear();
+            ValidationWarnings.Clear();
+            NotifyValidationPresenceChanged();
             return;
         }
 
         var result = _main.GetProfileService().ValidateTemplate(profile);
-        ValidationError = result.Errors.Any() ? string.Join(Environment.NewLine, result.Errors) : string.Empty;
-        HasValidationError = !string.IsNullOrEmpty(ValidationError);
-        
-        ValidationWarning = result.Warnings.Any() ? string.Join(Environment.NewLine, result.Warnings) : string.Empty;
-        HasValidationWarning = !string.IsNullOrEmpty(ValidationWarning);
+        ValidationErrors.Clear();
+        foreach (var e in result.Errors)
+            ValidationErrors.Add(e);
+        ValidationWarnings.Clear();
+        foreach (var w in result.Warnings)
+            ValidationWarnings.Add(w);
+        NotifyValidationPresenceChanged();
+    }
+
+    private void NotifyValidationPresenceChanged()
+    {
+        OnPropertyChanged(nameof(HasErrors));
+        OnPropertyChanged(nameof(HasWarnings));
     }
 
     public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _main.KeyboardActions;
 
     public ObservableCollection<RadialMenuDefinition> RadialMenus => _main.RadialMenus;
+
+    public ObservableCollection<string> ValidationErrors { get; } = [];
+
+    public ObservableCollection<string> ValidationWarnings { get; } = [];
+
+    public bool HasErrors => ValidationErrors.Any();
+
+    public bool HasWarnings => ValidationWarnings.Any();
 
     public IReadOnlyList<string> JoystickStickOptions { get; } = new[] { "LeftStick", "RightStick" };
 
@@ -84,22 +132,24 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     [ObservableProperty]
     private RadialMenuItem? selectedRadialSlot;
 
-    [ObservableProperty]
-    private string validationError = string.Empty;
-
-    [ObservableProperty]
-    private string validationWarning = string.Empty;
-
-    [ObservableProperty]
-    private bool hasValidationError;
-
-    [ObservableProperty]
-    private bool hasValidationWarning;
-
     partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value)
     {
+        SyncCatalogOutputKindFromSelection();
         _main.RefreshRightPanelSurface();
         ValidateCurrentState();
+    }
+
+    private void SyncCatalogOutputKindFromSelection()
+    {
+        _syncingCatalogOutputKind = true;
+        try
+        {
+            CatalogOutputKind = SelectedKeyboardAction?.ResolveCatalogOutputKind() ?? KeyboardCatalogOutputKind.Keyboard;
+        }
+        finally
+        {
+            _syncingCatalogOutputKind = false;
+        }
     }
 
     partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)

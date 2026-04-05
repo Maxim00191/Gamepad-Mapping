@@ -187,8 +187,9 @@ internal sealed class RadialMenuController : IRadialMenuController
 
         var items = definition.Items.Select(item =>
         {
-            var action = _catalog?.GetAction(item.ActionId) 
-                         ?? _keyboardActions?.FirstOrDefault(a => a.Id == item.ActionId);
+            var action = _catalog?.GetAction(item.ActionId)
+                         ?? _keyboardActions?.FirstOrDefault(a =>
+                             string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
             var hudLine = (item.Label ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(hudLine))
             {
@@ -251,9 +252,10 @@ internal sealed class RadialMenuController : IRadialMenuController
         if (dispatchSelection && selectedIndex >= 0 && selectedIndex < definition.Items.Count)
         {
             var item = definition.Items[selectedIndex];
-            var action = _catalog?.GetAction(item.ActionId) 
-                         ?? _keyboardActions?.FirstOrDefault(a => a.Id == item.ActionId);
-            
+            var action = _catalog?.GetAction(item.ActionId)
+                         ?? _keyboardActions?.FirstOrDefault(a =>
+                             string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
+
             if (action?.TemplateToggle != null)
             {
                 var targetId = action.TemplateToggle.AlternateProfileId;

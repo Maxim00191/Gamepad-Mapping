@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "profileId": "roco-kingdom-world-fight-catalog",
-  "templateGroupId": "roco-kingdom-world-fight",
-  "displayName": "Roco Kingdom World — Battle (keyboard catalog)",
+  "profileId": "roco-kingdom-world-fight-radial",
+  "templateGroupId": "roco-kingdom-world-fight-radial",
+  "displayName": "Roco Kingdom World — Battle (Radial Menu)",
   "targetProcessName": "NRC-Win64-Shipping",
-  "displayNames": { "zh-CN": "洛克王国世界·战斗（键位表）" },
+  "displayNames": { "zh-CN": "洛克王国世界·战斗（圆盘菜单）" },
   "comboLeadButtons": ["LeftShoulder", "RightShoulder", "LeftThumb", "RightThumb", "Start"],
   "mappings": [
     {"from": {"type": "LeftThumbstick", "value": "Left"}, "trigger": "Pressed", "analogThreshold": 0.25, "actionId": "a--battle-move-select-left-a"},
@@ -21,7 +21,7 @@
     {"from": {"type": "Button", "value": "Back"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "tab--battle-view-battle-log-tab"},
     {"from": {"type": "Button", "value": "Back"}, "trigger": "Released", "analogThreshold": null, "actionId": "tab--battle-view-battle-log-tab"},
     {"from": {"type": "Button", "value": "Start"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "enter--battle-open-chat-enter"},
-    {"from": {"type": "Button", "value": "Start + Back"}, "keyboardKey": "", "description": "Switch profile: Roco exploration", "descriptions": {"zh-CN": "切换配置：大世界探索"}, "trigger": "Pressed", "analogThreshold": null, "templateToggle": {"alternateProfileId": "roco-kingdom-world-catalog"}},
+    {"from": {"type": "Button", "value": "Start + Back"}, "keyboardKey": "", "description": "Switch profile: Roco exploration", "descriptions": {"zh-CN": "切换配置：大世界探索"}, "trigger": "Pressed", "analogThreshold": null, "templateToggle": {"alternateProfileId": "roco-kingdom-world-radial"}},
     {"from": {"type": "Button", "value": "LeftShoulder + DpadUp"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "leftalt--reveal-cursor"},
     {"from": {"type": "Button", "value": "RightShoulder"}, "trigger": "Pressed", "description": "Fight Selection", "descriptions": {"zh-CN": "战斗选择"}, "radialMenu": {"radialMenuId": "fight_selection_wheel"}},
     {"from": {"type": "Button", "value": "LeftShoulder"}, "trigger": "Pressed", "description": "Fight Mode", "descriptions": {"zh-CN": "战斗模式"}, "radialMenu": {"radialMenuId": "fight_mode_wheel"}}
@@ -53,6 +53,7 @@
     {"id": "x--battle-gather-energy-tap-x-clear", "keyboardKey": "X", "description": "Battle: gather energy (tap X); clear skill chain (hold Z)", "descriptions": {"zh-CN": "战斗：聚能(短按X)；清空技能链(长按Z)"}},
     {"id": "tab--battle-view-battle-log-tab", "keyboardKey": "Tab", "description": "Battle: view battle log (Tab)", "descriptions": {"zh-CN": "战斗：查看对战记录 (Tab)"}},
     {"id": "enter--battle-open-chat-enter", "keyboardKey": "Enter", "description": "Battle: open chat (Enter)", "descriptions": {"zh-CN": "战斗：打开聊天界面 (Enter)"}},
-    {"id": "leftalt--reveal-cursor", "keyboardKey": "LeftAlt", "description": "Reveal Cursor", "descriptions": {"zh-CN": "显示光标"}}
+    {"id": "leftalt--reveal-cursor", "keyboardKey": "LeftAlt", "description": "Reveal Cursor", "descriptions": {"zh-CN": "显示光标"}},
+    {"id": "switch-to-exploration", "templateToggle": {"alternateProfileId": "roco-kingdom-world-radial"}, "description": "Switch to Exploration", "descriptions": {"zh-CN": "切换至探索模式"}}
   ]
 }
