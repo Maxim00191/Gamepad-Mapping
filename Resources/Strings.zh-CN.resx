@@ -274,7 +274,7 @@
     <value>转盘确认方式</value>
   </data>
   <data name="RadialMenuConfirmModeReleaseGuide" xml:space="preserve">
-    <value>松开引导键（默认）</value>
+    <value>松开引导键</value>
   </data>
   <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
     <value>选区摇杆回中</value>
@@ -366,9 +366,6 @@
   <data name="CatalogRadialMenuDisplayNameZhCn" xml:space="preserve">
     <value>标题（简体中文）</value>
   </data>
-  <data name="CatalogRadialMenuDisplayNameEnUs" xml:space="preserve">
-    <value>标题（美式英语）</value>
-  </data>
   <data name="CatalogColumnHudLabel" xml:space="preserve">
     <value>HUD显示文本</value>
   </data>
@@ -376,10 +373,7 @@
     <value>HUD 文案资源键</value>
   </data>
   <data name="CatalogColumnHudLabelZhCn" xml:space="preserve">
-    <value>HUD 文案（简体中文）</value>
-  </data>
-  <data name="CatalogColumnHudLabelEnUs" xml:space="preserve">
-    <value>HUD 文案（美式英语）</value>
+    <value>中文</value>
   </data>
   <data name="ProfileTabMappings" xml:space="preserve">
     <value>按键映射</value>
@@ -403,7 +397,7 @@
     <value>转盘详情</value>
   </data>
   <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
-    <value>设置摇杆与下方扇位。修改后请保存配置。</value>
+    <value>设置摇杆与下方扇位。标题与 HUD 显示文本列为默认文案（一般为英文）；可选的简体中文列写入 JSON 的 displayNames / labels。修改后请保存配置。</value>
   </data>
   <data name="ProfileEditorColumnTitle" xml:space="preserve">
     <value>详情</value>

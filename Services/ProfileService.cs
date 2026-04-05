@@ -121,10 +121,19 @@ public partial class ProfileService : IProfileService
                 mapping.Description = descForCulture;
         }
 
-        if (template.RadialMenus is { Count: > 0 })
+        if (template.RadialMenus is { Count: > 0 } radialMenus)
         {
-            // Radial menus no longer support legacy localization fields.
-            // Center title and slot labels are now handled directly via DisplayName and Label.
+            foreach (var rm in radialMenus)
+            {
+                if (TryPickCultureString(rm.DisplayNames, culture, out var radialTitle))
+                    rm.DisplayName = radialTitle;
+
+                foreach (var item in rm.Items)
+                {
+                    if (TryPickCultureString(item.Labels, culture, out var slotLabel))
+                        item.Label = slotLabel;
+                }
+            }
         }
 
         TemplateKeyboardActionResolver.Apply(template);

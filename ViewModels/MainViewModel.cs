@@ -77,8 +77,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;
         RadialMenuConfirmModeIndex =
             string.Equals(_appSettings.RadialMenuConfirmMode, "returnStickToCenter", StringComparison.OrdinalIgnoreCase)
-                ? 1
-                : 0;
+                ? 0
+                : 1;
         RadialMenuHudLabelModeIndex = (int)RadialMenuHudLabelModeParser.Parse(_appSettings.RadialMenuHudLabelMode);
         RadialHudScaleSetting = RadialHudLayout.ClampHudScale(_appSettings.RadialHudScale);
         DefaultAnalogActivationThreshold = _appSettings.DefaultAnalogActivationThreshold;
@@ -192,7 +192,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 () => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex,
                 () => Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220)),
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
-            getRadialMenuConfirmMode: () => (RadialMenuConfirmMode)RadialMenuConfirmModeIndex);
+            getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0
+                ? RadialMenuConfirmMode.ReturnStickToCenter
+                : RadialMenuConfirmMode.ReleaseGuideKey);
         _keyboardActions.CollectionChanged += (_, _) => RefreshRadialDefinitionsInEngine();
         _radialMenus.CollectionChanged += OnRadialMenusCollectionChanged;
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
@@ -402,7 +404,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var clamped = value < 0 ? 0 : (value > 1 ? 1 : value);
         if (clamped != value)
             radialMenuConfirmModeIndex = clamped;
-        _appSettings.RadialMenuConfirmMode = clamped == 1 ? "returnStickToCenter" : "releaseGuideKey";
+        _appSettings.RadialMenuConfirmMode = clamped == 0 ? "returnStickToCenter" : "releaseGuideKey";
         _settingsService.SaveSettings(_appSettings);
     }
 

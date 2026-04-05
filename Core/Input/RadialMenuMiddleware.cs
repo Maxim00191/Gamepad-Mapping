@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Numerics;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
@@ -38,13 +37,10 @@ internal sealed class RadialMenuMiddleware(
             ? frame.LeftThumbstick
             : frame.RightThumbstick;
 
-        // Update selection and check if the stick is actually being used for the menu
         controller.UpdateSelection(stickValue, getEngagementThreshold(), getConfirmMode());
 
-        if (stickValue.Length() >= getEngagementThreshold())
-        {
-            context.ConsumedInputs.Add(stickType);
-        }
+        // Dedicated stick is reserved for the radial HUD while open (threshold only affects selection UX).
+        context.ConsumedInputs.Add(stickType);
 
         next(context);
     }

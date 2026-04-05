@@ -136,10 +136,10 @@ public class AppSettings
     public double TemplateSwitchHudSeconds { get; set; } = 3.0;
 
     /// <summary>
-    /// Radial menu commit: <c>releaseGuideKey</c> (default) or <c>returnStickToCenter</c>.
+    /// Radial menu commit: <c>returnStickToCenter</c> (default) or <c>releaseGuideKey</c>.
     /// </summary>
     [JsonProperty("radialMenuConfirmMode")]
-    public string RadialMenuConfirmMode { get; set; } = "releaseGuideKey";
+    public string RadialMenuConfirmMode { get; set; } = "returnStickToCenter";
 
     /// <summary>
     /// Radial HUD item labels: <c>both</c> (default), <c>descriptionOnly</c>, or <c>keyboardKeyOnly</c>.

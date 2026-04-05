@@ -215,8 +215,8 @@
                                                 <ComboBox SelectedIndex="{Binding RadialMenuConfirmModeIndex, Mode=TwoWay}"
                                                           HorizontalAlignment="Stretch"
                                                           Margin="0,4,0,0">
-                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
                                                     <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReturnCenter]}" />
+                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
                                                 </ComboBox>
                                                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeLabel]}"
                                                            Margin="0,4,8,4"

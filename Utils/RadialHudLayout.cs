@@ -22,9 +22,9 @@ public static class RadialHudLayout
     public static double ClampHudScale(double value) =>
         Math.Clamp(value, MinHudScale, MaxHudScale);
 
-    private const double BaseDiscDiameter = 380;
+    private const double BaseDiscDiameter = 400;
     private const double BaseItemSize = 96;
-    private const double BaseInnerHoleDiameter = 215;
+    private const double BaseInnerHoleDiameter = 210;
     private const double BaseTitlePlateDiameter = 112;
 
     private const double BasePrimaryItemFontSize = 12;

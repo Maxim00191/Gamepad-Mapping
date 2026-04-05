@@ -22,14 +22,14 @@
     {"from": {"type": "Button", "value": "Back"}, "trigger": "Released", "analogThreshold": null, "actionId": "tab--battle-view-battle-log-tab"},
     {"from": {"type": "Button", "value": "Start"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "enter--battle-open-chat-enter"},
     {"from": {"type": "Button", "value": "Start + Back"}, "keyboardKey": "", "description": "Switch profile: Roco exploration", "descriptions": {"zh-CN": "切换配置：大世界探索"}, "trigger": "Pressed", "analogThreshold": null, "templateToggle": {"alternateProfileId": "roco-kingdom-world-radial"}},
-    {"from": {"type": "Button", "value": "LeftShoulder + DpadUp"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "leftalt--reveal-cursor"},
     {"from": {"type": "Button", "value": "RightShoulder"}, "trigger": "Pressed", "description": "Fight Selection", "descriptions": {"zh-CN": "战斗选择"}, "radialMenu": {"radialMenuId": "fight_selection_wheel"}},
     {"from": {"type": "Button", "value": "LeftShoulder"}, "trigger": "Pressed", "description": "Fight Mode", "descriptions": {"zh-CN": "战斗模式"}, "radialMenu": {"radialMenuId": "fight_mode_wheel"}}
   ],
-  "radialMenus": [{"id": "fight_selection_wheel","displayName": "Fight Selection","displayNames": { "zh-CN": "战斗选择" },"joystick": "RightStick",
-      "items": [{ "actionId": "d1--battle-act-1" },{ "actionId": "d2--battle-act-2" },{ "actionId": "d3--battle-act-3" },{ "actionId": "d4--battle-act-4" },{ "actionId": "d5--battle-act-5" },{ "actionId": "d6--battle-act-6" }]},
-      {"id": "fight_mode_wheel","displayName": "Fight Mode","displayNames": { "zh-CN": "战斗模式" },"joystick": "RightStick",
-      "items": [{ "actionId": "q--ui-open-bag-q" },{ "actionId": "w--ui-open-capture-screen-w" },{ "actionId": "e--ui-open-swap-pet-screen-e" },{ "actionId": "r--ui-open-skills-screen-r" },{ "actionId": "t--battle-switch-release-pet-t" },{ "actionId": "tab--battle-view-battle-log-tab" }, { "actionId": "enter--battle-open-chat-enter" }]}
+  "radialMenus": [
+    {"id": "fight_selection_wheel","displayName": "Fight Selection","displayNames": { "zh-CN": "战斗选择" },"joystick": "RightStick",
+      "items": [{ "actionId": "d1--battle-act-1", "label": "Action 1", "labels": { "zh-CN": "行动1" } },{ "actionId": "d2--battle-act-2", "label": "Action 2", "labels": { "zh-CN": "行动2" } },{ "actionId": "d3--battle-act-3", "label": "Action 3", "labels": { "zh-CN": "行动3" } },{ "actionId": "d4--battle-act-4", "label": "Action 4", "labels": { "zh-CN": "行动4" } },{ "actionId": "d5--battle-act-5", "label": "Action 5", "labels": { "zh-CN": "行动5" } },{ "actionId": "d6--battle-act-6", "label": "Action 6", "labels": { "zh-CN": "行动6" } }]},
+    {"id": "fight_mode_wheel","displayName": "Fight Mode","displayNames": { "zh-CN": "战斗模式" },"joystick": "RightStick",
+      "items": [{ "actionId": "q--ui-open-bag-q", "label": "Bag", "labels": { "zh-CN": "背包" } },{ "actionId": "w--ui-open-capture-screen-w", "label": "Capture Screen", "labels": { "zh-CN": "捕捉界面" } },{ "actionId": "e--ui-open-swap-pet-screen-e", "label": "Swap Pet Screen", "labels": { "zh-CN": "更换精灵界面" } },{ "actionId": "r--ui-open-skills-screen-r", "label": "Skills Screen", "labels": { "zh-CN": "技能界面" } },{ "actionId": "t--battle-switch-release-pet-t", "label": "Switch Release Pet", "labels": { "zh-CN": "切换释放技能的精灵" } },{ "actionId": "tab--battle-view-battle-log-tab", "label": "Battle Log", "labels": { "zh-CN": "对战记录" } }, { "actionId": "enter--battle-open-chat-enter", "label": "Chat", "labels": { "zh-CN": "聊天" } }]}
   ],
   "keyboardActions": [
     {"id": "a--battle-move-select-left-a", "keyboardKey": "A", "description": "Battle: move/select left (A)", "descriptions": {"zh-CN": "战斗：向左选择(A)"}},

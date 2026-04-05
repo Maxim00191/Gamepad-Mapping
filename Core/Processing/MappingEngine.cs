@@ -92,7 +92,7 @@ public sealed class MappingEngine : IMappingEngine
         _getRadialMenuStickEngagementThreshold =
             getRadialMenuStickEngagementThreshold ?? (() => 0.35f);
         _getRadialMenuConfirmMode =
-            getRadialMenuConfirmMode ?? (() => RadialMenuConfirmMode.ReleaseGuideKey);
+            getRadialMenuConfirmMode ?? (() => RadialMenuConfirmMode.ReturnStickToCenter);
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
@@ -280,10 +280,7 @@ public sealed class MappingEngine : IMappingEngine
             }
         }
 
-        // Always reset consumed inputs at the start of a frame terminal.
-        // This ensures that any previous frame's consumption doesn't leak into the current frame's processing.
-        // The middleware will re-add them if necessary.
-        context.ConsumedInputs.Clear();
+        // ConsumedInputs is populated by middleware before this terminal runs; do not clear it here.
 
         // The first frame is treated as an initialization frame; button transitions are ignored.
         if (!context.IsFirstFrame)

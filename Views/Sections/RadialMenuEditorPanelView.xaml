@@ -27,6 +27,10 @@
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnDisplayName]}"
                        Margin="0,0,0,4" />
             <TextBox Text="{Binding DisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,6" />
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogRadialMenuDisplayNameZhCn]}"
+                       Margin="0,0,0,4" />
+            <TextBox Text="{Binding DisplayNameZhCn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      Margin="0,0,0,10" />
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnJoystick]}"
                        Margin="0,0,0,4" />
@@ -62,7 +66,7 @@
                       HeadersVisibility="Column"
                       SelectedItem="{Binding DataContext.SelectedRadialSlot, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
                       SelectionUnit="FullRow"
-                      MaxHeight="280"
+                      MaxHeight="320"
                       VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <DataGrid.Columns>
@@ -87,6 +91,9 @@
                                         Width="0.9*" />
                     <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnHudLabel]}"
                                         Binding="{Binding Label, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="1*" />
+                    <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnHudLabelZhCn]}"
+                                        Binding="{Binding LabelZhCn, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         Width="1*" />
                 </DataGrid.Columns>
             </DataGrid>

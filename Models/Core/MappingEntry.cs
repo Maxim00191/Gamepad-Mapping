@@ -230,6 +230,10 @@ public class MappingEntry : ObservableObject
         {
             if (RadialMenu is { } rm)
             {
+                var desc = (_description ?? string.Empty).Trim();
+                if (desc.Length > 0)
+                    return desc;
+
                 return $"Radial Menu: {rm.RadialMenuId}";
             }
 

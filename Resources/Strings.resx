@@ -274,7 +274,7 @@
     <value>Radial menu confirm</value>
   </data>
   <data name="RadialMenuConfirmModeReleaseGuide" xml:space="preserve">
-    <value>Release guide chord (default)</value>
+    <value>Release guide chord</value>
   </data>
   <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
     <value>Return selection stick to center</value>
@@ -366,20 +366,14 @@
   <data name="CatalogRadialMenuDisplayNameZhCn" xml:space="preserve">
     <value>Title (zh-CN)</value>
   </data>
-  <data name="CatalogRadialMenuDisplayNameEnUs" xml:space="preserve">
-    <value>Title (en-US)</value>
-  </data>
   <data name="CatalogColumnHudLabel" xml:space="preserve">
-    <value>HUD label</value>
+    <value>HUD label (EN)</value>
   </data>
   <data name="CatalogColumnHudLabelKey" xml:space="preserve">
     <value>HUD label key</value>
   </data>
   <data name="CatalogColumnHudLabelZhCn" xml:space="preserve">
-    <value>HUD label (zh-CN)</value>
-  </data>
-  <data name="CatalogColumnHudLabelEnUs" xml:space="preserve">
-    <value>HUD label (en-US)</value>
+    <value>zh-CN</value>
   </data>
   <data name="ProfileTabMappings" xml:space="preserve">
     <value>Mappings</value>
@@ -403,7 +397,7 @@
     <value>Radial menu</value>
   </data>
   <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
-    <value>Configure the stick and slots below. Save profile to persist.</value>
+    <value>Configure the stick and slots below. Title and HUD label are the default strings (typically English); optional zh-CN fields map to displayNames / labels in JSON. Save profile to persist.</value>
   </data>
   <data name="ProfileEditorColumnTitle" xml:space="preserve">
     <value>Details</value>

@@ -174,18 +174,18 @@ public class AnalogProcessorTests
         // 0.1f * 10 should result in 1 pixel eventually
         for (int i = 0; i < 9; i++)
         {
-            var delta = processor.AccumulateMouseLookDelta(0.1f, 0f);
+            var delta = processor.AccumulateMouseLookDelta(GamepadBindingType.RightThumbstick, 0.1f, 0f);
             Assert.Equal(0, delta.PixelDx);
         }
 
-        var tenthDelta = processor.AccumulateMouseLookDelta(0.1f, 0f);
+        var tenthDelta = processor.AccumulateMouseLookDelta(GamepadBindingType.RightThumbstick, 0.1f, 0f);
         Assert.Equal(1, tenthDelta.PixelDx);
 
         // Reset should clear residuals
-        processor.AccumulateMouseLookDelta(0.5f, 0.5f);
+        processor.AccumulateMouseLookDelta(GamepadBindingType.RightThumbstick, 0.5f, 0.5f);
         processor.Reset();
         
-        var afterReset = processor.AccumulateMouseLookDelta(0.5f, 0.5f);
+        var afterReset = processor.AccumulateMouseLookDelta(GamepadBindingType.RightThumbstick, 0.5f, 0.5f);
         Assert.Equal(0, afterReset.PixelDx);
         Assert.Equal(0, afterReset.PixelDy);
     }
