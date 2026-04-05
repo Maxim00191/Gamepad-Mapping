@@ -17,6 +17,7 @@ namespace GamepadMapperGUI.Core;
 
 public sealed class MappingEngine : IMappingEngine
 {
+    private readonly IProfileService _profileService;
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
     private readonly Func<bool> _canDispatchOutputLive;
@@ -79,6 +80,7 @@ public sealed class MappingEngine : IMappingEngine
         int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
         int leadKeyReleaseSuppressMs = 500,
         Action<string>? requestTemplateSwitchToProfileId = null,
+        IProfileService? profileService = null,
         Action<string?>? setComboHudGateHint = null,
         Func<string>? comboHudGateMessageFactory = null,
         Func<bool>? isComboHudPresentationSuppressed = null,
@@ -99,6 +101,7 @@ public sealed class MappingEngine : IMappingEngine
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
+        _profileService = profileService ?? new ProfileService();
         _canDispatchOutputLive = canDispatchOutputLive;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
@@ -118,7 +121,9 @@ public sealed class MappingEngine : IMappingEngine
             QueueOutputDispatch,
             () => _getRadialMenuConfirmMode(),
             action => _activeActionTracker.Register(action),
-            id => _activeActionTracker.Unregister(id));
+            id => _activeActionTracker.Unregister(id),
+            _requestTemplateSwitchToProfileId,
+            null); // Catalog will be set when profile is loaded
 
         _holdSessionManager = new HoldSessionManager(
             () => CanDispatchOutputMerged(),
@@ -219,9 +224,9 @@ public sealed class MappingEngine : IMappingEngine
     public void SetComboLeadButtonsFromTemplate(IReadOnlyList<string>? comboLeadButtonNames) =>
         _explicitComboLeadsFromTemplate = ComboLeadSemantics.ParseDeclaredNames(comboLeadButtonNames);
 
-    public void SetRadialMenuDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions)
+    public void SetRadialMenuDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions, IKeyboardActionCatalog? catalog = null)
     {
-        _radialMenuController.SetDefinitions(radialMenus, keyboardActions);
+        _radialMenuController.SetDefinitions(radialMenus, keyboardActions, catalog);
     }
 
     private HashSet<GamepadButtons> ResolveComboLeads(IReadOnlyCollection<MappingEntry> mappings) =>

@@ -258,8 +258,13 @@ public class MappingEntry : ObservableObject
         }
     }
 
-    internal void ApplyKeyboardActionResolution(string keyboardKey, string? defaultDescription)
+    internal void ApplyKeyboardActionResolution(string? keyboardKey, string? defaultDescription, TemplateToggleBinding? templateToggle = null)
     {
+        if (templateToggle != null)
+        {
+            TemplateToggle = new TemplateToggleBinding { AlternateProfileId = templateToggle.AlternateProfileId };
+        }
+
         if (!string.Equals(_keyboardKey, keyboardKey, StringComparison.Ordinal))
         {
             _keyboardKey = keyboardKey ?? string.Empty;
@@ -274,10 +279,19 @@ public class MappingEntry : ObservableObject
         }
     }
 
-    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
+    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/>, <see cref="TemplateToggle"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
     internal void ApplyKeyboardCatalogDefinition(KeyboardActionDefinition def)
     {
         ArgumentNullException.ThrowIfNull(def);
+
+        if (def.TemplateToggle != null)
+        {
+            TemplateToggle = new TemplateToggleBinding { AlternateProfileId = def.TemplateToggle.AlternateProfileId };
+        }
+        else
+        {
+            TemplateToggle = null;
+        }
 
         var key = (def.KeyboardKey ?? string.Empty).Trim();
         if (!string.Equals(_keyboardKey, key, StringComparison.Ordinal))

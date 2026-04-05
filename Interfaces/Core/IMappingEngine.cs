@@ -24,7 +24,7 @@ public interface IMappingEngine : IDisposable
     /// </summary>
     void InvalidateComboHudPresentation();
 
-    void SetRadialMenuDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions);
+    void SetRadialMenuDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions, IKeyboardActionCatalog? catalog = null);
 
     /// <summary>
     /// Waits until all queued background outputs have been dispatched.

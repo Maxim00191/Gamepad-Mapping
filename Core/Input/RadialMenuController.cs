@@ -51,6 +51,9 @@ internal sealed class RadialMenuController : IRadialMenuController
         }
     }
 
+    private readonly Action<string>? _requestTemplateSwitch;
+    private IKeyboardActionCatalog? _catalog;
+
     public RadialMenuController(
         IRadialMenuHud radialMenuHud,
         Action<Action> runOnUi,
@@ -59,7 +62,9 @@ internal sealed class RadialMenuController : IRadialMenuController
         Action<string, TriggerMoment, DispatchedOutput, string, string> enqueueOutput,
         Func<RadialMenuConfirmMode> getConfirmMode,
         Action<IActiveAction> registerActiveAction,
-        Action<string> unregisterActiveAction)
+        Action<string> unregisterActiveAction,
+        Action<string>? requestTemplateSwitch = null,
+        IKeyboardActionCatalog? catalog = null)
     {
         _radialMenuHud = radialMenuHud;
         _runOnUi = runOnUi;
@@ -69,6 +74,8 @@ internal sealed class RadialMenuController : IRadialMenuController
         _getConfirmMode = getConfirmMode;
         _registerActiveAction = registerActiveAction;
         _unregisterActiveAction = unregisterActiveAction;
+        _requestTemplateSwitch = requestTemplateSwitch;
+        _catalog = catalog;
     }
 
     public void UpdateSelection(Vector2 stick, float engagementThreshold, RadialMenuConfirmMode confirmMode)
@@ -139,10 +146,11 @@ internal sealed class RadialMenuController : IRadialMenuController
         ForceReset();
     }
 
-    public void SetDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions)
+    public void SetDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions, IKeyboardActionCatalog? catalog = null)
     {
         _radialMenus = radialMenus;
         _keyboardActions = keyboardActions;
+        _catalog = catalog;
     }
 
     public bool TryOpen(MappingEntry mapping, string sourceToken, out string? errorStatus)
@@ -179,7 +187,8 @@ internal sealed class RadialMenuController : IRadialMenuController
 
         var items = definition.Items.Select(item =>
         {
-            var action = _keyboardActions?.FirstOrDefault(a => a.Id == item.ActionId);
+            var action = _catalog?.GetAction(item.ActionId) 
+                         ?? _keyboardActions?.FirstOrDefault(a => a.Id == item.ActionId);
             var hudLine = (item.Label ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(hudLine))
             {
@@ -242,15 +251,27 @@ internal sealed class RadialMenuController : IRadialMenuController
         if (dispatchSelection && selectedIndex >= 0 && selectedIndex < definition.Items.Count)
         {
             var item = definition.Items[selectedIndex];
-            var action = _keyboardActions?.FirstOrDefault(a => a.Id == item.ActionId);
-            var keyToken = action?.KeyboardKey ?? string.Empty;
-
-            if (InputTokenResolver.TryResolveMappedOutput(keyToken, out var output, out var baseLabel))
+            var action = _catalog?.GetAction(item.ActionId) 
+                         ?? _keyboardActions?.FirstOrDefault(a => a.Id == item.ActionId);
+            
+            if (action?.TemplateToggle != null)
             {
-                var outputLabel = $"{baseLabel} (Radial)";
-                _setMappedOutput(outputLabel);
-                _setMappingStatus($"Radial Menu Selection: {item.ActionId} -> {outputLabel}");
-                _enqueueOutput(sourceToken, TriggerMoment.Tap, output, outputLabel, keyToken);
+                var targetId = action.TemplateToggle.AlternateProfileId;
+                _setMappingStatus($"Radial Menu Selection: {item.ActionId} -> Toggle profile {targetId}");
+                _setMappedOutput($"Toggle profile → {targetId}");
+                _requestTemplateSwitch?.Invoke(targetId);
+            }
+            else
+            {
+                var keyToken = action?.KeyboardKey ?? string.Empty;
+
+                if (InputTokenResolver.TryResolveMappedOutput(keyToken, out var output, out var baseLabel))
+                {
+                    var outputLabel = $"{baseLabel} (Radial)";
+                    _setMappedOutput(outputLabel);
+                    _setMappingStatus($"Radial Menu Selection: {item.ActionId} -> {outputLabel}");
+                    _enqueueOutput(sourceToken, TriggerMoment.Tap, output, outputLabel, keyToken);
+                }
             }
         }
 

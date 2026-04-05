@@ -11,6 +11,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 
@@ -28,10 +29,69 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
-        _mainViewModel.KeyboardActions.CollectionChanged += (_, _) => RebuildKeyboardActionsPicker();
+        _mainViewModel.KeyboardActions.CollectionChanged += (_, _) =>
+        {
+            RebuildKeyboardActionsPicker();
+            UpdateUnusedActionIds();
+        };
         foreach (var m in _mainViewModel.Mappings)
             AttachMappingActionIdListener(m);
         RebuildKeyboardActionsPicker();
+        UpdateUnusedActionIds();
+    }
+
+    [ObservableProperty]
+    private string unusedActionIdsHint = string.Empty;
+
+    [ObservableProperty]
+    private string unusedActionIdsTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool hasUnusedActionIds;
+
+    private void UpdateUnusedActionIds()
+    {
+        IKeyboardActionCatalog? catalog = null;
+        if (_mainViewModel.SelectedTemplate != null)
+        {
+            catalog = _mainViewModel.GetProfileService().LoadSelectedTemplate(_mainViewModel.SelectedTemplate);
+        }
+
+        if (catalog == null)
+        {
+            HasUnusedActionIds = false;
+            return;
+        }
+
+        var usedInMappings = _mainViewModel.Mappings
+            .Select(m => m.ActionId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var usedInRadialMenus = _mainViewModel.RadialMenus
+            .SelectMany(rm => rm.Items)
+            .Select(item => item.ActionId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var unused = catalog.GetAllActions()
+            .Where(a => !string.IsNullOrWhiteSpace(a.Id) && 
+                        !usedInMappings.Contains(a.Id) && 
+                        !usedInRadialMenus.Contains(a.Id))
+            .ToList();
+
+        HasUnusedActionIds = unused.Count > 0;
+        if (HasUnusedActionIds)
+        {
+            UnusedActionIdsHint = $"Notice: {unused.Count} actionId(s) in catalog are not used in any mapping or radial menu.";
+            UnusedActionIdsTooltip = string.Join(Environment.NewLine, 
+                unused.Select(a => $"{a.Id}: {a.Description}"));
+        }
+        else
+        {
+            UnusedActionIdsHint = string.Empty;
+            UnusedActionIdsTooltip = string.Empty;
+        }
     }
 
     /// <summary>Keyboard catalog for the current profile (same as <see cref="MainViewModel.KeyboardActions"/>).</summary>
@@ -795,6 +855,7 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void OnMappingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        UpdateUnusedActionIds();
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
@@ -834,6 +895,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void OnMappingEntryPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MappingEntry.ActionId))
+            UpdateUnusedActionIds();
+
         if (e.PropertyName != nameof(MappingEntry.ActionId) || sender is not MappingEntry m)
             return;
         if (_resolvingActionId)
@@ -919,8 +983,12 @@ public partial class MappingEditorViewModel : ObservableObject
     {
         switch (e.PropertyName)
         {
+            case nameof(MainViewModel.RadialMenus):
+                UpdateUnusedActionIds();
+                break;
             case nameof(MainViewModel.Mappings):
                 OnPropertyChanged(nameof(Mappings));
+                UpdateUnusedActionIds();
                 break;
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
@@ -936,6 +1004,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedTemplate):
                 OnPropertyChanged(nameof(AvailableRadialMenus));
+                UpdateUnusedActionIds();
                 break;
         }
     }

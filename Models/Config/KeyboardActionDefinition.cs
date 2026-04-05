@@ -8,8 +8,11 @@ public sealed class KeyboardActionDefinition
     [JsonProperty("id")]
     public string Id { get; set; } = string.Empty;
 
-    [JsonProperty("keyboardKey")]
-    public string KeyboardKey { get; set; } = string.Empty;
+    [JsonProperty("keyboardKey", NullValueHandling = NullValueHandling.Ignore)]
+    public string? KeyboardKey { get; set; }
+
+    [JsonProperty("templateToggle", NullValueHandling = NullValueHandling.Ignore)]
+    public TemplateToggleBinding? TemplateToggle { get; set; }
 
     [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
     public string Description { get; set; } = string.Empty;

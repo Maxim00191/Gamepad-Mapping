@@ -184,6 +184,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
             requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)),
+            profileService: _profileService,
             setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
             comboHudGateMessageFactory: comboHudGateMessageFactory,
             isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive,
@@ -845,9 +846,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void RefreshRadialDefinitionsInEngine()
     {
+        var template = SelectedTemplate != null ? _profileService.LoadSelectedTemplate(SelectedTemplate) : null;
         _mappingEngine.SetRadialMenuDefinitions(
             _radialMenus.Count == 0 ? null : _radialMenus.ToList(),
-            _keyboardActions.Count == 0 ? null : _keyboardActions.ToList());
+            _keyboardActions.Count == 0 ? null : _keyboardActions.ToList(),
+            template);
     }
 
     private void OnRadialMenusCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

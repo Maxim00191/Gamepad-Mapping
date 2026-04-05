@@ -1,8 +1,11 @@
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using GamepadMapperGUI.Interfaces.Core;
 
 namespace GamepadMapperGUI.Models;
 
-public class GameProfileTemplate
+public class GameProfileTemplate : IKeyboardActionCatalog
 {
     [JsonProperty("schemaVersion")]
     public int SchemaVersion { get; set; } = 1;
@@ -58,4 +61,16 @@ public class GameProfileTemplate
 
     [JsonProperty("mappings")]
     public List<MappingEntry> Mappings { get; set; } = new();
+
+    public KeyboardActionDefinition? GetAction(string actionId)
+    {
+        if (string.IsNullOrWhiteSpace(actionId)) return null;
+        return KeyboardActions?.FirstOrDefault(a => 
+            string.Equals(a.Id, actionId.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    public IEnumerable<KeyboardActionDefinition> GetAllActions()
+    {
+        return KeyboardActions ?? Enumerable.Empty<KeyboardActionDefinition>();
+    }
 }

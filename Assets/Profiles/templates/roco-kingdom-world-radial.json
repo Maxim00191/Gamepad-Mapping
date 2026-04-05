@@ -99,6 +99,7 @@
     {"id": "i--enter-photo-mode", "keyboardKey": "I", "description": "Photo mode", "descriptions": {"zh-CN": "拍照模式"}},
     {"id": "u--open-visitor-management-popup", "keyboardKey": "U", "description": "Visitor management popup", "descriptions": {"zh-CN": "互访管理弹窗"}},
     {"id": "g--check-new-messages-first-unlock-", "keyboardKey": "G", "description": "Check new messages", "descriptions": {"zh-CN": "查看新信息"}},
-    {"id": "leftalt--reveal-cursor", "keyboardKey": "LeftAlt", "description": "Reveal Cursor", "descriptions": {"zh-CN": "显示光标"}}
+    {"id": "leftalt--reveal-cursor", "keyboardKey": "LeftAlt", "description": "Reveal Cursor", "descriptions": {"zh-CN": "显示光标"}},
+    {"id": "switch-to-battle", "templateToggle": {"alternateProfileId": "roco-kingdom-world-fight-catalog"}, "description": "Switch to Battle", "descriptions": {"zh-CN": "切换至战斗模式"}}
   ]
 }

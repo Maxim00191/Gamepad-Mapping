@@ -3,17 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              MinHeight="0"
              VerticalAlignment="Stretch">
-    <DataGrid ItemsSource="{Binding Mappings}"
-              AutoGenerateColumns="False"
-              IsReadOnly="False"
-              CanUserAddRows="False"
-              HeadersVisibility="Column"
-              SelectedItem="{Binding SelectedMapping, Mode=TwoWay}"
-              SelectionUnit="FullRow"
-              Margin="0"
-              VerticalAlignment="Stretch"
-              MinHeight="200"
-              VerticalScrollBarVisibility="Auto">
+    <Grid VerticalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <DataGrid ItemsSource="{Binding Mappings}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="False"
+                  CanUserAddRows="False"
+                  HeadersVisibility="Column"
+                  SelectedItem="{Binding SelectedMapping, Mode=TwoWay}"
+                  SelectionUnit="FullRow"
+                  Margin="0"
+                  VerticalAlignment="Stretch"
+                  MinHeight="200"
+                  VerticalScrollBarVisibility="Auto">
+            <!-- ... existing columns ... -->
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[FromType]}"
                                     Binding="{Binding From.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -107,5 +113,36 @@
                                     Binding="{Binding AnalogThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     Width="1.1*" />
             </DataGrid.Columns>
-    </DataGrid>
+        </DataGrid>
+
+        <Border Grid.Row="1" 
+                Background="#2D2D30" 
+                BorderBrush="#3F3F46" 
+                BorderThickness="0,1,0,0"
+                Padding="8,4"
+                Visibility="{Binding HasUnusedActionIds, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE946;" 
+                           FontFamily="Segoe MDL2 Assets" 
+                           Foreground="#007ACC" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding UnusedActionIdsHint}" 
+                           Foreground="#CCCCCC" 
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTipService.InitialShowDelay="100">
+                    <TextBlock.ToolTip>
+                        <ToolTip Background="#252526" Foreground="#F1F1F1" BorderBrush="#3F3F46">
+                            <StackPanel Margin="4">
+                                <TextBlock Text="Unused Action IDs in Catalog:" FontWeight="Bold" Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding UnusedActionIdsTooltip}"/>
+                            </StackPanel>
+                        </ToolTip>
+                    </TextBlock.ToolTip>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>
