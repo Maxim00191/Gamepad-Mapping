@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
@@ -281,6 +282,10 @@ public partial class ProfileService : IProfileService
     {
         if (template is null) throw new ArgumentNullException(nameof(template));
 
+        var validation = ValidateTemplate(template);
+        if (!validation.IsValid)
+            throw new InvalidOperationException($"Cannot save profile with errors: {string.Join(", ", validation.Errors)}");
+
         var templatesDir = LoadTemplateDirectory();
         _fileSystem.CreateDirectory(templatesDir);
 
@@ -311,6 +316,12 @@ public partial class ProfileService : IProfileService
 
         if (_fileSystem.FileExists(templatePath))
             _fileSystem.DeleteFile(templatePath);
+    }
+
+    public IValidationResult ValidateTemplate(GameProfileTemplate template)
+    {
+        var validator = new ProfileValidator();
+        return validator.Validate(template);
     }
 
     private static string EnsureValidProfileId(string profileId)

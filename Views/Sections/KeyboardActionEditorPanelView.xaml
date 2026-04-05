@@ -34,6 +34,20 @@
                      TextWrapping="Wrap"
                      MinHeight="72"
                      VerticalScrollBarVisibility="Auto" />
+            
+            <StackPanel Visibility="{Binding DataContext.CatalogPanel.HasValidationError, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,12,0,0">
+                <TextBlock Text="Validation Errors:" Foreground="Red" FontWeight="Bold" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding DataContext.CatalogPanel.ValidationError, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                           Foreground="Red" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding DataContext.CatalogPanel.HasValidationWarning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Margin="0,8,0,0">
+                <TextBlock Text="Validation Warnings:" Foreground="Orange" FontWeight="Bold" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding DataContext.CatalogPanel.ValidationWarning, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                           Foreground="Orange" TextWrapping="Wrap"/>
+            </StackPanel>
         </StackPanel>
         </ScrollViewer>
     </Grid>

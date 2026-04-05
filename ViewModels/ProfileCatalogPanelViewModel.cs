@@ -15,6 +15,20 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     public ProfileCatalogPanelViewModel(MainViewModel mainViewModel)
     {
         _main = mainViewModel;
+        _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
+        _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
+    }
+
+    private void ValidateCurrentState()
+    {
+        var profile = _main.GetProfileService().LoadSelectedTemplate(_main.SelectedTemplate);
+        if (profile == null) return;
+
+        var result = _main.GetProfileService().ValidateTemplate(profile);
+        HasValidationError = !result.IsValid;
+        ValidationError = string.Join(Environment.NewLine, result.Errors);
+        HasValidationWarning = result.Warnings.Any();
+        ValidationWarning = string.Join(Environment.NewLine, result.Warnings);
     }
 
     public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _main.KeyboardActions;
@@ -43,7 +57,23 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     [ObservableProperty]
     private string radialMenuDisplayNameEnUs = string.Empty;
 
-    partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value) => _main.RefreshRightPanelSurface();
+    [ObservableProperty]
+    private string validationError = string.Empty;
+
+    [ObservableProperty]
+    private string validationWarning = string.Empty;
+
+    [ObservableProperty]
+    private bool hasValidationError;
+
+    [ObservableProperty]
+    private bool hasValidationWarning;
+
+    partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value)
+    {
+        _main.RefreshRightPanelSurface();
+        ValidateCurrentState();
+    }
 
     partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)
     {

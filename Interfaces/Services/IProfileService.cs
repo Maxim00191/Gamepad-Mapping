@@ -26,5 +26,6 @@ public interface IProfileService
     bool TemplateExists(string profileId);
     string CreateUniqueProfileId(string templateGroupId, string? displayName);
     void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true);
+    GamepadMapperGUI.Interfaces.Core.IValidationResult ValidateTemplate(GameProfileTemplate template);
     void DeleteTemplate(string profileId);
 }

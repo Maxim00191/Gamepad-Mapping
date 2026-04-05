@@ -33,11 +33,32 @@ public partial class MappingEditorViewModel : ObservableObject
         {
             RebuildKeyboardActionsPicker();
             UpdateUnusedActionIds();
+            ValidateCurrentState();
         };
         foreach (var m in _mainViewModel.Mappings)
             AttachMappingActionIdListener(m);
         RebuildKeyboardActionsPicker();
         UpdateUnusedActionIds();
+        ValidateCurrentState();
+    }
+
+    private void ValidateCurrentState()
+    {
+        var profile = _mainViewModel.GetProfileService().LoadSelectedTemplate(_mainViewModel.SelectedTemplate);
+        if (profile == null) return;
+
+        // Update profile with current UI state if we are editing
+        if (SelectedMapping != null)
+        {
+            // This is a bit tricky since we want real-time feedback.
+            // For now, let's validate the whole profile.
+        }
+
+        var result = _mainViewModel.GetProfileService().ValidateTemplate(profile);
+        HasValidationError = !result.IsValid;
+        ValidationError = string.Join(Environment.NewLine, result.Errors);
+        HasValidationWarning = result.Warnings.Any();
+        ValidationWarning = string.Join(Environment.NewLine, result.Warnings);
     }
 
     [ObservableProperty]
@@ -183,6 +204,18 @@ public partial class MappingEditorViewModel : ObservableObject
     /// <summary>When set with Update, binds the mapping to <see cref="KeyboardActions"/> (fills key and description from the catalog).</summary>
     [ObservableProperty]
     private string editBindingActionId = string.Empty;
+
+    [ObservableProperty]
+    private string validationError = string.Empty;
+
+    [ObservableProperty]
+    private string validationWarning = string.Empty;
+
+    [ObservableProperty]
+    private bool hasValidationError;
+
+    [ObservableProperty]
+    private bool hasValidationWarning;
 
     [ObservableProperty]
     private bool isCreatingNewMapping;
