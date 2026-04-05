@@ -20,10 +20,11 @@ internal sealed class RadialMenuAction(
             if (mapping.RadialMenu is not { } rm)
                 return false;
 
-            // Note: The confirm mode is handled by the controller via the Func provided in MappingEngine
-            // Here we just trigger the close.
-            return controller.TryClose(rm.RadialMenuId, sourceToken, true);
-        }
+        // ELEGANT FIX: Always attempt to close using the specific mapping's ID to ensure cleanup,
+        // even if the controller state is slightly out of sync.
+        // We also pass suppressChord=false to ensure the chord is cleared.
+        return controller.TryClose(rm.RadialMenuId, sourceToken, true, false);
+    }
 
         errorStatus = null;
         return false;

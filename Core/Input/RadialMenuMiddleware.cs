@@ -30,17 +30,25 @@ internal sealed class RadialMenuMiddleware(
         }
 
         var frame = context.Frame;
-        var stick = activeRadial.Joystick == "LeftStick"
+        var stickType = activeRadial.Joystick == "LeftStick"
+            ? GamepadBindingType.LeftThumbstick
+            : GamepadBindingType.RightThumbstick;
+
+        var stickValue = stickType == GamepadBindingType.LeftThumbstick
             ? frame.LeftThumbstick
             : frame.RightThumbstick;
 
-        controller.UpdateSelection(stick, getEngagementThreshold(), getConfirmMode());
+        // Update selection and check if the stick is actually being used for the menu
+        controller.UpdateSelection(stickValue, getEngagementThreshold(), getConfirmMode());
 
-                // Mark the stick as consumed
-                context.ConsumedInputs.Add(activeRadial.Joystick == "LeftStick" 
-                    ? GamepadBindingType.LeftThumbstick 
-                    : GamepadBindingType.RightThumbstick);
+        // ELEGANT FIX: Only consume the input if the stick is actually engaged (beyond threshold)
+        // AND it is the stick assigned to this radial menu.
+        // This ensures that the OTHER stick (e.g., movement) remains completely smooth.
+        if (stickValue.Length() >= getEngagementThreshold())
+        {
+            context.ConsumedInputs.Add(stickType);
+        }
 
-                next(context);
+        next(context);
     }
 }

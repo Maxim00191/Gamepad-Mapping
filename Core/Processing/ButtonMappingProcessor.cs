@@ -69,11 +69,17 @@ internal sealed class ButtonMappingProcessor
             if (context.IsSuppressed)
                 return;
 
-            if (context.Trigger == TriggerMoment.Released && 
-                _activeActionTracker.IsButtonSuppressedByActiveChord(context.Button))
-            {
-                return;
-            }
+        if (context.Trigger == TriggerMoment.Released && 
+            _activeActionTracker.IsButtonSuppressedByActiveChord(context.Button))
+        {
+            // ELEGANT FIX: Even if suppressed, we must ensure the button is unregistered from any tracking
+            // to prevent stale state from blocking future presses.
+            _activeActionTracker.ProcessButtonReleased(context.Button);
+            
+            // CRITICAL: DO NOT return here. We must allow the release event to flow down
+            // to _holdSessionManager and other cleanup logic, otherwise they will
+            // think the button is still being held (ghost state).
+        }
 
         if (context.Trigger == TriggerMoment.Released &&
             _holdSessionManager.TryFinalizeDualActionOnRelease(
