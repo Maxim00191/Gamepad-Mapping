@@ -19,7 +19,7 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
     private readonly Func<bool> _canDispatchOutput;
     private readonly Action<string> _setMappingStatus;
     private readonly Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyList<MappingEntry>, float, float>?
-        _cancelRadialKeyboardConflictSuperseded;
+        _cancelDualActionSuperseded;
 
     public ButtonEventPreparationMiddleware(
         Action<IReadOnlyCollection<GamepadButtons>, float, float> setLatestInputState,
@@ -34,7 +34,7 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         Func<bool> canDispatchOutput,
         Action<string> setMappingStatus,
         Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyList<MappingEntry>, float, float>?
-            cancelRadialKeyboardConflictSuperseded = null)
+            cancelDualActionSuperseded = null)
     {
         _setLatestInputState = setLatestInputState;
         _registerButtonPressed = registerButtonPressed;
@@ -47,7 +47,7 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         _setLatestActiveButtons = setLatestActiveButtons;
         _canDispatchOutput = canDispatchOutput;
         _setMappingStatus = setMappingStatus;
-        _cancelRadialKeyboardConflictSuperseded = cancelRadialKeyboardConflictSuperseded;
+        _cancelDualActionSuperseded = cancelDualActionSuperseded;
     }
 
     public void Invoke(ButtonEventContext context, Action<ButtonEventContext> next)
@@ -90,7 +90,7 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
                 context.MappingsSnapshot,
                 context.LeftTriggerValue,
                 context.RightTriggerValue);
-            _cancelRadialKeyboardConflictSuperseded?.Invoke(
+            _cancelDualActionSuperseded?.Invoke(
                 context.Button,
                 context.ActiveButtons,
                 context.MappingsSnapshot,

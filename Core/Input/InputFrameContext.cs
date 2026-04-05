@@ -6,7 +6,7 @@ namespace GamepadMapperGUI.Core;
 
 internal sealed class InputFrameContext
 {
-    public required InputFrame Frame { get; init; }
+    public required InputFrame Frame { get; set; }
 
     public bool IsFirstFrame { get; set; }
 
@@ -15,4 +15,6 @@ internal sealed class InputFrameContext
     public GamepadButtons[] PressedButtons { get; set; } = Array.Empty<GamepadButtons>();
 
     public GamepadButtons[] ReleasedButtons { get; set; } = Array.Empty<GamepadButtons>();
+
+    public HashSet<GamepadBindingType> ConsumedInputs { get; } = [];
 }

@@ -32,9 +32,9 @@ internal sealed class AnalogMappingProcessor
         _setMappingStatus = setMappingStatus;
     }
 
-    public void ProcessThumbstick(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    public void ProcessThumbstick(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot, bool isConsumed = false)
     {
-        if (!_canDispatchOutput())
+        if (!_canDispatchOutput() || isConsumed)
         {
             ForceReleaseAnalogOutputs();
             return;

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using GamepadMapperGUI.Interfaces.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +13,14 @@ public enum TriggerMoment
     Pressed,
     Released,
     Tap
+}
+
+public enum MappingActionType
+{
+    Keyboard,
+    ItemCycle,
+    TemplateToggle,
+    RadialMenu
 }
 
 public class MappingEntry : ObservableObject
@@ -43,7 +53,11 @@ public class MappingEntry : ObservableObject
         set
         {
             if (SetProperty(ref _keyboardKey, value))
+            {
                 OnPropertyChanged(nameof(OutputSummaryForGrid));
+                OnPropertyChanged(nameof(ActionType));
+                OnPropertyChanged(nameof(RequiresDeferralOnPress));
+            }
         }
     }
 
@@ -126,7 +140,11 @@ public class MappingEntry : ObservableObject
         set
         {
             if (SetProperty(ref _itemCycle, value))
+            {
                 OnPropertyChanged(nameof(OutputSummaryForGrid));
+                OnPropertyChanged(nameof(ActionType));
+                OnPropertyChanged(nameof(RequiresDeferralOnPress));
+            }
         }
     }
 
@@ -140,7 +158,11 @@ public class MappingEntry : ObservableObject
         set
         {
             if (SetProperty(ref _templateToggle, value))
+            {
                 OnPropertyChanged(nameof(OutputSummaryForGrid));
+                OnPropertyChanged(nameof(ActionType));
+                OnPropertyChanged(nameof(RequiresDeferralOnPress));
+            }
         }
     }
 
@@ -168,9 +190,37 @@ public class MappingEntry : ObservableObject
         set
         {
             if (SetProperty(ref _radialMenu, value))
+            {
                 OnPropertyChanged(nameof(OutputSummaryForGrid));
+                OnPropertyChanged(nameof(ActionType));
+                OnPropertyChanged(nameof(RequiresDeferralOnPress));
+            }
         }
     }
+
+    /// <summary>
+    /// The logical type of action this mapping performs.
+    /// </summary>
+    [JsonIgnore]
+    public MappingActionType ActionType
+    {
+        get
+        {
+            if (RadialMenu is not null) return MappingActionType.RadialMenu;
+            if (TemplateToggle is not null) return MappingActionType.TemplateToggle;
+            if (ItemCycle is not null) return MappingActionType.ItemCycle;
+            return MappingActionType.Keyboard;
+        }
+    }
+
+    /// <summary>
+    /// Whether this action requires deferral when triggered on 'Pressed' (e.g. to resolve conflicts with Tap).
+    /// </summary>
+    [JsonIgnore]
+    public bool RequiresDeferralOnPress => ActionType != MappingActionType.Keyboard;
+
+    [JsonIgnore]
+    internal IExecutableAction? ExecutableAction { get; set; }
 
     /// <summary>Compact label for the mapping grid (item cycle summary or <see cref="KeyboardKey"/>).</summary>
     [JsonIgnore]

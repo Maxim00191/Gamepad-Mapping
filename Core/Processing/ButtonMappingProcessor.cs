@@ -19,25 +19,18 @@ internal sealed class ButtonMappingProcessor
     private readonly Action<string> _setMappingStatus;
     private readonly Action<string, TriggerMoment, DispatchedOutput, string, string> _queueOutputDispatch;
     private readonly Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> _enqueueItemCycleTap;
-    public delegate bool TryDispatchTemplateToggleDelegate(
+    public delegate bool TryDispatchActionDelegate(
         MappingEntry mapping,
         TriggerMoment trigger,
         string sourceToken,
         out string? errorStatus);
 
-    public delegate bool TryDispatchRadialMenuDelegate(
-        MappingEntry mapping,
-        TriggerMoment trigger,
-        string sourceToken,
-        out string? errorStatus);
-
-    private readonly TryDispatchTemplateToggleDelegate _tryDispatchTemplateToggle;
-    private readonly TryDispatchRadialMenuDelegate _tryDispatchRadialMenu;
+    private readonly TryDispatchActionDelegate _tryDispatchAction;
     private readonly Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> _resolveComboLeads;
     private readonly int _leadKeyReleaseSuppressMs;
     private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons;
     private readonly object _deferredSoloLeadButtonsLock;
-    private readonly Func<ButtonEventContext, bool>? _shouldSuppressAllMappingForEvent;
+    private readonly ActiveActionTracker _activeActionTracker;
 
     public ButtonMappingProcessor(
         HoldSessionManager holdSessionManager,
@@ -48,13 +41,12 @@ internal sealed class ButtonMappingProcessor
         Action<string> setMappingStatus,
         Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch,
         Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> enqueueItemCycleTap,
-        TryDispatchTemplateToggleDelegate tryDispatchTemplateToggle,
-        TryDispatchRadialMenuDelegate tryDispatchRadialMenu,
+        TryDispatchActionDelegate tryDispatchAction,
         Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> resolveComboLeads,
         int leadKeyReleaseSuppressMs,
         HashSet<GamepadButtons> deferredSoloLeadButtons,
         object deferredSoloLeadButtonsLock,
-        Func<ButtonEventContext, bool>? shouldSuppressAllMappingForEvent = null)
+        ActiveActionTracker activeActionTracker)
     {
             _holdSessionManager = holdSessionManager;
             _outputStateTracker = outputStateTracker;
@@ -64,13 +56,12 @@ internal sealed class ButtonMappingProcessor
             _setMappingStatus = setMappingStatus;
             _queueOutputDispatch = queueOutputDispatch;
             _enqueueItemCycleTap = enqueueItemCycleTap;
-            _tryDispatchTemplateToggle = tryDispatchTemplateToggle;
-            _tryDispatchRadialMenu = tryDispatchRadialMenu;
+            _tryDispatchAction = tryDispatchAction;
             _resolveComboLeads = resolveComboLeads;
             _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
             _deferredSoloLeadButtons = deferredSoloLeadButtons;
             _deferredSoloLeadButtonsLock = deferredSoloLeadButtonsLock;
-            _shouldSuppressAllMappingForEvent = shouldSuppressAllMappingForEvent;
+            _activeActionTracker = activeActionTracker;
         }
 
         public void ProcessButtonEventTerminal(ButtonEventContext context)
@@ -78,19 +69,22 @@ internal sealed class ButtonMappingProcessor
             if (context.IsSuppressed)
                 return;
 
-            if (_shouldSuppressAllMappingForEvent?.Invoke(context) == true)
-                return;
-
-            if (context.Trigger == TriggerMoment.Released &&
-                _holdSessionManager.TryFinalizeRadialKeyboardConflictOnRelease(
-                    context.Button,
-                    context.ReleasedButtonHeldMs,
-                    _resolveComboLeads(context.MappingsSnapshot).Contains(context.Button)))
+            if (context.Trigger == TriggerMoment.Released && 
+                _activeActionTracker.IsButtonSuppressedByActiveChord(context.Button))
             {
-                lock (_deferredSoloLeadButtonsLock)
-                    _deferredSoloLeadButtons.Remove(context.Button);
                 return;
             }
+
+        if (context.Trigger == TriggerMoment.Released &&
+            _holdSessionManager.TryFinalizeDualActionOnRelease(
+                context.Button,
+                context.ReleasedButtonHeldMs,
+                _resolveComboLeads(context.MappingsSnapshot).Contains(context.Button)))
+        {
+            lock (_deferredSoloLeadButtonsLock)
+                _deferredSoloLeadButtons.Remove(context.Button);
+            return;
+        }
 
             var comboLeads = _resolveComboLeads(context.MappingsSnapshot);
 
@@ -139,7 +133,7 @@ internal sealed class ButtonMappingProcessor
                 if (mapping.Trigger != context.Trigger) continue;
 
                 if (context.Trigger == TriggerMoment.Tap && chordButtons.Count == 1 &&
-                    mapping.RadialMenu is null &&
+                    !mapping.RequiresDeferralOnPress &&
                     context.ActiveButtons.Any(b =>
                         b != context.Button && IsEffectiveSoloChordDeferLead(b, comboLeads, context.MappingsSnapshot)))
                 {
@@ -148,7 +142,7 @@ internal sealed class ButtonMappingProcessor
                 }
 
                 if (context.Trigger == TriggerMoment.Pressed && chordButtons.Count == 1 &&
-                    mapping.RadialMenu is null &&
+                    !mapping.RequiresDeferralOnPress &&
                     context.ActiveButtons.Any(b =>
                         b != context.Button && IsEffectiveSoloChordDeferLead(b, comboLeads, context.MappingsSnapshot)))
                 {
@@ -165,14 +159,14 @@ internal sealed class ButtonMappingProcessor
                     {
                         var multiChordDefer =
                             SnapshotHasMultiButtonChordContaining(chordButtons[0], context.MappingsSnapshot) &&
-                            (comboLeads.Contains(chordButtons[0]) || mapping.RadialMenu is not null);
+                            (comboLeads.Contains(chordButtons[0]) || mapping.RequiresDeferralOnPress);
                         if (multiChordDefer)
                         {
                             _deferredSoloLeadButtons.Add(context.Button);
                             continue;
                         }
 
-                        if (HoldSessionManager.HasSoloKeyboardRadialConflict(chordButtons[0], context.MappingsSnapshot))
+                        if (HoldSessionManager.HasSoloKeyboardDeferredConflict(chordButtons[0], context.MappingsSnapshot))
                             continue;
                     }
                 }
@@ -228,56 +222,14 @@ internal sealed class ButtonMappingProcessor
 
                 try
                 {
-                    if (candidate.Mapping.ItemCycle is { } cycle)
-                    {
-                        if (context.Trigger == TriggerMoment.Released)
-                            continue;
-                        if (!_canDispatchOutput())
-                            continue;
-                        if (!_itemCycleProcessor.TryPrepareItemCycleStep(
-                                cycle,
-                                out var digitKey,
-                                out var customOut,
-                                out var useCustomOut,
-                                out var modifierKeys,
-                                out var itemLabel,
-                                out var itemCycleError))
-                        {
-                            _setMappingStatus(itemCycleError);
-                            continue;
-                        }
-
-                        _setMappedOutput(itemLabel);
-                        _setMappingStatus($"Queued: {candidate.SourceToken} ({context.Trigger}) -> {itemLabel}");
-                        _enqueueItemCycleTap(
-                            candidate.SourceToken,
-                            context.Trigger,
-                            modifierKeys,
-                            itemLabel,
-                            useCustomOut ? customOut : null,
-                            useCustomOut ? Key.None : digitKey);
-                        continue;
-                    }
-
-                    if (_tryDispatchTemplateToggle(
+                    if (_tryDispatchAction(
                             candidate.Mapping,
                             context.Trigger,
                             candidate.SourceToken,
-                            out var toggleErr))
+                            out var actionErr))
                     {
-                        if (toggleErr is not null)
-                            _setMappingStatus(toggleErr);
-                        continue;
-                    }
-
-                    if (_tryDispatchRadialMenu(
-                            candidate.Mapping,
-                            context.Trigger,
-                            candidate.SourceToken,
-                            out var radialErr))
-                    {
-                        if (radialErr is not null)
-                            _setMappingStatus(radialErr);
+                        if (actionErr is not null)
+                            _setMappingStatus(actionErr);
                         continue;
                     }
 
@@ -306,22 +258,25 @@ internal sealed class ButtonMappingProcessor
                     context.LeftTriggerValue,
                     context.RightTriggerValue);
 
-            var radialConflictArmed = false;
+            var deferredConflictArmed = false;
             if (context.Trigger == TriggerMoment.Pressed &&
-                HoldSessionManager.HasSoloKeyboardRadialConflict(context.Button, context.MappingsSnapshot))
+                HoldSessionManager.TryGetSoloKeyboardDeferredConflict(context.Button, context.MappingsSnapshot, out var kbMapping, out var defMapping))
             {
-                var skipRadialArm = false;
+                var skipDeferredArm = false;
                 lock (_deferredSoloLeadButtonsLock)
-                    skipRadialArm = _deferredSoloLeadButtons.Contains(context.Button);
-                if (!skipRadialArm)
+                    skipDeferredArm = _deferredSoloLeadButtons.Contains(context.Button);
+                if (!skipDeferredArm)
                 {
-                    radialConflictArmed = _holdSessionManager.TryArmRadialKeyboardConflict(
+                    deferredConflictArmed = _holdSessionManager.TryArmDualActionSession(
                         context.Button,
                         context.ActiveButtons,
                         context.MappingsSnapshot,
                         context.LeftTriggerValue,
-                        context.RightTriggerValue);
-                    if (radialConflictArmed)
+                        context.RightTriggerValue,
+                        kbMapping,
+                        () => DispatchDeferredAction(defMapping, context.Button, context.MappingsSnapshot));
+
+                    if (deferredConflictArmed)
                     {
                         lock (_deferredSoloLeadButtonsLock)
                             _deferredSoloLeadButtons.Add(context.Button);
@@ -329,8 +284,20 @@ internal sealed class ButtonMappingProcessor
                 }
             }
 
-            if (!matched && !suppressedByHoldDual && !holdArmed && !radialConflictArmed)
+            if (!matched && !suppressedByHoldDual && !holdArmed && !deferredConflictArmed)
                 _setMappingStatus($"No mapping for {context.ButtonName} ({context.Trigger})");
+        }
+
+        private void DispatchDeferredAction(MappingEntry mapping, GamepadButtons button, IReadOnlyList<MappingEntry> snapshot)
+        {
+            if (!ChordResolver.TryParseButtonChord(mapping.From!.Value, out _, out _, out _, out var sourceToken))
+                return;
+
+            if (_tryDispatchAction(mapping, TriggerMoment.Pressed, sourceToken, out var actionErr))
+            {
+                if (actionErr is not null)
+                    _setMappingStatus(actionErr);
+            }
         }
 
         public HashSet<DispatchedOutput> CollectReleasedOutputsHandledByMappings(
@@ -381,16 +348,16 @@ internal sealed class ButtonMappingProcessor
         }
 
         /// <summary>
-        /// Combo leads from the profile plus any button that has a solo <see cref="TriggerMoment.Pressed"/> radial
-        /// binding so radial starters participate in defer / long-release suppress like modifier leads.
+        /// Combo leads from the profile plus any button that has a solo <see cref="TriggerMoment.Pressed"/> deferred
+        /// binding (Radial, Toggle, Cycle) so they participate in defer / long-release suppress like modifier leads.
         /// </summary>
         private static bool IsEffectiveSoloChordDeferLead(
             GamepadButtons button,
             HashSet<GamepadButtons> comboLeads,
             IReadOnlyCollection<MappingEntry> snapshot) =>
-            comboLeads.Contains(button) || HasRadialMenuSoloPressedMapping(button, snapshot);
+            comboLeads.Contains(button) || HasDeferredActionSoloPressedMapping(button, snapshot);
 
-        private static bool HasRadialMenuSoloPressedMapping(
+        private static bool HasDeferredActionSoloPressedMapping(
             GamepadButtons button,
             IReadOnlyCollection<MappingEntry> snapshot)
         {
@@ -398,8 +365,12 @@ internal sealed class ButtonMappingProcessor
             {
                 if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
                     continue;
-                if (mapping.Trigger != TriggerMoment.Pressed || mapping.RadialMenu is null)
+                if (mapping.Trigger != TriggerMoment.Pressed)
                     continue;
+                
+                if (!mapping.RequiresDeferralOnPress)
+                    continue;
+
                 if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var rt, out var lt, out _))
                     continue;
                 if (rt || lt || chord.Count != 1 || chord[0] != button)
@@ -421,6 +392,9 @@ internal sealed class ButtonMappingProcessor
                 if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var reqRt, out var reqLt, out _))
                     continue;
                 if (!chord.Contains(button))
+                    continue;
+                // RT/LT + one button is not "multi-button" deferral (solo radial must open on press, not release).
+                if (chord.Count < 2)
                     continue;
                 if (ChordResolver.ChordSpecificity(chord, reqRt, reqLt) >= 2)
                     return true;
@@ -471,6 +445,7 @@ internal sealed class ButtonMappingProcessor
 
                 try
                 {
+                    // 1. Handle Pressed + Released pair (simulating a full click for deferred solo)
                     if (pressed is not null &&
                         released is not null &&
                         string.Equals(pressed.KeyboardKey, released.KeyboardKey, StringComparison.Ordinal) &&
@@ -490,73 +465,30 @@ internal sealed class ButtonMappingProcessor
                         return true;
                     }
 
-                    if (pressed is not null &&
-                        pressed.ItemCycle is { } deferredCycle &&
-                        ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredCycleToken))
+                    // 2. Try execute deferred solo release via Command Pattern
+                    if (pressed?.ExecutableAction is { } pressedAction &&
+                        ChordResolver.TryParseButtonChord(pressed.From!.Value, out _, out _, out _, out var pToken))
                     {
-                        if (!_itemCycleProcessor.TryPrepareItemCycleStep(
-                                deferredCycle,
-                                out var defDigit,
-                                out var defCustom,
-                                out var defUseCustom,
-                                out var defMods,
-                                out var deferredLabel,
-                                out var defErr))
+                        if (pressedAction.TryExecuteDeferredSoloRelease(pToken, out var err))
                         {
-                            _setMappingStatus(defErr);
-                            return false;
-                        }
-
-                        _setMappedOutput(deferredLabel);
-                        _setMappingStatus($"Queued: {deferredCycleToken} (Tap) -> {deferredLabel}");
-                        _enqueueItemCycleTap(
-                            deferredCycleToken,
-                            TriggerMoment.Tap,
-                            defMods,
-                            deferredLabel,
-                            defUseCustom ? defCustom : null,
-                            defUseCustom ? Key.None : defDigit);
-                        return true;
-                    }
-
-                    if (pressed is not null &&
-                        pressed.TemplateToggle is { } deferredToggle &&
-                        ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredToggleToken))
-                    {
-                        if (_tryDispatchTemplateToggle(pressed, TriggerMoment.Tap, deferredToggleToken, out var defTtErr))
-                        {
-                            if (defTtErr is not null)
-                                _setMappingStatus(defTtErr);
+                            if (err is not null) _setMappingStatus(err);
                             return true;
                         }
                     }
 
-                    if (pressed is not null &&
-                        pressed.RadialMenu is { } deferredRadial &&
-                        ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredRadialToken))
+                    if (tap?.ExecutableAction is { } tapAction &&
+                        ChordResolver.TryParseButtonChord(tap.From!.Value, out _, out _, out _, out var tToken))
                     {
-                        if (_tryDispatchRadialMenu(pressed, TriggerMoment.Pressed, deferredRadialToken, out var defRmErr))
+                        if (tapAction.TryExecuteDeferredSoloRelease(tToken, out var err))
                         {
-                            if (defRmErr is not null)
-                                _setMappingStatus(defRmErr);
+                            if (err is not null) _setMappingStatus(err);
                             return true;
                         }
                     }
 
-                    if (tap is not null &&
-                        tap.RadialMenu is { } tapRadial &&
-                        ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapRadialToken))
-                    {
-                        if (_tryDispatchRadialMenu(tap, TriggerMoment.Pressed, tapRadialToken, out var tapRmErr))
-                        {
-                            if (tapRmErr is not null)
-                                _setMappingStatus(tapRmErr);
-                            return true;
-                        }
-                    }
-
+                    // 3. Fallback to standard Tap dispatch for standard keyboard keys
                     if (pressed is not null &&
-                        ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var soloToken) &&
+                        ChordResolver.TryParseButtonChord(pressed.From!.Value, out _, out _, out _, out var soloToken) &&
                         InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
                     {
                         var outLabel = $"{tapLabel} (Tap)";
@@ -567,48 +499,7 @@ internal sealed class ButtonMappingProcessor
                     }
 
                     if (tap is not null &&
-                        tap.ItemCycle is { } tapCycle &&
-                        ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapCycleToken))
-                    {
-                        if (!_itemCycleProcessor.TryPrepareItemCycleStep(
-                                tapCycle,
-                                out var tapDigit,
-                                out var tapCustom,
-                                out var tapUseCustom,
-                                out var tapMods,
-                                out var tapItemLabel,
-                                out var tapErr))
-                        {
-                            _setMappingStatus(tapErr);
-                            return false;
-                        }
-
-                        _setMappedOutput(tapItemLabel);
-                        _setMappingStatus($"Queued: {tapCycleToken} (Tap) -> {tapItemLabel}");
-                        _enqueueItemCycleTap(
-                            tapCycleToken,
-                            TriggerMoment.Tap,
-                            tapMods,
-                            tapItemLabel,
-                            tapUseCustom ? tapCustom : null,
-                            tapUseCustom ? Key.None : tapDigit);
-                        return true;
-                    }
-
-                    if (tap is not null &&
-                        tap.TemplateToggle is { } tapToggle &&
-                        ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapToggleToken))
-                    {
-                        if (_tryDispatchTemplateToggle(tap, TriggerMoment.Tap, tapToggleToken, out var tapTtErr))
-                        {
-                            if (tapTtErr is not null)
-                                _setMappingStatus(tapTtErr);
-                            return true;
-                        }
-                    }
-
-                    if (tap is not null &&
-                        ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapTok) &&
+                        ChordResolver.TryParseButtonChord(tap.From!.Value, out _, out _, out _, out var tapTok) &&
                         InputTokenResolver.TryResolveMappedOutput(tap.KeyboardKey, out var tOut, out var bLab))
                     {
                         var ol = $"{bLab} (Tap)";

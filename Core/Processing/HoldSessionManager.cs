@@ -25,10 +25,9 @@ internal sealed class HoldSessionManager
     private readonly int _modifierGraceMs;
     private readonly int _leadKeyReleaseSuppressMs;
     private readonly Action<Action>? _runSynchronizedWithInputFrame;
-    private readonly Func<MappingEntry, string, bool>? _tryOpenRadialMenuFromKeyboardConflict;
 
     private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
-    private readonly Dictionary<GamepadButtons, RadialKeyboardConflictSession> _radialKeyboardConflictSessions = new();
+    private readonly Dictionary<GamepadButtons, DualActionSession> _dualActionSessions = new();
     private readonly Dictionary<GamepadButtons, long> _buttonDownTicks = new();
 
     private IReadOnlyCollection<GamepadButtons> _latestActiveButtons = Array.Empty<GamepadButtons>();
@@ -45,8 +44,7 @@ internal sealed class HoldSessionManager
         ITimeProvider timeProvider,
         int modifierGraceMs,
         int leadKeyReleaseSuppressMs,
-        Action<Action>? runSynchronizedWithInputFrame = null,
-        Func<MappingEntry, string, bool>? tryOpenRadialMenuFromKeyboardConflict = null)
+        Action<Action>? runSynchronizedWithInputFrame = null)
     {
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
@@ -58,7 +56,6 @@ internal sealed class HoldSessionManager
         _modifierGraceMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _runSynchronizedWithInputFrame = runSynchronizedWithInputFrame;
-        _tryOpenRadialMenuFromKeyboardConflict = tryOpenRadialMenuFromKeyboardConflict;
     }
 
     /// <summary>
@@ -90,14 +87,15 @@ internal sealed class HoldSessionManager
         public bool LongFired { get; set; }
     }
 
-    private sealed class RadialKeyboardConflictSession
+    private sealed class DualActionSession
     {
         public required GamepadButtons Button { get; init; }
         public required string SourceToken { get; init; }
         public required string ShortKeyToken { get; init; }
-        public required MappingEntry RadialMapping { get; init; }
+        public required float TriggerMatchThreshold { get; init; }
+        public required Action OnLongPress { get; init; }
         public required ITimer Timer { get; init; }
-        public bool RadialOpened { get; set; }
+        public bool LongActionFired { get; set; }
     }
 
     public void UpdateLatestInputState(
@@ -302,35 +300,34 @@ internal sealed class HoldSessionManager
         return false;
     }
 
-    public bool TryArmRadialKeyboardConflict(
+    public bool TryArmDualActionSession(
         GamepadButtons button,
         IReadOnlyCollection<GamepadButtons> activeButtons,
         IReadOnlyList<MappingEntry> snapshot,
         float leftTriggerValue,
-        float rightTriggerValue)
+        float rightTriggerValue,
+        MappingEntry shortActionMapping,
+        Action onLongPress)
     {
-        if (_tryOpenRadialMenuFromKeyboardConflict is null || !_canDispatchOutput())
+        if (!_canDispatchOutput())
             return false;
 
         var comboLeads = _resolveComboLeads(snapshot);
         if (activeButtons.Any(b => b != button && comboLeads.Contains(b)))
             return false;
 
-        if (!TryGetSoloKeyboardRadialConflict(button, snapshot, out var keyboardMapping, out var radialMapping))
-            return false;
-
-        if (_radialKeyboardConflictSessions.ContainsKey(button))
+        if (_dualActionSessions.ContainsKey(button))
             return true;
 
-        if (!ChordResolver.TryParseButtonChord(keyboardMapping.From!.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
+        if (!ChordResolver.TryParseButtonChord(shortActionMapping.From!.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
             return false;
         if (reqRt || reqLt || chordButtons.Count != 1)
             return false;
 
-        if (!InputTokenResolver.TryResolveMappedOutput(keyboardMapping.KeyboardKey, out _, out _))
+        if (!InputTokenResolver.TryResolveMappedOutput(shortActionMapping.KeyboardKey, out _, out _))
             return false;
 
-        var triggerThreshold = GetTriggerMatchThreshold(keyboardMapping);
+        var triggerThreshold = GetTriggerMatchThreshold(shortActionMapping);
         if (!ChordResolver.DoesChordMatchEvent(
                 chordButtons,
                 reqRt,
@@ -342,94 +339,89 @@ internal sealed class HoldSessionManager
                 activeButtons))
             return false;
 
-        var thresholdMs = ResolveHoldThresholdMs(keyboardMapping);
-        RadialKeyboardConflictSession session = null!;
+        var thresholdMs = ResolveHoldThresholdMs(shortActionMapping);
+        DualActionSession session = null!;
         var timer = _timeProvider.CreateTimer(
             TimeSpan.FromMilliseconds(thresholdMs),
             () =>
             {
                 if (_runSynchronizedWithInputFrame is not null)
-                    _runSynchronizedWithInputFrame(() => OnRadialKeyboardConflictTimerElapsed(session));
+                    _runSynchronizedWithInputFrame(() => OnDualActionTimerElapsed(session));
                 else
-                    OnRadialKeyboardConflictTimerElapsed(session);
+                    OnDualActionTimerElapsed(session);
             });
-        session = new RadialKeyboardConflictSession
+        session = new DualActionSession
         {
             Button = button,
             SourceToken = sourceToken,
-            ShortKeyToken = keyboardMapping.KeyboardKey ?? string.Empty,
-            RadialMapping = radialMapping,
+            ShortKeyToken = shortActionMapping.KeyboardKey ?? string.Empty,
+            TriggerMatchThreshold = triggerThreshold,
+            OnLongPress = onLongPress,
             Timer = timer
         };
 
         timer.Start();
-        _radialKeyboardConflictSessions[button] = session;
-        _setMappingStatus($"Radial vs tap armed: {sourceToken} ({thresholdMs} ms)");
+        _dualActionSessions[button] = session;
+        _setMappingStatus($"Dual action armed: {sourceToken} ({thresholdMs} ms)");
         _onHoldSessionsChanged();
         return true;
     }
 
-    private void OnRadialKeyboardConflictTimerElapsed(RadialKeyboardConflictSession session)
+    private void OnDualActionTimerElapsed(DualActionSession session)
     {
         session.Timer.Stop();
-        if (!_radialKeyboardConflictSessions.TryGetValue(session.Button, out var live) || !ReferenceEquals(live, session))
+        if (!_dualActionSessions.TryGetValue(session.Button, out var live) || !ReferenceEquals(live, session))
             return;
 
         if (!ChordPhysicallyActive(
-                new[] { session.Button },
+                [session.Button],
                 false,
                 false,
                 _latestLeftTrigger,
                 _latestRightTrigger,
-                GetTriggerMatchThreshold(session.RadialMapping),
+                session.TriggerMatchThreshold,
                 _latestActiveButtons))
         {
-            DisposeRadialKeyboardConflictSession(session.Button);
+            DisposeDualActionSession(session.Button);
             return;
         }
 
         if (!_canDispatchOutput())
         {
-            _setMappingStatus($"Suppressed radial hold ({session.SourceToken}) - target is not foreground");
-            DisposeRadialKeyboardConflictSession(session.Button);
+            _setMappingStatus($"Suppressed dual action hold ({session.SourceToken}) - target is not foreground");
+            DisposeDualActionSession(session.Button);
             return;
         }
 
-        if (_tryOpenRadialMenuFromKeyboardConflict?.Invoke(session.RadialMapping, session.SourceToken) == true)
-        {
-            session.RadialOpened = true;
-            _setMappingStatus($"Radial opened (hold): {session.SourceToken}");
-        }
-        else
-            DisposeRadialKeyboardConflictSession(session.Button);
+        session.LongActionFired = true;
+        session.OnLongPress();
     }
 
-    public bool TryFinalizeRadialKeyboardConflictOnRelease(
+    public bool TryFinalizeDualActionOnRelease(
         GamepadButtons releasedButton,
         long? releasedButtonHeldMs,
         bool applyLeadReleaseSuppress)
     {
-        if (_tryOpenRadialMenuFromKeyboardConflict is null ||
-            !_radialKeyboardConflictSessions.TryGetValue(releasedButton, out var session))
+        if (!_dualActionSessions.TryGetValue(releasedButton, out var session))
             return false;
 
         session.Timer.Stop();
 
-        if (session.RadialOpened)
+        if (session.LongActionFired)
         {
-            DisposeRadialKeyboardConflictSession(releasedButton);
+            DisposeDualActionSession(releasedButton);
             return true;
         }
 
         if (!_canDispatchOutput())
         {
-            DisposeRadialKeyboardConflictSession(releasedButton);
+            DisposeDualActionSession(releasedButton);
             return true;
         }
 
         if (!InputTokenResolver.TryResolveMappedOutput(session.ShortKeyToken, out var output, out var label))
         {
-            DisposeRadialKeyboardConflictSession(releasedButton);
+            DisposeDualActionSession(releasedButton);
             return true;
         }
 
@@ -439,26 +431,26 @@ internal sealed class HoldSessionManager
             heldMs.Value > _leadKeyReleaseSuppressMs)
         {
             _setMappingStatus($"Suppressed tap ({session.SourceToken}) - lead held past {_leadKeyReleaseSuppressMs} ms");
-            DisposeRadialKeyboardConflictSession(releasedButton);
+            DisposeDualActionSession(releasedButton);
             return true;
         }
 
         var outputLabel = $"{label} (Tap)";
         _setMappedOutput(outputLabel);
-        _setMappingStatus($"Queued tap (radial conflict): {session.SourceToken} -> {outputLabel}");
+        _setMappingStatus($"Queued tap (dual action): {session.SourceToken} -> {outputLabel}");
         _queueOutputDispatch(session.SourceToken, TriggerMoment.Tap, output, outputLabel, session.ShortKeyToken);
-        DisposeRadialKeyboardConflictSession(releasedButton);
+        DisposeDualActionSession(releasedButton);
         return true;
     }
 
-    public void CancelRadialKeyboardConflictSupersededByMoreSpecificChord(
+    public void CancelDualActionSupersededByMoreSpecificChord(
         GamepadButtons changedButton,
         IReadOnlyCollection<GamepadButtons> activeButtons,
         IReadOnlyList<MappingEntry> snapshot,
         float leftTriggerValue,
         float rightTriggerValue)
     {
-        foreach (var kvp in _radialKeyboardConflictSessions.ToArray())
+        foreach (var kvp in _dualActionSessions.ToArray())
         {
             var session = kvp.Value;
             foreach (var mapping in snapshot)
@@ -468,7 +460,7 @@ internal sealed class HoldSessionManager
                 if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var obChord, out var obRt, out var obLt, out _))
                     continue;
                 if (!ChordResolver.IsOtherChordStrictlyMoreSpecific(
-                        new[] { session.Button },
+                        [session.Button],
                         false,
                         false,
                         obChord,
@@ -488,32 +480,32 @@ internal sealed class HoldSessionManager
                         activeButtons))
                     continue;
 
-                DisposeRadialKeyboardConflictSession(kvp.Key);
+                DisposeDualActionSession(kvp.Key);
                 break;
             }
         }
     }
 
-    private void DisposeRadialKeyboardConflictSession(GamepadButtons button)
+    private void DisposeDualActionSession(GamepadButtons button)
     {
-        if (_radialKeyboardConflictSessions.Remove(button, out var session))
+        if (_dualActionSessions.Remove(button, out var session))
             session.Timer.Stop();
         _onHoldSessionsChanged();
     }
 
-    public static bool HasSoloKeyboardRadialConflict(GamepadButtons button, IReadOnlyList<MappingEntry> snapshot) =>
-        TryGetSoloKeyboardRadialConflict(button, snapshot, out _, out _);
+    public static bool HasSoloKeyboardDeferredConflict(GamepadButtons button, IReadOnlyList<MappingEntry> snapshot) =>
+        TryGetSoloKeyboardDeferredConflict(button, snapshot, out _, out _);
 
-    private static bool TryGetSoloKeyboardRadialConflict(
+    public static bool TryGetSoloKeyboardDeferredConflict(
         GamepadButtons button,
         IReadOnlyList<MappingEntry> snapshot,
         out MappingEntry keyboardMapping,
-        out MappingEntry radialMapping)
+        out MappingEntry deferredMapping)
     {
         keyboardMapping = null!;
-        radialMapping = null!;
+        deferredMapping = null!;
         MappingEntry? kb = null;
-        MappingEntry? rad = null;
+        MappingEntry? def = null;
         foreach (var mapping in snapshot)
         {
             if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
@@ -524,16 +516,17 @@ internal sealed class HoldSessionManager
                 continue;
             if (rt || lt || chord.Count != 1 || chord[0] != button)
                 continue;
-            if (mapping.RadialMenu is not null)
-                rad = mapping;
+
+            if (mapping.RequiresDeferralOnPress)
+                def = mapping;
             else if (InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out _, out _))
                 kb = mapping;
         }
 
-        if (kb is null || rad is null)
+        if (kb is null || def is null)
             return false;
         keyboardMapping = kb;
-        radialMapping = rad;
+        deferredMapping = def;
         return true;
     }
 
@@ -706,9 +699,9 @@ internal sealed class HoldSessionManager
         foreach (var session in _holdSessions.Values)
             session.Timer.Stop();
         _holdSessions.Clear();
-        foreach (var s in _radialKeyboardConflictSessions.Values)
+        foreach (var s in _dualActionSessions.Values)
             s.Timer.Stop();
-        _radialKeyboardConflictSessions.Clear();
+        _dualActionSessions.Clear();
         _onHoldSessionsChanged();
     }
 }
