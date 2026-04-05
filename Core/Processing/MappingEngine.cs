@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services;
 using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
@@ -52,10 +54,22 @@ public sealed class MappingEngine : IMappingEngine
     /// <summary>Non-null = exact combo leads from profile JSON; null = infer from mappings each event.</summary>
     private HashSet<GamepadButtons>? _explicitComboLeadsFromTemplate;
 
+    private List<RadialMenuDefinition>? _radialMenusPersist;
+    private List<KeyboardActionDefinition>? _keyboardActionsPersist;
+
     private readonly AnalogMappingProcessor _analogMappingProcessor;
     private readonly ComboHudManager? _comboHudManager;
     private readonly ButtonMappingProcessor _buttonMappingProcessor;
     private readonly ITimeProvider _timeProvider;
+    private readonly Action<Action> _runOnUi;
+    private readonly IRadialMenuHud _radialMenuHud;
+    private readonly Func<float> _getRadialMenuStickEngagementThreshold;
+    private readonly Func<RadialMenuConfirmMode> _getRadialMenuConfirmMode;
+
+    private HashSet<GamepadButtons>? _radialChordSuppressionButtons;
+    private bool _radialPrevStickEngaged;
+    private bool _radialStickEverEngagedWhileOpen;
+    private int _radialLastSectorWhileEngaged = -1;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
@@ -71,9 +85,18 @@ public sealed class MappingEngine : IMappingEngine
         Action<string?>? setComboHudGateHint = null,
         Func<string>? comboHudGateMessageFactory = null,
         Func<bool>? isComboHudPresentationSuppressed = null,
+        IRadialMenuHud? radialMenuHud = null,
+        Func<float>? getRadialMenuStickEngagementThreshold = null,
+        Func<RadialMenuConfirmMode>? getRadialMenuConfirmMode = null,
         ITimeProvider? timeProvider = null)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
+        _runOnUi = runOnUi;
+        _radialMenuHud = radialMenuHud ?? NullRadialMenuHud.Instance;
+        _getRadialMenuStickEngagementThreshold =
+            getRadialMenuStickEngagementThreshold ?? (() => 0.35f);
+        _getRadialMenuConfirmMode =
+            getRadialMenuConfirmMode ?? (() => RadialMenuConfirmMode.ReleaseGuideKey);
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
@@ -128,21 +151,22 @@ public sealed class MappingEngine : IMappingEngine
                 isComboHudPresentationSuppressed);
         }
 
-            _buttonMappingProcessor = new ButtonMappingProcessor(
-            _holdSessionManager,
-            _outputStateTracker,
-            _itemCycleProcessor,
-            () => CanDispatchOutputMerged(),
-            _setMappedOutput,
-            _setMappingStatus,
-            QueueOutputDispatch,
-            EnqueueItemCycleTap,
-            TryDispatchTemplateToggle,
-            TryDispatchRadialMenu,
-            mappings => ResolveComboLeads(mappings),
-            _leadKeyReleaseSuppressMs,
-            _deferredSoloLeadButtons,
-            _deferredSoloLeadButtonsLock);
+        _buttonMappingProcessor = new ButtonMappingProcessor(
+        _holdSessionManager,
+        _outputStateTracker,
+        _itemCycleProcessor,
+        () => CanDispatchOutputMerged(),
+        _setMappedOutput,
+        _setMappingStatus,
+        QueueOutputDispatch,
+        EnqueueItemCycleTap,
+        TryDispatchTemplateToggle,
+        TryDispatchRadialMenu,
+        mappings => ResolveComboLeads(mappings),
+        _leadKeyReleaseSuppressMs,
+        _deferredSoloLeadButtons,
+        _deferredSoloLeadButtonsLock,
+        shouldSuppressAllMappingForEvent: SuppressRadialChordButtonMapping);
 
         _inputFramePipeline = new InputFramePipeline(
             middlewares: new IInputFrameMiddleware[] { new InputFrameTransitionMiddleware() },
@@ -181,6 +205,12 @@ public sealed class MappingEngine : IMappingEngine
     /// <inheritdoc />
     public void SetComboLeadButtonsFromTemplate(IReadOnlyList<string>? comboLeadButtonNames) =>
         _explicitComboLeadsFromTemplate = ComboLeadSemantics.ParseDeclaredNames(comboLeadButtonNames);
+
+    public void SetRadialMenuDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions)
+    {
+        _radialMenusPersist = radialMenus;
+        _keyboardActionsPersist = keyboardActions;
+    }
 
     private HashSet<GamepadButtons> ResolveComboLeads(IReadOnlyCollection<MappingEntry> mappings) =>
         ComboLeadSemantics.ResolveLeads(mappings, _explicitComboLeadsFromTemplate);
@@ -227,6 +257,9 @@ public sealed class MappingEngine : IMappingEngine
         _latestActiveButtons = activeButtonsNow;
         _holdSessionManager.UpdateLatestInputState(_latestActiveButtons, frame.LeftTrigger, frame.RightTrigger);
 
+        // Update active radial menu selection if one is open
+        UpdateRadialMenuSelection(frame);
+
         // The first frame is treated as an initialization frame; button transitions are ignored.
         if (!context.IsFirstFrame)
         {
@@ -264,13 +297,17 @@ public sealed class MappingEngine : IMappingEngine
                     frame.LeftTrigger,
                     frame.RightTrigger);
 
+                TryFinishRadialMenuOnChordRelease(releasedButton);
+
                 workingActiveButtons.Remove(releasedButton);
             }
         }
 
-        // Continuous analog evaluation (for output transitions + relative mouse look).
-        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot);
-        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot);
+        // Continuous analog evaluation; the stick used for radial selection reads real deflection in UpdateRadialMenuSelection only.
+        var leftAnalog = ThumbstickValueForAnalogWhileRadialOpen(_activeRadialMenuDefinition, GamepadBindingType.LeftThumbstick, frame.LeftThumbstick);
+        var rightAnalog = ThumbstickValueForAnalogWhileRadialOpen(_activeRadialMenuDefinition, GamepadBindingType.RightThumbstick, frame.RightThumbstick);
+        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.LeftThumbstick, leftAnalog, _lastButtonMappingsSnapshot);
+        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.RightThumbstick, rightAnalog, _lastButtonMappingsSnapshot);
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
 
@@ -343,6 +380,8 @@ public sealed class MappingEngine : IMappingEngine
                 _holdSessionManager.ClearAllHoldSessions();
                 _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
                 _analogMappingProcessor.ForceReleaseAnalogOutputs();
+                _radialChordSuppressionButtons = null;
+                AbandonRadialMenuSessionForForceReset();
             }
         }
     }
@@ -377,6 +416,7 @@ public sealed class MappingEngine : IMappingEngine
             ForceReleaseAllOutputs();
             ForceReleaseAnalogOutputs();
             _inputDispatcher.Dispose();
+            _radialMenuHud.Dispose();
         }
         catch
         {
@@ -554,6 +594,94 @@ public sealed class MappingEngine : IMappingEngine
         return true;
     }
 
+    private RadialMenuDefinition? _activeRadialMenuDefinition;
+    private MappingEntry? _radialMenuOpenMapping;
+    private string _radialMenuSourceToken = string.Empty;
+    private int _currentRadialSelectedIndex = -1;
+
+    /// <summary>Neutral stick for analog mappings while radial uses that stick for selection; avoids look/move and releases held keys.</summary>
+    private static Vector2 ThumbstickValueForAnalogWhileRadialOpen(
+        RadialMenuDefinition? activeRadial,
+        GamepadBindingType stick,
+        Vector2 frameValue)
+    {
+        if (activeRadial is null)
+            return frameValue;
+
+        return RadialMenuJoystickToBindingType(activeRadial.Joystick) == stick
+            ? Vector2.Zero
+            : frameValue;
+    }
+
+    private static GamepadBindingType RadialMenuJoystickToBindingType(string? joystick)
+    {
+        var j = (joystick ?? string.Empty).Trim();
+        if (j.Equals("LeftStick", StringComparison.OrdinalIgnoreCase))
+            return GamepadBindingType.LeftThumbstick;
+        return GamepadBindingType.RightThumbstick;
+    }
+
+    private void UpdateRadialMenuSelection(InputFrame frame)
+    {
+        if (_activeRadialMenuDefinition == null)
+            return;
+
+        var stick = _activeRadialMenuDefinition.Joystick == "LeftStick"
+            ? frame.LeftThumbstick
+            : frame.RightThumbstick;
+
+        var minMag = Math.Clamp(_getRadialMenuStickEngagementThreshold(), 0.01f, 1f);
+        var engaged = stick.Length() >= minMag;
+        var confirmMode = _getRadialMenuConfirmMode();
+
+        if (engaged)
+        {
+            _radialStickEverEngagedWhileOpen = true;
+
+            var itemCount = _activeRadialMenuDefinition.Items.Count;
+            if (itemCount == 0)
+            {
+                _radialPrevStickEngaged = true;
+                return;
+            }
+
+            var angleRad = Math.Atan2(stick.X, stick.Y);
+            var angleDeg = angleRad * (180.0 / Math.PI);
+            if (angleDeg < 0) angleDeg += 360;
+
+            var sectorSize = 360.0 / itemCount;
+            var index = (int)((angleDeg + (sectorSize / 2)) / sectorSize) % itemCount;
+
+            _radialLastSectorWhileEngaged = index;
+            if (index != _currentRadialSelectedIndex)
+            {
+                _currentRadialSelectedIndex = index;
+                _runOnUi(() => _radialMenuHud.UpdateSelection(index));
+            }
+        }
+        else
+        {
+            if (confirmMode == RadialMenuConfirmMode.ReturnStickToCenter &&
+                _radialPrevStickEngaged &&
+                _radialStickEverEngagedWhileOpen &&
+                _radialLastSectorWhileEngaged >= 0)
+            {
+                _currentRadialSelectedIndex = _radialLastSectorWhileEngaged;
+                CloseRadialMenuSession(_radialMenuSourceToken, dispatchSelection: true, suppressChordUntilPhysicalRelease: true);
+                _radialPrevStickEngaged = false;
+                return;
+            }
+
+            if (_currentRadialSelectedIndex != -1)
+            {
+                _currentRadialSelectedIndex = -1;
+                _runOnUi(() => _radialMenuHud.UpdateSelection(-1));
+            }
+        }
+
+        _radialPrevStickEngaged = engaged;
+    }
+
     private bool TryDispatchRadialMenu(
         MappingEntry mapping,
         TriggerMoment trigger,
@@ -564,19 +692,162 @@ public sealed class MappingEngine : IMappingEngine
         if (mapping.RadialMenu is not { } rm)
             return false;
 
-        // For now, just log that we would open a radial menu.
-        // We will implement the actual HUD and joystick logic next.
         if (trigger == TriggerMoment.Pressed)
         {
-            var label = $"Open Radial Menu: {rm.RadialMenuId}";
-            _setMappedOutput(label);
-            _setMappingStatus($"Radial Menu triggered: {rm.RadialMenuId}");
+            var definition = _radialMenusPersist?.FirstOrDefault(d => d.Id == rm.RadialMenuId);
+            if (definition == null)
+            {
+                errorStatus = "Radial menu: unknown id.";
+                return true;
+            }
+
+            _radialMenuOpenMapping = mapping;
+            _radialMenuSourceToken = sourceToken;
+            _activeRadialMenuDefinition = definition;
+            _currentRadialSelectedIndex = -1;
+
+            var items = definition.Items.Select(item =>
+            {
+                var action = _keyboardActionsPersist?.FirstOrDefault(a => a.Id == item.ActionId);
+                return new RadialMenuHudItem
+                {
+                    ActionId = item.ActionId,
+                    DisplayName = action?.Description ?? item.ActionId,
+                    Icon = item.Icon
+                };
+            }).ToList();
+
+            _radialPrevStickEngaged = false;
+            _radialStickEverEngagedWhileOpen = false;
+            _radialLastSectorWhileEngaged = -1;
+
+            _runOnUi(() => _radialMenuHud.ShowMenu(definition.DisplayName, items));
+            return true;
         }
-        else if (trigger == TriggerMoment.Released)
+
+        if (trigger == TriggerMoment.Released)
         {
-            _setMappedOutput($"Close Radial Menu");
+            if (_activeRadialMenuDefinition is null ||
+                !string.Equals(rm.RadialMenuId, _activeRadialMenuDefinition.Id, StringComparison.Ordinal))
+                return false;
+
+            var confirmOnRelease = _getRadialMenuConfirmMode() != RadialMenuConfirmMode.ReturnStickToCenter;
+            CloseRadialMenuSession(sourceToken, dispatchSelection: confirmOnRelease);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void TryFinishRadialMenuOnChordRelease(GamepadButtons releasedButton)
+    {
+        if (_activeRadialMenuDefinition is null || _radialMenuOpenMapping is null)
+            return;
+
+        if (_radialMenuOpenMapping.From is not { } from || from.Type != GamepadBindingType.Button)
+            return;
+
+        if (!ChordResolver.TryParseButtonChord(
+                from.Value,
+                out var chordButtons,
+                out _,
+                out _,
+                out _))
+            return;
+
+        if (chordButtons.Count == 0)
+            return;
+
+        if (!chordButtons.Contains(releasedButton))
+            return;
+
+        var confirmOnRelease = _getRadialMenuConfirmMode() != RadialMenuConfirmMode.ReturnStickToCenter;
+        CloseRadialMenuSession(_radialMenuSourceToken, dispatchSelection: confirmOnRelease);
+    }
+
+    private void CloseRadialMenuSession(
+        string sourceTokenForDispatch,
+        bool dispatchSelection,
+        bool suppressChordUntilPhysicalRelease = false)
+    {
+        if (_activeRadialMenuDefinition is null)
+            return;
+
+        var selectedIndex = _currentRadialSelectedIndex;
+        var definition = _activeRadialMenuDefinition;
+
+        _runOnUi(() => _radialMenuHud.HideMenu());
+
+        if (dispatchSelection &&
+            selectedIndex >= 0 &&
+            selectedIndex < definition.Items.Count)
+        {
+            var item = definition.Items[selectedIndex];
+            var action = _keyboardActionsPersist?.FirstOrDefault(a => a.Id == item.ActionId);
+            var keyToken = action?.KeyboardKey ?? string.Empty;
+
+            if (InputTokenResolver.TryResolveMappedOutput(keyToken, out var output, out var baseLabel))
+            {
+                var outputLabel = $"{baseLabel} (Radial)";
+                _setMappedOutput(outputLabel);
+                _setMappingStatus($"Radial Menu Selection: {item.ActionId} -> {outputLabel}");
+                _inputDispatcher.Enqueue(sourceTokenForDispatch, TriggerMoment.Tap, output, outputLabel, keyToken);
+            }
+        }
+
+        if (suppressChordUntilPhysicalRelease && dispatchSelection)
+            BeginRadialChordButtonSuppression();
+
+        ClearRadialSessionState();
+    }
+
+    private void BeginRadialChordButtonSuppression()
+    {
+        if (_radialMenuOpenMapping?.From is not { } from || from.Type != GamepadBindingType.Button)
+            return;
+        if (!ChordResolver.TryParseButtonChord(from.Value, out var chordButtons, out _, out _, out _))
+            return;
+        if (chordButtons.Count == 0)
+            return;
+
+        _radialChordSuppressionButtons = new HashSet<GamepadButtons>(chordButtons);
+    }
+
+    private bool SuppressRadialChordButtonMapping(ButtonEventContext context)
+    {
+        if (_radialChordSuppressionButtons is null)
+            return false;
+        if (!_radialChordSuppressionButtons.Contains(context.Button))
+            return false;
+
+        if (context.Trigger == TriggerMoment.Released)
+        {
+            _radialChordSuppressionButtons.Remove(context.Button);
+            if (_radialChordSuppressionButtons.Count == 0)
+                _radialChordSuppressionButtons = null;
         }
 
         return true;
+    }
+
+    private void ClearRadialSessionState()
+    {
+        _activeRadialMenuDefinition = null;
+        _radialMenuOpenMapping = null;
+        _radialMenuSourceToken = string.Empty;
+        _currentRadialSelectedIndex = -1;
+        _radialPrevStickEngaged = false;
+        _radialStickEverEngagedWhileOpen = false;
+        _radialLastSectorWhileEngaged = -1;
+    }
+
+    private void AbandonRadialMenuSessionForForceReset()
+    {
+        if (_activeRadialMenuDefinition is null)
+            return;
+
+        _radialChordSuppressionButtons = null;
+        _runOnUi(() => _radialMenuHud.HideMenu());
+        ClearRadialSessionState();
     }
 }

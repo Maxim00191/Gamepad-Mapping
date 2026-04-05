@@ -270,6 +270,15 @@
   <data name="PollingIntervalLabel" xml:space="preserve">
     <value>手柄轮询间隔（毫秒）</value>
   </data>
+  <data name="RadialMenuConfirmModeLabel" xml:space="preserve">
+    <value>转盘确认方式</value>
+  </data>
+  <data name="RadialMenuConfirmModeReleaseGuide" xml:space="preserve">
+    <value>松开引导键（默认）</value>
+  </data>
+  <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
+    <value>选区摇杆回中</value>
+  </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
     <value>循环热键栏 / 物品栏槽位</value>
   </data>

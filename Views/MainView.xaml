@@ -206,7 +206,17 @@
                                                 <TextBox Text="{Binding GamepadPollingIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                          Width="88"
                                                          HorizontalAlignment="Left"
-                                                         Margin="0,4,0,0" />
+                                                         Margin="0,4,0,4" />
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeLabel]}"
+                                                           Margin="0,4,8,4"
+                                                           TextWrapping="Wrap" />
+                                                <ComboBox SelectedIndex="{Binding RadialMenuConfirmModeIndex, Mode=TwoWay}"
+                                                          Width="220"
+                                                          HorizontalAlignment="Left"
+                                                          Margin="0,4,0,0">
+                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
+                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReturnCenter]}" />
+                                                </ComboBox>
                                             </UniformGrid>
                                         </StackPanel>
                                     </Border>

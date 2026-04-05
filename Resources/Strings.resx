@@ -270,6 +270,15 @@
   <data name="PollingIntervalLabel" xml:space="preserve">
     <value>Gamepad poll interval (ms)</value>
   </data>
+  <data name="RadialMenuConfirmModeLabel" xml:space="preserve">
+    <value>Radial menu confirm</value>
+  </data>
+  <data name="RadialMenuConfirmModeReleaseGuide" xml:space="preserve">
+    <value>Release guide chord (default)</value>
+  </data>
+  <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
+    <value>Return selection stick to center</value>
+  </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
     <value>Cycle hotbar / inventory slots</value>
   </data>

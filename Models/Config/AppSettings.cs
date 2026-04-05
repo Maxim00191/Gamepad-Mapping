@@ -134,4 +134,10 @@ public class AppSettings
     /// <summary>Display duration in seconds for the template-switch HUD. Clamped when applied.</summary>
     [JsonProperty("templateSwitchHudSeconds")]
     public double TemplateSwitchHudSeconds { get; set; } = 3.0;
+
+    /// <summary>
+    /// Radial menu commit: <c>releaseGuideKey</c> (default) or <c>returnStickToCenter</c>.
+    /// </summary>
+    [JsonProperty("radialMenuConfirmMode")]
+    public string RadialMenuConfirmMode { get; set; } = "releaseGuideKey";
 }

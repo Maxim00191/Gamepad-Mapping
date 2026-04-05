@@ -76,6 +76,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;
+        RadialMenuConfirmModeIndex =
+            string.Equals(_appSettings.RadialMenuConfirmMode, "returnStickToCenter", StringComparison.OrdinalIgnoreCase)
+                ? 1
+                : 0;
         DefaultAnalogActivationThreshold = _appSettings.DefaultAnalogActivationThreshold;
         MouseLookSensitivity = _appSettings.MouseLookSensitivity;
         AnalogChangeEpsilon = _appSettings.AnalogChangeEpsilon;
@@ -180,7 +184,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
             requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)),
             setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
             comboHudGateMessageFactory: comboHudGateMessageFactory,
-            isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive);
+            isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive,
+            radialMenuHud: new RadialMenuHudPresenter(),
+            getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
+            getRadialMenuConfirmMode: () => (RadialMenuConfirmMode)RadialMenuConfirmModeIndex);
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
@@ -349,6 +356,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             gamepadPollingIntervalMs = clamped;
         _appSettings.GamepadPollingIntervalMs = clamped;
+        _settingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int radialMenuConfirmModeIndex;
+
+    partial void OnRadialMenuConfirmModeIndexChanged(int value)
+    {
+        var clamped = value < 0 ? 0 : (value > 1 ? 1 : value);
+        if (clamped != value)
+            radialMenuConfirmModeIndex = clamped;
+        _appSettings.RadialMenuConfirmMode = clamped == 1 ? "returnStickToCenter" : "releaseGuideKey";
         _settingsService.SaveSettings(_appSettings);
     }
 
@@ -685,6 +704,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _keyboardActionsPersist = template.KeyboardActions?.ToList();
         _radialMenusPersist = template.RadialMenus?.ToList();
         _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+        _mappingEngine.SetRadialMenuDefinitions(_radialMenusPersist, _keyboardActionsPersist);
 
         Mappings.Clear();
         foreach (var mapping in template.Mappings)

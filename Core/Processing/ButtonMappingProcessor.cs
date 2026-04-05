@@ -37,6 +37,7 @@ internal sealed class ButtonMappingProcessor
     private readonly int _leadKeyReleaseSuppressMs;
     private readonly HashSet<GamepadButtons> _deferredSoloLeadButtons;
     private readonly object _deferredSoloLeadButtonsLock;
+    private readonly Func<ButtonEventContext, bool>? _shouldSuppressAllMappingForEvent;
 
     public ButtonMappingProcessor(
         HoldSessionManager holdSessionManager,
@@ -52,7 +53,8 @@ internal sealed class ButtonMappingProcessor
         Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> resolveComboLeads,
         int leadKeyReleaseSuppressMs,
         HashSet<GamepadButtons> deferredSoloLeadButtons,
-        object deferredSoloLeadButtonsLock)
+        object deferredSoloLeadButtonsLock,
+        Func<ButtonEventContext, bool>? shouldSuppressAllMappingForEvent = null)
     {
             _holdSessionManager = holdSessionManager;
             _outputStateTracker = outputStateTracker;
@@ -68,11 +70,15 @@ internal sealed class ButtonMappingProcessor
             _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
             _deferredSoloLeadButtons = deferredSoloLeadButtons;
             _deferredSoloLeadButtonsLock = deferredSoloLeadButtonsLock;
+            _shouldSuppressAllMappingForEvent = shouldSuppressAllMappingForEvent;
         }
 
         public void ProcessButtonEventTerminal(ButtonEventContext context)
         {
             if (context.IsSuppressed)
+                return;
+
+            if (_shouldSuppressAllMappingForEvent?.Invoke(context) == true)
                 return;
 
             var comboLeads = _resolveComboLeads(context.MappingsSnapshot);
