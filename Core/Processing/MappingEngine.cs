@@ -126,6 +126,12 @@ public sealed class MappingEngine : IMappingEngine
             {
                 lock (_inputFrameSync)
                     action();
+            },
+            tryOpenRadialMenuFromKeyboardConflict: (mapping, token) =>
+            {
+                if (!TryDispatchRadialMenu(mapping, TriggerMoment.Pressed, token, out var err))
+                    return false;
+                return err is null;
             });
 
         _analogMappingProcessor = new AnalogMappingProcessor(
@@ -197,7 +203,8 @@ public sealed class MappingEngine : IMappingEngine
                     collectReleasedOutputsHandledByMappings: (btn, active, snap, lt, rt, heldMs) => _buttonMappingProcessor.CollectReleasedOutputsHandledByMappings(btn, active, snap, lt, rt, heldMs),
                     setLatestActiveButtons: activeButtons => _latestActiveButtons = activeButtons,
                     canDispatchOutput: () => CanDispatchOutputMerged(),
-                    setMappingStatus: _setMappingStatus)
+                    setMappingStatus: _setMappingStatus,
+                    cancelRadialKeyboardConflictSuperseded: _holdSessionManager.CancelRadialKeyboardConflictSupersededByMoreSpecificChord)
             ],
             terminal: _buttonMappingProcessor.ProcessButtonEventTerminal);
     }

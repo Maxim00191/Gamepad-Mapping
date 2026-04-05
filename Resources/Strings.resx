@@ -330,6 +330,9 @@
   <data name="CatalogColumnActionId" xml:space="preserve">
     <value>Action id</value>
   </data>
+  <data name="MappingActionIdManual" xml:space="preserve">
+    <value>(Manual key)</value>
+  </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>Icon (optional)</value>
   </data>

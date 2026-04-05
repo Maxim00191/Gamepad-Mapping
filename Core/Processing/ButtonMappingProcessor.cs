@@ -81,6 +81,17 @@ internal sealed class ButtonMappingProcessor
             if (_shouldSuppressAllMappingForEvent?.Invoke(context) == true)
                 return;
 
+            if (context.Trigger == TriggerMoment.Released &&
+                _holdSessionManager.TryFinalizeRadialKeyboardConflictOnRelease(
+                    context.Button,
+                    context.ReleasedButtonHeldMs,
+                    _resolveComboLeads(context.MappingsSnapshot).Contains(context.Button)))
+            {
+                lock (_deferredSoloLeadButtonsLock)
+                    _deferredSoloLeadButtons.Remove(context.Button);
+                return;
+            }
+
             var comboLeads = _resolveComboLeads(context.MappingsSnapshot);
 
             lock (_deferredSoloLeadButtonsLock)
@@ -128,14 +139,18 @@ internal sealed class ButtonMappingProcessor
                 if (mapping.Trigger != context.Trigger) continue;
 
                 if (context.Trigger == TriggerMoment.Tap && chordButtons.Count == 1 &&
-                    context.ActiveButtons.Any(b => b != context.Button && comboLeads.Contains(b)))
+                    mapping.RadialMenu is null &&
+                    context.ActiveButtons.Any(b =>
+                        b != context.Button && IsEffectiveSoloChordDeferLead(b, comboLeads, context.MappingsSnapshot)))
                 {
                     _setMappingStatus($"Suppressed Tap for {context.ButtonName} - Lead button held");
                     continue;
                 }
 
                 if (context.Trigger == TriggerMoment.Pressed && chordButtons.Count == 1 &&
-                    context.ActiveButtons.Any(b => b != context.Button && comboLeads.Contains(b)))
+                    mapping.RadialMenu is null &&
+                    context.ActiveButtons.Any(b =>
+                        b != context.Button && IsEffectiveSoloChordDeferLead(b, comboLeads, context.MappingsSnapshot)))
                 {
                     _setMappingStatus($"Suppressed Pressed for {context.ButtonName} - Lead button held");
                     continue;
@@ -146,12 +161,19 @@ internal sealed class ButtonMappingProcessor
                     if (context.Trigger == TriggerMoment.Pressed &&
                         chordButtons.Count == 1 &&
                         !reqRt &&
-                        !reqLt &&
-                        SnapshotHasMultiButtonChordContaining(chordButtons[0], context.MappingsSnapshot) &&
-                        comboLeads.Contains(chordButtons[0]))
+                        !reqLt)
                     {
-                        _deferredSoloLeadButtons.Add(context.Button);
-                        continue;
+                        var multiChordDefer =
+                            SnapshotHasMultiButtonChordContaining(chordButtons[0], context.MappingsSnapshot) &&
+                            (comboLeads.Contains(chordButtons[0]) || mapping.RadialMenu is not null);
+                        if (multiChordDefer)
+                        {
+                            _deferredSoloLeadButtons.Add(context.Button);
+                            continue;
+                        }
+
+                        if (HoldSessionManager.HasSoloKeyboardRadialConflict(chordButtons[0], context.MappingsSnapshot))
+                            continue;
                     }
                 }
                 if (context.Trigger == TriggerMoment.Released &&
@@ -284,7 +306,30 @@ internal sealed class ButtonMappingProcessor
                     context.LeftTriggerValue,
                     context.RightTriggerValue);
 
-            if (!matched && !suppressedByHoldDual && !holdArmed)
+            var radialConflictArmed = false;
+            if (context.Trigger == TriggerMoment.Pressed &&
+                HoldSessionManager.HasSoloKeyboardRadialConflict(context.Button, context.MappingsSnapshot))
+            {
+                var skipRadialArm = false;
+                lock (_deferredSoloLeadButtonsLock)
+                    skipRadialArm = _deferredSoloLeadButtons.Contains(context.Button);
+                if (!skipRadialArm)
+                {
+                    radialConflictArmed = _holdSessionManager.TryArmRadialKeyboardConflict(
+                        context.Button,
+                        context.ActiveButtons,
+                        context.MappingsSnapshot,
+                        context.LeftTriggerValue,
+                        context.RightTriggerValue);
+                    if (radialConflictArmed)
+                    {
+                        lock (_deferredSoloLeadButtonsLock)
+                            _deferredSoloLeadButtons.Add(context.Button);
+                    }
+                }
+            }
+
+            if (!matched && !suppressedByHoldDual && !holdArmed && !radialConflictArmed)
                 _setMappingStatus($"No mapping for {context.ButtonName} ({context.Trigger})");
         }
 
@@ -330,9 +375,39 @@ internal sealed class ButtonMappingProcessor
                 return false;
             if (chordButtons.Count != 1)
                 return false;
-            if (!comboLeads.Contains(chordButtons[0]))
+            if (!IsEffectiveSoloChordDeferLead(chordButtons[0], comboLeads, snapshot))
                 return false;
             return SnapshotHasMultiButtonChordContaining(chordButtons[0], snapshot);
+        }
+
+        /// <summary>
+        /// Combo leads from the profile plus any button that has a solo <see cref="TriggerMoment.Pressed"/> radial
+        /// binding so radial starters participate in defer / long-release suppress like modifier leads.
+        /// </summary>
+        private static bool IsEffectiveSoloChordDeferLead(
+            GamepadButtons button,
+            HashSet<GamepadButtons> comboLeads,
+            IReadOnlyCollection<MappingEntry> snapshot) =>
+            comboLeads.Contains(button) || HasRadialMenuSoloPressedMapping(button, snapshot);
+
+        private static bool HasRadialMenuSoloPressedMapping(
+            GamepadButtons button,
+            IReadOnlyCollection<MappingEntry> snapshot)
+        {
+            foreach (var mapping in snapshot)
+            {
+                if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
+                    continue;
+                if (mapping.Trigger != TriggerMoment.Pressed || mapping.RadialMenu is null)
+                    continue;
+                if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var rt, out var lt, out _))
+                    continue;
+                if (rt || lt || chord.Count != 1 || chord[0] != button)
+                    continue;
+                return true;
+            }
+
+            return false;
         }
 
         private static bool SnapshotHasMultiButtonChordContaining(
@@ -460,7 +535,7 @@ internal sealed class ButtonMappingProcessor
                         pressed.RadialMenu is { } deferredRadial &&
                         ChordResolver.TryParseButtonChord(pressed.From.Value, out _, out _, out _, out var deferredRadialToken))
                     {
-                        if (_tryDispatchRadialMenu(pressed, TriggerMoment.Tap, deferredRadialToken, out var defRmErr))
+                        if (_tryDispatchRadialMenu(pressed, TriggerMoment.Pressed, deferredRadialToken, out var defRmErr))
                         {
                             if (defRmErr is not null)
                                 _setMappingStatus(defRmErr);
@@ -472,7 +547,7 @@ internal sealed class ButtonMappingProcessor
                         tap.RadialMenu is { } tapRadial &&
                         ChordResolver.TryParseButtonChord(tap.From.Value, out _, out _, out _, out var tapRadialToken))
                     {
-                        if (_tryDispatchRadialMenu(tap, TriggerMoment.Tap, tapRadialToken, out var tapRmErr))
+                        if (_tryDispatchRadialMenu(tap, TriggerMoment.Pressed, tapRadialToken, out var tapRmErr))
                         {
                             if (tapRmErr is not null)
                                 _setMappingStatus(tapRmErr);

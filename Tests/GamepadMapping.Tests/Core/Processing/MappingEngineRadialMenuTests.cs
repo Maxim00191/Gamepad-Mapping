@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
@@ -10,17 +12,62 @@ using GamepadMapperGUI.Models;
 using Moq;
 using Vortice.XInput;
 using Xunit;
+using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
 namespace GamepadMapping.Tests.Core.Processing;
 
 public sealed class MappingEngineRadialMenuTests
 {
+    private sealed class MockTimeProvider : ITimeProvider
+    {
+        public long Ticks { get; set; }
+        public List<MockTimer> Timers { get; } = new();
+
+        public long GetTickCount64() => Ticks;
+
+        public ITimer CreateTimer(TimeSpan interval, Action onTick)
+        {
+            var timer = new MockTimer(interval, onTick);
+            Timers.Add(timer);
+            return timer;
+        }
+
+        public void Advance(long ms)
+        {
+            Ticks += ms;
+            foreach (var timer in Timers.Where(t => t.IsRunning).ToList())
+            {
+                if (ms >= timer.Interval.TotalMilliseconds)
+                    timer.Tick();
+            }
+        }
+    }
+
+    private sealed class MockTimer : ITimer
+    {
+        public TimeSpan Interval { get; set; }
+        private readonly Action _onTick;
+        public bool IsRunning { get; private set; }
+
+        public MockTimer(TimeSpan interval, Action onTick)
+        {
+            Interval = interval;
+            _onTick = onTick;
+        }
+
+        public void Start() => IsRunning = true;
+        public void Stop() => IsRunning = false;
+        public void Tick() => _onTick();
+        public void Dispose() => Stop();
+    }
+
     private static MappingEngine CreateEngine(
         IKeyboardEmulator keyboard,
         IMouseEmulator mouse,
         IRadialMenuHud hud,
         Func<RadialMenuConfirmMode>? getRadialMenuConfirmMode = null,
-        Func<float>? getRadialMenuStickEngagementThreshold = null) =>
+        Func<float>? getRadialMenuStickEngagementThreshold = null,
+        ITimeProvider? timeProvider = null) =>
         new(
             keyboard,
             mouse,
@@ -31,7 +78,8 @@ public sealed class MappingEngineRadialMenuTests
             setComboHud: null,
             radialMenuHud: hud,
             getRadialMenuStickEngagementThreshold: getRadialMenuStickEngagementThreshold,
-            getRadialMenuConfirmMode: getRadialMenuConfirmMode);
+            getRadialMenuConfirmMode: getRadialMenuConfirmMode,
+            timeProvider: timeProvider);
 
     private static InputFrame Frame(
         long timestampMs,
@@ -172,6 +220,56 @@ public sealed class MappingEngineRadialMenuTests
                     items.Count == 1
                     && items[0].DisplayName == "HUD override"
                     && items[0].KeyboardKeyLabel == "E")),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Radial on a solo button defers on press when another mapping shares that button in a chord,
+    /// even if the button is not listed in comboLeadButtons; short release opens the menu (same as combo-lead defer).
+    /// </summary>
+    [Fact]
+    public async Task RadialSolo_DefersWhenChordSharesKey_OpensOnShortRelease_WithoutComboLeadList()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        var mockHud = new Mock<IRadialMenuHud>();
+
+        using var engine = CreateEngine(
+            mockKeyboard.Object,
+            mockMouse.Object,
+            mockHud.Object,
+            getRadialMenuConfirmMode: () => RadialMenuConfirmMode.ReleaseGuideKey);
+
+        engine.SetComboLeadButtonsFromTemplate([]);
+        engine.SetRadialMenuDefinitions(TwoItemRadialRightStick(), ActionsA1A2());
+
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LeftShoulder+X" },
+                KeyboardKey = "Q",
+                Trigger = TriggerMoment.Pressed
+            },
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LeftShoulder" },
+                Trigger = TriggerMoment.Pressed,
+                RadialMenu = new RadialMenuBinding { RadialMenuId = "rm1" }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.LeftShoulder, Vector2.Zero, Vector2.Zero), mappings);
+        mockHud.Verify(
+            h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()),
+            Times.Never);
+
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
+        await engine.WaitForIdleAsync();
+
+        mockHud.Verify(
+            h => h.ShowMenu("Test Radial", It.Is<IReadOnlyList<RadialMenuHudItem>>(items => items.Count == 2)),
             Times.Once);
     }
 
@@ -668,5 +766,100 @@ public sealed class MappingEngineRadialMenuTests
 
         mockHud.Verify(h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()), Times.Exactly(2));
         mockHud.Verify(h => h.HideMenu(), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// Solo button with both a keyboard action and a radial menu: short release sends Tap (click), not Pressed hold.
+    /// </summary>
+    [Fact]
+    public async Task SoloKeyboardPlusRadial_NoChordInProfile_ShortRelease_TapsKeyboard_NotRadial()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        var mockHud = new Mock<IRadialMenuHud>();
+        var mockTime = new MockTimeProvider();
+
+        using var engine = CreateEngine(
+            mockKeyboard.Object,
+            mockMouse.Object,
+            mockHud.Object,
+            getRadialMenuConfirmMode: () => RadialMenuConfirmMode.ReleaseGuideKey,
+            timeProvider: mockTime);
+
+        engine.SetComboLeadButtonsFromTemplate(["RightShoulder"]);
+        engine.SetRadialMenuDefinitions(TwoItemRadialRightStick(), ActionsA1A2());
+
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightShoulder" },
+                KeyboardKey = "LeftClick",
+                Trigger = TriggerMoment.Pressed
+            },
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightShoulder" },
+                Trigger = TriggerMoment.Pressed,
+                RadialMenu = new RadialMenuBinding { RadialMenuId = "rm1" }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.RightShoulder, Vector2.Zero, Vector2.Zero), mappings);
+        engine.ProcessInputFrame(Frame(2, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
+
+        await engine.WaitForIdleAsync();
+
+        mockHud.Verify(
+            h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()),
+            Times.Never);
+        mockMouse.Verify(m => m.LeftClickAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SoloKeyboardPlusRadial_NoChordInProfile_HoldPastThreshold_OpensRadial()
+    {
+        var mockKeyboard = new Mock<IKeyboardEmulator>();
+        var mockMouse = new Mock<IMouseEmulator>();
+        var mockHud = new Mock<IRadialMenuHud>();
+        var mockTime = new MockTimeProvider();
+
+        using var engine = CreateEngine(
+            mockKeyboard.Object,
+            mockMouse.Object,
+            mockHud.Object,
+            getRadialMenuConfirmMode: () => RadialMenuConfirmMode.ReleaseGuideKey,
+            timeProvider: mockTime);
+
+        engine.SetComboLeadButtonsFromTemplate(["RightShoulder"]);
+        engine.SetRadialMenuDefinitions(TwoItemRadialRightStick(), ActionsA1A2());
+
+        var mappings = new List<MappingEntry>
+        {
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightShoulder" },
+                KeyboardKey = "LeftClick",
+                Trigger = TriggerMoment.Pressed
+            },
+            new()
+            {
+                From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightShoulder" },
+                Trigger = TriggerMoment.Pressed,
+                RadialMenu = new RadialMenuBinding { RadialMenuId = "rm1" }
+            }
+        };
+
+        engine.ProcessInputFrame(Frame(0, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
+        engine.ProcessInputFrame(Frame(1, GamepadButtons.RightShoulder, Vector2.Zero, Vector2.Zero), mappings);
+        mockTime.Advance(600);
+
+        await engine.WaitForIdleAsync();
+
+        mockHud.Verify(
+            h => h.ShowMenu("Test Radial", It.Is<IReadOnlyList<RadialMenuHudItem>>(items => items.Count == 2)),
+            Times.Once);
+        mockMouse.Verify(m => m.LeftClickAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

@@ -330,6 +330,9 @@
   <data name="CatalogColumnActionId" xml:space="preserve">
     <value>动作 Id</value>
   </data>
+  <data name="MappingActionIdManual" xml:space="preserve">
+    <value>（手动按键）</value>
+  </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>图标（可选）</value>
   </data>

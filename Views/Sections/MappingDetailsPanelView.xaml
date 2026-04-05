@@ -408,6 +408,30 @@
                                 Margin="8,0,0,0" />
                     </Grid>
 
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnActionId]}"
+                               Margin="0,8,0,4" />
+                    <ComboBox Margin="0,0,0,4"
+                              ItemsSource="{Binding KeyboardActionsForPicker}"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding EditBindingActionId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEnabled="{Binding EditKeyboardAndHoldSectionsEnabled}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding Id}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Id}" Value="">
+                                                    <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[KbmOutputTap]}" Margin="0,8,0,4" />
                     <Grid IsEnabled="{Binding EditKeyboardAndHoldSectionsEnabled}">
                         <Grid.ColumnDefinitions>
@@ -415,6 +439,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBox Grid.Column="0"
+                                 IsReadOnly="{Binding EditBindingKeyboardKeyIsReadOnly}"
                                  Text="{Binding EditBindingKeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <Button Grid.Column="1"
                                 Content="{Binding Source={StaticResource Loc}, Path=[RecordKey]}"

@@ -223,4 +223,25 @@ public class MappingEntry : ObservableObject
             OnPropertyChanged(nameof(Description));
         }
     }
+
+    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
+    internal void ApplyKeyboardCatalogDefinition(KeyboardActionDefinition def)
+    {
+        ArgumentNullException.ThrowIfNull(def);
+
+        var key = (def.KeyboardKey ?? string.Empty).Trim();
+        if (!string.Equals(_keyboardKey, key, StringComparison.Ordinal))
+        {
+            _keyboardKey = key;
+            OnPropertyChanged(nameof(KeyboardKey));
+            OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+
+        var desc = (def.Description ?? string.Empty).Trim();
+        if (!string.Equals(_description, desc, StringComparison.Ordinal))
+        {
+            _description = desc;
+            OnPropertyChanged(nameof(Description));
+        }
+    }
 }

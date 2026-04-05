@@ -31,6 +31,52 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnActionId]}"
+                                        Width="1*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{Binding ActionId}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActionId}" Value="{x:Null}">
+                                                <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActionId}" Value="">
+                                                <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding DataContext.KeyboardActionsForPicker, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding ActionId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding Id}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Id}" Value="">
+                                                            <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[KbmOutputShort]}"
                                     IsReadOnly="True"
                                     Binding="{Binding OutputSummaryForGrid, Mode=OneWay}"

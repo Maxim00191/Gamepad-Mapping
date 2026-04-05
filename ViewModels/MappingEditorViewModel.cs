@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -18,13 +19,28 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class MappingEditorViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
+    private bool _resolvingActionId;
+    private readonly HashSet<MappingEntry> _mappingActionIdListeners = [];
 
     public MappingEditorViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
+        _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
+        _mainViewModel.KeyboardActions.CollectionChanged += (_, _) => RebuildKeyboardActionsPicker();
+        foreach (var m in _mainViewModel.Mappings)
+            AttachMappingActionIdListener(m);
+        RebuildKeyboardActionsPicker();
     }
+
+    /// <summary>Keyboard catalog for the current profile (same as <see cref="MainViewModel.KeyboardActions"/>).</summary>
+    public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _mainViewModel.KeyboardActions;
+
+    /// <summary>Catalog entries plus a synthetic row with empty <see cref="KeyboardActionDefinition.Id"/> for manual key output.</summary>
+    public ObservableCollection<KeyboardActionDefinition> KeyboardActionsForPicker { get; } = [];
+
+    public bool EditBindingKeyboardKeyIsReadOnly => !string.IsNullOrWhiteSpace(EditBindingActionId);
 
     public event EventHandler? ConfigurationChanged;
 
@@ -104,10 +120,16 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private string editRadialMenuId = string.Empty;
 
+    /// <summary>When set with Update, binds the mapping to <see cref="KeyboardActions"/> (fills key and description from the catalog).</summary>
+    [ObservableProperty]
+    private string editBindingActionId = string.Empty;
+
     [ObservableProperty]
     private bool isCreatingNewMapping;
 
     partial void OnIsCreatingNewMappingChanged(bool value) => _mainViewModel.RefreshRightPanelSurface();
+
+    partial void OnEditBindingActionIdChanged(string value) => OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
 
     /// <summary>When false, KB/M output and hold bind fields apply; item cycle / template toggle / radial menu use their own outputs.</summary>
     public bool EditKeyboardAndHoldSectionsEnabled => !EditItemCycleEnabled && !EditTemplateToggleEnabled && !EditRadialMenuEnabled;
@@ -262,7 +284,9 @@ public partial class MappingEditorViewModel : ObservableObject
         }
 
         EditBindingDescription = value?.Description ?? string.Empty;
+        EditBindingActionId = value?.ActionId ?? string.Empty;
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+        OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
     }
 
     private void RecordKeyboardKey()
@@ -274,6 +298,8 @@ public partial class MappingEditorViewModel : ObservableObject
                 key =>
                 {
                     EditBindingKeyboardKey = key.ToString();
+                    EditBindingActionId = string.Empty;
+                    OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
                     ConfigurationChanged?.Invoke(this, EventArgs.Empty);
                 });
             return;
@@ -285,15 +311,17 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel.KeyboardCaptureService.BeginCapture(
             "Press a key to assign to the selected mapping (Esc to cancel).",
             key =>
-            {
-                EditBindingKeyboardKey = key.ToString();
-                if (SelectedMapping is not null)
                 {
-                    SelectedMapping.ActionId = null;
-                    SelectedMapping.KeyboardKey = EditBindingKeyboardKey;
-                }
-                ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-            });
+                    EditBindingKeyboardKey = key.ToString();
+                    EditBindingActionId = string.Empty;
+                    if (SelectedMapping is not null)
+                    {
+                        SelectedMapping.ActionId = null;
+                        SelectedMapping.KeyboardKey = EditBindingKeyboardKey;
+                    }
+                    OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
+                    ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+                });
     }
 
     private void RecordItemCycleForwardKey()
@@ -420,39 +448,66 @@ public partial class MappingEditorViewModel : ObservableObject
             SelectedMapping.TemplateToggle = null;
             SelectedMapping.RadialMenu = null;
 
-            var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
-            var key = MappingEngine.ParseKey(keyToken);
-            var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
-            if (key == Key.None && !isMouseLookOutput)
-                return;
-
-            SelectedMapping.ActionId = null;
-            SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
-
-            var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(holdToken))
+            var actionIdFromEditor = (EditBindingActionId ?? string.Empty).Trim();
+            if (actionIdFromEditor.Length > 0)
             {
-                SelectedMapping.HoldKeyboardKey = string.Empty;
-                SelectedMapping.HoldThresholdMs = null;
+                var def = _mainViewModel.KeyboardActions.FirstOrDefault(a =>
+                    string.Equals((a.Id ?? string.Empty).Trim(), actionIdFromEditor, StringComparison.OrdinalIgnoreCase));
+                if (def is null)
+                    return;
+
+                SelectedMapping.ActionId = actionIdFromEditor;
+                SelectedMapping.ApplyKeyboardCatalogDefinition(def);
+                SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
+                if (!TryApplyHoldFieldsToSelectedMapping())
+                    return;
             }
             else
             {
-                var holdKey = MappingEngine.ParseKey(holdToken);
-                var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
-                if (holdKey == Key.None && !holdMouseLook)
+                var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
+                var key = MappingEngine.ParseKey(keyToken);
+                var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
+                if (key == Key.None && !isMouseLookOutput)
                     return;
-                SelectedMapping.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
-                int? holdMs = null;
-                var t = (EditBindingHoldThresholdText ?? string.Empty).Trim();
-                if (!string.IsNullOrEmpty(t) &&
-                    int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
-                    parsed > 0)
-                    holdMs = parsed;
-                SelectedMapping.HoldThresholdMs = holdMs;
+
+                SelectedMapping.ActionId = null;
+                SelectedMapping.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
+
+                if (!TryApplyHoldFieldsToSelectedMapping())
+                    return;
             }
         }
 
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool TryApplyHoldFieldsToSelectedMapping()
+    {
+        if (SelectedMapping is null)
+            return false;
+
+        var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(holdToken))
+        {
+            SelectedMapping.HoldKeyboardKey = string.Empty;
+            SelectedMapping.HoldThresholdMs = null;
+            return true;
+        }
+
+        var holdKey = MappingEngine.ParseKey(holdToken);
+        var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
+        if (holdKey == Key.None && !holdMouseLook)
+            return false;
+
+        SelectedMapping.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
+        int? holdMs = null;
+        var t = (EditBindingHoldThresholdText ?? string.Empty).Trim();
+        if (!string.IsNullOrEmpty(t) &&
+            int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+            parsed > 0)
+            holdMs = parsed;
+        SelectedMapping.HoldThresholdMs = holdMs;
+        return true;
     }
 
     private void BeginCreateNewMapping()
@@ -469,6 +524,7 @@ public partial class MappingEditorViewModel : ObservableObject
         EditBindingTrigger = TriggerMoment.Tap;
         EditBindingKeyboardKey = string.Empty;
         EditBindingDescription = string.Empty;
+        EditBindingActionId = string.Empty;
         EditBindingHoldKeyboardKey = string.Empty;
         EditBindingHoldThresholdText = string.Empty;
         EditItemCycleEnabled = false;
@@ -587,14 +643,29 @@ public partial class MappingEditorViewModel : ObservableObject
         entry.TemplateToggle = null;
         entry.RadialMenu = null;
 
-        var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
-        var key = MappingEngine.ParseKey(keyToken);
-        var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
-        if (key == Key.None && !isMouseLookOutput)
-            return false;
+        var actionIdFromEditor = (EditBindingActionId ?? string.Empty).Trim();
+        if (actionIdFromEditor.Length > 0)
+        {
+            var def = _mainViewModel.KeyboardActions.FirstOrDefault(a =>
+                string.Equals((a.Id ?? string.Empty).Trim(), actionIdFromEditor, StringComparison.OrdinalIgnoreCase));
+            if (def is null)
+                return false;
 
-        entry.ActionId = null;
-        entry.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
+            entry.ActionId = actionIdFromEditor;
+            entry.ApplyKeyboardCatalogDefinition(def);
+            entry.Description = (EditBindingDescription ?? string.Empty).Trim();
+        }
+        else
+        {
+            var keyToken = (EditBindingKeyboardKey ?? string.Empty).Trim();
+            var key = MappingEngine.ParseKey(keyToken);
+            var isMouseLookOutput = MappingEngine.IsMouseLookOutput(keyToken);
+            if (key == Key.None && !isMouseLookOutput)
+                return false;
+
+            entry.ActionId = null;
+            entry.KeyboardKey = isMouseLookOutput ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
+        }
 
         var holdToken = (EditBindingHoldKeyboardKey ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(holdToken))
@@ -712,6 +783,120 @@ public partial class MappingEditorViewModel : ObservableObject
             EditTemplateToggleEnabled = false;
         }
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+    }
+
+    private void RebuildKeyboardActionsPicker()
+    {
+        KeyboardActionsForPicker.Clear();
+        KeyboardActionsForPicker.Add(new KeyboardActionDefinition { Id = string.Empty });
+        foreach (var a in _mainViewModel.KeyboardActions)
+            KeyboardActionsForPicker.Add(a);
+    }
+
+    private void OnMappingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                if (e.NewItems is not null)
+                {
+                    foreach (MappingEntry m in e.NewItems)
+                        AttachMappingActionIdListener(m);
+                }
+                break;
+            case NotifyCollectionChangedAction.Remove:
+                if (e.OldItems is not null)
+                {
+                    foreach (MappingEntry m in e.OldItems)
+                        DetachMappingActionIdListener(m);
+                }
+                break;
+            case NotifyCollectionChangedAction.Reset:
+                foreach (var m in _mappingActionIdListeners.ToList())
+                    DetachMappingActionIdListener(m);
+                foreach (var m in _mainViewModel.Mappings)
+                    AttachMappingActionIdListener(m);
+                break;
+        }
+    }
+
+    private void AttachMappingActionIdListener(MappingEntry m)
+    {
+        if (_mappingActionIdListeners.Add(m))
+            m.PropertyChanged += OnMappingEntryPropertyChanged;
+    }
+
+    private void DetachMappingActionIdListener(MappingEntry m)
+    {
+        if (_mappingActionIdListeners.Remove(m))
+            m.PropertyChanged -= OnMappingEntryPropertyChanged;
+    }
+
+    private void OnMappingEntryPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MappingEntry.ActionId) || sender is not MappingEntry m)
+            return;
+        if (_resolvingActionId)
+            return;
+
+        var raw = m.ActionId;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            _resolvingActionId = true;
+            try
+            {
+                m.ActionId = null;
+            }
+            finally
+            {
+                _resolvingActionId = false;
+            }
+
+            if (ReferenceEquals(m, SelectedMapping))
+                SyncFromSelection(m);
+            return;
+        }
+
+        var id = raw.Trim();
+        var def = _mainViewModel.KeyboardActions.FirstOrDefault(a =>
+            string.Equals((a.Id ?? string.Empty).Trim(), id, StringComparison.OrdinalIgnoreCase));
+        if (def is null)
+        {
+            MessageBox.Show(
+                $"Unknown keyboardActions id '{id}'.",
+                "Catalog",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            _resolvingActionId = true;
+            try
+            {
+                m.ActionId = null;
+            }
+            finally
+            {
+                _resolvingActionId = false;
+            }
+
+            if (ReferenceEquals(m, SelectedMapping))
+                SyncFromSelection(m);
+            return;
+        }
+
+        _resolvingActionId = true;
+        try
+        {
+            m.ItemCycle = null;
+            m.TemplateToggle = null;
+            m.RadialMenu = null;
+            m.ApplyKeyboardCatalogDefinition(def);
+            if (ReferenceEquals(m, SelectedMapping))
+                SyncFromSelection(m);
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        finally
+        {
+            _resolvingActionId = false;
+        }
     }
 
     private void RemoveSelectedMapping()

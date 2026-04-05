@@ -39,7 +39,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IAppStatusMonitor _appStatusMonitor;
     private readonly IMappingEngine _mappingEngine;
     private readonly EventHandler _profilesLoadedHandler;
-        private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
+    private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
@@ -48,9 +48,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly ObservableCollection<RadialMenuDefinition> _radialMenus = new();
 
     /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
-        private string? _lastLoadedTemplateGroupIdForTargetInherit;
-        private ComboHudWindow? _comboHudWindow;
-        private TemplateSwitchHudWindow? _templateSwitchHudWindow;
+    private string? _lastLoadedTemplateGroupIdForTargetInherit;
+    private ComboHudWindow? _comboHudWindow;
+    private TemplateSwitchHudWindow? _templateSwitchHudWindow;
     private readonly AppSettings _appSettings;
     private readonly ISettingsService _settingsService;
     private DispatcherTimer? _templateSwitchHudTimer;
@@ -755,6 +755,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void LoadSelectedTemplate()
     {
+        if (SelectedTemplate is null)
+            return;
+
         var template = _profileService.LoadSelectedTemplate(SelectedTemplate);
         if (template is null)
             return;
@@ -770,7 +773,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _keyboardActions.Add(a);
         foreach (var rm in template.RadialMenus ?? [])
             _radialMenus.Add(rm);
-        _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+        _mappingEngine?.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
         RefreshRadialDefinitionsInEngine();
 
         Mappings.Clear();
@@ -824,7 +827,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         SelectedTemplate = _profileService.ReloadTemplates(preferredProfileId);
     }
 
-    public void ReloadSelectedTemplate() => LoadSelectedTemplate();
+    public void ReloadSelectedTemplate()
+    {
+        LoadSelectedTemplate();
+    }
 
     public bool TryCaptureKeyboardKey(Key key, Key? systemKey = null)
         => _keyboardCaptureService.TryCaptureKeyboardKey(key, systemKey);
