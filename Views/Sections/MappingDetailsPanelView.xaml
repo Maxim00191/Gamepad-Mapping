@@ -124,7 +124,7 @@
                               IsChecked="{Binding EditTemplateToggleEnabled, Mode=TwoWay}" />
 
                     <CheckBox Margin="0,0,0,8"
-                              Content="Enable Radial Menu"
+                              Content="{Binding Source={StaticResource Loc}, Path=[MappingRadialMenuEnabled]}"
                               IsChecked="{Binding EditRadialMenuEnabled, Mode=TwoWay}" />
 
                     <TextBlock TextWrapping="Wrap"
@@ -173,7 +173,7 @@
                         </ComboBox.Style>
                     </ComboBox>
 
-                    <TextBlock Text="Select Radial Menu"
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MappingSelectRadialMenu]}"
                                Margin="0,8,0,4">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">

@@ -405,4 +405,10 @@
   <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
     <value>模板切换 HUD 显示时长（秒）</value>
   </data>
+  <data name="MappingRadialMenuEnabled" xml:space="preserve">
+    <value>启用转盘</value>
+  </data>
+  <data name="MappingSelectRadialMenu" xml:space="preserve">
+    <value>选择转盘</value>
+  </data>
 </root>

@@ -405,4 +405,10 @@
   <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
     <value>Template-switch HUD duration (s)</value>
   </data>
+  <data name="MappingRadialMenuEnabled" xml:space="preserve">
+    <value>Enable radial menu</value>
+  </data>
+  <data name="MappingSelectRadialMenu" xml:space="preserve">
+    <value>Select radial menu</value>
+  </data>
 </root>
