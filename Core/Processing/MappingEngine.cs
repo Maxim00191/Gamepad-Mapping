@@ -56,9 +56,6 @@ public sealed class MappingEngine : IMappingEngine
     /// <summary>Non-null = exact combo leads from profile JSON; null = infer from mappings each event.</summary>
     private HashSet<GamepadButtons>? _explicitComboLeadsFromTemplate;
 
-    private List<RadialMenuDefinition>? _radialMenusPersist;
-    private List<KeyboardActionDefinition>? _keyboardActionsPersist;
-
     private readonly AnalogMappingProcessor _analogMappingProcessor;
     private readonly ComboHudManager? _comboHudManager;
     private readonly ButtonMappingProcessor _buttonMappingProcessor;

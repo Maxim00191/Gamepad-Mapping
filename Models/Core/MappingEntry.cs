@@ -258,11 +258,16 @@ public class MappingEntry : ObservableObject
         }
     }
 
-    internal void ApplyKeyboardActionResolution(string? keyboardKey, string? defaultDescription, TemplateToggleBinding? templateToggle = null)
+    internal void ApplyKeyboardActionResolution(string? keyboardKey, string? defaultDescription, TemplateToggleBinding? templateToggle = null, RadialMenuBinding? radialMenu = null)
     {
         if (templateToggle != null)
         {
             TemplateToggle = new TemplateToggleBinding { AlternateProfileId = templateToggle.AlternateProfileId };
+        }
+
+        if (radialMenu != null)
+        {
+            RadialMenu = new RadialMenuBinding { RadialMenuId = radialMenu.RadialMenuId };
         }
 
         if (!string.Equals(_keyboardKey, keyboardKey, StringComparison.Ordinal))
@@ -279,7 +284,7 @@ public class MappingEntry : ObservableObject
         }
     }
 
-    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/>, <see cref="TemplateToggle"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
+    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/>, <see cref="TemplateToggle"/>, <see cref="RadialMenu"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
     internal void ApplyKeyboardCatalogDefinition(KeyboardActionDefinition def)
     {
         ArgumentNullException.ThrowIfNull(def);
@@ -291,6 +296,15 @@ public class MappingEntry : ObservableObject
         else
         {
             TemplateToggle = null;
+        }
+
+        if (def.RadialMenu != null)
+        {
+            RadialMenu = new RadialMenuBinding { RadialMenuId = def.RadialMenu.RadialMenuId };
+        }
+        else
+        {
+            RadialMenu = null;
         }
 
         var key = (def.KeyboardKey ?? string.Empty).Trim();

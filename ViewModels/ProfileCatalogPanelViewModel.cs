@@ -1,34 +1,72 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
+
+using System.Windows.Input;
+using GamepadMapperGUI.Core;
+using GamepadMapperGUI.Interfaces.Services;
 
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class ProfileCatalogPanelViewModel : ObservableObject
 {
     private readonly MainViewModel _main;
+    private readonly IKeyboardCaptureService _keyboardCaptureService;
 
     public ProfileCatalogPanelViewModel(MainViewModel mainViewModel)
     {
         _main = mainViewModel;
+        _keyboardCaptureService = _main.KeyboardCaptureService;
+        _keyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
         _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
+    }
+
+    private void KeyboardCaptureServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(IKeyboardCaptureService.KeyboardKeyCapturePrompt))
+            OnPropertyChanged(nameof(KeyboardKeyCapturePrompt));
+    }
+
+    public IEnumerable<string> AvailableKeys { get; } = Enum.GetNames<Key>()
+        .Where(k => !string.Equals(k, "None", StringComparison.OrdinalIgnoreCase))
+        .OrderBy(k => k);
+
+    public string KeyboardKeyCapturePrompt => _keyboardCaptureService.KeyboardKeyCapturePrompt;
+
+    [RelayCommand]
+    private void RecordKeyboardKey()
+    {
+        if (SelectedKeyboardAction is null) return;
+
+        _keyboardCaptureService.BeginCapture(
+            "Press a key for the action output (Esc to cancel).",
+            key => SelectedKeyboardAction.KeyboardKey = key.ToString());
     }
 
     private void ValidateCurrentState()
     {
         var profile = _main.GetProfileService().LoadSelectedTemplate(_main.SelectedTemplate);
-        if (profile == null) return;
+        if (profile == null)
+        {
+            HasValidationError = false;
+            ValidationError = string.Empty;
+            HasValidationWarning = false;
+            ValidationWarning = string.Empty;
+            return;
+        }
 
         var result = _main.GetProfileService().ValidateTemplate(profile);
-        HasValidationError = !result.IsValid;
-        ValidationError = string.Join(Environment.NewLine, result.Errors);
-        HasValidationWarning = result.Warnings.Any();
-        ValidationWarning = string.Join(Environment.NewLine, result.Warnings);
+        ValidationError = result.Errors.Any() ? string.Join(Environment.NewLine, result.Errors) : string.Empty;
+        HasValidationError = !string.IsNullOrEmpty(ValidationError);
+        
+        ValidationWarning = result.Warnings.Any() ? string.Join(Environment.NewLine, result.Warnings) : string.Empty;
+        HasValidationWarning = !string.IsNullOrEmpty(ValidationWarning);
     }
 
     public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _main.KeyboardActions;
@@ -45,17 +83,6 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     [ObservableProperty]
     private RadialMenuItem? selectedRadialSlot;
-
-    private bool _loadingRadialMenuLocalizationFields;
-
-    [ObservableProperty]
-    private string radialMenuDisplayNameKey = string.Empty;
-
-    [ObservableProperty]
-    private string radialMenuDisplayNameZhCn = string.Empty;
-
-    [ObservableProperty]
-    private string radialMenuDisplayNameEnUs = string.Empty;
 
     [ObservableProperty]
     private string validationError = string.Empty;
@@ -77,69 +104,8 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)
     {
-        _loadingRadialMenuLocalizationFields = true;
-        try
-        {
-            if (value is null)
-            {
-                RadialMenuDisplayNameKey = string.Empty;
-                RadialMenuDisplayNameZhCn = string.Empty;
-                RadialMenuDisplayNameEnUs = string.Empty;
-            }
-            else
-            {
-                RadialMenuDisplayNameKey = value.DisplayNameKey ?? string.Empty;
-                RadialMenuDisplayNameZhCn =
-                    value.DisplayNames != null && value.DisplayNames.TryGetValue("zh-CN", out var z) ? z : string.Empty;
-                RadialMenuDisplayNameEnUs =
-                    value.DisplayNames != null && value.DisplayNames.TryGetValue("en-US", out var e) ? e : string.Empty;
-            }
-        }
-        finally
-        {
-            _loadingRadialMenuLocalizationFields = false;
-        }
-
         _main.RefreshRightPanelSurface();
-    }
-
-    partial void OnRadialMenuDisplayNameKeyChanged(string value)
-    {
-        if (_loadingRadialMenuLocalizationFields || SelectedRadialMenu is null)
-            return;
-
-        var t = (value ?? string.Empty).Trim();
-        SelectedRadialMenu.DisplayNameKey = string.IsNullOrEmpty(t) ? null : t;
-    }
-
-    partial void OnRadialMenuDisplayNameZhCnChanged(string value)
-    {
-        if (_loadingRadialMenuLocalizationFields || SelectedRadialMenu is null)
-            return;
-
-        SelectedRadialMenu.DisplayNames ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrWhiteSpace(value))
-            SelectedRadialMenu.DisplayNames.Remove("zh-CN");
-        else
-            SelectedRadialMenu.DisplayNames["zh-CN"] = value.Trim();
-
-        if (SelectedRadialMenu.DisplayNames.Count == 0)
-            SelectedRadialMenu.DisplayNames = null;
-    }
-
-    partial void OnRadialMenuDisplayNameEnUsChanged(string value)
-    {
-        if (_loadingRadialMenuLocalizationFields || SelectedRadialMenu is null)
-            return;
-
-        SelectedRadialMenu.DisplayNames ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrWhiteSpace(value))
-            SelectedRadialMenu.DisplayNames.Remove("en-US");
-        else
-            SelectedRadialMenu.DisplayNames["en-US"] = value.Trim();
-
-        if (SelectedRadialMenu.DisplayNames.Count == 0)
-            SelectedRadialMenu.DisplayNames = null;
+        ValidateCurrentState();
     }
 
     [RelayCommand]

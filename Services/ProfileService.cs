@@ -117,33 +117,10 @@ public partial class ProfileService : IProfileService
                 mapping.Description = descForCulture;
         }
 
-        if (template.RadialMenus is { Count: > 0 } radialMenus)
+        if (template.RadialMenus is { Count: > 0 })
         {
-            foreach (var rm in radialMenus)
-            {
-                if (!string.IsNullOrWhiteSpace(rm.DisplayNameKey))
-                {
-                    var localized = _translationService[rm.DisplayNameKey];
-                    if (!IsMissingLocalization(localized))
-                        rm.DisplayName = localized;
-                }
-
-                if (TryPickCultureString(rm.DisplayNames, culture, out var rmTitle))
-                    rm.DisplayName = rmTitle;
-
-                foreach (var slot in rm.Items)
-                {
-                    if (!string.IsNullOrWhiteSpace(slot.LabelKey))
-                    {
-                        var localized = _translationService[slot.LabelKey];
-                        if (!IsMissingLocalization(localized))
-                            slot.Label = localized;
-                    }
-
-                    if (TryPickCultureString(slot.Labels, culture, out var slotLabel))
-                        slot.Label = slotLabel;
-                }
-            }
+            // Radial menus no longer support legacy localization fields.
+            // Center title and slot labels are now handled directly via DisplayName and Label.
         }
 
         TemplateKeyboardActionResolver.Apply(template);

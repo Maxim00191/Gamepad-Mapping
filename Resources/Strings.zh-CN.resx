@@ -334,7 +334,7 @@
     <value>（手动按键）</value>
   </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
-    <value>图标（可选）</value>
+    <value>图标</value>
   </data>
   <data name="CatalogRadialMenuDisplayNameKey" xml:space="preserve">
     <value>标题资源键（可选）</value>
@@ -346,7 +346,7 @@
     <value>标题（美式英语）</value>
   </data>
   <data name="CatalogColumnHudLabel" xml:space="preserve">
-    <value>HUD 文案</value>
+    <value>HUD显示文本</value>
   </data>
   <data name="CatalogColumnHudLabelKey" xml:space="preserve">
     <value>HUD 文案资源键</value>
@@ -379,7 +379,7 @@
     <value>转盘详情</value>
   </data>
   <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
-    <value>设置摇杆与下方扇位。标题与扇位 HUD 文案可填资源键，以及简体中文/美式英语覆盖（与配置显示名相同机制）。修改后请保存配置。</value>
+    <value>设置摇杆与下方扇位。修改后请保存配置。</value>
   </data>
   <data name="ProfileEditorColumnTitle" xml:space="preserve">
     <value>详情</value>
@@ -437,5 +437,35 @@
   </data>
   <data name="MappingSelectRadialMenu" xml:space="preserve">
     <value>选择转盘</value>
+  </data>
+  <data name="ActionType_Keyboard" xml:space="preserve">
+    <value>键盘/鼠标</value>
+  </data>
+  <data name="ActionType_ItemCycle" xml:space="preserve">
+    <value>物品循环</value>
+  </data>
+  <data name="ActionType_TemplateToggle" xml:space="preserve">
+    <value>配置切换</value>
+  </data>
+  <data name="ActionType_RadialMenu" xml:space="preserve">
+    <value>轮盘菜单</value>
+  </data>
+  <data name="ActionType" xml:space="preserve">
+    <value>按键类型</value>
+  </data>
+  <data name="ItemCycleDirection_Next" xml:space="preserve">
+    <value>下一个</value>
+  </data>
+  <data name="ItemCycleDirection_Previous" xml:space="preserve">
+    <value>上一个</value>
+  </data>
+  <data name="TriggerMoment_Pressed" xml:space="preserve">
+    <value>按下</value>
+  </data>
+  <data name="TriggerMoment_Released" xml:space="preserve">
+    <value>松开</value>
+  </data>
+  <data name="TriggerMoment_Tap" xml:space="preserve">
+    <value>点按</value>
   </data>
 </root>

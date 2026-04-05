@@ -54,11 +54,11 @@ public static class TemplateKeyboardActionResolver
                 throw new InvalidOperationException($"Unknown keyboardActions id '{id}' referenced by a mapping.");
 
             var key = (def.KeyboardKey ?? string.Empty).Trim();
-            if (key.Length == 0 && def.TemplateToggle == null)
-                throw new InvalidOperationException($"keyboardActions id '{id}' has no keyboardKey or templateToggle.");
+            if (key.Length == 0 && def.TemplateToggle == null && def.RadialMenu == null)
+                throw new InvalidOperationException($"keyboardActions id '{id}' has no keyboardKey, templateToggle, or radialMenu.");
 
             var desc = (def.Description ?? string.Empty).Trim();
-            m.ApplyKeyboardActionResolution(key, desc.Length > 0 ? desc : null, def.TemplateToggle);
+            m.ApplyKeyboardActionResolution(key, desc.Length > 0 ? desc : null, def.TemplateToggle, def.RadialMenu);
         }
     }
 }

@@ -334,7 +334,7 @@
     <value>(Manual key)</value>
   </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
-    <value>Icon (optional)</value>
+    <value>Icon</value>
   </data>
   <data name="CatalogRadialMenuDisplayNameKey" xml:space="preserve">
     <value>Title resource key (optional)</value>
@@ -379,7 +379,7 @@
     <value>Radial menu</value>
   </data>
   <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
-    <value>Configure the stick and slots below. Optional title/slot HUD strings support resource keys and zh-CN / en-US overrides (same pattern as profile display names). Save profile to persist.</value>
+    <value>Configure the stick and slots below. Save profile to persist.</value>
   </data>
   <data name="ProfileEditorColumnTitle" xml:space="preserve">
     <value>Details</value>
@@ -437,5 +437,35 @@
   </data>
   <data name="MappingSelectRadialMenu" xml:space="preserve">
     <value>Select radial menu</value>
+  </data>
+  <data name="ActionType_Keyboard" xml:space="preserve">
+    <value>Keyboard / Mouse</value>
+  </data>
+  <data name="ActionType_ItemCycle" xml:space="preserve">
+    <value>Item Cycle</value>
+  </data>
+  <data name="ActionType_TemplateToggle" xml:space="preserve">
+    <value>Profile Toggle</value>
+  </data>
+  <data name="ActionType_RadialMenu" xml:space="preserve">
+    <value>Radial Menu</value>
+  </data>
+  <data name="ActionType" xml:space="preserve">
+    <value>Action type</value>
+  </data>
+  <data name="ItemCycleDirection_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="ItemCycleDirection_Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="TriggerMoment_Pressed" xml:space="preserve">
+    <value>Pressed</value>
+  </data>
+  <data name="TriggerMoment_Released" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="TriggerMoment_Tap" xml:space="preserve">
+    <value>Tap</value>
   </data>
 </root>

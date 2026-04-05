@@ -31,8 +31,8 @@ public class ProfileValidator : IValidator<GameProfileTemplate>
                 else if (!actionIds.Add(action.Id))
                     errors.Add($"Duplicate Keyboard Action ID: {action.Id}");
                 
-                if (string.IsNullOrWhiteSpace(action.KeyboardKey) && action.TemplateToggle == null)
-                    warnings.Add($"Action '{action.Id}' has no output (KeyboardKey or TemplateToggle).");
+                if (!action.HasOutput)
+                    warnings.Add($"Action '{action.Id}' has no output (KeyboardKey, TemplateToggle or RadialMenu).");
             }
         }
 
