@@ -15,7 +15,7 @@ using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
-public sealed class MappingEngine : IMappingEngine
+public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 {
     private readonly IProfileService _profileService;
     private readonly IKeyboardEmulator _keyboardEmulator;
@@ -121,6 +121,8 @@ public sealed class MappingEngine : IMappingEngine
             id => _activeActionTracker.Unregister(id),
             _requestTemplateSwitchToProfileId,
             null); // Catalog will be set when profile is loaded
+
+        _radialMenuController.SetActionExecutor(this);
 
         _holdSessionManager = new HoldSessionManager(
             () => CanDispatchOutputMerged(),
@@ -671,6 +673,49 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         errorStatus = null;
+        return false;
+    }
+
+    public bool Execute(KeyboardActionDefinition action, string sourceToken, out string? errorStatus)
+    {
+        errorStatus = null;
+        if (!CanDispatchOutputMerged())
+            return false;
+
+        if (action.RadialMenu is { } rm)
+        {
+            // Note: Opening a radial menu from another radial menu is technically possible 
+            // but might need careful state management in the controller.
+            var mapping = new MappingEntry { RadialMenu = rm };
+            return _radialMenuController.TryOpen(mapping, sourceToken, out errorStatus);
+        }
+
+        if (action.TemplateToggle is { } tt)
+        {
+            var targetId = tt.AlternateProfileId;
+            _setMappingStatus($"Action: {action.Id} -> Toggle profile {targetId}");
+            _setMappedOutput($"Toggle profile → {targetId}");
+            _requestTemplateSwitchToProfileId?.Invoke(targetId);
+            return true;
+        }
+
+        if (action.ItemCycle is { } ic)
+        {
+            var mapping = new MappingEntry { ItemCycle = ic };
+            var executable = new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap);
+            return executable.Execute(TriggerMoment.Tap, sourceToken, out errorStatus);
+        }
+
+        var keyToken = action.KeyboardKey ?? string.Empty;
+        if (InputTokenResolver.TryResolveMappedOutput(keyToken, out var output, out var baseLabel))
+        {
+            var outputLabel = baseLabel;
+            _setMappedOutput(outputLabel);
+            _setMappingStatus($"Action: {action.Id} -> {outputLabel}");
+            QueueOutputDispatch(sourceToken, TriggerMoment.Tap, output, outputLabel, keyToken);
+            return true;
+        }
+
         return false;
     }
 

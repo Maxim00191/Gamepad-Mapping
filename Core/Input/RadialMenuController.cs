@@ -22,6 +22,7 @@ internal sealed class RadialMenuController : IRadialMenuController
 
     private List<RadialMenuDefinition>? _radialMenus;
     private List<KeyboardActionDefinition>? _keyboardActions;
+    private IKeyboardActionExecutor? _actionExecutor;
 
     private RadialMenuDefinition? _activeRadial;
     private MappingEntry? _openMapping;
@@ -153,6 +154,11 @@ internal sealed class RadialMenuController : IRadialMenuController
         _catalog = catalog;
     }
 
+    public void SetActionExecutor(IKeyboardActionExecutor executor)
+    {
+        _actionExecutor = executor;
+    }
+
     public bool TryOpen(MappingEntry mapping, string sourceToken, out string? errorStatus)
     {
         errorStatus = null;
@@ -256,24 +262,11 @@ internal sealed class RadialMenuController : IRadialMenuController
                          ?? _keyboardActions?.FirstOrDefault(a =>
                              string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
 
-            if (action?.TemplateToggle != null)
+            if (action != null && _actionExecutor != null)
             {
-                var targetId = action.TemplateToggle.AlternateProfileId;
-                _setMappingStatus($"Radial Menu Selection: {item.ActionId} -> Toggle profile {targetId}");
-                _setMappedOutput($"Toggle profile → {targetId}");
-                _requestTemplateSwitch?.Invoke(targetId);
-            }
-            else
-            {
-                var keyToken = action?.KeyboardKey ?? string.Empty;
-
-                if (InputTokenResolver.TryResolveMappedOutput(keyToken, out var output, out var baseLabel))
-                {
-                    var outputLabel = $"{baseLabel} (Radial)";
-                    _setMappedOutput(outputLabel);
-                    _setMappingStatus($"Radial Menu Selection: {item.ActionId} -> {outputLabel}");
-                    _enqueueOutput(sourceToken, TriggerMoment.Tap, output, outputLabel, keyToken);
-                }
+                _actionExecutor.Execute(action, sourceToken, out var err);
+                if (!string.IsNullOrEmpty(err))
+                    _setMappingStatus(err);
             }
         }
 

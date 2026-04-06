@@ -13,7 +13,9 @@ internal interface IRadialMenuController : IActionSession
     int CurrentSelectedIndex { get; set; }
     
     void SetDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions, IKeyboardActionCatalog? catalog = null);
-    
+
+    void SetActionExecutor(IKeyboardActionExecutor executor);
+
     public void UpdateSelection(Vector2 stick, float engagementThreshold, RadialMenuConfirmMode confirmMode);
     
     bool TryOpen(MappingEntry mapping, string sourceToken, out string? errorStatus);
