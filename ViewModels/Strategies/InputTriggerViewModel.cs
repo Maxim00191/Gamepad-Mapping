@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,7 +18,7 @@ public partial class InputTriggerViewModel : ObservableObject
     {
         _mainViewModel = mainViewModel;
         AvailableGamepadButtons = _mainViewModel.AvailableGamepadButtons;
-        
+
         // Initialize defaults
         EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
@@ -40,40 +39,68 @@ public partial class InputTriggerViewModel : ObservableObject
     [ObservableProperty]
     private string _editBindingComboButton2 = "B";
 
+    /// <summary>True when the trigger-match threshold editor should be visible (includes incomplete LT/RT selections).</summary>
+    public bool SourceInvolvesTrigger => GamepadChordInput.ShouldShowTriggerMatchThresholdEditor(BuildPreviewExpression());
+
     public void SyncFrom(MappingEntry mapping)
     {
-        EditSourceIsCombination = false;
-        EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
-        EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
-
-        if (mapping.From is not null && mapping.From.Type == GamepadBindingType.Button)
+        try
         {
-            var raw = mapping.From.Value ?? string.Empty;
-            if (ChordResolver.TryParseButtonChord(raw, out var chordButtons, out var reqRt, out var reqLt, out _)
-                && (chordButtons.Count > 1 || reqRt || reqLt))
+            EditSourceIsCombination = false;
+            EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+            EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
+
+            if (mapping.From is not null &&
+                mapping.From.Type is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger)
             {
-                EditSourceIsCombination = true;
-                if (chordButtons.Count >= 2)
+                EditSourceIsCombination = false;
+                EditBindingFromButton = mapping.From.Type == GamepadBindingType.LeftTrigger
+                    ? nameof(GamepadBindingType.LeftTrigger)
+                    : nameof(GamepadBindingType.RightTrigger);
+                return;
+            }
+
+            if (mapping.From is not null && mapping.From.Type == GamepadBindingType.Button)
+            {
+                var raw = mapping.From.Value ?? string.Empty;
+                if (GamepadChordInput.TryNormalizeButtonExpression(raw, out var normalized))
                 {
-                    EditBindingComboButton1 = chordButtons[0].ToString();
-                    EditBindingComboButton2 = chordButtons[1].ToString();
+                    var parts = GamepadChordInput.SplitNormalizedParts(normalized);
+                    if (parts.Length >= 3)
+                    {
+                        EditSourceIsCombination = false;
+                        EditBindingFromButton = normalized;
+                        return;
+                    }
+
+                    if (parts.Length == 2)
+                    {
+                        EditSourceIsCombination = true;
+                        EditBindingComboButton1 = MatchAvailable(parts[0]);
+                        EditBindingComboButton2 = MatchAvailable(parts[1]);
+                        return;
+                    }
+
+                    if (parts.Length == 1)
+                    {
+                        EditSourceIsCombination = false;
+                        EditBindingFromButton = MatchAvailable(parts[0]);
+                        return;
+                    }
                 }
-                else if (chordButtons.Count == 1)
-                {
-                    EditBindingComboButton1 = chordButtons[0].ToString();
-                }
-                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+
+                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault(
+                        b => string.Equals(b, raw, StringComparison.OrdinalIgnoreCase))
+                    ?? raw;
             }
             else
             {
-                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault(
-                        b => string.Equals(b, raw, StringComparison.OrdinalIgnoreCase))
-                    ?? (AvailableGamepadButtons.FirstOrDefault() ?? "A");
+                EditBindingFromButton = mapping.From?.Value ?? string.Empty;
             }
         }
-        else
+        finally
         {
-            EditBindingFromButton = mapping.From?.Value ?? string.Empty;
+            OnPropertyChanged(nameof(SourceInvolvesTrigger));
         }
     }
 
@@ -81,23 +108,33 @@ public partial class InputTriggerViewModel : ObservableObject
     {
         if (EditSourceIsCombination)
         {
-            var b1 = EditBindingComboButton1;
-            var b2 = EditBindingComboButton2;
-            if (string.Equals(b1, b2, StringComparison.OrdinalIgnoreCase)) return false;
-            var combo = $"{b1}+{b2}";
-            mapping.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = combo };
+            var b1 = (EditBindingComboButton1 ?? string.Empty).Trim();
+            var b2 = (EditBindingComboButton2 ?? string.Empty).Trim();
+            if (string.Equals(b1, b2, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var rawCombo = $"{b1}+{b2}";
+            if (!GamepadChordInput.TryNormalizeButtonExpression(rawCombo, out var normalized))
+                return false;
+
+            mapping.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = normalized };
+            return true;
         }
-        else
+
+        var single = (EditBindingFromButton ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(single))
+            return false;
+
+        if (GamepadChordInput.TryCreateNativeTriggerOnlyBinding(single, out var nativeBinding))
         {
-            var button = (EditBindingFromButton ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(button))
-                return false;
-            var isKnownSingleButton = AvailableGamepadButtons.Any(
-                b => string.Equals(b, button, StringComparison.OrdinalIgnoreCase));
-            if (!isKnownSingleButton)
-                return false;
-            mapping.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = button };
+            mapping.From = nativeBinding;
+            return true;
         }
+
+        if (!GamepadChordInput.TryNormalizeButtonExpression(single, out var normSingle))
+            return false;
+
+        mapping.From = new GamepadBinding { Type = GamepadBindingType.Button, Value = normSingle };
         return true;
     }
 
@@ -108,4 +145,26 @@ public partial class InputTriggerViewModel : ObservableObject
         EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
     }
+
+    private string MatchAvailable(string segment)
+    {
+        var hit = AvailableGamepadButtons.FirstOrDefault(
+            b => string.Equals(b, segment, StringComparison.OrdinalIgnoreCase));
+        return hit ?? segment;
+    }
+
+    private string BuildPreviewExpression()
+    {
+        if (EditSourceIsCombination)
+            return $"{EditBindingComboButton1 ?? string.Empty}+{EditBindingComboButton2 ?? string.Empty}";
+        return EditBindingFromButton ?? string.Empty;
+    }
+
+    partial void OnEditSourceIsCombinationChanged(bool value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+
+    partial void OnEditBindingFromButtonChanged(string value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+
+    partial void OnEditBindingComboButton1Changed(string value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+
+    partial void OnEditBindingComboButton2Changed(string value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
 }

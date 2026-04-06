@@ -442,7 +442,28 @@
     <value>Use combination / chord as source</value>
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
-    <value>Select two buttons to form a combination mapping. Note: LT/RT modifiers can still be added by typing in the single-button field if needed.</value>
+    <value>Pick two inputs (buttons or LeftTrigger / RightTrigger) for a chord. For three or more segments, use the single-field box (editable).</value>
+  </data>
+  <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
+    <value>Trigger match threshold</value>
+  </data>
+  <data name="TriggerChordMatchThresholdHint" xml:space="preserve">
+    <value>Required when LT or RT is part of the source. Use a value between 0 and 1 (not 0). Example: 0.35</value>
+  </data>
+  <data name="TriggerChordThresholdRequiredMessage" xml:space="preserve">
+    <value>Enter a trigger match threshold between 0 and 1 (exclusive of 0) when the source includes LeftTrigger or RightTrigger.</value>
+  </data>
+  <data name="MappingEditorSaveFailedTitle" xml:space="preserve">
+    <value>Cannot save mapping</value>
+  </data>
+  <data name="MappingEditorInvalidSource" xml:space="preserve">
+    <value>Fix the gamepad source (e.g. valid button or chord).</value>
+  </data>
+  <data name="MappingEditorInvalidAction" xml:space="preserve">
+    <value>Configure a valid action for this mapping.</value>
+  </data>
+  <data name="MappingEditorSaveFailedGeneric" xml:space="preserve">
+    <value>Check the source, trigger threshold (for LT/RT chords), and action.</value>
   </data>
   <data name="ComboHudGateHint" xml:space="preserve">
     <value>Combo HUD preview is off: keyboard/mouse output is blocked (check target process, foreground window, or elevation).</value>

@@ -15,6 +15,7 @@ internal sealed class AnalogProcessor
 {
     private readonly record struct StateKey(GamepadBindingType Type, string Value, Key Key, TriggerMoment Trigger);
     private readonly Dictionary<StateKey, bool> _analogOutputStates = new();
+    private readonly Dictionary<string, bool> _nativeTriggerEdgeByStateId = new(StringComparer.Ordinal);
     private readonly HashSet<StateKey> _activeStates = new();
     private readonly Dictionary<string, Key> _keyEnumCache = new(StringComparer.OrdinalIgnoreCase);
     private float _mouseLookResidualLeftX;
@@ -162,6 +163,23 @@ internal sealed class AnalogProcessor
         return new AnalogOutputTransition(true, isActive);
     }
 
+    /// <summary>
+    /// Threshold crossing for native LT/RT bindings that are not keyed by <see cref="Key"/> (e.g. radial menu on analog trigger).
+    /// </summary>
+    public AnalogOutputTransition EvaluateTriggerEdge(string stateIdentity, MappingEntry mapping, float triggerValue)
+    {
+        var threshold = mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : DefaultAnalogThreshold;
+        _nativeTriggerEdgeByStateId.TryGetValue(stateIdentity, out var currentState);
+        var effectiveThreshold = currentState ? threshold - JitterHysteresis : threshold;
+        var isActive = triggerValue >= effectiveThreshold;
+
+        if (currentState == isActive)
+            return new AnalogOutputTransition(false, isActive);
+
+        _nativeTriggerEdgeByStateId[stateIdentity] = isActive;
+        return new AnalogOutputTransition(true, isActive);
+    }
+
     public MouseLookDelta AccumulateMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY)
     {
         ref var rx = ref GetMouseLookResidualXRef(thumbstickSource);
@@ -209,6 +227,7 @@ internal sealed class AnalogProcessor
     public void Reset()
     {
         _analogOutputStates.Clear();
+        _nativeTriggerEdgeByStateId.Clear();
         _activeStates.Clear();
         _keyEnumCache.Clear();
         _mouseLookResidualLeftX = 0f;

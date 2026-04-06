@@ -133,8 +133,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         AvailableTemplates = _profileService.AvailableTemplates;
         Mappings = new ObservableCollection<MappingEntry>();
-        AvailableGamepadButtons = new ObservableCollection<string>(
-            Enum.GetNames<GamepadButtons>().Where(n => !string.Equals(n, nameof(GamepadButtons.None), StringComparison.OrdinalIgnoreCase)));
+        AvailableGamepadButtons = new ObservableCollection<string>(GamepadChordSegmentCatalog.AllSegmentNames);
         AvailableTriggerModes = new ObservableCollection<TriggerMoment>(Enum.GetValues<TriggerMoment>());
         Mappings.CollectionChanged += (_, _) =>
         {

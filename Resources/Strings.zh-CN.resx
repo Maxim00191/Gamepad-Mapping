@@ -442,7 +442,28 @@
     <value>使用组合按键作为来源</value>
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
-    <value>选择两个按钮以组成组合键映射。注意：如果需要 LT/RT 修饰键，仍可通过在单键输入框中手动输入来实现。</value>
+    <value>选择两个输入（实体键或 LeftTrigger / RightTrigger）组成组合键。三个及以上片段请使用下方可编辑的单行输入框。</value>
+  </data>
+  <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
+    <value>扳机匹配阈值</value>
+  </data>
+  <data name="TriggerChordMatchThresholdHint" xml:space="preserve">
+    <value>当来源包含 LT 或 RT 时必填。填写 0～1 之间的数（不能为 0）。例如 0.35</value>
+  </data>
+  <data name="TriggerChordThresholdRequiredMessage" xml:space="preserve">
+    <value>来源包含 LeftTrigger 或 RightTrigger 时，必须填写扳机匹配阈值（0～1 之间且不能为 0）。</value>
+  </data>
+  <data name="MappingEditorSaveFailedTitle" xml:space="preserve">
+    <value>无法保存映射</value>
+  </data>
+  <data name="MappingEditorInvalidSource" xml:space="preserve">
+    <value>请修正手柄来源（例如有效的按键或组合键）。</value>
+  </data>
+  <data name="MappingEditorInvalidAction" xml:space="preserve">
+    <value>请为此映射配置有效的动作。</value>
+  </data>
+  <data name="MappingEditorSaveFailedGeneric" xml:space="preserve">
+    <value>请检查来源、LT/RT 组合时的扳机阈值以及动作配置。</value>
   </data>
   <data name="ComboHudGateHint" xml:space="preserve">
     <value>组合键 HUD 预览已关闭：当前不允许键鼠输出（请检查目标进程、前台窗口或权限提升）。</value>

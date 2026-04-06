@@ -5,6 +5,7 @@
              xmlns:models="clr-namespace:GamepadMapperGUI.Models"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
         <utils:MappingActionTypeToLocalizationConverter x:Key="ActionTypeToLoc" />
         <utils:ItemCycleDirectionToLocalizationConverter x:Key="ItemCycleDirToLoc" />
@@ -274,6 +275,18 @@
                                Margin="0,2,0,4"
                                Text="{Binding Source={StaticResource Loc}, Path=[SourceCombinationHint]}"
                                Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}}" />
+
+                    <StackPanel Margin="0,6,0,0"
+                                Visibility="{Binding InputTrigger.SourceInvolvesTrigger, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TriggerChordMatchThresholdLabel]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox Text="{Binding EditAnalogThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                   FontSize="12"
+                                   Margin="0,4,0,0"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[TriggerChordMatchThresholdHint]}" />
+                    </StackPanel>
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />
                     <ComboBox ItemsSource="{Binding AvailableTriggerModes}"

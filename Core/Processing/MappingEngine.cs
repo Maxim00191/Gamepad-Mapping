@@ -331,7 +331,61 @@ public sealed class MappingEngine : IMappingEngine
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
 
+        ProcessNativeTriggerExecutableActions(frame.LeftTrigger, GamepadBindingType.LeftTrigger);
+        ProcessNativeTriggerExecutableActions(frame.RightTrigger, GamepadBindingType.RightTrigger);
+
         TrySyncComboHud(context);
+    }
+
+    /// <summary>
+    /// Radial menu / item cycle / template toggle on <see cref="GamepadBindingType.LeftTrigger"/> or <see cref="GamepadBindingType.RightTrigger"/> (same shape as JSON templates).
+    /// </summary>
+    private void ProcessNativeTriggerExecutableActions(float triggerValue, GamepadBindingType side)
+    {
+        if (!CanDispatchOutputMerged())
+            return;
+
+        foreach (var mapping in _lastButtonMappingsSnapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != side)
+                continue;
+            if (mapping.ActionType == MappingActionType.Keyboard)
+                continue;
+
+            mapping.ExecutableAction ??= ResolveExecutableAction(mapping);
+
+            var stateId = BuildNativeTriggerActionStateId(mapping, side);
+            var transition = _analogProcessor.EvaluateTriggerEdge(stateId, mapping, triggerValue);
+            if (!transition.HasChanged)
+                continue;
+
+            var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
+
+            if (!ShouldDispatchNativeTriggerEdgeMoment(mapping, moment))
+                continue;
+
+            var sourceToken = mapping.From.Value ?? side.ToString();
+            TryDispatchAction(mapping, moment, sourceToken, out var err);
+            if (!string.IsNullOrEmpty(err))
+                _setMappingStatus(err);
+        }
+    }
+
+    private static bool ShouldDispatchNativeTriggerEdgeMoment(MappingEntry mapping, TriggerMoment moment)
+    {
+        if (mapping.ActionType == MappingActionType.RadialMenu)
+            return true;
+
+        return mapping.Trigger == moment;
+    }
+
+    private static string BuildNativeTriggerActionStateId(MappingEntry mapping, GamepadBindingType side)
+    {
+        if (mapping.RadialMenu is { } rm)
+            return $"{side}|Radial|{rm.RadialMenuId}";
+        if (mapping.TemplateToggle is { } tt)
+            return $"{side}|Toggle|{tt.AlternateProfileId}";
+        return $"{side}|{mapping.ActionType}|{mapping.KeyboardKey}|{mapping.Description}";
     }
 
     private IExecutableAction ResolveExecutableAction(MappingEntry mapping)

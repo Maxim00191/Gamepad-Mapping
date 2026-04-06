@@ -14,6 +14,7 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services;
 using Gamepad_Mapping.ViewModels.Strategies;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -174,6 +175,10 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private string editBindingDescription = string.Empty;
 
+    /// <summary>Trigger match threshold for LT/RT chords (0–1, exclusive of 0); shown when <see cref="InputTriggerViewModel.SourceInvolvesTrigger"/> is true.</summary>
+    [ObservableProperty]
+    private string editAnalogThresholdText = string.Empty;
+
     [ObservableProperty]
     private string validationError = string.Empty;
 
@@ -244,6 +249,9 @@ public partial class MappingEditorViewModel : ObservableObject
         InputTrigger.SyncFrom(value ?? new MappingEntry());
         EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
         EditBindingDescription = value?.Description ?? string.Empty;
+        EditAnalogThresholdText = value?.AnalogThreshold is { } t
+            ? t.ToString("G", CultureInfo.InvariantCulture)
+            : string.Empty;
 
         if (value is not null)
         {
@@ -406,6 +414,7 @@ public partial class MappingEditorViewModel : ObservableObject
         InputTrigger.Clear();
         EditBindingTrigger = TriggerMoment.Tap;
         EditBindingDescription = string.Empty;
+        EditAnalogThresholdText = string.Empty;
 
         SelectedActionType = MappingActionType.Keyboard;
         CurrentActionEditor?.Clear();
@@ -415,11 +424,11 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void SaveNewMapping()
     {
-        if (!TryBuildMappingFromEditorFields(out var entry))
+        if (!TryBuildMappingFromEditorFields(out var entry, out var messageKey))
         {
             MessageBox.Show(
-                "Choose a gamepad button and configure a valid action.",
-                "Cannot save new mapping",
+                Loc(messageKey ?? "MappingEditorSaveFailedGeneric"),
+                Loc("MappingEditorSaveFailedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
@@ -437,21 +446,70 @@ public partial class MappingEditorViewModel : ObservableObject
         SyncFromSelection(SelectedMapping);
     }
 
-    private bool TryBuildMappingFromEditorFields(out MappingEntry entry)
+    private bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
     {
+        messageKey = null;
         entry = new MappingEntry();
 
         if (!InputTrigger.ApplyTo(entry))
+        {
+            messageKey = "MappingEditorInvalidSource";
             return false;
+        }
 
         entry.Trigger = EditBindingTrigger;
         entry.Description = (EditBindingDescription ?? string.Empty).Trim();
-        entry.AnalogThreshold = null;
+
+        if (!TryApplyAnalogThreshold(entry))
+        {
+            messageKey = "TriggerChordThresholdRequiredMessage";
+            return false;
+        }
 
         if (CurrentActionEditor?.ApplyTo(entry) != true)
+        {
+            messageKey = "MappingEditorInvalidAction";
             return false;
+        }
 
         return true;
+    }
+
+    private bool TryApplyAnalogThreshold(MappingEntry entry)
+    {
+        if (entry.From?.Type is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger)
+        {
+            if (!GamepadChordInput.TryParseTriggerMatchThreshold(EditAnalogThresholdText, out var nativeTh))
+                return false;
+            entry.AnalogThreshold = nativeTh;
+            return true;
+        }
+
+        if (entry.From?.Type != GamepadBindingType.Button)
+        {
+            entry.AnalogThreshold = null;
+            return true;
+        }
+
+        var raw = entry.From.Value ?? string.Empty;
+        if (!GamepadChordInput.ExpressionInvolvesTrigger(raw))
+        {
+            entry.AnalogThreshold = null;
+            return true;
+        }
+
+        if (!GamepadChordInput.TryParseTriggerMatchThreshold(EditAnalogThresholdText, out var threshold))
+            return false;
+
+        entry.AnalogThreshold = threshold;
+        return true;
+    }
+
+    private static string Loc(string key)
+    {
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            return loc[key];
+        return key;
     }
 
     private void UpdateSelectedBinding()
@@ -462,9 +520,18 @@ public partial class MappingEditorViewModel : ObservableObject
         if (!InputTrigger.ApplyTo(SelectedMapping))
             return;
 
+        if (!TryApplyAnalogThreshold(SelectedMapping))
+        {
+            MessageBox.Show(
+                Loc("TriggerChordThresholdRequiredMessage"),
+                Loc("MappingEditorSaveFailedTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
         SelectedMapping.Trigger = EditBindingTrigger;
         SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
-        SelectedMapping.AnalogThreshold = null;
 
         if (CurrentActionEditor?.ApplyTo(SelectedMapping) != true)
             return;

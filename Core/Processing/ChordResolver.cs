@@ -58,7 +58,13 @@ internal static class ChordResolver
         }
 
         if (chordButtons.Count == 0)
-            return false;
+        {
+            if (!requiresLeftTrigger && !requiresRightTrigger)
+                return false;
+            // LT+RT with no digital buttons is not matched by the button pipeline; use native From types instead.
+            if (requiresLeftTrigger && requiresRightTrigger)
+                return false;
+        }
 
         // Semantic validation: physically impossible combinations
         if (HasImpossibleCombination(chordButtons))
@@ -90,6 +96,9 @@ internal static class ChordResolver
         GamepadButtons changedButton,
         IReadOnlyCollection<GamepadButtons> activeButtons)
     {
+        if (chordButtons.Count == 0)
+            return false;
+
         if (!chordButtons.Contains(changedButton))
             return false;
 
