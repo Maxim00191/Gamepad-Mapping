@@ -64,6 +64,12 @@ public class MappingEntry : ObservableObject
     /// <summary>Omit redundant <c>keyboardKey</c> when the mapping uses the <c>keyboardActions</c> catalog.</summary>
     public bool ShouldSerializeKeyboardKey() => string.IsNullOrWhiteSpace(_actionId);
 
+    /// <summary>Omit <c>templateToggle</c> when it's resolved from the <c>keyboardActions</c> catalog.</summary>
+    public bool ShouldSerializeTemplateToggle() => string.IsNullOrWhiteSpace(_actionId);
+
+    /// <summary>Omit <c>radialMenu</c> when it's resolved from the <c>keyboardActions</c> catalog.</summary>
+    public bool ShouldSerializeRadialMenu() => string.IsNullOrWhiteSpace(_actionId);
+
     private string _description = string.Empty;
 
     [JsonProperty("description")]
