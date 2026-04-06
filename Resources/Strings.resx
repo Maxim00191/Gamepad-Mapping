@@ -330,6 +330,9 @@
   <data name="CatalogOutputKind_RadialMenu" xml:space="preserve">
     <value>Radial menu</value>
   </data>
+  <data name="CatalogOutputKind_ItemCycle" xml:space="preserve">
+    <value>Item cycle</value>
+  </data>
   <data name="MappingCatalogSummaryRadial" xml:space="preserve">
     <value>Radial menu: {0}</value>
   </data>

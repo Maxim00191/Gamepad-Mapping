@@ -5,7 +5,9 @@
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:KeyboardCatalogOutputKindToLocalizationConverter x:Key="CatalogOutputKindToLoc" />
+        <utils:ItemCycleDirectionToLocalizationConverter x:Key="ItemCycleDirToLoc" />
     </UserControl.Resources>
     <Grid MinHeight="0">
         <Grid.RowDefinitions>
@@ -82,6 +84,55 @@
                           DisplayMemberPath="DisplayName"
                           SelectedValuePath="Id"
                           SelectedValue="{Binding SelectedKeyboardAction.RadialMenu.RadialMenuId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding IsCatalogItemCycleSectionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleDirection]}"
+                           Margin="0,0,0,4" />
+                <ComboBox Margin="0,0,0,10"
+                          ItemsSource="{Binding AvailableItemCycleDirections}"
+                          SelectedItem="{Binding SelectedKeyboardAction.ItemCycle.Direction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource ItemCycleDirToLoc}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleSlotCount]}"
+                           Margin="0,0,0,4" />
+                <TextBox Margin="0,0,0,10"
+                         Text="{Binding SelectedKeyboardAction.ItemCycle.SlotCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopForwardKey]}"
+                           Margin="0,0,0,4" />
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding SelectedKeyboardAction.ItemCycle.LoopForwardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1"
+                            Content="{Binding Source={StaticResource Loc}, Path=[Record]}"
+                            Command="{Binding RecordItemCycleForwardKeyCommand}"
+                            Margin="8,0,0,0" />
+                </Grid>
+
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ItemCycleLoopBackwardKey]}"
+                           Margin="0,0,0,4" />
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding SelectedKeyboardAction.ItemCycle.LoopBackwardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="1"
+                            Content="{Binding Source={StaticResource Loc}, Path=[Record]}"
+                            Command="{Binding RecordItemCycleBackwardKeyCommand}"
+                            Margin="8,0,0,0" />
+                </Grid>
             </StackPanel>
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnDescription]}"

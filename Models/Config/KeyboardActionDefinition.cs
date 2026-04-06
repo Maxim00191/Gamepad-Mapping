@@ -39,6 +39,14 @@ public sealed class KeyboardActionDefinition : ObservableObject
         set => SetProperty(ref _radialMenu, value);
     }
 
+    private ItemCycleBinding? _itemCycle;
+    [JsonProperty("itemCycle", NullValueHandling = NullValueHandling.Ignore)]
+    public ItemCycleBinding? ItemCycle
+    {
+        get => _itemCycle;
+        set => SetProperty(ref _itemCycle, value);
+    }
+
     private string _description = string.Empty;
     [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
     public string Description
@@ -70,13 +78,15 @@ public sealed class KeyboardActionDefinition : ObservableObject
     public bool HasOutput =>
         !string.IsNullOrWhiteSpace(KeyboardKey) ||
         TemplateToggle != null ||
-        RadialMenu != null;
+        RadialMenu != null ||
+        ItemCycle != null;
 
-    /// <summary>Matches <see cref="MappingEntry.ActionType"/> precedence: radial, then template toggle, then keyboard.</summary>
+    /// <summary>Matches <see cref="MappingEntry.ActionType"/> precedence: radial, then template toggle, then item cycle, then keyboard.</summary>
     public KeyboardCatalogOutputKind ResolveCatalogOutputKind()
     {
         if (RadialMenu != null) return KeyboardCatalogOutputKind.RadialMenu;
         if (TemplateToggle != null) return KeyboardCatalogOutputKind.TemplateToggle;
+        if (ItemCycle != null) return KeyboardCatalogOutputKind.ItemCycle;
         return KeyboardCatalogOutputKind.Keyboard;
     }
 
@@ -88,17 +98,26 @@ public sealed class KeyboardActionDefinition : ObservableObject
             case KeyboardCatalogOutputKind.Keyboard:
                 TemplateToggle = null;
                 RadialMenu = null;
+                ItemCycle = null;
                 KeyboardKey ??= string.Empty;
                 break;
             case KeyboardCatalogOutputKind.TemplateToggle:
                 RadialMenu = null;
+                ItemCycle = null;
                 KeyboardKey = null;
                 TemplateToggle ??= new TemplateToggleBinding();
                 break;
             case KeyboardCatalogOutputKind.RadialMenu:
                 TemplateToggle = null;
+                ItemCycle = null;
                 KeyboardKey = null;
                 RadialMenu ??= new RadialMenuBinding();
+                break;
+            case KeyboardCatalogOutputKind.ItemCycle:
+                TemplateToggle = null;
+                RadialMenu = null;
+                KeyboardKey = null;
+                ItemCycle ??= new ItemCycleBinding();
                 break;
         }
     }

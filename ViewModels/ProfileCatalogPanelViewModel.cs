@@ -52,6 +52,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCatalogKeyboardSectionVisible));
         OnPropertyChanged(nameof(IsCatalogTemplateToggleSectionVisible));
         OnPropertyChanged(nameof(IsCatalogRadialMenuSectionVisible));
+        OnPropertyChanged(nameof(IsCatalogItemCycleSectionVisible));
     }
 
     public bool IsCatalogKeyboardSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.Keyboard;
@@ -59,6 +60,8 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     public bool IsCatalogTemplateToggleSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.TemplateToggle;
 
     public bool IsCatalogRadialMenuSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.RadialMenu;
+
+    public bool IsCatalogItemCycleSectionVisible => CatalogOutputKind == KeyboardCatalogOutputKind.ItemCycle;
 
     private void KeyboardCaptureServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -70,6 +73,8 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         .Where(k => !string.Equals(k, "None", StringComparison.OrdinalIgnoreCase))
         .OrderBy(k => k);
 
+    public ItemCycleDirection[] AvailableItemCycleDirections { get; } = Enum.GetValues<ItemCycleDirection>();
+
     public string KeyboardKeyCapturePrompt => _keyboardCaptureService.KeyboardKeyCapturePrompt;
 
     [RelayCommand]
@@ -80,6 +85,24 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         _keyboardCaptureService.BeginCapture(
             "Press a key for the action output (Esc to cancel).",
             key => SelectedKeyboardAction.KeyboardKey = key.ToString());
+    }
+
+    [RelayCommand]
+    private void RecordItemCycleForwardKey()
+    {
+        if (SelectedKeyboardAction?.ItemCycle is null) return;
+        _keyboardCaptureService.BeginCapture(
+            "Press the loop-forward output key (Esc to cancel).",
+            key => SelectedKeyboardAction.ItemCycle.LoopForwardKey = key.ToString());
+    }
+
+    [RelayCommand]
+    private void RecordItemCycleBackwardKey()
+    {
+        if (SelectedKeyboardAction?.ItemCycle is null) return;
+        _keyboardCaptureService.BeginCapture(
+            "Press the loop-back output key (Esc to cancel).",
+            key => SelectedKeyboardAction.ItemCycle.LoopBackwardKey = key.ToString());
     }
 
     private void ValidateCurrentState()

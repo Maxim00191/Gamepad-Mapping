@@ -5,5 +5,6 @@ public enum KeyboardCatalogOutputKind
 {
     Keyboard,
     TemplateToggle,
-    RadialMenu
+    RadialMenu,
+    ItemCycle
 }

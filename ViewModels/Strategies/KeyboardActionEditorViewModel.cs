@@ -48,7 +48,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
             if (string.IsNullOrWhiteSpace(ActionId))
                 return true;
             var def = TryResolveCatalogDefinition();
-            return def is null || !string.IsNullOrWhiteSpace((def.KeyboardKey ?? string.Empty).Trim());
+            return def is null || (!string.IsNullOrWhiteSpace((def.KeyboardKey ?? string.Empty).Trim()) && def.ItemCycle == null && def.RadialMenu == null && def.TemplateToggle == null);
         }
     }
 
@@ -68,6 +68,13 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
 
             if (def.TemplateToggle is { } tt && !string.IsNullOrWhiteSpace(tt.AlternateProfileId))
                 return string.Format(Loc("MappingCatalogSummaryTemplateToggle"), tt.AlternateProfileId.Trim());
+
+            if (def.ItemCycle is { } ic)
+            {
+                var n = Math.Clamp(ic.SlotCount, 1, 9);
+                var dir = ic.Direction == ItemCycleDirection.Previous ? Loc("ItemCycleDirection_Previous") : Loc("ItemCycleDirection_Next");
+                return $"{Loc("ActionType_ItemCycle")} (1–{n}, {dir})";
+            }
 
             var key = (def.KeyboardKey ?? string.Empty).Trim();
             if (key.Length > 0)

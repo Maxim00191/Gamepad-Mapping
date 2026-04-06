@@ -40,25 +40,38 @@ public static class TemplateKeyboardActionResolver
 
         foreach (var m in template.Mappings)
         {
-            if (string.IsNullOrWhiteSpace(m.ActionId))
+            if (string.IsNullOrWhiteSpace(m.ActionId) && string.IsNullOrWhiteSpace(m.HoldActionId))
                 continue;
 
-            if (m.ItemCycle is not null || m.TemplateToggle is not null || m.RadialMenu is not null)
+            if (!string.IsNullOrWhiteSpace(m.ActionId))
             {
-                throw new InvalidOperationException(
-                    "actionId cannot be used together with itemCycle, templateToggle, or radialMenu on the same mapping.");
+                if (m.ItemCycle is not null || m.TemplateToggle is not null || m.RadialMenu is not null)
+                {
+                    throw new InvalidOperationException(
+                        "actionId cannot be used together with itemCycle, templateToggle, or radialMenu on the same mapping.");
+                }
+
+                var id = m.ActionId!.Trim();
+                if (!map.TryGetValue(id, out var def))
+                    throw new InvalidOperationException($"Unknown keyboardActions id '{id}' referenced by a mapping.");
+
+                var key = (def.KeyboardKey ?? string.Empty).Trim();
+                if (key.Length == 0 && def.TemplateToggle == null && def.RadialMenu == null && def.ItemCycle == null)
+                    throw new InvalidOperationException($"keyboardActions id '{id}' has no keyboardKey, templateToggle, radialMenu, or itemCycle.");
+
+                var desc = (def.Description ?? string.Empty).Trim();
+                m.ApplyKeyboardActionResolution(key, desc.Length > 0 ? desc : null, def.TemplateToggle, def.RadialMenu, def.ItemCycle);
             }
 
-            var id = m.ActionId!.Trim();
-            if (!map.TryGetValue(id, out var def))
-                throw new InvalidOperationException($"Unknown keyboardActions id '{id}' referenced by a mapping.");
+            if (!string.IsNullOrWhiteSpace(m.HoldActionId))
+            {
+                var holdId = m.HoldActionId!.Trim();
+                if (!map.TryGetValue(holdId, out var holdDef))
+                    throw new InvalidOperationException($"Unknown keyboardActions id '{holdId}' referenced by a mapping (holdActionId).");
 
-            var key = (def.KeyboardKey ?? string.Empty).Trim();
-            if (key.Length == 0 && def.TemplateToggle == null && def.RadialMenu == null)
-                throw new InvalidOperationException($"keyboardActions id '{id}' has no keyboardKey, templateToggle, or radialMenu.");
-
-            var desc = (def.Description ?? string.Empty).Trim();
-            m.ApplyKeyboardActionResolution(key, desc.Length > 0 ? desc : null, def.TemplateToggle, def.RadialMenu);
+                var holdKey = (holdDef.KeyboardKey ?? string.Empty).Trim();
+                m.ApplyHoldKeyboardActionResolution(holdKey, holdDef.TemplateToggle, holdDef.RadialMenu, holdDef.ItemCycle);
+            }
         }
     }
 }

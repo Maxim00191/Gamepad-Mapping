@@ -46,6 +46,16 @@ public class MappingEntry : ObservableObject
         set => SetProperty(ref _actionId, value);
     }
 
+    private string? _holdActionId;
+
+    /// <summary>When set with <see cref="HoldThresholdMs"/> and <see cref="Trigger"/> is <see cref="TriggerMoment.Tap"/>, takes the hold action from the catalog.</summary>
+    [JsonProperty("holdActionId", NullValueHandling = NullValueHandling.Ignore)]
+    public string? HoldActionId
+    {
+        get => _holdActionId;
+        set => SetProperty(ref _holdActionId, value);
+    }
+
     [JsonProperty("keyboardKey")]
     public string KeyboardKey
     {
@@ -65,10 +75,16 @@ public class MappingEntry : ObservableObject
     public bool ShouldSerializeKeyboardKey() => string.IsNullOrWhiteSpace(_actionId);
 
     /// <summary>Omit <c>templateToggle</c> when it's resolved from the <c>keyboardActions</c> catalog.</summary>
-    public bool ShouldSerializeTemplateToggle() => string.IsNullOrWhiteSpace(_actionId);
+    public bool ShouldSerializeTemplateToggle() => string.IsNullOrWhiteSpace(_actionId) && string.IsNullOrWhiteSpace(_holdActionId);
 
     /// <summary>Omit <c>radialMenu</c> when it's resolved from the <c>keyboardActions</c> catalog.</summary>
-    public bool ShouldSerializeRadialMenu() => string.IsNullOrWhiteSpace(_actionId);
+    public bool ShouldSerializeRadialMenu() => string.IsNullOrWhiteSpace(_actionId) && string.IsNullOrWhiteSpace(_holdActionId);
+
+    /// <summary>Omit <c>itemCycle</c> when it's resolved from the <c>keyboardActions</c> catalog.</summary>
+    public bool ShouldSerializeItemCycle() => string.IsNullOrWhiteSpace(_actionId) && string.IsNullOrWhiteSpace(_holdActionId);
+
+    /// <summary>Omit <c>holdKeyboardKey</c> when it's resolved from the <c>keyboardActions</c> catalog.</summary>
+    public bool ShouldSerializeHoldKeyboardKey() => string.IsNullOrWhiteSpace(_holdActionId);
 
     private string _description = string.Empty;
 
@@ -268,7 +284,7 @@ public class MappingEntry : ObservableObject
         }
     }
 
-    internal void ApplyKeyboardActionResolution(string? keyboardKey, string? defaultDescription, TemplateToggleBinding? templateToggle = null, RadialMenuBinding? radialMenu = null)
+    internal void ApplyKeyboardActionResolution(string? keyboardKey, string? defaultDescription, TemplateToggleBinding? templateToggle = null, RadialMenuBinding? radialMenu = null, ItemCycleBinding? itemCycle = null)
     {
         if (templateToggle != null)
         {
@@ -278,6 +294,18 @@ public class MappingEntry : ObservableObject
         if (radialMenu != null)
         {
             RadialMenu = new RadialMenuBinding { RadialMenuId = radialMenu.RadialMenuId };
+        }
+
+        if (itemCycle != null)
+        {
+            ItemCycle = new ItemCycleBinding
+            {
+                Direction = itemCycle.Direction,
+                SlotCount = itemCycle.SlotCount,
+                LoopForwardKey = itemCycle.LoopForwardKey,
+                LoopBackwardKey = itemCycle.LoopBackwardKey,
+                WithKeys = itemCycle.WithKeys != null ? new List<string>(itemCycle.WithKeys) : null
+            };
         }
 
         if (!string.Equals(_keyboardKey, keyboardKey, StringComparison.Ordinal))
@@ -294,7 +322,39 @@ public class MappingEntry : ObservableObject
         }
     }
 
-    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/>, <see cref="TemplateToggle"/>, <see cref="RadialMenu"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
+    internal void ApplyHoldKeyboardActionResolution(string? keyboardKey, TemplateToggleBinding? templateToggle = null, RadialMenuBinding? radialMenu = null, ItemCycleBinding? itemCycle = null)
+    {
+        if (templateToggle != null)
+        {
+            TemplateToggle = new TemplateToggleBinding { AlternateProfileId = templateToggle.AlternateProfileId };
+        }
+
+        if (radialMenu != null)
+        {
+            RadialMenu = new RadialMenuBinding { RadialMenuId = radialMenu.RadialMenuId };
+        }
+
+        if (itemCycle != null)
+        {
+            ItemCycle = new ItemCycleBinding
+            {
+                Direction = itemCycle.Direction,
+                SlotCount = itemCycle.SlotCount,
+                LoopForwardKey = itemCycle.LoopForwardKey,
+                LoopBackwardKey = itemCycle.LoopBackwardKey,
+                WithKeys = itemCycle.WithKeys != null ? new List<string>(itemCycle.WithKeys) : null
+            };
+        }
+
+        if (!string.Equals(_holdKeyboardKey, keyboardKey, StringComparison.Ordinal))
+        {
+            _holdKeyboardKey = keyboardKey ?? string.Empty;
+            OnPropertyChanged(nameof(HoldKeyboardKey));
+            OnPropertyChanged(nameof(OutputSummaryForGrid));
+        }
+    }
+
+    /// <summary>Applies <paramref name="def"/> to <see cref="KeyboardKey"/>, <see cref="TemplateToggle"/>, <see cref="RadialMenu"/>, <see cref="ItemCycle"/> and <see cref="Description"/> when the mapping is bound via <see cref="ActionId"/> in the editor.</summary>
     internal void ApplyKeyboardCatalogDefinition(KeyboardActionDefinition def)
     {
         ArgumentNullException.ThrowIfNull(def);
@@ -315,6 +375,22 @@ public class MappingEntry : ObservableObject
         else
         {
             RadialMenu = null;
+        }
+
+        if (def.ItemCycle != null)
+        {
+            ItemCycle = new ItemCycleBinding
+            {
+                Direction = def.ItemCycle.Direction,
+                SlotCount = def.ItemCycle.SlotCount,
+                LoopForwardKey = def.ItemCycle.LoopForwardKey,
+                LoopBackwardKey = def.ItemCycle.LoopBackwardKey,
+                WithKeys = def.ItemCycle.WithKeys != null ? new List<string>(def.ItemCycle.WithKeys) : null
+            };
+        }
+        else
+        {
+            ItemCycle = null;
         }
 
         var key = (def.KeyboardKey ?? string.Empty).Trim();
