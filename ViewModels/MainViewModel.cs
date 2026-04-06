@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -14,6 +15,7 @@ using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services;
+using Gamepad_Mapping.Utils;
 using Gamepad_Mapping.Views;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
 using Vortice.XInput;
@@ -37,15 +39,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IAppStatusMonitor _appStatusMonitor;
     private readonly IMappingEngine _mappingEngine;
     private readonly EventHandler _profilesLoadedHandler;
-        private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
+    private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
     /// <summary>From template JSON; preserved when saving so <c>comboLeadButtons</c> is not stripped.</summary>
     private List<string>? _comboLeadButtonsPersist;
 
+    private readonly ObservableCollection<KeyboardActionDefinition> _keyboardActions = new();
+    private readonly ObservableCollection<RadialMenuDefinition> _radialMenus = new();
+
     /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
-        private string? _lastLoadedTemplateGroupIdForTargetInherit;
-        private ComboHudWindow? _comboHudWindow;
-        private TemplateSwitchHudWindow? _templateSwitchHudWindow;
+    private string? _lastLoadedTemplateGroupIdForTargetInherit;
+    private ComboHudWindow? _comboHudWindow;
+    private TemplateSwitchHudWindow? _templateSwitchHudWindow;
     private readonly AppSettings _appSettings;
     private readonly ISettingsService _settingsService;
     private DispatcherTimer? _templateSwitchHudTimer;
@@ -70,6 +75,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;
+        RadialMenuConfirmModeIndex =
+            string.Equals(_appSettings.RadialMenuConfirmMode, "returnStickToCenter", StringComparison.OrdinalIgnoreCase)
+                ? 0
+                : 1;
+        RadialMenuHudLabelModeIndex = (int)RadialMenuHudLabelModeParser.Parse(_appSettings.RadialMenuHudLabelMode);
+        RadialHudScaleSetting = RadialHudLayout.ClampHudScale(_appSettings.RadialHudScale);
         DefaultAnalogActivationThreshold = _appSettings.DefaultAnalogActivationThreshold;
         MouseLookSensitivity = _appSettings.MouseLookSensitivity;
         AnalogChangeEpsilon = _appSettings.AnalogChangeEpsilon;
@@ -122,8 +133,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         AvailableTemplates = _profileService.AvailableTemplates;
         Mappings = new ObservableCollection<MappingEntry>();
-        AvailableGamepadButtons = new ObservableCollection<string>(
-            Enum.GetNames<GamepadButtons>().Where(n => !string.Equals(n, nameof(GamepadButtons.None), StringComparison.OrdinalIgnoreCase)));
+        AvailableGamepadButtons = new ObservableCollection<string>(GamepadChordSegmentCatalog.AllSegmentNames);
         AvailableTriggerModes = new ObservableCollection<TriggerMoment>(Enum.GetValues<TriggerMoment>());
         Mappings.CollectionChanged += (_, _) =>
         {
@@ -134,6 +144,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         MappingEditorPanel = new MappingEditorViewModel(this);
+        CatalogPanel = new ProfileCatalogPanelViewModel(this);
         GamepadMonitorPanel = new GamepadMonitorViewModel(
             StopGamepadCommand,
             StartGamepadCommand,
@@ -172,9 +183,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
             requestTemplateSwitchToProfileId: pid => DispatchToUi(() => ApplyTemplateSwitchFromGamepad(pid)),
+            profileService: _profileService,
             setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
             comboHudGateMessageFactory: comboHudGateMessageFactory,
-            isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive);
+            isComboHudPresentationSuppressed: () => _isTemplateSwitchHudActive,
+            radialMenuHud: new RadialMenuHudPresenter(
+                () => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex,
+                () => Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220)),
+            getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
+            getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0
+                ? RadialMenuConfirmMode.ReturnStickToCenter
+                : RadialMenuConfirmMode.ReleaseGuideKey);
+        _keyboardActions.CollectionChanged += (_, _) => RefreshRadialDefinitionsInEngine();
+        _radialMenus.CollectionChanged += OnRadialMenusCollectionChanged;
         _profileService.ProfilesLoaded += _profilesLoadedHandler;
         _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
 
@@ -202,6 +223,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
         LoadSelectedTemplate();
 
         StartGamepad();
+        RefreshRightPanelSurface();
+    }
+
+    partial void OnProfileListTabIndexChanged(int value) => RefreshRightPanelSurface();
+
+    internal void RefreshRightPanelSurface()
+    {
+        var showMapping = ProfileListTabIndex == 0 &&
+            (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
+        var showKeyboard = ProfileListTabIndex == 1 && CatalogPanel.SelectedKeyboardAction is not null;
+        var showRadial = ProfileListTabIndex == 2 && CatalogPanel.SelectedRadialMenu is not null;
+
+        RightPanelSurface = showMapping
+            ? ProfileRightPanelSurface.Mapping
+            : showKeyboard
+                ? ProfileRightPanelSurface.KeyboardAction
+                : showRadial
+                    ? ProfileRightPanelSurface.RadialMenu
+                    : ProfileRightPanelSurface.None;
     }
 
     [ObservableProperty]
@@ -240,16 +280,31 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string currentTemplateDisplayName = string.Empty;
 
     [ObservableProperty]
+    private string currentTemplateProfileId = string.Empty;
+
+    [ObservableProperty]
+    private string currentTemplateTemplateGroupId = string.Empty;
+
+    [ObservableProperty]
     private int mappingCount;
 
     [ObservableProperty]
     private bool isGamepadRunning;
+
+    /// <summary>Left workspace: 0 mappings, 1 keyboard actions, 2 radial menus.</summary>
+    [ObservableProperty]
+    private int profileListTabIndex;
+
+    [ObservableProperty]
+    private ProfileRightPanelSurface rightPanelSurface;
 
     public ProfileTemplatePanelViewModel ProfileTemplatePanel { get; }
 
     public NewBindingPanelViewModel NewBindingPanel { get; }
 
     public MappingEditorViewModel MappingEditorPanel { get; }
+
+    public ProfileCatalogPanelViewModel CatalogPanel { get; }
 
     public GamepadMonitorViewModel GamepadMonitorPanel { get; }
 
@@ -343,6 +398,44 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (clamped != value)
             gamepadPollingIntervalMs = clamped;
         _appSettings.GamepadPollingIntervalMs = clamped;
+        _settingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int radialMenuConfirmModeIndex;
+
+    partial void OnRadialMenuConfirmModeIndexChanged(int value)
+    {
+        var clamped = value < 0 ? 0 : (value > 1 ? 1 : value);
+        if (clamped != value)
+            radialMenuConfirmModeIndex = clamped;
+        _appSettings.RadialMenuConfirmMode = clamped == 0 ? "returnStickToCenter" : "releaseGuideKey";
+        _settingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private int radialMenuHudLabelModeIndex;
+
+    partial void OnRadialMenuHudLabelModeIndexChanged(int value)
+    {
+        var clamped = Math.Clamp(value, 0, 2);
+        if (clamped != value)
+            radialMenuHudLabelModeIndex = clamped;
+        _appSettings.RadialMenuHudLabelMode =
+            RadialMenuHudLabelModeParser.ToSettingString((RadialMenuHudLabelMode)clamped);
+        _settingsService.SaveSettings(_appSettings);
+    }
+
+    [ObservableProperty]
+    private double radialHudScaleSetting;
+
+    partial void OnRadialHudScaleSettingChanged(double value)
+    {
+        var clamped = RadialHudLayout.ClampHudScale(value);
+        if (Math.Abs(clamped - value) > 1e-6)
+            radialHudScaleSetting = clamped;
+        RadialHudLayout.HudScale = clamped;
+        _appSettings.RadialHudScale = clamped;
         _settingsService.SaveSettings(_appSettings);
     }
 
@@ -445,11 +538,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
     {
         var id = (targetProfileId ?? string.Empty).Trim();
-        if (id.Length == 0 || !_profileService.TemplateExists(id))
+        if (id.Length == 0 || !_profileService.TryResolveTemplateFileStem(id, out var fileStem))
             return;
 
         var opt = _profileService.AvailableTemplates.FirstOrDefault(t =>
-            string.Equals(t.ProfileId, id, StringComparison.OrdinalIgnoreCase));
+            string.Equals(t.ProfileId, fileStem, StringComparison.OrdinalIgnoreCase));
         if (opt is null)
             return;
 
@@ -540,6 +633,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnSelectedMappingChanged(MappingEntry? value)
     {
         MappingEditorPanel.SyncFromSelection(value);
+        RefreshRightPanelSurface();
     }
 
     private void DispatchToUi(Action action, DispatcherPriority priority = DispatcherPriority.Normal)
@@ -669,14 +763,28 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void LoadSelectedTemplate()
     {
+        if (SelectedTemplate is null)
+            return;
+
         var template = _profileService.LoadSelectedTemplate(SelectedTemplate);
         if (template is null)
             return;
 
         CurrentTemplateDisplayName = template.DisplayName;
+        CurrentTemplateProfileId = template.ProfileId;
+        CurrentTemplateTemplateGroupId = template.TemplateGroupId;
 
         _comboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
-        _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+        foreach (var rm in _radialMenus.ToList())
+            rm.Items.CollectionChanged -= OnRadialMenuItemsCollectionChanged;
+        _keyboardActions.Clear();
+        _radialMenus.Clear();
+        foreach (var a in template.KeyboardActions ?? [])
+            _keyboardActions.Add(a);
+        foreach (var rm in template.RadialMenus ?? [])
+            _radialMenus.Add(rm);
+        _mappingEngine?.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+        RefreshRadialDefinitionsInEngine();
 
         Mappings.Clear();
         foreach (var mapping in template.Mappings)
@@ -706,10 +814,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
+
+        CatalogPanel.SelectedKeyboardAction = null;
+        CatalogPanel.SelectedRadialMenu = null;
+        CatalogPanel.SelectedRadialSlot = null;
+        RefreshRightPanelSurface();
     }
 
     /// <summary>Combo lead names from the loaded template; written back unchanged on Save profile.</summary>
     public IReadOnlyList<string>? ComboLeadButtonsPersist => _comboLeadButtonsPersist;
+
+    /// <summary>Keyboard action catalog for the current profile (saved with the template).</summary>
+    public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _keyboardActions;
+
+    /// <summary>Radial menu definitions for the current profile (saved with the template).</summary>
+    public ObservableCollection<RadialMenuDefinition> RadialMenus => _radialMenus;
 
     public IProfileService GetProfileService() => _profileService;
 
@@ -718,7 +837,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         SelectedTemplate = _profileService.ReloadTemplates(preferredProfileId);
     }
 
-    public void ReloadSelectedTemplate() => LoadSelectedTemplate();
+    public void ReloadSelectedTemplate()
+    {
+        LoadSelectedTemplate();
+    }
 
     public bool TryCaptureKeyboardKey(Key key, Key? systemKey = null)
         => _keyboardCaptureService.TryCaptureKeyboardKey(key, systemKey);
@@ -730,6 +852,41 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         MappingCount = Mappings.Count;
     }
+
+    private void RefreshRadialDefinitionsInEngine()
+    {
+        var template = SelectedTemplate != null ? _profileService.LoadSelectedTemplate(SelectedTemplate) : null;
+        _mappingEngine.SetRadialMenuDefinitions(
+            _radialMenus.Count == 0 ? null : _radialMenus.ToList(),
+            _keyboardActions.Count == 0 ? null : _keyboardActions.ToList(),
+            template);
+    }
+
+    private void OnRadialMenusCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            RefreshRadialDefinitionsInEngine();
+            return;
+        }
+
+        if (e.OldItems != null)
+        {
+            foreach (RadialMenuDefinition rm in e.OldItems)
+                rm.Items.CollectionChanged -= OnRadialMenuItemsCollectionChanged;
+        }
+
+        if (e.NewItems != null)
+        {
+            foreach (RadialMenuDefinition rm in e.NewItems)
+                rm.Items.CollectionChanged += OnRadialMenuItemsCollectionChanged;
+        }
+
+        RefreshRadialDefinitionsInEngine();
+    }
+
+    private void OnRadialMenuItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        RefreshRadialDefinitionsInEngine();
 
     private void OnThumbstickDeadzoneChanged(float left, float right)
     {

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
@@ -17,6 +18,10 @@ namespace GamepadMapperGUI.Services;
 public partial class ProfileService : IProfileService
 {
     private static readonly Regex ValidIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", RegexOptions.Compiled);
+
+    /// <summary>Maps filename stem or in-file <see cref="GameProfileTemplate.ProfileId"/> to the filename stem under the templates directory.</summary>
+    private readonly Dictionary<string, string> _templateLookupKeyToFileStem = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly ISettingsService _settingsService;
     private readonly TranslationService _translationService;
     private readonly IFileSystem _fileSystem;
@@ -87,6 +92,22 @@ public partial class ProfileService : IProfileService
         if (TryPickCultureString(template.DisplayNames, culture, out var displayForCulture))
             template.DisplayName = displayForCulture;
 
+        if (template.KeyboardActions is { Count: > 0 } keyboardActions)
+        {
+            foreach (var action in keyboardActions)
+            {
+                if (!string.IsNullOrWhiteSpace(action.DescriptionKey))
+                {
+                    var localized = _translationService[action.DescriptionKey];
+                    if (!IsMissingLocalization(localized))
+                        action.Description = localized;
+                }
+
+                if (TryPickCultureString(action.Descriptions, culture, out var actionDesc))
+                    action.Description = actionDesc;
+            }
+        }
+
         foreach (var mapping in template.Mappings)
         {
             if (!string.IsNullOrWhiteSpace(mapping.DescriptionKey))
@@ -100,6 +121,23 @@ public partial class ProfileService : IProfileService
                 mapping.Description = descForCulture;
         }
 
+        if (template.RadialMenus is { Count: > 0 } radialMenus)
+        {
+            foreach (var rm in radialMenus)
+            {
+                if (TryPickCultureString(rm.DisplayNames, culture, out var radialTitle))
+                    rm.DisplayName = radialTitle;
+
+                foreach (var item in rm.Items)
+                {
+                    if (TryPickCultureString(item.Labels, culture, out var slotLabel))
+                        item.Label = slotLabel;
+                }
+            }
+        }
+
+        TemplateKeyboardActionResolver.Apply(template);
+
         return template;
     }
 
@@ -108,6 +146,7 @@ public partial class ProfileService : IProfileService
     public TemplateOption? ReloadTemplates(string? preferredProfileId = null)
     {
         AvailableTemplates.Clear();
+        _templateLookupKeyToFileStem.Clear();
         var templatesDir = LoadTemplateDirectory();
         if (!Directory.Exists(templatesDir))
         {
@@ -123,11 +162,17 @@ public partial class ProfileService : IProfileService
             try
             {
                 var template = LoadTemplate(profileId);
+                _templateLookupKeyToFileStem[profileId] = profileId;
+                var logicalId = template.ProfileId?.Trim();
+                if (!string.IsNullOrEmpty(logicalId))
+                    _templateLookupKeyToFileStem[logicalId] = profileId;
+
                 options.Add(new TemplateOption
                 {
                     ProfileId = profileId,
                     TemplateGroupId = template.TemplateGroupId,
-                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName
+                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName,
+                    RadialMenus = template.RadialMenus?.ToList()
                 });
             }
             catch
@@ -163,11 +208,37 @@ public partial class ProfileService : IProfileService
         return LoadTemplate(selectedTemplate.ProfileId);
     }
 
+    public bool TryResolveTemplateFileStem(string requestedProfileId, out string fileStem)
+    {
+        fileStem = string.Empty;
+        var id = (requestedProfileId ?? string.Empty).Trim();
+        if (id.Length == 0)
+            return false;
+
+        var dir = LoadTemplateDirectory();
+        var directPath = Path.Combine(dir, $"{id}.json");
+        if (_fileSystem.FileExists(directPath))
+        {
+            fileStem = id;
+            return true;
+        }
+
+        if (_templateLookupKeyToFileStem.TryGetValue(id, out var stem))
+        {
+            var resolvedPath = Path.Combine(dir, $"{stem}.json");
+            if (_fileSystem.FileExists(resolvedPath))
+            {
+                fileStem = stem;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public bool TemplateExists(string profileId)
     {
-        if (string.IsNullOrWhiteSpace(profileId)) return false;
-        var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
-        return _fileSystem.FileExists(templatePath);
+        return TryResolveTemplateFileStem(profileId ?? string.Empty, out _);
     }
 
     /// <summary>
@@ -192,13 +263,20 @@ public partial class ProfileService : IProfileService
         return a.Length <= b.Length ? IsSegmentPrefix(a, b) : IsSegmentPrefix(b, a);
     }
 
+    public static bool IsValidId(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+        return ValidIdPattern.IsMatch(id.Trim());
+    }
+
     public static string EnsureValidTemplateGroupId(string templateGroupId)
     {
         var normalized = (templateGroupId ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(normalized))
             throw new ArgumentException("Template group ID (templateGroupId) is required.", nameof(templateGroupId));
 
-        if (!ValidIdPattern.IsMatch(normalized))
+        if (!IsValidId(normalized))
             throw new ArgumentException("Template group ID (templateGroupId) can only contain letters, digits, dot, underscore, and dash.", nameof(templateGroupId));
 
         return normalized;
@@ -233,6 +311,10 @@ public partial class ProfileService : IProfileService
     {
         if (template is null) throw new ArgumentNullException(nameof(template));
 
+        var validation = ValidateTemplate(template);
+        if (!validation.IsValid)
+            throw new InvalidOperationException($"Cannot save profile with errors: {string.Join(", ", validation.Errors)}");
+
         var templatesDir = LoadTemplateDirectory();
         _fileSystem.CreateDirectory(templatesDir);
 
@@ -265,7 +347,13 @@ public partial class ProfileService : IProfileService
             _fileSystem.DeleteFile(templatePath);
     }
 
-    private static string EnsureValidProfileId(string profileId)
+    public IValidationResult ValidateTemplate(GameProfileTemplate template)
+    {
+        var validator = new ProfileValidator();
+        return validator.Validate(template);
+    }
+
+    public static string EnsureValidProfileId(string profileId)
     {
         var normalized = (profileId ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(normalized))

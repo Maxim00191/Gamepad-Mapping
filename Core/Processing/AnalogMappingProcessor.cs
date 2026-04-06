@@ -32,11 +32,17 @@ internal sealed class AnalogMappingProcessor
         _setMappingStatus = setMappingStatus;
     }
 
-    public void ProcessThumbstick(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    public void ProcessThumbstick(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot, bool isConsumed = false)
     {
         if (!_canDispatchOutput())
         {
             ForceReleaseAnalogOutputs();
+            return;
+        }
+
+        if (isConsumed)
+        {
+            ReleaseAnalogOutputsForSourceThumbstick(sourceType);
             return;
         }
 
@@ -77,7 +83,7 @@ internal sealed class AnalogMappingProcessor
         }
 
         if (MathF.Abs(mouseDeltaX) > 0f || MathF.Abs(mouseDeltaY) > 0f)
-            SendMouseLookDelta(mouseDeltaX, mouseDeltaY);
+            SendMouseLookDelta(sourceType, mouseDeltaX, mouseDeltaY);
     }
 
     public void ProcessTrigger(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot, Action<PointerAction, TriggerMoment> sendPointerAction)
@@ -158,6 +164,14 @@ internal sealed class AnalogMappingProcessor
         _analogProcessor.Reset();
     }
 
+    private void ReleaseAnalogOutputsForSourceThumbstick(GamepadBindingType sourceType)
+    {
+        foreach (var (key, _) in _analogProcessor.GetActiveNonTapOutputsForBinding(sourceType))
+            _keyboardEmulator.KeyUp(key);
+
+        _analogProcessor.RemoveAnalogKeyboardStateForBinding(sourceType);
+    }
+
     private void HandleAnalogKeyboardOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, Key key)
     {
         var transition = _analogProcessor.EvaluateKeyboardTransition(mapping, source, stickValue, key);
@@ -180,9 +194,9 @@ internal sealed class AnalogMappingProcessor
         }
     }
 
-    private void SendMouseLookDelta(float deltaX, float deltaY)
+    private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY)
     {
-        var delta = _analogProcessor.AccumulateMouseLookDelta(deltaX, deltaY);
+        var delta = _analogProcessor.AccumulateMouseLookDelta(thumbstickSource, deltaX, deltaY);
         if (delta.PixelDx != 0 || delta.PixelDy != 0)
             _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy);
     }

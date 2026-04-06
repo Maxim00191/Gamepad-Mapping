@@ -1,0 +1,50 @@
+<UserControl x:Class="Gamepad_Mapping.Views.Sections.ProfileKeyboardActionsListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinHeight="0"
+             VerticalAlignment="Stretch">
+    <Grid MinHeight="0"
+          VerticalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="0" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0"
+                   Style="{StaticResource WorkspaceSectionTitleStyle}"
+                   Text="{Binding Source={StaticResource Loc}, Path=[CatalogKeyboardActionsHeader]}" />
+        <WrapPanel Grid.Row="1"
+                   Orientation="Horizontal"
+                   Margin="0,0,0,8">
+            <Button Content="{Binding Source={StaticResource Loc}, Path=[CatalogAddRow]}"
+                    Command="{Binding AddKeyboardActionCommand}"
+                    Padding="10,4"
+                    Margin="0,0,8,4" />
+            <Button Content="{Binding Source={StaticResource Loc}, Path=[RemoveSelected]}"
+                    Command="{Binding RemoveKeyboardActionCommand}"
+                    Padding="10,4"
+                    Margin="0,0,0,4" />
+        </WrapPanel>
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding KeyboardActions}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  HeadersVisibility="Column"
+                  SelectedItem="{Binding SelectedKeyboardAction, Mode=TwoWay}"
+                  SelectionUnit="FullRow"
+                  VerticalAlignment="Stretch"
+                  VerticalScrollBarVisibility="Auto">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnId]}"
+                                    Binding="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="*" />
+                <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnKeyboardKey]}"
+                                    Binding="{Binding KeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="*" />
+                <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnDescription]}"
+                                    Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="1.4*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

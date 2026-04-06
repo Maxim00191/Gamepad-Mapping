@@ -41,6 +41,18 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         set => _mainViewModel.CurrentTemplateDisplayName = value;
     }
 
+    public string CurrentTemplateProfileId
+    {
+        get => _mainViewModel.CurrentTemplateProfileId;
+        set => _mainViewModel.CurrentTemplateProfileId = value;
+    }
+
+    public string CurrentTemplateTemplateGroupId
+    {
+        get => _mainViewModel.CurrentTemplateTemplateGroupId;
+        set => _mainViewModel.CurrentTemplateTemplateGroupId = value;
+    }
+
     public string TemplateTargetProcessName
     {
         get => _mainViewModel.TemplateTargetProcessName;
@@ -50,73 +62,64 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
     public int MappingCount => _mainViewModel.MappingCount;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateProfileCommand))]
     private string newProfileTemplateGroupId = string.Empty;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateProfileCommand))]
     private string newProfileDisplayName = string.Empty;
 
-    private ICommand? _saveProfileCommand;
-    public ICommand SaveProfileCommand => _saveProfileCommand ??= new RelayCommand(SaveProfile);
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateProfileCommand))]
+    private string newProfileId = string.Empty;
 
-    private ICommand? _deleteSelectedProfileCommand;
-    public ICommand DeleteSelectedProfileCommand => _deleteSelectedProfileCommand ??= new RelayCommand(DeleteSelectedProfile);
+    public bool CanCreateProfile => ProfileService.IsValidId(NewProfileTemplateGroupId) 
+        && (string.IsNullOrWhiteSpace(NewProfileId) || ProfileService.IsValidId(NewProfileId));
 
-    private ICommand? _createProfileCommand;
-    public ICommand CreateProfileCommand => _createProfileCommand ??= new RelayCommand(CreateProfile);
-
-    private ICommand? _reloadTemplateCommand;
-    public ICommand ReloadTemplateCommand => _reloadTemplateCommand ??= new RelayCommand(ReloadTemplate);
-
+    [RelayCommand]
     private void SaveProfile()
     {
         if (SelectedTemplate is null)
             return;
 
-        List<string>? comboLeads = null;
-        if (_mainViewModel.ComboLeadButtonsPersist is not null)
-            comboLeads = new List<string>(_mainViewModel.ComboLeadButtonsPersist);
-
-        var targetProc = (_mainViewModel.TemplateTargetProcessName ?? string.Empty).Trim();
-        var template = new GameProfileTemplate
+        try
         {
-            SchemaVersion = 1,
-            ProfileId = SelectedTemplate.ProfileId,
-            TemplateGroupId = SelectedTemplate.TemplateGroupId,
-            DisplayName = CurrentTemplateDisplayName,
-            TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
-            ComboLeadButtons = comboLeads,
-            Mappings = _mainViewModel.Mappings.ToList()
-        };
+            List<string>? comboLeads = null;
+            if (_mainViewModel.ComboLeadButtonsPersist is not null)
+                comboLeads = new List<string>(_mainViewModel.ComboLeadButtonsPersist);
 
-        _profileService.SaveTemplate(template);
-        _mainViewModel.RefreshTemplates(template.ProfileId);
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+            var targetProc = (_mainViewModel.TemplateTargetProcessName ?? string.Empty).Trim();
+            var template = new GameProfileTemplate
+            {
+                SchemaVersion = 1,
+                ProfileId = CurrentTemplateProfileId,
+                TemplateGroupId = CurrentTemplateTemplateGroupId,
+                DisplayName = CurrentTemplateDisplayName,
+                TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
+                ComboLeadButtons = comboLeads,
+                KeyboardActions = _mainViewModel.KeyboardActions.Count == 0 ? null : _mainViewModel.KeyboardActions.ToList(),
+                RadialMenus = _mainViewModel.RadialMenus.Count == 0 ? null : _mainViewModel.RadialMenus.ToList(),
+                Mappings = _mainViewModel.Mappings.ToList()
+            };
+
+            var originalProfileId = SelectedTemplate.ProfileId;
+            _profileService.SaveTemplate(template);
+
+            if (!string.Equals(originalProfileId, template.ProfileId, StringComparison.OrdinalIgnoreCase))
+            {
+                _profileService.DeleteTemplate(originalProfileId);
+            }
+
+            _mainViewModel.RefreshTemplates(template.ProfileId);
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to save profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
-    private void CreateProfile()
-    {
-        var templateGroupId = ProfileService.EnsureValidTemplateGroupId((NewProfileTemplateGroupId ?? string.Empty).Trim());
-        var displayName = (NewProfileDisplayName ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(displayName))
-            displayName = templateGroupId;
-
-        var profileId = _profileService.CreateUniqueProfileId(templateGroupId, displayName);
-        var template = new GameProfileTemplate
-        {
-            SchemaVersion = 1,
-            ProfileId = profileId,
-            TemplateGroupId = templateGroupId,
-            DisplayName = displayName,
-            Mappings = new List<MappingEntry>()
-        };
-
-        _profileService.SaveTemplate(template, allowOverwrite: false);
-        _mainViewModel.RefreshTemplates(profileId);
-        NewProfileTemplateGroupId = string.Empty;
-        NewProfileDisplayName = string.Empty;
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-    }
-
+    [RelayCommand]
     private void DeleteSelectedProfile()
     {
         if (SelectedTemplate is null)
@@ -134,11 +137,56 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (ok != MessageBoxResult.Yes)
             return;
 
-        _profileService.DeleteTemplate(SelectedTemplate.ProfileId);
-        _mainViewModel.RefreshTemplates();
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        try
+        {
+            _profileService.DeleteTemplate(SelectedTemplate.ProfileId);
+            _mainViewModel.RefreshTemplates();
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to delete profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
+    [RelayCommand(CanExecute = nameof(CanCreateProfile))]
+    private void CreateProfile()
+    {
+        try
+        {
+            var templateGroupId = ProfileService.EnsureValidTemplateGroupId((NewProfileTemplateGroupId ?? string.Empty).Trim());
+            var displayName = (NewProfileDisplayName ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(displayName))
+                displayName = templateGroupId;
+
+            var profileId = string.IsNullOrWhiteSpace(NewProfileId)
+                ? _profileService.CreateUniqueProfileId(templateGroupId, displayName)
+                : ProfileService.EnsureValidProfileId(NewProfileId.Trim());
+
+            var template = new GameProfileTemplate
+            {
+                SchemaVersion = 1,
+                ProfileId = profileId,
+                TemplateGroupId = templateGroupId,
+                DisplayName = displayName,
+                Mappings = new List<MappingEntry>()
+            };
+
+            _profileService.SaveTemplate(template, allowOverwrite: false);
+            _mainViewModel.RefreshTemplates(profileId);
+
+            NewProfileTemplateGroupId = string.Empty;
+            NewProfileDisplayName = string.Empty;
+            NewProfileId = string.Empty;
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to create profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
     private void ReloadTemplate()
     {
         if (SelectedTemplate is null)
@@ -160,6 +208,12 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.CurrentTemplateDisplayName):
                 OnPropertyChanged(nameof(CurrentTemplateDisplayName));
+                break;
+            case nameof(MainViewModel.CurrentTemplateProfileId):
+                OnPropertyChanged(nameof(CurrentTemplateProfileId));
+                break;
+            case nameof(MainViewModel.CurrentTemplateTemplateGroupId):
+                OnPropertyChanged(nameof(CurrentTemplateTemplateGroupId));
                 break;
             case nameof(MainViewModel.TemplateTargetProcessName):
                 OnPropertyChanged(nameof(TemplateTargetProcessName));

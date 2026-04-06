@@ -12,6 +12,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ProfileId" xml:space="preserve">
+    <value>Profile ID</value>
+  </data>
   <data name="ProfileAndTemplate" xml:space="preserve">
     <value>Profile and Template</value>
   </data>
@@ -270,6 +273,141 @@
   <data name="PollingIntervalLabel" xml:space="preserve">
     <value>Gamepad poll interval (ms)</value>
   </data>
+  <data name="RadialMenuConfirmModeLabel" xml:space="preserve">
+    <value>Radial menu confirm</value>
+  </data>
+  <data name="RadialMenuConfirmModeReleaseGuide" xml:space="preserve">
+    <value>Release guide chord</value>
+  </data>
+  <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
+    <value>Return selection stick to center</value>
+  </data>
+  <data name="RadialMenuHudLabelModeLabel" xml:space="preserve">
+    <value>Radial menu item labels</value>
+  </data>
+  <data name="RadialMenuHudLabelModeBoth" xml:space="preserve">
+    <value>Description and key</value>
+  </data>
+  <data name="RadialMenuHudLabelModeDescriptionOnly" xml:space="preserve">
+    <value>Description only</value>
+  </data>
+  <data name="RadialMenuHudLabelModeKeyboardKeyOnly" xml:space="preserve">
+    <value>Keyboard key only</value>
+  </data>
+  <data name="RadialHudScaleLabel" xml:space="preserve">
+    <value>Radial menu HUD scale</value>
+  </data>
+  <data name="CatalogExpanderHeader" xml:space="preserve">
+    <value>Keyboard actions &amp; radial menus (JSON catalog)</value>
+  </data>
+  <data name="CatalogKeyboardActionsHeader" xml:space="preserve">
+    <value>Keyboard actions</value>
+  </data>
+  <data name="CatalogRadialMenusHeader" xml:space="preserve">
+    <value>Radial menus</value>
+  </data>
+  <data name="CatalogRadialSlotsHeader" xml:space="preserve">
+    <value>Slots for selected radial menu</value>
+  </data>
+  <data name="CatalogRadialSlotsHint" xml:space="preserve">
+    <value>Each slot references a keyboard action id. Save profile to persist.</value>
+  </data>
+  <data name="CatalogAddRow" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="CatalogColumnId" xml:space="preserve">
+    <value>Id</value>
+  </data>
+  <data name="CatalogColumnKeyboardKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="CatalogColumnOutputKind" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="CatalogOutputKind_Keyboard" xml:space="preserve">
+    <value>Keyboard key</value>
+  </data>
+  <data name="CatalogOutputKind_TemplateToggle" xml:space="preserve">
+    <value>Switch profile</value>
+  </data>
+  <data name="CatalogOutputKind_RadialMenu" xml:space="preserve">
+    <value>Radial menu</value>
+  </data>
+  <data name="CatalogOutputKind_ItemCycle" xml:space="preserve">
+    <value>Item cycle</value>
+  </data>
+  <data name="MappingCatalogSummaryRadial" xml:space="preserve">
+    <value>Radial menu: {0}</value>
+  </data>
+  <data name="MappingCatalogSummaryTemplateToggle" xml:space="preserve">
+    <value>Switch profile: {0}</value>
+  </data>
+  <data name="MappingCatalogSummaryKeyboard" xml:space="preserve">
+    <value>Key: {0}</value>
+  </data>
+  <data name="MappingCatalogSummaryEmpty" xml:space="preserve">
+    <value>(No output in catalog)</value>
+  </data>
+  <data name="CatalogColumnDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CatalogColumnDisplayName" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="CatalogColumnJoystick" xml:space="preserve">
+    <value>Stick</value>
+  </data>
+  <data name="CatalogColumnActionId" xml:space="preserve">
+    <value>Action id</value>
+  </data>
+  <data name="MappingActionIdManual" xml:space="preserve">
+    <value>(Manual key)</value>
+  </data>
+  <data name="CatalogColumnIcon" xml:space="preserve">
+    <value>Icon</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameKey" xml:space="preserve">
+    <value>Title resource key (optional)</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameZhCn" xml:space="preserve">
+    <value>Title (zh-CN)</value>
+  </data>
+  <data name="CatalogColumnHudLabel" xml:space="preserve">
+    <value>HUD label (EN)</value>
+  </data>
+  <data name="CatalogColumnHudLabelKey" xml:space="preserve">
+    <value>HUD label key</value>
+  </data>
+  <data name="CatalogColumnHudLabelZhCn" xml:space="preserve">
+    <value>zh-CN</value>
+  </data>
+  <data name="ProfileTabMappings" xml:space="preserve">
+    <value>Mappings</value>
+  </data>
+  <data name="ProfileTabKeyboardActions" xml:space="preserve">
+    <value>Keyboard actions</value>
+  </data>
+  <data name="ProfileTabRadialMenus" xml:space="preserve">
+    <value>Radial menus</value>
+  </data>
+  <data name="ProfileEditorPlaceholder" xml:space="preserve">
+    <value>Select a row in the list or add one to edit details here.</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
+    <value>Keyboard action</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionHint" xml:space="preserve">
+    <value>Ids are referenced by mappings and radial slots. Save profile to persist.</value>
+  </data>
+  <data name="ProfileEditorRadialMenuTitle" xml:space="preserve">
+    <value>Radial menu</value>
+  </data>
+  <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
+    <value>Configure the stick and slots below. Title and HUD label are the default strings (typically English); optional zh-CN fields map to displayNames / labels in JSON. Save profile to persist.</value>
+  </data>
+  <data name="ProfileEditorColumnTitle" xml:space="preserve">
+    <value>Details</value>
+  </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
     <value>Cycle hotbar / inventory slots</value>
   </data>
@@ -310,12 +448,69 @@
     <value>Use combination / chord as source</value>
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
-    <value>Select two buttons to form a combination mapping. Note: LT/RT modifiers can still be added by typing in the single-button field if needed.</value>
+    <value>Pick two inputs (buttons or LeftTrigger / RightTrigger) for a chord. For three or more segments, use the single-field box (editable).</value>
+  </data>
+  <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
+    <value>Trigger match threshold</value>
+  </data>
+  <data name="TriggerChordMatchThresholdHint" xml:space="preserve">
+    <value>Required when LT or RT is part of the source. Use a value between 0 and 1 (not 0). Example: 0.35</value>
+  </data>
+  <data name="TriggerChordThresholdRequiredMessage" xml:space="preserve">
+    <value>Enter a trigger match threshold between 0 and 1 (exclusive of 0) when the source includes LeftTrigger or RightTrigger.</value>
+  </data>
+  <data name="MappingEditorSaveFailedTitle" xml:space="preserve">
+    <value>Cannot save mapping</value>
+  </data>
+  <data name="MappingEditorInvalidSource" xml:space="preserve">
+    <value>Fix the gamepad source (e.g. valid button or chord).</value>
+  </data>
+  <data name="MappingEditorInvalidAction" xml:space="preserve">
+    <value>Configure a valid action for this mapping.</value>
+  </data>
+  <data name="MappingEditorSaveFailedGeneric" xml:space="preserve">
+    <value>Check the source, trigger threshold (for LT/RT chords), and action.</value>
   </data>
   <data name="ComboHudGateHint" xml:space="preserve">
     <value>Combo HUD preview is off: keyboard/mouse output is blocked (check target process, foreground window, or elevation).</value>
   </data>
   <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
     <value>Template-switch HUD duration (s)</value>
+  </data>
+  <data name="MappingRadialMenuEnabled" xml:space="preserve">
+    <value>Enable radial menu</value>
+  </data>
+  <data name="MappingSelectRadialMenu" xml:space="preserve">
+    <value>Select radial menu</value>
+  </data>
+  <data name="ActionType_Keyboard" xml:space="preserve">
+    <value>Keyboard / Mouse</value>
+  </data>
+  <data name="ActionType_ItemCycle" xml:space="preserve">
+    <value>Item Cycle</value>
+  </data>
+  <data name="ActionType_TemplateToggle" xml:space="preserve">
+    <value>Profile Toggle</value>
+  </data>
+  <data name="ActionType_RadialMenu" xml:space="preserve">
+    <value>Radial Menu</value>
+  </data>
+  <data name="ActionType" xml:space="preserve">
+    <value>Action type</value>
+  </data>
+  <data name="ItemCycleDirection_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="ItemCycleDirection_Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="TriggerMoment_Pressed" xml:space="preserve">
+    <value>Pressed</value>
+  </data>
+  <data name="TriggerMoment_Released" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="TriggerMoment_Tap" xml:space="preserve">
+    <value>Tap</value>
   </data>
 </root>

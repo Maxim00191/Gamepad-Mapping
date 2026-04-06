@@ -27,6 +27,7 @@ internal sealed class HoldSessionManager
     private readonly Action<Action>? _runSynchronizedWithInputFrame;
 
     private readonly Dictionary<string, HoldSession> _holdSessions = new(StringComparer.Ordinal);
+    private readonly Dictionary<GamepadButtons, DualActionSession> _dualActionSessions = new();
     private readonly Dictionary<GamepadButtons, long> _buttonDownTicks = new();
 
     private IReadOnlyCollection<GamepadButtons> _latestActiveButtons = Array.Empty<GamepadButtons>();
@@ -86,6 +87,17 @@ internal sealed class HoldSessionManager
         public bool LongFired { get; set; }
     }
 
+    private sealed class DualActionSession
+    {
+        public required GamepadButtons Button { get; init; }
+        public required string SourceToken { get; init; }
+        public required string ShortKeyToken { get; init; }
+        public required float TriggerMatchThreshold { get; init; }
+        public required Action OnLongPress { get; init; }
+        public required ITimer Timer { get; init; }
+        public bool LongActionFired { get; set; }
+    }
+
     public void UpdateLatestInputState(
         IReadOnlyCollection<GamepadButtons> activeButtons,
         float leftTriggerValue,
@@ -128,6 +140,7 @@ internal sealed class HoldSessionManager
     {
         lock (_buttonDownTicks)
         {
+            // Ensure we only remove the specific button down tick.
             _buttonDownTicks.Remove(button);
         }
     }
@@ -286,6 +299,236 @@ internal sealed class HoldSessionManager
         }
 
         return false;
+    }
+
+    public bool TryArmDualActionSession(
+        GamepadButtons button,
+        IReadOnlyCollection<GamepadButtons> activeButtons,
+        IReadOnlyList<MappingEntry> snapshot,
+        float leftTriggerValue,
+        float rightTriggerValue,
+        MappingEntry shortActionMapping,
+        Action onLongPress)
+    {
+        if (!_canDispatchOutput())
+            return false;
+
+        var comboLeads = _resolveComboLeads(snapshot);
+        if (activeButtons.Any(b => b != button && comboLeads.Contains(b)))
+            return false;
+
+        if (_dualActionSessions.ContainsKey(button))
+            return true;
+
+        if (!ChordResolver.TryParseButtonChord(shortActionMapping.From!.Value, out var chordButtons, out var reqRt, out var reqLt, out var sourceToken))
+            return false;
+        if (reqRt || reqLt || chordButtons.Count != 1)
+            return false;
+
+        if (!InputTokenResolver.TryResolveMappedOutput(shortActionMapping.KeyboardKey, out _, out _))
+            return false;
+
+        var triggerThreshold = GetTriggerMatchThreshold(shortActionMapping);
+        if (!ChordResolver.DoesChordMatchEvent(
+                chordButtons,
+                reqRt,
+                reqLt,
+                leftTriggerValue,
+                rightTriggerValue,
+                triggerThreshold,
+                button,
+                activeButtons))
+            return false;
+
+        var thresholdMs = ResolveHoldThresholdMs(shortActionMapping);
+        DualActionSession session = null!;
+        var timer = _timeProvider.CreateTimer(
+            TimeSpan.FromMilliseconds(thresholdMs),
+            () =>
+            {
+                if (_runSynchronizedWithInputFrame is not null)
+                    _runSynchronizedWithInputFrame(() => OnDualActionTimerElapsed(session));
+                else
+                    OnDualActionTimerElapsed(session);
+            });
+        session = new DualActionSession
+        {
+            Button = button,
+            SourceToken = sourceToken,
+            ShortKeyToken = shortActionMapping.KeyboardKey ?? string.Empty,
+            TriggerMatchThreshold = triggerThreshold,
+            OnLongPress = onLongPress,
+            Timer = timer
+        };
+
+        timer.Start();
+        _dualActionSessions[button] = session;
+        _setMappingStatus($"Dual action armed: {sourceToken} ({thresholdMs} ms)");
+        _onHoldSessionsChanged();
+        return true;
+    }
+
+    private void OnDualActionTimerElapsed(DualActionSession session)
+    {
+        session.Timer.Stop();
+        if (!_dualActionSessions.TryGetValue(session.Button, out var live) || !ReferenceEquals(live, session))
+            return;
+
+        if (!ChordPhysicallyActive(
+                [session.Button],
+                false,
+                false,
+                _latestLeftTrigger,
+                _latestRightTrigger,
+                session.TriggerMatchThreshold,
+                _latestActiveButtons))
+        {
+            DisposeDualActionSession(session.Button);
+            return;
+        }
+
+        if (!_canDispatchOutput())
+        {
+            _setMappingStatus($"Suppressed dual action hold ({session.SourceToken}) - target is not foreground");
+            DisposeDualActionSession(session.Button);
+            return;
+        }
+
+        session.LongActionFired = true;
+        session.OnLongPress();
+    }
+
+    public bool TryFinalizeDualActionOnRelease(
+        GamepadButtons releasedButton,
+        long? releasedButtonHeldMs,
+        bool applyLeadReleaseSuppress)
+    {
+        if (!_dualActionSessions.TryGetValue(releasedButton, out var session))
+            return false;
+
+        session.Timer.Stop();
+
+        if (session.LongActionFired)
+        {
+            DisposeDualActionSession(releasedButton);
+            return true;
+        }
+
+        if (!_canDispatchOutput())
+        {
+            DisposeDualActionSession(releasedButton);
+            return true;
+        }
+
+        if (!InputTokenResolver.TryResolveMappedOutput(session.ShortKeyToken, out var output, out var label))
+        {
+            DisposeDualActionSession(releasedButton);
+            return true;
+        }
+
+        var heldMs = releasedButtonHeldMs ?? TryGetPressedDurationMs(releasedButton);
+        if (applyLeadReleaseSuppress &&
+            heldMs.HasValue &&
+            heldMs.Value > _leadKeyReleaseSuppressMs)
+        {
+            _setMappingStatus($"Suppressed tap ({session.SourceToken}) - lead held past {_leadKeyReleaseSuppressMs} ms");
+            DisposeDualActionSession(releasedButton);
+            return true;
+        }
+
+        var outputLabel = $"{label} (Tap)";
+        _setMappedOutput(outputLabel);
+        _setMappingStatus($"Queued tap (dual action): {session.SourceToken} -> {outputLabel}");
+        _queueOutputDispatch(session.SourceToken, TriggerMoment.Tap, output, outputLabel, session.ShortKeyToken);
+        DisposeDualActionSession(releasedButton);
+        return true;
+    }
+
+    public void CancelDualActionSupersededByMoreSpecificChord(
+        GamepadButtons changedButton,
+        IReadOnlyCollection<GamepadButtons> activeButtons,
+        IReadOnlyList<MappingEntry> snapshot,
+        float leftTriggerValue,
+        float rightTriggerValue)
+    {
+        foreach (var kvp in _dualActionSessions.ToArray())
+        {
+            var session = kvp.Value;
+            foreach (var mapping in snapshot)
+            {
+                if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
+                    continue;
+                if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var obChord, out var obRt, out var obLt, out _))
+                    continue;
+                if (!ChordResolver.IsOtherChordStrictlyMoreSpecific(
+                        [session.Button],
+                        false,
+                        false,
+                        obChord,
+                        obRt,
+                        obLt))
+                    continue;
+
+                var th = GetTriggerMatchThreshold(mapping);
+                if (!ChordResolver.DoesChordMatchEvent(
+                        obChord,
+                        obRt,
+                        obLt,
+                        leftTriggerValue,
+                        rightTriggerValue,
+                        th,
+                        changedButton,
+                        activeButtons))
+                    continue;
+
+                DisposeDualActionSession(kvp.Key);
+                break;
+            }
+        }
+    }
+
+    private void DisposeDualActionSession(GamepadButtons button)
+    {
+        if (_dualActionSessions.Remove(button, out var session))
+            session.Timer.Stop();
+        _onHoldSessionsChanged();
+    }
+
+    public static bool HasSoloKeyboardDeferredConflict(GamepadButtons button, IReadOnlyList<MappingEntry> snapshot) =>
+        TryGetSoloKeyboardDeferredConflict(button, snapshot, out _, out _);
+
+    public static bool TryGetSoloKeyboardDeferredConflict(
+        GamepadButtons button,
+        IReadOnlyList<MappingEntry> snapshot,
+        out MappingEntry keyboardMapping,
+        out MappingEntry deferredMapping)
+    {
+        keyboardMapping = null!;
+        deferredMapping = null!;
+        MappingEntry? kb = null;
+        MappingEntry? def = null;
+        foreach (var mapping in snapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Button)
+                continue;
+            if (mapping.Trigger != TriggerMoment.Pressed)
+                continue;
+            if (!ChordResolver.TryParseButtonChord(mapping.From.Value, out var chord, out var rt, out var lt, out _))
+                continue;
+            if (rt || lt || chord.Count != 1 || chord[0] != button)
+                continue;
+
+            if (mapping.RequiresDeferralOnPress)
+                def = mapping;
+            else if (InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out _, out _))
+                kb = mapping;
+        }
+
+        if (kb is null || def is null)
+            return false;
+        keyboardMapping = kb;
+        deferredMapping = def;
+        return true;
     }
 
     private void OnHoldTimerElapsed(HoldSession session)
@@ -457,6 +700,9 @@ internal sealed class HoldSessionManager
         foreach (var session in _holdSessions.Values)
             session.Timer.Stop();
         _holdSessions.Clear();
+        foreach (var s in _dualActionSessions.Values)
+            s.Timer.Stop();
+        _dualActionSessions.Clear();
         _onHoldSessionsChanged();
     }
 }

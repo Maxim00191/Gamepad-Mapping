@@ -8,7 +8,10 @@ namespace GamepadMapperGUI.Models;
 /// </summary>
 public sealed class TemplateToggleBinding
 {
-    /// <summary>Template <c>profileId</c> to activate (filename stem under templates, case-insensitive).</summary>
+    /// <summary>
+    /// Profile to activate: may be the template file name without <c>.json</c>, or the same value as
+    /// <see cref="GameProfileTemplate.ProfileId"/> inside that file when it differs from the file name (resolved after template list load).
+    /// </summary>
     [JsonProperty("alternateProfileId")]
     public string AlternateProfileId { get; set; } = string.Empty;
 }

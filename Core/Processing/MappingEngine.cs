@@ -8,13 +8,16 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services;
 using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
-public sealed class MappingEngine : IMappingEngine
+public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 {
+    private readonly IProfileService _profileService;
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
     private readonly Func<bool> _canDispatchOutputLive;
@@ -31,6 +34,7 @@ public sealed class MappingEngine : IMappingEngine
     private readonly InputFramePipeline _inputFramePipeline;
     private readonly ButtonEventPipeline _buttonEventPipeline;
     private readonly ItemCycleProcessor _itemCycleProcessor = new();
+    private readonly ActiveActionTracker _activeActionTracker = new();
 
     private readonly int _comboHudDelayMs;
     private readonly int _leadKeyReleaseSuppressMs;
@@ -55,7 +59,12 @@ public sealed class MappingEngine : IMappingEngine
     private readonly AnalogMappingProcessor _analogMappingProcessor;
     private readonly ComboHudManager? _comboHudManager;
     private readonly ButtonMappingProcessor _buttonMappingProcessor;
+    private readonly IRadialMenuController _radialMenuController;
     private readonly ITimeProvider _timeProvider;
+    private readonly Action<Action> _runOnUi;
+    private readonly IRadialMenuHud _radialMenuHud;
+    private readonly Func<float> _getRadialMenuStickEngagementThreshold;
+    private readonly Func<RadialMenuConfirmMode> _getRadialMenuConfirmMode;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
@@ -68,17 +77,28 @@ public sealed class MappingEngine : IMappingEngine
         int modifierGraceMs = HoldSessionManager.DefaultModifierGraceMs,
         int leadKeyReleaseSuppressMs = 500,
         Action<string>? requestTemplateSwitchToProfileId = null,
+        IProfileService? profileService = null,
         Action<string?>? setComboHudGateHint = null,
         Func<string>? comboHudGateMessageFactory = null,
         Func<bool>? isComboHudPresentationSuppressed = null,
+        IRadialMenuHud? radialMenuHud = null,
+        Func<float>? getRadialMenuStickEngagementThreshold = null,
+        Func<RadialMenuConfirmMode>? getRadialMenuConfirmMode = null,
         ITimeProvider? timeProvider = null)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
+        _runOnUi = runOnUi;
+        _radialMenuHud = radialMenuHud ?? NullRadialMenuHud.Instance;
+        _getRadialMenuStickEngagementThreshold =
+            getRadialMenuStickEngagementThreshold ?? (() => 0.35f);
+        _getRadialMenuConfirmMode =
+            getRadialMenuConfirmMode ?? (() => RadialMenuConfirmMode.ReturnStickToCenter);
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
         _keyboardEmulator = keyboardEmulator;
         _mouseEmulator = mouseEmulator;
+        _profileService = profileService ?? new ProfileService();
         _canDispatchOutputLive = canDispatchOutputLive;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
@@ -89,6 +109,21 @@ public sealed class MappingEngine : IMappingEngine
             runOnUi,
             setMappedOutput,
             setMappingStatus);
+
+        _radialMenuController = new RadialMenuController(
+            _radialMenuHud,
+            _runOnUi,
+            _setMappedOutput,
+            _setMappingStatus,
+            QueueOutputDispatch,
+            () => _getRadialMenuConfirmMode(),
+            action => _activeActionTracker.Register(action),
+            id => _activeActionTracker.Unregister(id),
+            _requestTemplateSwitchToProfileId,
+            null); // Catalog will be set when profile is loaded
+
+        _radialMenuController.SetActionExecutor(this);
+
         _holdSessionManager = new HoldSessionManager(
             () => CanDispatchOutputMerged(),
             _setMappedOutput,
@@ -129,22 +164,28 @@ public sealed class MappingEngine : IMappingEngine
         }
 
         _buttonMappingProcessor = new ButtonMappingProcessor(
-            _holdSessionManager,
-            _outputStateTracker,
-            _itemCycleProcessor,
-            () => CanDispatchOutputMerged(),
-            _setMappedOutput,
-            _setMappingStatus,
-            QueueOutputDispatch,
-            EnqueueItemCycleTap,
-            TryDispatchTemplateToggle,
-            mappings => ResolveComboLeads(mappings),
-            _leadKeyReleaseSuppressMs,
-            _deferredSoloLeadButtons,
-            _deferredSoloLeadButtonsLock);
+        _holdSessionManager,
+        _outputStateTracker,
+        _itemCycleProcessor,
+        () => CanDispatchOutputMerged(),
+        _setMappedOutput,
+        _setMappingStatus,
+        QueueOutputDispatch,
+        EnqueueItemCycleTap,
+        TryDispatchAction,
+        mappings => ResolveComboLeads(mappings),
+        _leadKeyReleaseSuppressMs,
+        _deferredSoloLeadButtons,
+        _deferredSoloLeadButtonsLock,
+        activeActionTracker: _activeActionTracker);
+
+        var radialMiddleware = new RadialMenuMiddleware(
+            _radialMenuController,
+            _getRadialMenuStickEngagementThreshold,
+            _getRadialMenuConfirmMode);
 
         _inputFramePipeline = new InputFramePipeline(
-            middlewares: new IInputFrameMiddleware[] { new InputFrameTransitionMiddleware() },
+            middlewares: [new InputFrameTransitionMiddleware(), radialMiddleware],
             terminal: ProcessInputFrameTerminal);
 
         _buttonEventPipeline = new ButtonEventPipeline(
@@ -172,7 +213,8 @@ public sealed class MappingEngine : IMappingEngine
                     collectReleasedOutputsHandledByMappings: (btn, active, snap, lt, rt, heldMs) => _buttonMappingProcessor.CollectReleasedOutputsHandledByMappings(btn, active, snap, lt, rt, heldMs),
                     setLatestActiveButtons: activeButtons => _latestActiveButtons = activeButtons,
                     canDispatchOutput: () => CanDispatchOutputMerged(),
-                    setMappingStatus: _setMappingStatus)
+                    setMappingStatus: _setMappingStatus,
+                    cancelDualActionSuperseded: _holdSessionManager.CancelDualActionSupersededByMoreSpecificChord)
             ],
             terminal: _buttonMappingProcessor.ProcessButtonEventTerminal);
     }
@@ -180,6 +222,11 @@ public sealed class MappingEngine : IMappingEngine
     /// <inheritdoc />
     public void SetComboLeadButtonsFromTemplate(IReadOnlyList<string>? comboLeadButtonNames) =>
         _explicitComboLeadsFromTemplate = ComboLeadSemantics.ParseDeclaredNames(comboLeadButtonNames);
+
+    public void SetRadialMenuDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions, IKeyboardActionCatalog? catalog = null)
+    {
+        _radialMenuController.SetDefinitions(radialMenus, keyboardActions, catalog);
+    }
 
     private HashSet<GamepadButtons> ResolveComboLeads(IReadOnlyCollection<MappingEntry> mappings) =>
         ComboLeadSemantics.ResolveLeads(mappings, _explicitComboLeadsFromTemplate);
@@ -226,6 +273,17 @@ public sealed class MappingEngine : IMappingEngine
         _latestActiveButtons = activeButtonsNow;
         _holdSessionManager.UpdateLatestInputState(_latestActiveButtons, frame.LeftTrigger, frame.RightTrigger);
 
+        // Resolve executable actions for the current snapshot if not already done
+        foreach (var mapping in _lastButtonMappingsSnapshot)
+        {
+            if (mapping.ExecutableAction is null)
+            {
+                mapping.ExecutableAction = ResolveExecutableAction(mapping);
+            }
+        }
+
+        // ConsumedInputs is populated by middleware before this terminal runs; do not clear it here.
+
         // The first frame is treated as an initialization frame; button transitions are ignored.
         if (!context.IsFirstFrame)
         {
@@ -263,17 +321,95 @@ public sealed class MappingEngine : IMappingEngine
                     frame.LeftTrigger,
                     frame.RightTrigger);
 
+                _activeActionTracker.ProcessButtonReleased((Vortice.XInput.GamepadButtons)releasedButton);
+
                 workingActiveButtons.Remove(releasedButton);
             }
         }
 
-        // Continuous analog evaluation (for output transitions + relative mouse look).
-        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot);
-        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot);
+        // Continuous analog evaluation
+        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot, context.ConsumedInputs.Contains(GamepadBindingType.LeftThumbstick));
+        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot, context.ConsumedInputs.Contains(GamepadBindingType.RightThumbstick));
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
         _analogMappingProcessor.ProcessTrigger(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
 
+        ProcessNativeTriggerExecutableActions(frame.LeftTrigger, GamepadBindingType.LeftTrigger);
+        ProcessNativeTriggerExecutableActions(frame.RightTrigger, GamepadBindingType.RightTrigger);
+
         TrySyncComboHud(context);
+    }
+
+    /// <summary>
+    /// Radial menu / item cycle / template toggle on <see cref="GamepadBindingType.LeftTrigger"/> or <see cref="GamepadBindingType.RightTrigger"/> (same shape as JSON templates).
+    /// </summary>
+    private void ProcessNativeTriggerExecutableActions(float triggerValue, GamepadBindingType side)
+    {
+        if (!CanDispatchOutputMerged())
+            return;
+
+        foreach (var mapping in _lastButtonMappingsSnapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != side)
+                continue;
+            if (mapping.ActionType == MappingActionType.Keyboard)
+                continue;
+
+            mapping.ExecutableAction ??= ResolveExecutableAction(mapping);
+
+            var stateId = BuildNativeTriggerActionStateId(mapping, side);
+            var transition = _analogProcessor.EvaluateTriggerEdge(stateId, mapping, triggerValue);
+            if (!transition.HasChanged)
+                continue;
+
+            var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
+
+            if (!ShouldDispatchNativeTriggerEdgeMoment(mapping, moment))
+                continue;
+
+            var sourceToken = mapping.From.Value ?? side.ToString();
+            TryDispatchAction(mapping, moment, sourceToken, out var err);
+            if (!string.IsNullOrEmpty(err))
+                _setMappingStatus(err);
+        }
+    }
+
+    private static bool ShouldDispatchNativeTriggerEdgeMoment(MappingEntry mapping, TriggerMoment moment)
+    {
+        if (mapping.ActionType == MappingActionType.RadialMenu)
+            return true;
+
+        return mapping.Trigger == moment;
+    }
+
+    private static string BuildNativeTriggerActionStateId(MappingEntry mapping, GamepadBindingType side)
+    {
+        if (mapping.RadialMenu is { } rm)
+            return $"{side}|Radial|{rm.RadialMenuId}";
+        if (mapping.TemplateToggle is { } tt)
+            return $"{side}|Toggle|{tt.AlternateProfileId}";
+        return $"{side}|{mapping.ActionType}|{mapping.KeyboardKey}|{mapping.Description}";
+    }
+
+    private IExecutableAction ResolveExecutableAction(MappingEntry mapping)
+    {
+        return mapping.ActionType switch
+        {
+            MappingActionType.RadialMenu => new Actions.RadialMenuAction(mapping, _radialMenuController),
+            MappingActionType.ItemCycle => new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap),
+            MappingActionType.TemplateToggle => new Actions.TemplateToggleAction(mapping, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _requestTemplateSwitchToProfileId),
+            _ => new Actions.KeyboardAction(mapping.KeyboardKey, TryDispatchLegacyKeyboard)
+        };
+    }
+
+    private bool TryDispatchLegacyKeyboard(string keyboardKey, TriggerMoment trigger, out string? errorStatus)
+    {
+        errorStatus = null;
+        if (!InputTokenResolver.TryResolveMappedOutput(keyboardKey, out var output, out var baseLabel))
+            return false;
+
+        // Note: sourceToken and chordButtons are handled by ButtonMappingProcessor
+        // This legacy path is only for the Execute call within TryDispatchAction
+        return false; // ButtonMappingProcessor handles the actual dispatch for KeyboardAction
     }
 
     private void TrySyncComboHud(InputFrameContext context)
@@ -342,6 +478,7 @@ public sealed class MappingEngine : IMappingEngine
                 _holdSessionManager.ClearAllHoldSessions();
                 _outputStateTracker.ForceReleaseAllOutputs(ForceReleaseOutput);
                 _analogMappingProcessor.ForceReleaseAnalogOutputs();
+                _activeActionTracker.ForceReleaseAll();
             }
         }
     }
@@ -376,6 +513,7 @@ public sealed class MappingEngine : IMappingEngine
             ForceReleaseAllOutputs();
             ForceReleaseAnalogOutputs();
             _inputDispatcher.Dispose();
+            _radialMenuHud.Dispose();
         }
         catch
         {
@@ -438,7 +576,7 @@ public sealed class MappingEngine : IMappingEngine
 
     private void ForceReleaseHeldOutputsForButton(GamepadButtons button, IReadOnlySet<DispatchedOutput>? outputsHandledByReleasedMappings = null)
     {
-        _outputStateTracker.ForceReleaseHeldOutputsForButton(button, ForceReleaseOutput, outputsHandledByReleasedMappings);
+        _outputStateTracker.ForceReleaseHeldOutputsForButton((Vortice.XInput.GamepadButtons)button, ForceReleaseOutput, outputsHandledByReleasedMappings);
     }
 
     private void ForceReleaseOutput(DispatchedOutput output)
@@ -523,33 +661,72 @@ public sealed class MappingEngine : IMappingEngine
         QueueOutputDispatch(sourceToken, TriggerMoment.Tap, o, label, string.Empty);
     }
 
-    private bool TryDispatchTemplateToggle(
+    private bool TryDispatchAction(
         MappingEntry mapping,
         TriggerMoment trigger,
         string sourceToken,
         out string? errorStatus)
     {
+        if (mapping.ExecutableAction is { } action)
+        {
+            return action.Execute(trigger, sourceToken, out errorStatus);
+        }
+
         errorStatus = null;
-        if (mapping.TemplateToggle is not { } tt)
+        return false;
+    }
+
+    public bool Execute(KeyboardActionDefinition action, string sourceToken, out string? errorStatus)
+    {
+        errorStatus = null;
+        if (!CanDispatchOutputMerged())
             return false;
 
-        if (trigger == TriggerMoment.Released)
-            return true;
-
-        if (!CanDispatchOutputMerged())
-            return true;
-
-        var profileId = tt.AlternateProfileId?.Trim() ?? string.Empty;
-        if (profileId.Length == 0)
+        if (action.RadialMenu is { } rm)
         {
-            errorStatus = "Toggle profile: missing alternateProfileId.";
+            // Note: Opening a radial menu from another radial menu is technically possible 
+            // but might need careful state management in the controller.
+            var mapping = new MappingEntry { RadialMenu = rm };
+            return _radialMenuController.TryOpen(mapping, sourceToken, out errorStatus);
+        }
+
+        if (action.TemplateToggle is { } tt)
+        {
+            var targetId = tt.AlternateProfileId;
+            _setMappingStatus($"Action: {action.Id} -> Toggle profile {targetId}");
+            _setMappedOutput($"Toggle profile → {targetId}");
+            _requestTemplateSwitchToProfileId?.Invoke(targetId);
             return true;
         }
 
-        var label = $"Toggle profile → {profileId}";
-        _setMappedOutput($"{label} ({trigger})");
-        _setMappingStatus($"Queued: {sourceToken} ({trigger}) -> {label}");
-        _requestTemplateSwitchToProfileId?.Invoke(profileId);
-        return true;
+        if (action.ItemCycle is { } ic)
+        {
+            var mapping = new MappingEntry { ItemCycle = ic };
+            var executable = new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap);
+            return executable.Execute(TriggerMoment.Tap, sourceToken, out errorStatus);
+        }
+
+        var keyToken = action.KeyboardKey ?? string.Empty;
+        if (InputTokenResolver.TryResolveMappedOutput(keyToken, out var output, out var baseLabel))
+        {
+            var outputLabel = baseLabel;
+            _setMappedOutput(outputLabel);
+            _setMappingStatus($"Action: {action.Id} -> {outputLabel}");
+            QueueOutputDispatch(sourceToken, TriggerMoment.Tap, output, outputLabel, keyToken);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void ClearRadialSessionState()
+    {
+        // State is now managed by _radialMenuController
+    }
+
+    private void AbandonRadialMenuSessionForForceReset()
+    {
+        _runOnUi(() => _radialMenuHud.HideMenu());
+        ClearRadialSessionState();
     }
 }

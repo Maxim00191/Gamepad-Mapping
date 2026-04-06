@@ -12,6 +12,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ProfileId" xml:space="preserve">
+    <value>配置文件 ID</value>
+  </data>
   <data name="ProfileAndTemplate" xml:space="preserve">
     <value>配置与模板</value>
   </data>
@@ -270,6 +273,141 @@
   <data name="PollingIntervalLabel" xml:space="preserve">
     <value>手柄轮询间隔（毫秒）</value>
   </data>
+  <data name="RadialMenuConfirmModeLabel" xml:space="preserve">
+    <value>转盘确认方式</value>
+  </data>
+  <data name="RadialMenuConfirmModeReleaseGuide" xml:space="preserve">
+    <value>松开引导键</value>
+  </data>
+  <data name="RadialMenuConfirmModeReturnCenter" xml:space="preserve">
+    <value>选区摇杆回中</value>
+  </data>
+  <data name="RadialMenuHudLabelModeLabel" xml:space="preserve">
+    <value>转盘条目显示</value>
+  </data>
+  <data name="RadialMenuHudLabelModeBoth" xml:space="preserve">
+    <value>简介与按键</value>
+  </data>
+  <data name="RadialMenuHudLabelModeDescriptionOnly" xml:space="preserve">
+    <value>仅简介</value>
+  </data>
+  <data name="RadialMenuHudLabelModeKeyboardKeyOnly" xml:space="preserve">
+    <value>仅按键</value>
+  </data>
+  <data name="RadialHudScaleLabel" xml:space="preserve">
+    <value>径向转盘 HUD 缩放</value>
+  </data>
+  <data name="CatalogExpanderHeader" xml:space="preserve">
+    <value>键盘动作与转盘（JSON 目录）</value>
+  </data>
+  <data name="CatalogKeyboardActionsHeader" xml:space="preserve">
+    <value>键盘动作</value>
+  </data>
+  <data name="CatalogRadialMenusHeader" xml:space="preserve">
+    <value>转盘列表</value>
+  </data>
+  <data name="CatalogRadialSlotsHeader" xml:space="preserve">
+    <value>当前转盘扇位</value>
+  </data>
+  <data name="CatalogRadialSlotsHint" xml:space="preserve">
+    <value>每个扇位引用上方「键盘动作」里的 Id。修改后请保存配置。</value>
+  </data>
+  <data name="CatalogAddRow" xml:space="preserve">
+    <value>+ 添加</value>
+  </data>
+  <data name="CatalogColumnId" xml:space="preserve">
+    <value>标识</value>
+  </data>
+  <data name="CatalogColumnKeyboardKey" xml:space="preserve">
+    <value>按键</value>
+  </data>
+  <data name="CatalogColumnOutputKind" xml:space="preserve">
+    <value>输出类型</value>
+  </data>
+  <data name="CatalogOutputKind_Keyboard" xml:space="preserve">
+    <value>按键</value>
+  </data>
+  <data name="CatalogOutputKind_TemplateToggle" xml:space="preserve">
+    <value>切换配置</value>
+  </data>
+  <data name="CatalogOutputKind_RadialMenu" xml:space="preserve">
+    <value>转盘</value>
+  </data>
+  <data name="CatalogOutputKind_ItemCycle" xml:space="preserve">
+    <value>循环选择</value>
+  </data>
+  <data name="MappingCatalogSummaryRadial" xml:space="preserve">
+    <value>转盘：{0}</value>
+  </data>
+  <data name="MappingCatalogSummaryTemplateToggle" xml:space="preserve">
+    <value>切换配置：{0}</value>
+  </data>
+  <data name="MappingCatalogSummaryKeyboard" xml:space="preserve">
+    <value>按键：{0}</value>
+  </data>
+  <data name="MappingCatalogSummaryEmpty" xml:space="preserve">
+    <value>（目录中未定义输出）</value>
+  </data>
+  <data name="CatalogColumnDescription" xml:space="preserve">
+    <value>简介</value>
+  </data>
+  <data name="CatalogColumnDisplayName" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="CatalogColumnJoystick" xml:space="preserve">
+    <value>选区摇杆</value>
+  </data>
+  <data name="CatalogColumnActionId" xml:space="preserve">
+    <value>动作 Id</value>
+  </data>
+  <data name="MappingActionIdManual" xml:space="preserve">
+    <value>（手动按键）</value>
+  </data>
+  <data name="CatalogColumnIcon" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameKey" xml:space="preserve">
+    <value>标题资源键（可选）</value>
+  </data>
+  <data name="CatalogRadialMenuDisplayNameZhCn" xml:space="preserve">
+    <value>标题（简体中文）</value>
+  </data>
+  <data name="CatalogColumnHudLabel" xml:space="preserve">
+    <value>HUD显示文本</value>
+  </data>
+  <data name="CatalogColumnHudLabelKey" xml:space="preserve">
+    <value>HUD 文案资源键</value>
+  </data>
+  <data name="CatalogColumnHudLabelZhCn" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="ProfileTabMappings" xml:space="preserve">
+    <value>按键映射</value>
+  </data>
+  <data name="ProfileTabKeyboardActions" xml:space="preserve">
+    <value>键盘动作</value>
+  </data>
+  <data name="ProfileTabRadialMenus" xml:space="preserve">
+    <value>转盘</value>
+  </data>
+  <data name="ProfileEditorPlaceholder" xml:space="preserve">
+    <value>在左侧列表中选择一行，或添加新行，即可在此编辑详情。</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
+    <value>键盘动作详情</value>
+  </data>
+  <data name="ProfileEditorKeyboardActionHint" xml:space="preserve">
+    <value>标识（Id）会被映射与转盘扇位引用。修改后请保存配置。</value>
+  </data>
+  <data name="ProfileEditorRadialMenuTitle" xml:space="preserve">
+    <value>转盘详情</value>
+  </data>
+  <data name="ProfileEditorRadialMenuHint" xml:space="preserve">
+    <value>设置摇杆与下方扇位。标题与 HUD 显示文本列为默认文案（一般为英文）；可选的简体中文列写入 JSON 的 displayNames / labels。修改后请保存配置。</value>
+  </data>
+  <data name="ProfileEditorColumnTitle" xml:space="preserve">
+    <value>详情</value>
+  </data>
   <data name="ItemCycleEnabled" xml:space="preserve">
     <value>循环热键栏 / 物品栏槽位</value>
   </data>
@@ -310,12 +448,69 @@
     <value>使用组合按键作为来源</value>
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
-    <value>选择两个按钮以组成组合键映射。注意：如果需要 LT/RT 修饰键，仍可通过在单键输入框中手动输入来实现。</value>
+    <value>选择两个输入（实体键或 LeftTrigger / RightTrigger）组成组合键。三个及以上片段请使用下方可编辑的单行输入框。</value>
+  </data>
+  <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
+    <value>扳机匹配阈值</value>
+  </data>
+  <data name="TriggerChordMatchThresholdHint" xml:space="preserve">
+    <value>当来源包含 LT 或 RT 时必填。填写 0～1 之间的数（不能为 0）。例如 0.35</value>
+  </data>
+  <data name="TriggerChordThresholdRequiredMessage" xml:space="preserve">
+    <value>来源包含 LeftTrigger 或 RightTrigger 时，必须填写扳机匹配阈值（0～1 之间且不能为 0）。</value>
+  </data>
+  <data name="MappingEditorSaveFailedTitle" xml:space="preserve">
+    <value>无法保存映射</value>
+  </data>
+  <data name="MappingEditorInvalidSource" xml:space="preserve">
+    <value>请修正手柄来源（例如有效的按键或组合键）。</value>
+  </data>
+  <data name="MappingEditorInvalidAction" xml:space="preserve">
+    <value>请为此映射配置有效的动作。</value>
+  </data>
+  <data name="MappingEditorSaveFailedGeneric" xml:space="preserve">
+    <value>请检查来源、LT/RT 组合时的扳机阈值以及动作配置。</value>
   </data>
   <data name="ComboHudGateHint" xml:space="preserve">
     <value>组合键 HUD 预览已关闭：当前不允许键鼠输出（请检查目标进程、前台窗口或权限提升）。</value>
   </data>
   <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
     <value>模板切换 HUD 显示时长（秒）</value>
+  </data>
+  <data name="MappingRadialMenuEnabled" xml:space="preserve">
+    <value>启用转盘</value>
+  </data>
+  <data name="MappingSelectRadialMenu" xml:space="preserve">
+    <value>选择转盘</value>
+  </data>
+  <data name="ActionType_Keyboard" xml:space="preserve">
+    <value>键盘/鼠标</value>
+  </data>
+  <data name="ActionType_ItemCycle" xml:space="preserve">
+    <value>物品循环</value>
+  </data>
+  <data name="ActionType_TemplateToggle" xml:space="preserve">
+    <value>配置切换</value>
+  </data>
+  <data name="ActionType_RadialMenu" xml:space="preserve">
+    <value>轮盘菜单</value>
+  </data>
+  <data name="ActionType" xml:space="preserve">
+    <value>按键类型</value>
+  </data>
+  <data name="ItemCycleDirection_Next" xml:space="preserve">
+    <value>下一个</value>
+  </data>
+  <data name="ItemCycleDirection_Previous" xml:space="preserve">
+    <value>上一个</value>
+  </data>
+  <data name="TriggerMoment_Pressed" xml:space="preserve">
+    <value>按下</value>
+  </data>
+  <data name="TriggerMoment_Released" xml:space="preserve">
+    <value>松开</value>
+  </data>
+  <data name="TriggerMoment_Tap" xml:space="preserve">
+    <value>点按</value>
   </data>
 </root>

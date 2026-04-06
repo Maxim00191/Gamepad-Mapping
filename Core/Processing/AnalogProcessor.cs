@@ -15,10 +15,13 @@ internal sealed class AnalogProcessor
 {
     private readonly record struct StateKey(GamepadBindingType Type, string Value, Key Key, TriggerMoment Trigger);
     private readonly Dictionary<StateKey, bool> _analogOutputStates = new();
+    private readonly Dictionary<string, bool> _nativeTriggerEdgeByStateId = new(StringComparer.Ordinal);
     private readonly HashSet<StateKey> _activeStates = new();
     private readonly Dictionary<string, Key> _keyEnumCache = new(StringComparer.OrdinalIgnoreCase);
-    private float _mouseLookResidualX;
-    private float _mouseLookResidualY;
+    private float _mouseLookResidualLeftX;
+    private float _mouseLookResidualLeftY;
+    private float _mouseLookResidualRightX;
+    private float _mouseLookResidualRightY;
 
     private const float DefaultAnalogThreshold = 0.35f;
     private const float DefaultMouseLookSensitivity = 18f;
@@ -160,15 +163,54 @@ internal sealed class AnalogProcessor
         return new AnalogOutputTransition(true, isActive);
     }
 
-    public MouseLookDelta AccumulateMouseLookDelta(float deltaX, float deltaY)
+    /// <summary>
+    /// Threshold crossing for native LT/RT bindings that are not keyed by <see cref="Key"/> (e.g. radial menu on analog trigger).
+    /// </summary>
+    public AnalogOutputTransition EvaluateTriggerEdge(string stateIdentity, MappingEntry mapping, float triggerValue)
     {
-        _mouseLookResidualX += deltaX;
-        _mouseLookResidualY += deltaY;
-        var pixelDx = (int)MathF.Truncate(_mouseLookResidualX);
-        var pixelDy = (int)MathF.Truncate(_mouseLookResidualY);
-        _mouseLookResidualX -= pixelDx;
-        _mouseLookResidualY -= pixelDy;
+        var threshold = mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : DefaultAnalogThreshold;
+        _nativeTriggerEdgeByStateId.TryGetValue(stateIdentity, out var currentState);
+        var effectiveThreshold = currentState ? threshold - JitterHysteresis : threshold;
+        var isActive = triggerValue >= effectiveThreshold;
+
+        if (currentState == isActive)
+            return new AnalogOutputTransition(false, isActive);
+
+        _nativeTriggerEdgeByStateId[stateIdentity] = isActive;
+        return new AnalogOutputTransition(true, isActive);
+    }
+
+    public MouseLookDelta AccumulateMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY)
+    {
+        ref var rx = ref GetMouseLookResidualXRef(thumbstickSource);
+        ref var ry = ref GetMouseLookResidualYRef(thumbstickSource);
+        rx += deltaX;
+        ry += deltaY;
+        var pixelDx = (int)MathF.Truncate(rx);
+        var pixelDy = (int)MathF.Truncate(ry);
+        rx -= pixelDx;
+        ry -= pixelDy;
         return new MouseLookDelta(pixelDx, pixelDy);
+    }
+
+    public void RemoveAnalogKeyboardStateForBinding(GamepadBindingType bindingType)
+    {
+        foreach (var key in _analogOutputStates.Keys.Where(k => k.Type == bindingType).ToList())
+            _analogOutputStates.Remove(key);
+
+        _activeStates.RemoveWhere(s => s.Type == bindingType);
+        ClearMouseLookResidualForThumbstick(bindingType);
+    }
+
+    public IEnumerable<(Key Key, TriggerMoment Trigger)> GetActiveNonTapOutputsForBinding(GamepadBindingType bindingType)
+    {
+        foreach (var state in _activeStates)
+        {
+            if (state.Type != bindingType || state.Trigger == TriggerMoment.Tap)
+                continue;
+
+            yield return (state.Key, state.Trigger);
+        }
     }
 
     public IEnumerable<(Key Key, TriggerMoment Trigger)> GetActiveNonTapOutputs()
@@ -185,11 +227,30 @@ internal sealed class AnalogProcessor
     public void Reset()
     {
         _analogOutputStates.Clear();
+        _nativeTriggerEdgeByStateId.Clear();
         _activeStates.Clear();
         _keyEnumCache.Clear();
-        _mouseLookResidualX = 0f;
-        _mouseLookResidualY = 0f;
+        _mouseLookResidualLeftX = 0f;
+        _mouseLookResidualLeftY = 0f;
+        _mouseLookResidualRightX = 0f;
+        _mouseLookResidualRightY = 0f;
     }
 
     public static float DefaultLookSensitivity => DefaultMouseLookSensitivity;
+
+    private ref float GetMouseLookResidualXRef(GamepadBindingType thumbstickSource) =>
+        ref thumbstickSource == GamepadBindingType.LeftThumbstick
+            ? ref _mouseLookResidualLeftX
+            : ref _mouseLookResidualRightX;
+
+    private ref float GetMouseLookResidualYRef(GamepadBindingType thumbstickSource) =>
+        ref thumbstickSource == GamepadBindingType.LeftThumbstick
+            ? ref _mouseLookResidualLeftY
+            : ref _mouseLookResidualRightY;
+
+    private void ClearMouseLookResidualForThumbstick(GamepadBindingType thumbstickSource)
+    {
+        GetMouseLookResidualXRef(thumbstickSource) = 0f;
+        GetMouseLookResidualYRef(thumbstickSource) = 0f;
+    }
 }

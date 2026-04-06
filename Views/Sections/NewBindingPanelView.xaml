@@ -1,6 +1,9 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.NewBindingPanelView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
     <Border Style="{StaticResource SectionCardBorder}"
             Margin="0,0,0,12">
         <StackPanel>
@@ -10,7 +13,20 @@
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Button]}" Margin="0,0,0,4" />
             <ComboBox ItemsSource="{Binding AvailableGamepadButtons}"
-                      SelectedItem="{Binding NewBindingFromButton, Mode=TwoWay}" />
+                      IsEditable="True"
+                      Text="{Binding NewBindingFromButton, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <StackPanel Margin="0,8,0,0"
+                        Visibility="{Binding NewBindingSourceInvolvesTrigger, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TriggerChordMatchThresholdLabel]}"
+                           Margin="0,0,0,4" />
+                <TextBox Text="{Binding NewBindingAnalogThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                           FontSize="12"
+                           Margin="0,4,0,0"
+                           Text="{Binding Source={StaticResource Loc}, Path=[TriggerChordMatchThresholdHint]}" />
+            </StackPanel>
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />
             <ComboBox ItemsSource="{Binding AvailableTriggerModes}"

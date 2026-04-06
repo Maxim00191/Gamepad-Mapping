@@ -1,0 +1,256 @@
+<Window x:Class="Gamepad_Mapping.Views.RadialMenuHudWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Gamepad_Mapping.ViewModels"
+        xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
+        mc:Ignorable="d"
+        Title="Radial Menu"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Focusable="False"
+        ShowActivated="False"
+        d:DataContext="{d:DesignInstance vm:RadialMenuHudViewModel}">
+    <Window.Resources>
+        <utils:RadialItemPositionConverter x:Key="PosConverter" />
+        <utils:RadialSectorGeometryConverter x:Key="SectorGeometryConverter" />
+        
+        <Storyboard x:Key="FadeInStoryboard">
+            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.2">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ScaleTransform"
+                             Storyboard.TargetProperty="ScaleX"
+                             From="0.8" To="1" Duration="0:0:0.2">
+                <DoubleAnimation.EasingFunction>
+                    <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ScaleTransform"
+                             Storyboard.TargetProperty="ScaleY"
+                             From="0.8" To="1" Duration="0:0:0.2">
+                <DoubleAnimation.EasingFunction>
+                    <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+        <Storyboard x:Key="FadeOutStoryboard">
+            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                             Storyboard.TargetProperty="Opacity"
+                             To="0" Duration="0:0:0.15">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseIn" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid"
+          Opacity="0"
+          UseLayoutRounding="True"
+          RenderTransformOrigin="0.5,0.5">
+        <Grid.Effect>
+            <!-- Single shadow for the whole HUD avoids per-layer effect rendering shifts between the ring and center plate. -->
+            <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.DiscDropShadowBlur}"
+                              ShadowDepth="0"
+                              Opacity="0.52"
+                              Color="Black" />
+        </Grid.Effect>
+        <Grid.Margin>
+            <Thickness Left="{x:Static utils:RadialHudLayout.RootOuterMarginLength}"
+                       Top="{x:Static utils:RadialHudLayout.RootOuterMarginLength}"
+                       Right="{x:Static utils:RadialHudLayout.RootOuterMarginLength}"
+                       Bottom="{x:Static utils:RadialHudLayout.RootOuterMarginLength}" />
+        </Grid.Margin>
+        <Grid.RenderTransform>
+            <ScaleTransform x:Name="ScaleTransform" ScaleX="0.8" ScaleY="0.8" />
+        </Grid.RenderTransform>
+
+        <!-- Key ring: annulus split into sector slices (same angular convention as layout / mapping engine). -->
+        <Grid Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
+              Height="{x:Static utils:RadialHudLayout.DiscDiameter}"
+              SnapsToDevicePixels="True">
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
+                                Height="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Canvas.Left" Value="0" />
+                        <Setter Property="Canvas.Top" Value="0" />
+                        <Setter Property="Width" Value="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                        <Setter Property="Height" Value="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Path SnapsToDevicePixels="True"
+                              StrokeLineJoin="Round"
+                              StrokeThickness="{x:Static utils:RadialHudLayout.HudStrokeThickness}">
+                            <Path.Data>
+                                <MultiBinding Converter="{StaticResource SectorGeometryConverter}">
+                                    <Binding Path="SegmentIndex" />
+                                    <Binding Path="SegmentCount" />
+                                </MultiBinding>
+                            </Path.Data>
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Setter Property="Fill"
+                                            Value="{Binding DataContext.SectorNormalFillBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Setter Property="Stroke"
+                                            Value="{Binding DataContext.SectorStrokeBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="Fill"
+                                                    Value="{Binding DataContext.SectorSelectedFillBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <Setter Property="Stroke"
+                                                    Value="{Binding DataContext.SectorSelectedStrokeBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+
+        <!-- Title plate: filled circle inside the hole; gap to donut inner edge = hollow band. -->
+        <Ellipse Width="{x:Static utils:RadialHudLayout.TitlePlateDiameter}"
+                 Height="{x:Static utils:RadialHudLayout.TitlePlateDiameter}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Fill="{Binding TitlePlateFillBrush}"
+                 Stroke="{Binding TitlePlateStrokeBrush}"
+                 StrokeThickness="{x:Static utils:RadialHudLayout.HudStrokeThickness}">
+        </Ellipse>
+
+        <!-- Items on Canvas: slot top-left from RadialHudLayout (centers on inner ring, outer edge flush with disc). -->
+        <ItemsControl x:Name="ItemsHost"
+                      Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
+                      Height="{x:Static utils:RadialHudLayout.DiscDiameter}"
+                      ItemsSource="{Binding Items}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas Width="{x:Static utils:RadialHudLayout.DiscDiameter}"
+                            Height="{x:Static utils:RadialHudLayout.DiscDiameter}" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Width" Value="{x:Static utils:RadialHudLayout.ItemSize}" />
+                    <Setter Property="Height" Value="{x:Static utils:RadialHudLayout.ItemSize}" />
+                    <Setter Property="Canvas.Left">
+                        <Setter.Value>
+                            <MultiBinding Converter="{StaticResource PosConverter}" ConverterParameter="X">
+                                <Binding Path="SegmentIndex" />
+                                <Binding Path="SegmentCount" />
+                            </MultiBinding>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Canvas.Top">
+                        <Setter.Value>
+                            <MultiBinding Converter="{StaticResource PosConverter}" ConverterParameter="Y">
+                                <Binding Path="SegmentIndex" />
+                                <Binding Path="SegmentCount" />
+                            </MultiBinding>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Width="{x:Static utils:RadialHudLayout.ItemSize}"
+                          Height="{x:Static utils:RadialHudLayout.ItemSize}">
+                        <Border x:Name="ItemBorder"
+                                Background="Transparent"
+                                BorderBrush="Transparent">
+                            <Border.BorderThickness>
+                                <Thickness Left="{x:Static utils:RadialHudLayout.ItemBorderThickness}"
+                                           Top="{x:Static utils:RadialHudLayout.ItemBorderThickness}"
+                                           Right="{x:Static utils:RadialHudLayout.ItemBorderThickness}"
+                                           Bottom="{x:Static utils:RadialHudLayout.ItemBorderThickness}" />
+                            </Border.BorderThickness>
+                            <Border.CornerRadius>
+                                <CornerRadius TopLeft="{x:Static utils:RadialHudLayout.ItemHalf}"
+                                              TopRight="{x:Static utils:RadialHudLayout.ItemHalf}"
+                                              BottomRight="{x:Static utils:RadialHudLayout.ItemHalf}"
+                                              BottomLeft="{x:Static utils:RadialHudLayout.ItemHalf}" />
+                            </Border.CornerRadius>
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding PrimaryCaption}"
+                                           Foreground="White"
+                                           FontSize="{x:Static utils:RadialHudLayout.PrimaryItemFontSize}"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Foreground="#D0FFFFFF"
+                                           FontSize="{x:Static utils:RadialHudLayout.SecondaryItemFontSize}"
+                                           FontWeight="Normal"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding SecondaryCaption}">
+                                    <TextBlock.Margin>
+                                        <Thickness Left="0"
+                                                   Top="{x:Static utils:RadialHudLayout.SecondaryCaptionTopSpacing}"
+                                                   Right="0"
+                                                   Bottom="0" />
+                                    </TextBlock.Margin>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasSecondaryCaption}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Title text on the plate (above the hollow ring + plate). -->
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="{x:Static utils:RadialHudLayout.TitlePlateDiameter}">
+            <StackPanel.Margin>
+                <Thickness Left="{x:Static utils:RadialHudLayout.TitleAreaHorizontalPadding}"
+                           Top="0"
+                           Right="{x:Static utils:RadialHudLayout.TitleAreaHorizontalPadding}"
+                           Bottom="0" />
+            </StackPanel.Margin>
+            <TextBlock Text="{Binding Title}"
+                       Foreground="White"
+                       FontSize="{x:Static utils:RadialHudLayout.TitleFontSize}"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap">
+                <TextBlock.Effect>
+                    <DropShadowEffect BlurRadius="{x:Static utils:RadialHudLayout.TitleTextDropShadowBlur}"
+                                      ShadowDepth="0"
+                                      Color="Black"
+                                      Opacity="0.85" />
+                </TextBlock.Effect>
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</Window>

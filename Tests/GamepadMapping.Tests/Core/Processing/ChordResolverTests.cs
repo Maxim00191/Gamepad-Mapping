@@ -74,7 +74,7 @@ namespace GamepadMapping.Tests.Core.Processing
         }
 
         [Fact]
-        public void TryParseButtonChord_NoButtonsOnlyTriggers_ReturnsFalse()
+        public void TryParseButtonChord_LtAndRtWithoutDigitalButtons_ReturnsFalse()
         {
             var ok = ChordResolver.TryParseButtonChord(
                 "LT+RT",
@@ -85,6 +85,23 @@ namespace GamepadMapping.Tests.Core.Processing
 
             Assert.False(ok);
             Assert.Empty(buttons);
+        }
+
+        [Fact]
+        public void TryParseButtonChord_LeftTriggerOnly_Normalizes()
+        {
+            var ok = ChordResolver.TryParseButtonChord(
+                "LeftTrigger",
+                out var buttons,
+                out var reqRt,
+                out var reqLt,
+                out var normalized);
+
+            Assert.True(ok);
+            Assert.Empty(buttons);
+            Assert.False(reqRt);
+            Assert.True(reqLt);
+            Assert.Equal("LeftTrigger", normalized);
         }
 
         [Fact]

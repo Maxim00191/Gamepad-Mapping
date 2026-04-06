@@ -88,15 +88,15 @@ jobs:
         run: |
           $raw = Get-Content -LiteralPath "CHANGELOG.md" -Raw
           if ([string]::IsNullOrWhiteSpace($raw)) { throw "CHANGELOG.md is empty." }
-          $pattern = '(?ms)^## Changelog v.+?(?=^## Changelog v|\z)'
+          $pattern = '(?ms)^## (?:Changelog|更新日志) `?v.+?`?(?=^## (?:Changelog|更新日志) `?v|\z)'
           if ($raw -notmatch $pattern) {
-            throw "CHANGELOG.md must contain a top section starting with '## Changelog v...'."
+            throw "CHANGELOG.md must contain a top section starting with '## Changelog v...' or '## 更新日志 v...'."
           }
           $body = $matches[0].TrimEnd()
           $ver = $env:TAG_NAME.TrimStart('v')
           $firstLine = (($body -split "`r?`n")[0]).TrimEnd()
-          if ($firstLine -notmatch "^## Changelog v$([regex]::Escape($ver))(\s|—|$)") {
-            throw "CHANGELOG first heading must be '## Changelog v$ver ...' (tag $($env:TAG_NAME)); got: $firstLine"
+          if ($firstLine -notmatch "^## (?:Changelog|更新日志) `?v$([regex]::Escape($ver))`?(\s|—|$)") {
+            throw "CHANGELOG first heading must be '## Changelog v$ver ...' or '## 更新日志 v$ver ...' (tag $($env:TAG_NAME)); got: $firstLine"
           }
           $path = Join-Path (Get-Location) "release-body.md"
           $utf8 = New-Object System.Text.UTF8Encoding($false)

@@ -134,4 +134,22 @@ public class AppSettings
     /// <summary>Display duration in seconds for the template-switch HUD. Clamped when applied.</summary>
     [JsonProperty("templateSwitchHudSeconds")]
     public double TemplateSwitchHudSeconds { get; set; } = 3.0;
+
+    /// <summary>
+    /// Radial menu commit: <c>returnStickToCenter</c> (default) or <c>releaseGuideKey</c>.
+    /// </summary>
+    [JsonProperty("radialMenuConfirmMode")]
+    public string RadialMenuConfirmMode { get; set; } = "returnStickToCenter";
+
+    /// <summary>
+    /// Radial HUD item labels: <c>both</c> (default), <c>descriptionOnly</c>, or <c>keyboardKeyOnly</c>.
+    /// </summary>
+    [JsonProperty("radialMenuHudLabelMode")]
+    public string RadialMenuHudLabelMode { get; set; } = "both";
+
+    /// <summary>
+    /// Overall scale for the on-screen radial menu HUD (disc, slots, type). Clamped when applied; 1.0 = 400px disc diameter.
+    /// </summary>
+    [JsonProperty("radialHudScale")]
+    public double RadialHudScale { get; set; } = 1.5;
 }

@@ -18,6 +18,8 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
     private readonly Action<IReadOnlyCollection<GamepadButtons>> _setLatestActiveButtons;
     private readonly Func<bool> _canDispatchOutput;
     private readonly Action<string> _setMappingStatus;
+    private readonly Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyList<MappingEntry>, float, float>?
+        _cancelDualActionSuperseded;
 
     public ButtonEventPreparationMiddleware(
         Action<IReadOnlyCollection<GamepadButtons>, float, float> setLatestInputState,
@@ -30,7 +32,9 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         Func<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyCollection<MappingEntry>, float, float, long?, HashSet<DispatchedOutput>> collectReleasedOutputsHandledByMappings,
         Action<IReadOnlyCollection<GamepadButtons>> setLatestActiveButtons,
         Func<bool> canDispatchOutput,
-        Action<string> setMappingStatus)
+        Action<string> setMappingStatus,
+        Action<GamepadButtons, IReadOnlyCollection<GamepadButtons>, IReadOnlyList<MappingEntry>, float, float>?
+            cancelDualActionSuperseded = null)
     {
         _setLatestInputState = setLatestInputState;
         _registerButtonPressed = registerButtonPressed;
@@ -43,6 +47,7 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         _setLatestActiveButtons = setLatestActiveButtons;
         _canDispatchOutput = canDispatchOutput;
         _setMappingStatus = setMappingStatus;
+        _cancelDualActionSuperseded = cancelDualActionSuperseded;
     }
 
     public void Invoke(ButtonEventContext context, Action<ButtonEventContext> next)
@@ -80,6 +85,12 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         if (context.Trigger == TriggerMoment.Pressed)
         {
             _cancelSupersededHoldSessions(
+                context.Button,
+                context.ActiveButtons,
+                context.MappingsSnapshot,
+                context.LeftTriggerValue,
+                context.RightTriggerValue);
+            _cancelDualActionSuperseded?.Invoke(
                 context.Button,
                 context.ActiveButtons,
                 context.MappingsSnapshot,
