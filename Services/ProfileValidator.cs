@@ -16,9 +16,9 @@ public class ProfileValidator : IValidator<GameProfileTemplate>
 
         if (string.IsNullOrWhiteSpace(profile.ProfileId))
             errors.Add("Profile ID is required.");
-        
-        if (string.IsNullOrWhiteSpace(profile.TemplateGroupId))
-            errors.Add("Template Group ID is required.");
+
+        if (!string.IsNullOrWhiteSpace(profile.TemplateGroupId) && !ProfileService.IsValidId(profile.TemplateGroupId))
+            errors.Add("Template Group ID (when set) contains invalid characters.");
 
         // Validate Keyboard Actions
         var actionIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

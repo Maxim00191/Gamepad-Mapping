@@ -47,7 +47,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly ObservableCollection<KeyboardActionDefinition> _keyboardActions = new();
     private readonly ObservableCollection<RadialMenuDefinition> _radialMenus = new();
 
-    /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
+    /// <summary>Last loaded template's effective group id; used to carry <c>targetProcessName</c> across related profiles.</summary>
     private string? _lastLoadedTemplateGroupIdForTargetInherit;
     private ComboHudWindow? _comboHudWindow;
     private TemplateSwitchHudWindow? _templateSwitchHudWindow;
@@ -777,7 +777,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         CurrentTemplateDisplayName = template.DisplayName;
         CurrentTemplateProfileId = template.ProfileId;
-        CurrentTemplateTemplateGroupId = template.TemplateGroupId;
+        CurrentTemplateTemplateGroupId = template.TemplateGroupId ?? string.Empty;
         CurrentTemplateAuthor = template.Author ?? string.Empty;
         CurrentTemplateCatalogFolder = template.TemplateCatalogFolder ?? string.Empty;
 
@@ -808,7 +808,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (fromFile.Length > 0)
             TemplateTargetProcessName = fromFile;
         else if (uiBefore.Length > 0
-                 && ProfileService.ProfilesLikelyShareGameExecutable(_lastLoadedTemplateGroupIdForTargetInherit, template.TemplateGroupId))
+                 && ProfileService.ProfilesLikelyShareGameExecutable(_lastLoadedTemplateGroupIdForTargetInherit, template.EffectiveTemplateGroupId))
         {
             TemplateTargetProcessName = uiBefore;
             template.TargetProcessName = uiBefore;
@@ -817,7 +817,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         else
             TemplateTargetProcessName = string.Empty;
 
-        _lastLoadedTemplateGroupIdForTargetInherit = template.TemplateGroupId;
+        _lastLoadedTemplateGroupIdForTargetInherit = template.EffectiveTemplateGroupId;
 
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();

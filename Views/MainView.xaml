@@ -97,22 +97,40 @@
                                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CreateNewProfile]}"
                                                        FontWeight="SemiBold"
                                                        Margin="0,0,0,8" />
-                                            
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}" Margin="0,0,0,4" />
-                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                     Margin="0,0,0,8" />
 
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
-                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                     Margin="0,0,0,8" />
-                                            
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,0,0,4" />
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
+                                                       Margin="0,0,0,4" />
                                             <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                      Margin="0,0,0,8" />
 
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}" Margin="0,0,0,4" />
-                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                            
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}"
+                                                       Margin="0,0,0,4" />
+                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,0,0,8" />
+
+                                            <Expander IsExpanded="False"
+                                                      Margin="0,0,0,4">
+                                                <Expander.Header>
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateIdentityHeader]}"
+                                                               FontWeight="SemiBold" />
+                                                </Expander.Header>
+                                                <StackPanel Margin="0,6,0,0">
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
+                                                               Margin="0,0,0,4" />
+                                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Margin="0,0,0,8" />
+
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
+                                                               Margin="0,0,0,4" />
+                                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Margin="0,0,0,8" />
+
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
+                                                               Margin="0,0,0,4" />
+                                                    <TextBox Text="{Binding ProfileTemplatePanel.NewProfileCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                </StackPanel>
+                                            </Expander>
+
                                             <WrapPanel Margin="0,10,0,0">
                                                 <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
                                                         Command="{Binding ProfileTemplatePanel.CreateProfileCommand}" />

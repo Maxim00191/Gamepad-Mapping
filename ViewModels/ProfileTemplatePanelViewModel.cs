@@ -112,7 +112,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
             {
                 SchemaVersion = 1,
                 ProfileId = CurrentTemplateProfileId,
-                TemplateGroupId = CurrentTemplateTemplateGroupId,
+                TemplateGroupId = string.IsNullOrWhiteSpace(CurrentTemplateTemplateGroupId)
+                    ? null
+                    : CurrentTemplateTemplateGroupId.Trim(),
                 TemplateCatalogFolder = string.IsNullOrEmpty(catalogFolder) ? null : catalogFolder,
                 DisplayName = CurrentTemplateDisplayName,
                 Author = NormalizeOptionalAuthor(CurrentTemplateAuthor),

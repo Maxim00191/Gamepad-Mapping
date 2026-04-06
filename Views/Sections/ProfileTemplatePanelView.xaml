@@ -61,13 +61,11 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0"
                            Grid.Column="0"
-                           Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
+                           Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
                            VerticalAlignment="Center"
                            Margin="0,0,12,8" />
                 <TextBox Grid.Row="0"
@@ -75,11 +73,11 @@
                          MinHeight="28"
                          VerticalContentAlignment="Center"
                          Margin="0,0,0,8"
-                         Text="{Binding NewProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                         Text="{Binding NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                 <TextBlock Grid.Row="1"
                            Grid.Column="0"
-                           Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
+                           Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}"
                            VerticalAlignment="Center"
                            Margin="0,0,12,8" />
                 <TextBox Grid.Row="1"
@@ -87,42 +85,39 @@
                          MinHeight="28"
                          VerticalContentAlignment="Center"
                          Margin="0,0,0,8"
-                         Text="{Binding NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                <TextBlock Grid.Row="2"
-                           Grid.Column="0"
-                           Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
-                           VerticalAlignment="Center"
-                           Margin="0,0,12,8" />
-                <TextBox Grid.Row="2"
-                         Grid.Column="1"
-                         MinHeight="28"
-                         VerticalContentAlignment="Center"
-                         Margin="0,0,0,8"
-                         Text="{Binding NewProfileCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                <TextBlock Grid.Row="3"
-                           Grid.Column="0"
-                           Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
-                           VerticalAlignment="Center"
-                           Margin="0,0,12,8" />
-                <TextBox Grid.Row="3"
-                         Grid.Column="1"
-                         MinHeight="28"
-                         VerticalContentAlignment="Center"
-                         Margin="0,0,0,8"
-                         Text="{Binding NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                <TextBlock Grid.Row="4"
-                           Grid.Column="0"
-                           Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}"
-                           VerticalAlignment="Center"
-                           Margin="0,0,12,0" />
-                <TextBox Grid.Row="4"
-                         Grid.Column="1"
-                         MinHeight="28"
-                         VerticalContentAlignment="Center"
                          Text="{Binding NewProfileAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <Expander Grid.Row="2"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="2"
+                          IsExpanded="False"
+                          Margin="0,0,0,0">
+                    <Expander.Header>
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateIdentityHeader]}"
+                                   FontWeight="SemiBold" />
+                    </Expander.Header>
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
+                                 Text="{Binding NewProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
+                                 Text="{Binding NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Text="{Binding NewProfileCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Expander>
             </Grid>
 
             <WrapPanel Margin="0,12,0,0">

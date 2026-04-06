@@ -109,7 +109,7 @@ public partial class ProfileService : IProfileService
                 {
                     ProfileId = stem,
                     CatalogSubfolder = catalogFolder,
-                    TemplateGroupId = template.TemplateGroupId,
+                    TemplateGroupId = template.EffectiveTemplateGroupId,
                     DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? stem : template.DisplayName,
                     Author = (template.Author ?? string.Empty).Trim(),
                     RadialMenus = template.RadialMenus?.ToList()
@@ -210,7 +210,7 @@ public partial class ProfileService : IProfileService
         => TryResolveTemplateLocation(profileIdOrStorageKey ?? string.Empty, out _);
 
     /// <summary>
-    /// Heuristic: profiles whose <see cref="GameProfileTemplate.TemplateGroupId"/> values match or look like variants
+    /// Heuristic: profiles whose effective template group ids (<see cref="GameProfileTemplate.EffectiveTemplateGroupId"/>) match or look like variants
     /// (<c>mygame</c> and <c>mygame-battle</c>) typically target the same executable; missing <c>targetProcessName</c>
     /// on the variant should inherit from the sibling the user already configured.
     /// </summary>
@@ -285,7 +285,6 @@ public partial class ProfileService : IProfileService
         if (template.SchemaVersion <= 0)
             template.SchemaVersion = 1;
 
-        template.TemplateGroupId = EnsureValidTemplateGroupId(template.TemplateGroupId);
         template.DisplayName ??= string.Empty;
         template.Mappings ??= new List<MappingEntry>();
 
@@ -293,9 +292,24 @@ public partial class ProfileService : IProfileService
         template.TemplateCatalogFolder = string.IsNullOrEmpty(normalizedFolder) ? null : normalizedFolder;
 
         if (string.IsNullOrWhiteSpace(template.ProfileId))
-            template.ProfileId = CreateUniqueProfileId(template.TemplateGroupId, template.DisplayName, template.TemplateCatalogFolder);
+        {
+            if (string.IsNullOrWhiteSpace(template.TemplateGroupId))
+                throw new InvalidOperationException("Cannot allocate a profile id without templateGroupId when profileId is empty.");
+            template.ProfileId = CreateUniqueProfileId(
+                EnsureValidTemplateGroupId(template.TemplateGroupId),
+                template.DisplayName,
+                template.TemplateCatalogFolder);
+        }
         else
+        {
             template.ProfileId = EnsureValidProfileId(template.ProfileId);
+        }
+
+        var g = (template.TemplateGroupId ?? string.Empty).Trim();
+        if (g.Length == 0 || string.Equals(g, template.ProfileId, StringComparison.OrdinalIgnoreCase))
+            template.TemplateGroupId = null;
+        else
+            template.TemplateGroupId = EnsureValidTemplateGroupId(g);
 
         var templatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
             templatesDir, template.TemplateCatalogFolder, template.ProfileId);

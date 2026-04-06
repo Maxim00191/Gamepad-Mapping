@@ -1,7 +1,9 @@
 ﻿{
   "schemaVersion": 1,
   "profileId": "fight-maxim0191",
-  "templateGroupId": "fight-maxim0191",
+  "templateGroupId": "roco-kingdom-world-maxim0191",
+  "EffectiveTemplateGroupId": "roco-kingdom-world-maxim0191",
+  "templateCatalogFolder": "Roco Kingdom",
   "displayName": "洛克王国世界·战斗 - maxim0191",
   "author": "Maxim0191",
   "displayNameKey": "",
@@ -499,20 +501,17 @@
     {
       "from": {
         "type": "Button",
-        "value": "Start + Back"
+        "value": "Back + Start"
       },
-      "keyboardKey": "",
-      "description": "切换配置：大世界探索",
+      "actionId": "switch-to-exploration",
+      "description": "切换至探索模式",
       "descriptions": {
         "zh-CN": "切换配置：大世界探索"
       },
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null,
-      "templateToggle": {
-        "alternateProfileId": "roco-kingdom-world-radial"
-      }
+      "holdThresholdMs": null
     },
     {
       "from": {

@@ -24,6 +24,9 @@
   <data name="TemplateIdentityHeader" xml:space="preserve">
     <value>模板标识</value>
   </data>
+  <data name="TemplateTechnicalDetailsTooltip" xml:space="preserve">
+    <value>编辑配置文件 ID、模板分组与目录</value>
+  </data>
   <data name="DisplayName" xml:space="preserve">
     <value>显示名称</value>
   </data>

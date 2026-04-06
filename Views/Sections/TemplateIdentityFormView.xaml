@@ -3,83 +3,83 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- DataContext: ProfileTemplatePanelViewModel -->
     <Grid VerticalAlignment="Center">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" MinWidth="72" />
             <ColumnDefinition Width="16" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" MinWidth="72" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Grid.ColumnSpan="5"
-                   Text="{Binding Source={StaticResource Loc}, Path=[TemplateIdentityHeader]}"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,6" />
-
-        <TextBlock Grid.Row="1"
-                   Grid.Column="0"
-                   Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
-                   VerticalAlignment="Center"
-                   Margin="0,0,8,6" />
-        <TextBox Grid.Row="1"
-                 Grid.Column="1"
-                 Height="32"
-                 VerticalContentAlignment="Center"
-                 Margin="0,0,0,6"
-                 Text="{Binding CurrentTemplateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-        <TextBlock Grid.Row="1"
-                   Grid.Column="3"
-                   Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
-                   VerticalAlignment="Center"
-                   Margin="0,0,8,6" />
-        <TextBox Grid.Row="1"
-                 Grid.Column="4"
-                 Height="32"
-                 VerticalContentAlignment="Center"
-                 Margin="0,0,0,6"
-                 Text="{Binding CurrentTemplateTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-        <TextBlock Grid.Row="2"
-                   Grid.Column="0"
-                   Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
-                   VerticalAlignment="Center"
-                   Margin="0,0,8,6" />
-        <TextBox Grid.Row="2"
-                 Grid.Column="1"
-                 Grid.ColumnSpan="4"
-                 Height="32"
-                 VerticalContentAlignment="Center"
-                 Margin="0,0,0,6"
-                 Text="{Binding CurrentTemplateCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-        <TextBlock Grid.Row="3"
-                   Grid.Column="0"
+        <TextBlock Grid.Column="0"
                    Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
                    VerticalAlignment="Center"
                    Margin="0,0,8,0" />
-        <TextBox Grid.Row="3"
-                 Grid.Column="1"
+        <TextBox Grid.Column="1"
                  Height="32"
                  VerticalContentAlignment="Center"
                  Text="{Binding CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-        <TextBlock Grid.Row="3"
-                   Grid.Column="3"
+        <TextBlock Grid.Column="3"
                    Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}"
                    VerticalAlignment="Center"
                    Margin="0,0,8,0" />
-        <TextBox Grid.Row="3"
-                 Grid.Column="4"
+        <TextBox Grid.Column="4"
                  Height="32"
                  VerticalContentAlignment="Center"
                  Text="{Binding CurrentTemplateAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <Grid Grid.Column="6"
+              VerticalAlignment="Center">
+            <ToggleButton x:Name="TemplateTechnicalDetailsToggle"
+                          Style="{StaticResource ToolbarToggleButtonStyle}"
+                          Width="32"
+                          Height="32"
+                          HorizontalAlignment="Left"
+                          ToolTip="{Binding Source={StaticResource Loc}, Path=[TemplateTechnicalDetailsTooltip]}">
+                <TextBlock FontFamily="Segoe MDL2 Assets"
+                           Text="&#xE713;"
+                           FontSize="14"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </ToggleButton>
+            <Popup Placement="Bottom"
+                   PlacementTarget="{Binding ElementName=TemplateTechnicalDetailsToggle}"
+                   StaysOpen="False"
+                   IsOpen="{Binding IsChecked, ElementName=TemplateTechnicalDetailsToggle, Mode=TwoWay}">
+                <Border Style="{StaticResource SectionCardBorder}"
+                        MinWidth="300"
+                        MaxWidth="480"
+                        Padding="0">
+                    <StackPanel Margin="12,10">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateIdentityHeader]}"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
+                                 Text="{Binding CurrentTemplateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
+                                 Text="{Binding CurrentTemplateTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Text="{Binding CurrentTemplateCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </Grid>
     </Grid>
 </UserControl>

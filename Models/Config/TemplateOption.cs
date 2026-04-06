@@ -7,6 +7,7 @@ public class TemplateOption
     /// <summary>Single-level catalog folder under the templates root, or null/empty for templates in the root directory.</summary>
     public string? CatalogSubfolder { get; set; }
 
+    /// <summary>Effective game-group id for this row (see <see cref="GameProfileTemplate.EffectiveTemplateGroupId"/>).</summary>
     public string TemplateGroupId { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
 

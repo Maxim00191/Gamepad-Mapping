@@ -24,6 +24,9 @@
   <data name="TemplateIdentityHeader" xml:space="preserve">
     <value>Template identity</value>
   </data>
+  <data name="TemplateTechnicalDetailsTooltip" xml:space="preserve">
+    <value>Edit profile ID, template group &amp; folder</value>
+  </data>
   <data name="DisplayName" xml:space="preserve">
     <value>Display name</value>
   </data>
