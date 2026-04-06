@@ -263,13 +263,20 @@ public partial class ProfileService : IProfileService
         return a.Length <= b.Length ? IsSegmentPrefix(a, b) : IsSegmentPrefix(b, a);
     }
 
+    public static bool IsValidId(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+        return ValidIdPattern.IsMatch(id.Trim());
+    }
+
     public static string EnsureValidTemplateGroupId(string templateGroupId)
     {
         var normalized = (templateGroupId ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(normalized))
             throw new ArgumentException("Template group ID (templateGroupId) is required.", nameof(templateGroupId));
 
-        if (!ValidIdPattern.IsMatch(normalized))
+        if (!IsValidId(normalized))
             throw new ArgumentException("Template group ID (templateGroupId) can only contain letters, digits, dot, underscore, and dash.", nameof(templateGroupId));
 
         return normalized;
@@ -346,7 +353,7 @@ public partial class ProfileService : IProfileService
         return validator.Validate(template);
     }
 
-    private static string EnsureValidProfileId(string profileId)
+    public static string EnsureValidProfileId(string profileId)
     {
         var normalized = (profileId ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(normalized))

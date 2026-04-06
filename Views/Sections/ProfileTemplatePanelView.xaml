@@ -13,6 +13,12 @@
                       DisplayMemberPath="DisplayName"
                       SelectedItem="{Binding SelectedTemplate}" />
 
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}" Margin="0,10,0,4" />
+            <TextBox Text="{Binding CurrentTemplateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,10,0,4" />
+            <TextBox Text="{Binding CurrentTemplateTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,10,0,4" />
             <TextBox Text="{Binding CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 

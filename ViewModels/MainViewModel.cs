@@ -280,6 +280,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string currentTemplateDisplayName = string.Empty;
 
     [ObservableProperty]
+    private string currentTemplateProfileId = string.Empty;
+
+    [ObservableProperty]
+    private string currentTemplateTemplateGroupId = string.Empty;
+
+    [ObservableProperty]
     private int mappingCount;
 
     [ObservableProperty]
@@ -765,6 +771,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             return;
 
         CurrentTemplateDisplayName = template.DisplayName;
+        CurrentTemplateProfileId = template.ProfileId;
+        CurrentTemplateTemplateGroupId = template.TemplateGroupId;
 
         _comboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
         foreach (var rm in _radialMenus.ToList())
