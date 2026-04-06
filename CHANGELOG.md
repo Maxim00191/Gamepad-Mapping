@@ -1,3 +1,43 @@
+## Changelog v2.0.0-beta - 2026-04-06
+
+### Added
+
+- **Radial Menu Customization:** Added support for customizing radial menu colors, opacity, and scale in settings.
+- **Radial Menu Templates:** Added specialized radial menu templates for Roco Kingdom (World and Fight modes).
+- **Dynamic HUD Layout:** Improved radial HUD layout logic with support for dynamic segment generation and label positioning.
+- **Input Middleware:** Enhanced `RadialMenuMiddleware` to support multi-stage radial menu interactions and better input filtering.
+
+### Fixed
+
+- **UI Rendering:** Fixed potential rendering issues when switching between different radial menu templates.
+- **Input Conflict:** Resolved input conflicts between standard button mappings and radial menu activation.
+
+### Changed
+
+- **Version Bump:** Updated project version to `2.0.0-beta`.
+- **Settings UI:** Reorganized settings view to include a dedicated section for Radial Menu configuration.
+
+## 更新日志 v2.0.0-beta - 2026-04-06
+
+### 新增
+
+- **轮盘菜单自定义：** 在设置中添加了对轮盘菜单颜色、透明度和缩放的自定义支持。
+- **轮盘菜单模板：** 为洛克王国（探索和战斗模式）添加了专门的轮盘菜单模板。
+- **动态 HUD 布局：** 改进了轮盘 HUD 布局逻辑，支持动态分段生成和标签定位。
+- **输入中间件：** 增强了 `RadialMenuMiddleware`，以支持多阶段轮盘菜单交互和更好的输入过滤。
+
+### 修复
+
+- **UI 渲染：** 修复了在不同轮盘菜单模板之间切换时可能出现的渲染问题。
+- **输入冲突：** 解决了标准按键映射与轮盘菜单激活之间的输入冲突。
+
+### 更改
+
+- **版本更新：** 将项目版本更新至 `2.0.0-beta`。
+- **设置界面：** 重新组织了设置视图，包含专门的轮盘菜单配置部分。
+
+**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-alpha...v2.0.0-beta
+
 ## Changelog v2.0.0-alpha - 2026-04-05
 
 ### Added
