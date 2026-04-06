@@ -24,7 +24,7 @@ public class AppSettings
         }
     }
 
-    /// <summary>Profile id (<c>*.json</c> stem) of the template last chosen in the UI; restored on next launch.</summary>
+    /// <summary>Last chosen template: root stem or <c>CatalogFolder/stem</c> under <see cref="TemplatesDirectory"/>.</summary>
     [JsonProperty("lastSelectedTemplateProfileId")]
     public string? LastSelectedTemplateProfileId { get; set; }
 

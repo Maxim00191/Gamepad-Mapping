@@ -31,18 +31,79 @@ public class MockFileSystem : IFileSystem
         Files[destinationPath] = content;
     }
     public void DeleteFile(string path) => Files.Remove(path);
+
     public string[] GetFiles(string path, string searchPattern, SearchOption searchOption)
     {
+        var normalized = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var result = new List<string>();
         foreach (var key in Files.Keys)
         {
-            if (key.StartsWith(path, StringComparison.OrdinalIgnoreCase))
+            var dir = Path.GetDirectoryName(key);
+            if (dir is null)
+                continue;
+
+            if (searchOption == SearchOption.TopDirectoryOnly)
             {
-                result.Add(key);
+                if (!string.Equals(dir, normalized, StringComparison.OrdinalIgnoreCase))
+                    continue;
             }
+            else if (!dir.StartsWith(normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!SearchPatternMatches(Path.GetFileName(key), searchPattern))
+                continue;
+
+            result.Add(key);
         }
+
         return result.ToArray();
     }
+
+    public string[] GetDirectories(string path)
+    {
+        var normalized = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var prefix = normalized + Path.DirectorySeparatorChar;
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var d in Directories)
+        {
+            if (!d.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || d.Length <= prefix.Length)
+                continue;
+
+            var tail = d[prefix.Length..];
+            var sep = tail.AsSpan().IndexOfAny('\\', '/');
+            var first = sep < 0 ? tail : tail[..sep];
+            names.Add(Path.Combine(normalized, first));
+        }
+
+        foreach (var key in Files.Keys)
+        {
+            var dir = Path.GetDirectoryName(key);
+            if (dir is null || dir.Length <= normalized.Length)
+                continue;
+
+            if (!dir.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var tail = dir[prefix.Length..];
+            var sep = tail.AsSpan().IndexOfAny('\\', '/');
+            var first = sep < 0 ? tail : tail[..sep];
+            names.Add(Path.Combine(normalized, first));
+        }
+
+        return names.ToArray();
+    }
+
+    private static bool SearchPatternMatches(string fileName, string searchPattern)
+    {
+        if (string.Equals(searchPattern, "*.json", StringComparison.OrdinalIgnoreCase))
+            return fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
+
+        return true;
+    }
+
     public string GetDirectoryName(string path) => Path.GetDirectoryName(path);
 }
 

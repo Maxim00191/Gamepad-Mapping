@@ -53,6 +53,18 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         set => _mainViewModel.CurrentTemplateTemplateGroupId = value;
     }
 
+    public string CurrentTemplateAuthor
+    {
+        get => _mainViewModel.CurrentTemplateAuthor;
+        set => _mainViewModel.CurrentTemplateAuthor = value;
+    }
+
+    public string CurrentTemplateCatalogFolder
+    {
+        get => _mainViewModel.CurrentTemplateCatalogFolder;
+        set => _mainViewModel.CurrentTemplateCatalogFolder = value;
+    }
+
     public string TemplateTargetProcessName
     {
         get => _mainViewModel.TemplateTargetProcessName;
@@ -73,6 +85,12 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(CreateProfileCommand))]
     private string newProfileId = string.Empty;
 
+    [ObservableProperty]
+    private string newProfileAuthor = string.Empty;
+
+    [ObservableProperty]
+    private string newProfileCatalogFolder = string.Empty;
+
     public bool CanCreateProfile => ProfileService.IsValidId(NewProfileTemplateGroupId) 
         && (string.IsNullOrWhiteSpace(NewProfileId) || ProfileService.IsValidId(NewProfileId));
 
@@ -89,12 +107,15 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 comboLeads = new List<string>(_mainViewModel.ComboLeadButtonsPersist);
 
             var targetProc = (_mainViewModel.TemplateTargetProcessName ?? string.Empty).Trim();
+            var catalogFolder = (CurrentTemplateCatalogFolder ?? string.Empty).Trim();
             var template = new GameProfileTemplate
             {
                 SchemaVersion = 1,
                 ProfileId = CurrentTemplateProfileId,
                 TemplateGroupId = CurrentTemplateTemplateGroupId,
+                TemplateCatalogFolder = string.IsNullOrEmpty(catalogFolder) ? null : catalogFolder,
                 DisplayName = CurrentTemplateDisplayName,
+                Author = NormalizeOptionalAuthor(CurrentTemplateAuthor),
                 TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
                 ComboLeadButtons = comboLeads,
                 KeyboardActions = _mainViewModel.KeyboardActions.Count == 0 ? null : _mainViewModel.KeyboardActions.ToList(),
@@ -102,15 +123,15 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 Mappings = _mainViewModel.Mappings.ToList()
             };
 
-            var originalProfileId = SelectedTemplate.ProfileId;
+            var originalStorageKey = SelectedTemplate.StorageKey;
             _profileService.SaveTemplate(template);
 
-            if (!string.Equals(originalProfileId, template.ProfileId, StringComparison.OrdinalIgnoreCase))
-            {
-                _profileService.DeleteTemplate(originalProfileId);
-            }
+            var newStorageKey = TemplateStorageKey.Format(template.TemplateCatalogFolder, template.ProfileId);
 
-            _mainViewModel.RefreshTemplates(template.ProfileId);
+            if (!string.Equals(originalStorageKey, newStorageKey, StringComparison.OrdinalIgnoreCase))
+                _profileService.DeleteTemplate(originalStorageKey);
+
+            _mainViewModel.RefreshTemplates(newStorageKey);
             ConfigurationChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
@@ -139,13 +160,28 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
 
         try
         {
-            _profileService.DeleteTemplate(SelectedTemplate.ProfileId);
+            _profileService.DeleteTemplate(SelectedTemplate.StorageKey);
             _mainViewModel.RefreshTemplates();
             ConfigurationChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Failed to delete profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private void RefreshTemplatesFromDisk()
+    {
+        try
+        {
+            var keepId = SelectedTemplate?.StorageKey;
+            _mainViewModel.RefreshTemplates(keepId);
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to reload templates: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -159,8 +195,11 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(displayName))
                 displayName = templateGroupId;
 
+            var catFolder = (NewProfileCatalogFolder ?? string.Empty).Trim();
+            var catalogForCreate = string.IsNullOrEmpty(catFolder) ? null : catFolder;
+
             var profileId = string.IsNullOrWhiteSpace(NewProfileId)
-                ? _profileService.CreateUniqueProfileId(templateGroupId, displayName)
+                ? _profileService.CreateUniqueProfileId(templateGroupId, displayName, catalogForCreate)
                 : ProfileService.EnsureValidProfileId(NewProfileId.Trim());
 
             var template = new GameProfileTemplate
@@ -168,22 +207,33 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 SchemaVersion = 1,
                 ProfileId = profileId,
                 TemplateGroupId = templateGroupId,
+                TemplateCatalogFolder = catalogForCreate,
                 DisplayName = displayName,
+                Author = NormalizeOptionalAuthor(NewProfileAuthor),
                 Mappings = new List<MappingEntry>()
             };
 
             _profileService.SaveTemplate(template, allowOverwrite: false);
-            _mainViewModel.RefreshTemplates(profileId);
+            var createdKey = TemplateStorageKey.Format(template.TemplateCatalogFolder, profileId);
+            _mainViewModel.RefreshTemplates(createdKey);
 
             NewProfileTemplateGroupId = string.Empty;
             NewProfileDisplayName = string.Empty;
             NewProfileId = string.Empty;
+            NewProfileAuthor = string.Empty;
+            NewProfileCatalogFolder = string.Empty;
             ConfigurationChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Failed to create profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private static string? NormalizeOptionalAuthor(string? value)
+    {
+        var t = (value ?? string.Empty).Trim();
+        return t.Length == 0 ? null : t;
     }
 
     [RelayCommand]
@@ -214,6 +264,12 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.CurrentTemplateTemplateGroupId):
                 OnPropertyChanged(nameof(CurrentTemplateTemplateGroupId));
+                break;
+            case nameof(MainViewModel.CurrentTemplateAuthor):
+                OnPropertyChanged(nameof(CurrentTemplateAuthor));
+                break;
+            case nameof(MainViewModel.CurrentTemplateCatalogFolder):
+                OnPropertyChanged(nameof(CurrentTemplateCatalogFolder));
                 break;
             case nameof(MainViewModel.TemplateTargetProcessName):
                 OnPropertyChanged(nameof(TemplateTargetProcessName));

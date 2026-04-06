@@ -21,8 +21,14 @@
   <data name="Template" xml:space="preserve">
     <value>Template</value>
   </data>
+  <data name="TemplateIdentityHeader" xml:space="preserve">
+    <value>Template identity</value>
+  </data>
   <data name="DisplayName" xml:space="preserve">
     <value>Display name</value>
+  </data>
+  <data name="TemplateAuthor" xml:space="preserve">
+    <value>Author</value>
   </data>
   <data name="SaveProfile" xml:space="preserve">
     <value>Save profile</value>
@@ -36,11 +42,17 @@
   <data name="GameKey" xml:space="preserve">
     <value>Template group ID</value>
   </data>
+  <data name="TemplateCatalogFolder" xml:space="preserve">
+    <value>Template folder (game)</value>
+  </data>
   <data name="CreateProfile" xml:space="preserve">
     <value>Create profile</value>
   </data>
   <data name="ReloadTemplate" xml:space="preserve">
     <value>Reload current template</value>
+  </data>
+  <data name="RefreshTemplatesTooltip" xml:space="preserve">
+    <value>Reload template list from Assets/Profiles/templates</value>
   </data>
   <data name="CreateNewBinding" xml:space="preserve">
     <value>Create New KB/M Binding</value>

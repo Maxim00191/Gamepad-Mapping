@@ -1,0 +1,85 @@
+<UserControl x:Class="Gamepad_Mapping.Views.Sections.TemplateIdentityFormView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- DataContext: ProfileTemplatePanelViewModel -->
+    <Grid VerticalAlignment="Center">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="72" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="72" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Grid.ColumnSpan="5"
+                   Text="{Binding Source={StaticResource Loc}, Path=[TemplateIdentityHeader]}"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,6" />
+
+        <TextBlock Grid.Row="1"
+                   Grid.Column="0"
+                   Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,6" />
+        <TextBox Grid.Row="1"
+                 Grid.Column="1"
+                 Height="32"
+                 VerticalContentAlignment="Center"
+                 Margin="0,0,0,6"
+                 Text="{Binding CurrentTemplateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="1"
+                   Grid.Column="3"
+                   Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,6" />
+        <TextBox Grid.Row="1"
+                 Grid.Column="4"
+                 Height="32"
+                 VerticalContentAlignment="Center"
+                 Margin="0,0,0,6"
+                 Text="{Binding CurrentTemplateTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="2"
+                   Grid.Column="0"
+                   Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,6" />
+        <TextBox Grid.Row="2"
+                 Grid.Column="1"
+                 Grid.ColumnSpan="4"
+                 Height="32"
+                 VerticalContentAlignment="Center"
+                 Margin="0,0,0,6"
+                 Text="{Binding CurrentTemplateCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="3"
+                   Grid.Column="0"
+                   Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" />
+        <TextBox Grid.Row="3"
+                 Grid.Column="1"
+                 Height="32"
+                 VerticalContentAlignment="Center"
+                 Text="{Binding CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock Grid.Row="3"
+                   Grid.Column="3"
+                   Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" />
+        <TextBox Grid.Row="3"
+                 Grid.Column="4"
+                 Height="32"
+                 VerticalContentAlignment="Center"
+                 Text="{Binding CurrentTemplateAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+    </Grid>
+</UserControl>

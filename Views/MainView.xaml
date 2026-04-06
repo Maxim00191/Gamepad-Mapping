@@ -60,7 +60,18 @@
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Right"
                                     Margin="6,0,0,0">
-                            <Grid>
+                            <Button Style="{StaticResource ToolbarButtonStyle}"
+                                    Width="32"
+                                    Height="32"
+                                    Command="{Binding ProfileTemplatePanel.RefreshTemplatesFromDiskCommand}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[RefreshTemplatesTooltip]}">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           Text="&#xE72C;"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" />
+                            </Button>
+                            <Grid Margin="6,0,0,0">
                                 <ToggleButton x:Name="NewConfigButton"
                                               Style="{StaticResource ToolbarToggleButtonStyle}"
                                               Width="32"
@@ -96,7 +107,11 @@
                                                      Margin="0,0,0,8" />
                                             
                                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,0,0,4" />
-                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,0,0,8" />
+
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}" Margin="0,0,0,4" />
+                                            <TextBox Text="{Binding ProfileTemplatePanel.NewProfileAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             
                                             <WrapPanel Margin="0,10,0,0">
                                                 <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
@@ -297,48 +312,9 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Row 1: IDs and display name -->
-                    <Grid Grid.Row="1"
-                          Margin="0,0,0,8"
-                          VerticalAlignment="Center">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" MinWidth="100" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" MinWidth="100" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" MinWidth="120" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0" />
-                        <TextBox Grid.Column="1"
-                                 Height="32"
-                                 VerticalContentAlignment="Center"
-                                 Text="{Binding ProfileTemplatePanel.CurrentTemplateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <TextBlock Grid.Column="3"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0" />
-                        <TextBox Grid.Column="4"
-                                 Height="32"
-                                 VerticalContentAlignment="Center"
-                                 Text="{Binding ProfileTemplatePanel.CurrentTemplateTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <TextBlock Grid.Column="6"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0" />
-                        <TextBox Grid.Column="7"
-                                 Height="32"
-                                 VerticalContentAlignment="Center"
-                                 Text="{Binding ProfileTemplatePanel.CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </Grid>
+                    <sections:TemplateIdentityFormView Grid.Row="1"
+                                                       Margin="0,0,0,8"
+                                                       DataContext="{Binding ProfileTemplatePanel}" />
 
                     <!-- Row 2: profile actions -->
                     <WrapPanel Grid.Row="2"

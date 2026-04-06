@@ -16,6 +16,10 @@ public class GameProfileTemplate : IKeyboardActionCatalog
     [JsonProperty("templateGroupId")]
     public string TemplateGroupId { get; set; } = string.Empty;
 
+    /// <summary>Optional single-level folder under the templates root (e.g. a game display name). Empty = templates root.</summary>
+    [JsonProperty("templateCatalogFolder", NullValueHandling = NullValueHandling.Ignore)]
+    public string? TemplateCatalogFolder { get; set; }
+
     // Backward compatibility for older templates that used "gameId".
     [JsonProperty("gameId")]
     private string LegacyGameId
@@ -29,6 +33,10 @@ public class GameProfileTemplate : IKeyboardActionCatalog
 
     [JsonProperty("displayName")]
     public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>Optional template author (e.g. for a shared template catalog).</summary>
+    [JsonProperty("author", NullValueHandling = NullValueHandling.Ignore)]
+    public string? Author { get; set; }
 
     [JsonProperty("displayNameKey")]
     public string DisplayNameKey { get; set; } = string.Empty;

@@ -1,0 +1,554 @@
+﻿{
+  "schemaVersion": 1,
+  "profileId": "fight-maxim0191",
+  "templateGroupId": "fight-maxim0191",
+  "displayName": "洛克王国世界·战斗 - maxim0191",
+  "author": "Maxim0191",
+  "displayNameKey": "",
+  "targetProcessName": "NRC-Win64-Shipping",
+  "comboLeadButtons": [
+    "LeftShoulder",
+    "RightShoulder",
+    "LeftThumb",
+    "RightThumb",
+    "Start"
+  ],
+  "keyboardActions": [
+    {
+      "id": "a--battle-move-select-left-a",
+      "keyboardKey": "A",
+      "description": "战斗：向左选择(A)",
+      "descriptions": {
+        "zh-CN": "战斗：向左选择(A)"
+      }
+    },
+    {
+      "id": "d--battle-move-select-right-d",
+      "keyboardKey": "D",
+      "description": "战斗：向右选择(D)",
+      "descriptions": {
+        "zh-CN": "战斗：向右选择(D)"
+      }
+    },
+    {
+      "id": "mousex--camera-horizontal",
+      "keyboardKey": "MouseX",
+      "description": "视角：水平",
+      "descriptions": {
+        "zh-CN": "视角：水平"
+      }
+    },
+    {
+      "id": "mousey--camera-vertical",
+      "keyboardKey": "MouseY",
+      "description": "视角：垂直",
+      "descriptions": {
+        "zh-CN": "视角：垂直"
+      }
+    },
+    {
+      "id": "space--battle-confirm-selection-space",
+      "keyboardKey": "Space",
+      "description": "战斗：确认选择(空格)",
+      "descriptions": {
+        "zh-CN": "战斗：确认选择(空格)"
+      }
+    },
+    {
+      "id": "escape--battle-back-cancel-esc",
+      "keyboardKey": "Escape",
+      "description": "战斗：返回/取消(Esc)",
+      "descriptions": {
+        "zh-CN": "战斗：返回/取消(Esc)"
+      }
+    },
+    {
+      "id": "d1--battle-act-1",
+      "keyboardKey": "D1",
+      "description": "战斗：行为1 (1)",
+      "descriptions": {
+        "zh-CN": "战斗：行为1 (1)"
+      }
+    },
+    {
+      "id": "d2--battle-act-2",
+      "keyboardKey": "D2",
+      "description": "战斗：行为2 (2)",
+      "descriptions": {
+        "zh-CN": "战斗：行为2 (2)"
+      }
+    },
+    {
+      "id": "d3--battle-act-3",
+      "keyboardKey": "D3",
+      "description": "战斗：行为3 (3)",
+      "descriptions": {
+        "zh-CN": "战斗：行为3 (3)"
+      }
+    },
+    {
+      "id": "d4--battle-act-4",
+      "keyboardKey": "D4",
+      "description": "战斗：行为4 (4)",
+      "descriptions": {
+        "zh-CN": "战斗：行为4 (4)"
+      }
+    },
+    {
+      "id": "d5--battle-act-5",
+      "keyboardKey": "D5",
+      "description": "战斗：行为5 (5)",
+      "descriptions": {
+        "zh-CN": "战斗：行为5 (5)"
+      }
+    },
+    {
+      "id": "d6--battle-act-6",
+      "keyboardKey": "D6",
+      "description": "战斗：行为6 (6)",
+      "descriptions": {
+        "zh-CN": "战斗：行为6 (6)"
+      }
+    },
+    {
+      "id": "leftclick--primary-action-mouse-left-click",
+      "keyboardKey": "LeftClick",
+      "description": "主要操作（鼠标左键单击）",
+      "descriptions": {
+        "zh-CN": "主要操作（鼠标左键单击）"
+      }
+    },
+    {
+      "id": "q--ui-open-bag-q",
+      "keyboardKey": "Q",
+      "description": "界面：打开背包 (Q)",
+      "descriptions": {
+        "zh-CN": "界面：打开背包 (Q)"
+      }
+    },
+    {
+      "id": "w--ui-open-capture-screen-w",
+      "keyboardKey": "W",
+      "description": "界面：打开捕捉界面 (W)",
+      "descriptions": {
+        "zh-CN": "界面：打开捕捉界面 (W)"
+      }
+    },
+    {
+      "id": "e--ui-open-swap-pet-screen-e",
+      "keyboardKey": "E",
+      "description": "界面：打开更换精灵界面 (E)",
+      "descriptions": {
+        "zh-CN": "界面：打开更换精灵界面 (E)"
+      }
+    },
+    {
+      "id": "r--ui-open-skills-screen-r",
+      "keyboardKey": "R",
+      "description": "界面：打开技能界面 (R)",
+      "descriptions": {
+        "zh-CN": "界面：打开技能界面 (R)"
+      }
+    },
+    {
+      "id": "t--battle-switch-release-pet-t",
+      "keyboardKey": "T",
+      "description": "战斗：切换释放技能的精灵 (T)",
+      "descriptions": {
+        "zh-CN": "战斗：切换释放技能的精灵 (T)"
+      }
+    },
+    {
+      "id": "x--battle-gather-energy-tap-x-clear",
+      "keyboardKey": "X",
+      "description": "战斗：聚能(短按X)；清空技能链(长按Z)",
+      "descriptions": {
+        "zh-CN": "战斗：聚能(短按X)；清空技能链(长按Z)"
+      }
+    },
+    {
+      "id": "tab--battle-view-battle-log-tab",
+      "keyboardKey": "Tab",
+      "description": "战斗：查看对战记录 (Tab)",
+      "descriptions": {
+        "zh-CN": "战斗：查看对战记录 (Tab)"
+      }
+    },
+    {
+      "id": "enter--battle-open-chat-enter",
+      "keyboardKey": "Enter",
+      "description": "战斗：打开聊天界面 (Enter)",
+      "descriptions": {
+        "zh-CN": "战斗：打开聊天界面 (Enter)"
+      }
+    },
+    {
+      "id": "leftalt--reveal-cursor",
+      "keyboardKey": "LeftAlt",
+      "description": "显示光标",
+      "descriptions": {
+        "zh-CN": "显示光标"
+      }
+    },
+    {
+      "id": "switch-to-exploration",
+      "templateToggle": {
+        "alternateProfileId": "explore-maxim0191"
+      },
+      "description": "切换至探索模式",
+      "descriptions": {
+        "zh-CN": "切换至探索模式"
+      }
+    }
+  ],
+  "radialMenus": [
+    {
+      "id": "fight_selection_wheel",
+      "displayName": "战斗选择",
+      "displayNames": {
+        "zh-CN": "战斗选择"
+      },
+      "joystick": "RightStick",
+      "items": [
+        {
+          "actionId": "d1--battle-act-1",
+          "label": "行动1",
+          "labels": {
+            "zh-CN": "行动1"
+          }
+        },
+        {
+          "actionId": "d2--battle-act-2",
+          "label": "行动2",
+          "labels": {
+            "zh-CN": "行动2"
+          }
+        },
+        {
+          "actionId": "d3--battle-act-3",
+          "label": "行动3",
+          "labels": {
+            "zh-CN": "行动3"
+          }
+        },
+        {
+          "actionId": "d4--battle-act-4",
+          "label": "行动4",
+          "labels": {
+            "zh-CN": "行动4"
+          }
+        },
+        {
+          "actionId": "d5--battle-act-5",
+          "label": "行动5",
+          "labels": {
+            "zh-CN": "行动5"
+          }
+        },
+        {
+          "actionId": "d6--battle-act-6",
+          "label": "行动6",
+          "labels": {
+            "zh-CN": "行动6"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fight_mode_wheel",
+      "displayName": "战斗模式",
+      "displayNames": {
+        "zh-CN": "战斗模式"
+      },
+      "joystick": "RightStick",
+      "items": [
+        {
+          "actionId": "q--ui-open-bag-q",
+          "label": "背包",
+          "labels": {
+            "zh-CN": "背包"
+          }
+        },
+        {
+          "actionId": "w--ui-open-capture-screen-w",
+          "label": "捕捉界面",
+          "labels": {
+            "zh-CN": "捕捉界面"
+          }
+        },
+        {
+          "actionId": "e--ui-open-swap-pet-screen-e",
+          "label": "更换精灵界面",
+          "labels": {
+            "zh-CN": "更换精灵界面"
+          }
+        },
+        {
+          "actionId": "r--ui-open-skills-screen-r",
+          "label": "技能界面",
+          "labels": {
+            "zh-CN": "技能界面"
+          }
+        },
+        {
+          "actionId": "t--battle-switch-release-pet-t",
+          "label": "切换释放技能的精灵",
+          "labels": {
+            "zh-CN": "切换释放技能的精灵"
+          }
+        },
+        {
+          "actionId": "tab--battle-view-battle-log-tab",
+          "label": "对战记录",
+          "labels": {
+            "zh-CN": "对战记录"
+          }
+        },
+        {
+          "actionId": "enter--battle-open-chat-enter",
+          "label": "聊天",
+          "labels": {
+            "zh-CN": "聊天"
+          }
+        }
+      ]
+    }
+  ],
+  "mappings": [
+    {
+      "from": {
+        "type": "LeftThumbstick",
+        "value": "Left"
+      },
+      "actionId": "a--battle-move-select-left-a",
+      "description": "战斗：向左选择(A)",
+      "trigger": "Pressed",
+      "analogThreshold": 0.25,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "LeftThumbstick",
+        "value": "Right"
+      },
+      "actionId": "d--battle-move-select-right-d",
+      "description": "战斗：向右选择(D)",
+      "trigger": "Pressed",
+      "analogThreshold": 0.25,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "RightThumbstick",
+        "value": "X"
+      },
+      "actionId": "mousex--camera-horizontal",
+      "description": "视角：水平",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "RightThumbstick",
+        "value": "Y"
+      },
+      "actionId": "mousey--camera-vertical",
+      "description": "视角：垂直",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "A"
+      },
+      "actionId": "space--battle-confirm-selection-space",
+      "description": "战斗：确认选择(空格)",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "B"
+      },
+      "actionId": "escape--battle-back-cancel-esc",
+      "description": "战斗：返回/取消(Esc)",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "DPadUp"
+      },
+      "keyboardKey": "",
+      "description": "战斗：循环选择(上一个)",
+      "descriptions": {
+        "zh-CN": "战斗：循环选择(上一个)"
+      },
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null,
+      "itemCycle": {
+        "direction": "Previous",
+        "slotCount": 6
+      }
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "DPadDown"
+      },
+      "keyboardKey": "",
+      "description": "战斗：循环选择(下一个)",
+      "descriptions": {
+        "zh-CN": "战斗：循环选择(下一个)"
+      },
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null,
+      "itemCycle": {
+        "slotCount": 6
+      }
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "RightShoulder"
+      },
+      "actionId": "leftclick--primary-action-mouse-left-click",
+      "description": "主要操作（鼠标左键单击）",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Y"
+      },
+      "actionId": "t--battle-switch-release-pet-t",
+      "description": "战斗：切换释放技能的精灵 (T)",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "X"
+      },
+      "actionId": "x--battle-gather-energy-tap-x-clear",
+      "description": "战斗：聚能(短按X)；清空技能链(长按Z)",
+      "trigger": "Tap",
+      "analogThreshold": null,
+      "holdKeyboardKey": "Z",
+      "holdThresholdMs": 380
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Back"
+      },
+      "actionId": "tab--battle-view-battle-log-tab",
+      "description": "战斗：查看对战记录 (Tab)",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Back"
+      },
+      "actionId": "tab--battle-view-battle-log-tab",
+      "description": "战斗：查看对战记录 (Tab)",
+      "trigger": "Released",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Start"
+      },
+      "actionId": "enter--battle-open-chat-enter",
+      "description": "战斗：打开聊天界面 (Enter)",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Start + Back"
+      },
+      "keyboardKey": "",
+      "description": "切换配置：大世界探索",
+      "descriptions": {
+        "zh-CN": "切换配置：大世界探索"
+      },
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null,
+      "templateToggle": {
+        "alternateProfileId": "roco-kingdom-world-radial"
+      }
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "RightShoulder"
+      },
+      "keyboardKey": "",
+      "description": "战斗选择",
+      "descriptions": {
+        "zh-CN": "战斗选择"
+      },
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null,
+      "radialMenu": {
+        "radialMenuId": "fight_selection_wheel"
+      }
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "LeftShoulder"
+      },
+      "keyboardKey": "",
+      "description": "战斗模式",
+      "descriptions": {
+        "zh-CN": "战斗模式"
+      },
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null,
+      "radialMenu": {
+        "radialMenuId": "fight_mode_wheel"
+      }
+    }
+  ]
+}
