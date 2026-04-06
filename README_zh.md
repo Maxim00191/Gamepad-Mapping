@@ -1,118 +1,93 @@
-# Gamepad Mapping（手柄按键映射）
+# Gamepad Mapping
 
 **English:** [README.md](README.md)
 
-这是一款 Windows 桌面应用：可将 **XInput** 手柄输入映射为 **键盘与鼠标**，以便使用手柄游玩 PC 游戏，并支持按游戏保存独立配置。支持绑定 **目标前台进程**（游戏可执行文件名），限制映射仅在对应窗口处于焦点时生效，避免在其他程序中发生误触。
+Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的配置文件模板将 **XInput 手柄输入**转换为**键盘和鼠标输出**。
+它专为没有良好原生手柄支持的游戏而设计，并提供可选的前台进程锁定功能，以避免在其他窗口中产生意外输入。
 
-**概述**
+## 2.0 版本的新特性
 
-- **输入：** 兼容 XInput 的手柄。
-- **输出：** 模拟键盘与鼠标（若目标游戏以管理员权限运行，请参阅下文的 [功能](#功能)）。
-- **配置：** 映射模板 JSON 位于 `Assets/Profiles/templates`；全局设置保存在 `Assets/Config/local_settings.json`。
+- 全新的**轮盘菜单系统**，具有可自定义的 HUD 样式（颜色、透明度、缩放比例）。
+- 扩展了配置文件映射的**操作模型 (action model)**（包含更丰富的键盘/轮盘工作流）。
+- 改进了多阶段轮盘交互和冲突处理的**输入管道行为**。
+- 更好的**模板验证**以及更新的内置模板（特别是《洛克王国：世界》大世界/战斗预设）。
+- 稳定了与轮盘相关的屏幕的 UI 渲染和布局行为。
 
-## 功能
+## 核心功能
 
-- **配置模板 (Profiles)** — 通过 JSON 定义按键绑定、显示名称以及可选的组合键行为。
-- **丰富的按键绑定** — 手柄按键、扳机、摇杆均可映射到键鼠；支持 **按下 / 松开 / 单击 (Tap)** 触发、模拟轴阈值判定，以及 **长按与单击** 双重输出（`holdKeyboardKey`、`holdThresholdMs`）。
-- **组合键 (Combos)** — 支持多键组合、修饰键判定容差以及 **组合引导键**（`comboLeadButtons`）；游玩时可开启 **组合键 HUD** 显示当前状态。
-- **全局应用设置** — 顶部栏的设置面板可调整时序、模拟轴默认参数、手柄轮询与键盘模拟；修改写入 `Assets/Config/local_settings.json`（与模板 JSON 分开存储）。
-- **目标进程绑定** — 设定 `targetProcessName` 后，仅当指定可执行文件（通常不带 `.exe`）处于前台时，映射才会输出。
-- **权限自动提示** — 若焦点程序以 **管理员** 权限运行，应用可提示并以更高权限重启，避免 Windows 因 UIPI 拦截模拟输入。
+- **基于模板的映射**：每个配置文件都是位于 `Assets/Profiles/templates` 目录下的一个 JSON 文件。
+- **按键 / 扳机 / 摇杆绑定**：支持按下 (press)、释放 (release)、轻触 (tap)、长按 (hold)、阈值 (thresholds) 和模拟轴激活规则。
+- **组合键和连招处理**：支持连招前导键 (combo-lead) 行为、修饰键宽限窗口以及可选的 HUD 提示。
+- **轮盘菜单操作**：通过手柄输入触发方向性操作选择。
+- **前台进程过滤**：仅当特定进程处于焦点时才映射输出。
+- **应用程序设置**：集中式全局设置，保存至 `Assets/Config/local_settings.json`。
 
-## 系统要求
+## 环境要求
 
-- **操作系统：** Windows（WPF）。
-- **.NET SDK：** [.NET 9](https://dotnet.microsoft.com/download/dotnet/9.0)（`net9.0-windows`）。
-- **手柄：** 兼容 XInput 的控制器（[Vortice.XInput](https://github.com/amerkoleci/Vortice.Windows)）。
+- Windows 10/11
+- 用于构建的 [.NET 9 SDK](https://dotnet.microsoft.com/zh-cn/download/dotnet/9.0) (`net9.0-windows`)
+- 兼容 XInput 的手柄
 
-## 构建与运行
-
-在仓库根目录执行：
+## 快速开始
 
 ```powershell
+dotnet restore "Gamepad Mapping.csproj"
 dotnet build "Gamepad Mapping.csproj" -c Release
 dotnet run --project "Gamepad Mapping.csproj"
-```
+````
 
-也可以在 Visual Studio 中打开 `GamepadMapping.sln` 并运行启动项目。
+或者在 Visual Studio 中打开 `GamepadMapping.sln` 并运行启动项目。
 
-构建会通过 `CopyToOutputDirectory` 将 `Assets\Config` 与 `Assets\Profiles` 复制到输出目录。请从包含完整 `Assets` 的目录运行（开发时一般为项目根目录，构建后一般为 `bin\...\net9.0-windows\`）。详见 [内容根路径](#内容根路径)。
-
-### 测试
+## 测试
 
 ```powershell
 dotnet test "GamepadMapping.sln" -c Release
 ```
 
-## 配置说明
+## 配置模型
 
-首次运行时，若 `Assets/Config/local_settings.json` 不存在，应用会将 `Assets/Config/default_settings.json` 复制为本地配置。全局选项读写 **`local_settings.json`**。按键绑定、`targetProcessName`、`comboLeadButtons` 等仅存放在 **`Assets/Profiles/templates/{profileId}.json`**，不会写入应用设置。
+  - `Assets/Config/default_settings.json`：出厂默认设置。
+  - `Assets/Config/local_settings.json`：用户重写的全局设置（首次运行时自动创建）。
+  - `Assets/Profiles/templates/*.json`：配置文件模板（映射、标签、组合键元数据、目标进程）。
 
-在 **顶部栏** 打开 **应用设置**（模板下拉框与「新建配置 (+)」右侧），**时序与键盘**、**模拟轴与轮询** 两组与下表字段一一对应。**摇杆死区** 在 **手柄实时监视器 → 模拟轴**（齿轮）中调整，对应 `leftThumbstickDeadzone`、`rightThumbstickDeadzone`；未单独设置时使用 `thumbstickDeadzone`。
+## 模板结构（概览）
 
-### `local_settings.json` 字段参考
+每个模板通常包含以下内容：
 
-| 字段名 | 说明 |
-| -------- | -------- |
-| `templatesDirectory` | 存放模板 `*.json` 的目录（相对于内容根）。 |
-| `defaultProfileId` | 默认模板 ID（文件名不含扩展名）。 |
-| `lastSelectedTemplateProfileId` | 上次选择的模板，启动时恢复。 |
-| `modifierGraceMs` | 组合修饰容差、HUD 延迟及默认长按阈值。 |
-| `leadKeyReleaseSuppressMs` | 组合引导键：中断长按时抑制误触输出的时间。 |
-| `thumbstickDeadzone` | 未按摇杆单独设置时的默认归一化死区。 |
-| `leftThumbstickDeadzone` | 左摇杆死区 `[0–1]`（实时监视器）。 |
-| `rightThumbstickDeadzone` | 右摇杆死区 `[0–1]`（实时监视器）。 |
-| `leftTriggerInnerDeadzone` | 左扳机起始死区；低于此值视为未按下。 |
-| `leftTriggerOuterDeadzone` | 左扳机触顶阈值；高于此值视为按满。 |
-| `rightTriggerInnerDeadzone` | 右扳机起始死区（同左）。 |
-| `rightTriggerOuterDeadzone` | 右扳机触顶阈值（同左）。 |
-| `gamepadPollingIntervalMs` | XInput 轮询间隔（毫秒）。 |
-| `defaultAnalogActivationThreshold` | 未设置 `analogThreshold` 时的默认阈值 `[0–1]`。 |
-| `mouseLookSensitivity` | 默认鼠标视角灵敏度。 |
-| `analogChangeEpsilon` | 模拟轴变化超过此幅度才视为更新。 |
-| `keyboardTapHoldDurationMs` | 模拟点按时键位保持按下时长（毫秒）。 |
-| `tapInterKeyDelayMs` | 多次点按之间的间隔（毫秒）。 |
-| `textInterCharDelayMs` | 逐字输入时字符间隔（毫秒）。 |
+  - `profileId`、`templateGroupId`、`displayName` / `displayNames`
+  - `targetProcessName`（可选）
+  - `comboLeadButtons`（可选）
+  - 包含输入源和输出操作定义的 `mappings` 集合
 
-## 模板格式（Profile）
+参考示例：
 
-每个文件名为 `{profileId}.json`，根对象通常包含：
+  - `Assets/Profiles/templates/default.json`
+  - `Assets/Profiles/templates/flight_sim.json`
+  - `Assets/Profiles/templates/roco-kingdom-world.json`
+  - `Assets/Profiles/templates/roco-kingdom-world-fight.json`
 
-- `profileId`、`templateGroupId`、`displayName`、可选 `displayNames`（如 `"zh-CN"`）、可选 `displayNameKey`（`Resources/Strings*.resx`）
-- `targetProcessName`（可选）— 进程名（通常不含 `.exe`），与 `Process.ProcessName` 一致
-- `comboLeadButtons`（可选）— XInput 键名，如 `LeftShoulder`
-- `mappings` — `from`（`type`、`value`）、`keyboardKey`、`trigger`，以及可选 `analogThreshold`、`holdKeyboardKey`、`holdThresholdMs`、`description`、可选 `descriptions`、`descriptionKey`
+## 提权行为
 
-示例见 `Assets/Profiles/templates`（如 `default.json`、`flight_sim.json`、`roco-kingdom-world.json`）。
-
-## 界面与本地化
-
-界面主题跟随 **Windows** 深浅色。文案使用 `Resources/Strings*.resx`。模板标题与映射说明可在 JSON 中使用 **`displayNames` / `descriptions`**（自建模板推荐）；`displayNameKey` / `descriptionKey` 仍可从 `.resx` 解析。
-
-## 内容根路径
-
-应用从当前目录、`AppContext.BaseDirectory` 及其上级查找 `Assets/Config/default_settings.json` 以确定**内容根**。开发时在项目根运行，发布后 `Assets` 与可执行文件同目录即可。
+当目标应用程序以管理员身份运行时，Windows 可能会拦截模拟输入 (UIPI)。
+在需要时，Gamepad Mapping 可以提示以管理员权限重新启动，以便映射可以继续在具有管理员权限的目标程序上生效。
 
 ## 技术栈
 
-- **WPF**
-- **[CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)**
-- **[Newtonsoft.Json](https://www.newtonsoft.com/json)**
-- **[InputSimulatorPlus](https://www.nuget.org/packages/InputSimulatorPlus)**
-- **[Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)**
+  - WPF (.NET 9)
+  - [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)
+  - [Newtonsoft.Json](https://www.newtonsoft.com/json)
+  - [InputSimulatorPlus](https://www.nuget.org/packages/InputSimulatorPlus)
+  - [Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)
 
-## CI/CD
+## CI/CD (持续集成/持续部署)
 
-已配置 [GitHub Actions](.github/workflows/build.yml)：向 `main` 推送或 PR 时执行 Release 构建（含 NuGet 缓存）；推送 `v*` 标签（如 `v1.4.3`）会打包两种 `win-x64` 产物并通过 [softprops/action-gh-release](https://github.com/softprops/action-gh-release) 创建 GitHub Release（自动生成发布说明）。zip 内会附带仓库中的 `README.md`、`README_zh.md`、`CHANGELOG.md`、`RELEASE_NOTES.md`（若存在）。
+[GitHub Actions](https://www.google.com/search?q=.github/workflows/build.yml) 会在向 `main` 分支推送代码 (push) 和提交拉取请求 (PR) 时验证构建和测试。
+打上版本标签（如 `v*`）会创建发布构建（包含单文件版本和依赖框架的 win-x64 压缩包）并发布一个 GitHub Release。
 
-- **`Gamepad-Mapping-<tag>-win-x64-single.zip`** — 单文件、自包含（无需单独安装运行时）。
-- **`Gamepad-Mapping-<tag>-win-x64-fx.zip`** — 框架依赖（更小；需安装 [.NET 9 桌面运行时](https://dotnet.microsoft.com/download/dotnet/9.0)）。
+## 更新日志
 
-```powershell
-git tag v1.4.3
-git push origin v1.4.3
-```
+有关发布历史，请参阅 [`CHANGELOG.md`](https://www.google.com/search?q=CHANGELOG.md)。
 
 ## 许可证
 
-[MIT License](LICENSE)
+MIT — 详见 [`LICENSE`](https://www.google.com/search?q=LICENSE)。

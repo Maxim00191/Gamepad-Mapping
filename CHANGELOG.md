@@ -1,3 +1,41 @@
+## Changelog v2.0.0 - 2026-04-07
+
+### Added
+
+- **Advanced Input Actions:** Added richer action support for profile mappings, including keyboard actions and radial-menu driven actions.
+- **Template Validation:** Added stronger template validation to catch malformed mapping definitions earlier.
+- **Roco Kingdom Radial Templates:** Added and refined radial menu templates for Roco Kingdom world and fight scenarios.
+
+### Fixed
+
+- **Radial Menu Input Routing:** Improved filtering and conflict handling between radial menu activation and standard mappings.
+- **Radial HUD Stability:** Fixed edge cases in radial menu rendering/layout transitions across templates.
+
+### Changed
+
+- **Release Promotion:** Promoted the 2.0 feature set from pre-release (`2.0.0-alpha` / `2.0.0-beta`) to stable `2.0.0`.
+- **Version Bump:** Updated project version to `2.0.0`.
+
+## 更新日志 v2.0.0 - 2026-04-07
+
+### 新增
+
+- **高级输入动作：** 为映射配置增加了更丰富的动作能力，包括键盘动作与基于轮盘菜单的动作。
+- **模板校验：** 增强了模板校验逻辑，可更早发现不合法的映射定义。
+- **洛克王国轮盘模板：** 为洛克王国探索与战斗场景新增并完善了轮盘菜单模板。
+
+### 修复
+
+- **轮盘输入路由：** 改进了轮盘激活与常规映射之间的输入过滤和冲突处理。
+- **轮盘 HUD 稳定性：** 修复了模板切换过程中轮盘渲染与布局的边界问题。
+
+### 更改
+
+- **正式版发布：** 将 `2.0.0-alpha` / `2.0.0-beta` 的预发布能力整合并发布为稳定版 `2.0.0`。
+- **版本更新：** 将项目版本更新至 `2.0.0`。
+
+**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-beta...v2.0.0
+
 ## Changelog v2.0.0-beta - 2026-04-06
 
 ### Added
