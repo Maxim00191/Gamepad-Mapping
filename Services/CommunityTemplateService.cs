@@ -1,25 +1,26 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Utils;
 using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Services;
 
 public class CommunityTemplateService : ICommunityTemplateService
 {
-    private readonly HttpClient _httpClient;
+    private const string RepoOwner = "Maxim00191";
+    private const string RepoName = "GamepadMapping-CommunityProfiles";
+    private const string Branch = "main";
+
+    private readonly IGitHubContentService _gitHubContentService;
     private readonly IProfileService _profileService;
-    
-    // 生产环境指向 main 分支
-    private const string GitHubRawBase = "https://raw.githubusercontent.com/Maxim00191/GamepadMapping-CommunityProfiles/main";
-    private const string CdnBase = "https://fastly.jsdelivr.net/gh/Maxim00191/GamepadMapping-CommunityProfiles@main";
-    
+    private readonly ILocalFileService _localFileService;
+
     private DateTime _lastRequestTime = DateTime.MinValue;
     private static readonly TimeSpan MinRequestInterval = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan FallbackTimeout = TimeSpan.FromSeconds(4);
@@ -27,14 +28,19 @@ public class CommunityTemplateService : ICommunityTemplateService
     // 状态标记：是否优先使用 CDN（一旦 GitHub 失败，本次会话后续请求将优先走 CDN）
     private bool _useCdnPreferred = false;
 
-    public CommunityTemplateService(IProfileService profileService, HttpClient? httpClient = null)
+    public CommunityTemplateService(
+        IProfileService profileService,
+        IGitHubContentService? gitHubContentService = null,
+        ILocalFileService? localFileService = null)
     {
         _profileService = profileService;
-        _httpClient = httpClient ?? new HttpClient();
-        if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
-        {
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "GamepadMapping-App");
-        }
+        _gitHubContentService = gitHubContentService ?? new GitHubContentService();
+        _localFileService = localFileService ?? new LocalFileService();
+    }
+
+    public CommunityTemplateService(IProfileService profileService, HttpClient httpClient)
+        : this(profileService, new GitHubContentService(httpClient), new LocalFileService())
+    {
     }
 
     public async Task<List<CommunityTemplateInfo>> GetTemplatesAsync()
@@ -76,31 +82,71 @@ public class CommunityTemplateService : ICommunityTemplateService
     }
 
     public async Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template)
+        => await DownloadTemplateAsync(template, allowOverwrite: true);
+
+    public Task<CommunityTemplateDownloadPrecheckResult> CheckLocalTemplateConflictAsync(CommunityTemplateInfo template)
+    {
+        try
+        {
+            if (template is null || string.IsNullOrWhiteSpace(template.Id))
+                return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
+
+            var templatesRoot = _profileService.LoadTemplateDirectory();
+            var candidatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
+                templatesRoot,
+                template.CatalogFolder,
+                template.Id.Trim());
+
+            if (!_localFileService.FileExists(candidatePath))
+                return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
+
+            var existingJson = _localFileService.ReadAllText(candidatePath);
+            var existingTemplate = JsonConvert.DeserializeObject<GameProfileTemplate>(existingJson);
+            if (existingTemplate is null)
+                return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
+
+            var sameId = string.Equals(
+                (existingTemplate.ProfileId ?? string.Empty).Trim(),
+                template.Id.Trim(),
+                StringComparison.OrdinalIgnoreCase);
+            var sameName = string.Equals(
+                (existingTemplate.DisplayName ?? string.Empty).Trim(),
+                (template.DisplayName ?? string.Empty).Trim(),
+                StringComparison.OrdinalIgnoreCase);
+
+            return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(
+                HasSameFolderIdAndName: sameId && sameName,
+                ExistingDisplayName: existingTemplate.DisplayName));
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Warning($"Local conflict precheck failed for template '{template?.Id}': {ex.Message}");
+            return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
+        }
+    }
+
+    public async Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template, bool allowOverwrite = true)
     {
         try
         {
             App.Logger.Info($"Downloading template: {template.DisplayName} using URL: {template.DownloadUrl}");
-            
-            string? json = null;
-            try
-            {
-                json = await _httpClient.GetStringAsync(template.DownloadUrl);
-            }
-            catch
-            {
-                App.Logger.Warning($"Primary download failed for {template.DisplayName}, attempting fallback...");
-                var fallbackUrl = template.DownloadUrl.Contains("raw.githubusercontent.com") 
-                    ? GetCdnUrl(template.CatalogFolder, template.Id)
-                    : GetGitHubRawUrl(template.CatalogFolder, template.Id);
-                
-                json = await _httpClient.GetStringAsync(fallbackUrl);
-            }
+
+            var request = CreateRequest(template.CatalogFolder, template.Id);
+            var result = await _gitHubContentService.GetTextWithRawCdnFallbackAsync(
+                request,
+                preferCdn: _useCdnPreferred,
+                rawTimeout: FallbackTimeout);
+            _useCdnPreferred = result.UsedCdn;
+            var json = result.Content;
+
+            if (string.IsNullOrWhiteSpace(json))
+                return false;
 
             var profileTemplate = JsonConvert.DeserializeObject<GameProfileTemplate>(json);
             if (profileTemplate == null) return false;
 
             profileTemplate.TemplateCatalogFolder = template.CatalogFolder;
-            _profileService.SaveTemplate(profileTemplate, allowOverwrite: true);
+            _profileService.SaveTemplate(profileTemplate, allowOverwrite);
             _profileService.ReloadTemplates(profileTemplate.ProfileId);
             
             return true;
@@ -114,38 +160,20 @@ public class CommunityTemplateService : ICommunityTemplateService
 
     private async Task<string?> DownloadStringWithFallbackAsync(string relativePath)
     {
-        // 1. 如果已知 GitHub 不通，直接尝试 CDN
-        if (_useCdnPreferred)
-        {
-            try { return await _httpClient.GetStringAsync($"{CdnBase}/{relativePath}"); }
-            catch { /* 继续尝试 GitHub 以防网络恢复 */ }
-        }
-
-        // 2. 尝试从 GitHub 下载
         try
         {
-            using var cts = new CancellationTokenSource(FallbackTimeout);
-            var url = $"{GitHubRawBase}/{relativePath}";
-            App.Logger.Debug($"Attempting GitHub: {url}");
-            return await _httpClient.GetStringAsync(url, cts.Token);
+            var request = new GitHubRepositoryContentRequest(RepoOwner, RepoName, Branch, relativePath);
+            var result = await _gitHubContentService.GetTextWithRawCdnFallbackAsync(
+                request,
+                preferCdn: _useCdnPreferred,
+                rawTimeout: FallbackTimeout);
+            _useCdnPreferred = result.UsedCdn;
+            return result.Content;
         }
         catch (Exception ex)
         {
-            App.Logger.Warning($"GitHub access failed or timed out, falling back to CDN: {ex.Message}");
-            _useCdnPreferred = true;
-            
-            // 3. 降级到 CDN
-            try
-            {
-                var url = $"{CdnBase}/{relativePath}";
-                App.Logger.Debug($"Attempting CDN: {url}");
-                return await _httpClient.GetStringAsync(url);
-            }
-            catch (Exception cdnEx)
-            {
-                App.Logger.Error("CDN access also failed.", cdnEx);
-                return null;
-            }
+            App.Logger.Error("Community fetch failed on both GitHub Raw and CDN.", ex);
+            return null;
         }
     }
 
@@ -154,15 +182,19 @@ public class CommunityTemplateService : ICommunityTemplateService
         return _useCdnPreferred ? GetCdnUrl(folder, id) : GetGitHubRawUrl(folder, id);
     }
 
+    private static GitHubRepositoryContentRequest CreateRequest(string? folder, string id)
+    {
+        var relativePath = string.IsNullOrEmpty(folder) ? $"{id}.json" : $"{folder}/{id}.json";
+        return new GitHubRepositoryContentRequest(RepoOwner, RepoName, Branch, relativePath);
+    }
+
     private string GetGitHubRawUrl(string? folder, string id)
     {
-        var path = string.IsNullOrEmpty(folder) ? $"{id}.json" : $"{folder}/{id}.json";
-        return $"{GitHubRawBase}/{Uri.EscapeDataString(path)}";
+        return _gitHubContentService.BuildRawUrl(CreateRequest(folder, id));
     }
 
     private string GetCdnUrl(string? folder, string id)
     {
-        var path = string.IsNullOrEmpty(folder) ? $"{id}.json" : $"{folder}/{id}.json";
-        return $"{CdnBase}/{Uri.EscapeDataString(path)}";
+        return _gitHubContentService.BuildCdnUrl(CreateRequest(folder, id));
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -11,6 +12,7 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Services;
 using GamepadMapperGUI.Utils;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -18,6 +20,7 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class UpdateViewModel : ObservableObject
 {
     private readonly IUpdateService _updateService;
+    private readonly ILocalFileService _localFileService;
     private readonly ISettingsService _settingsService;
     private readonly AppSettings _appSettings;
 
@@ -46,10 +49,10 @@ public partial class UpdateViewModel : ObservableObject
     private double _downloadProgressPercent;
 
     [ObservableProperty]
-    private string _downloadSpeedText = "-";
+    private string _downloadSpeedText = "--";
 
     [ObservableProperty]
-    private string _downloadEtaText = "-";
+    private string _downloadEtaText = "--";
 
     [ObservableProperty]
     private string _installModeText = "Unknown";
@@ -84,9 +87,14 @@ public partial class UpdateViewModel : ObservableObject
     private CancellationTokenSource? _downloadCts;
     private string? _activeDownloadFilePath;
 
-    public UpdateViewModel(IUpdateService updateService, ISettingsService settingsService, AppSettings appSettings)
+    public UpdateViewModel(
+        IUpdateService updateService,
+        ISettingsService settingsService,
+        AppSettings appSettings,
+        ILocalFileService? localFileService = null)
     {
         _updateService = updateService;
+        _localFileService = localFileService ?? new LocalFileService();
         _settingsService = settingsService;
         _appSettings = appSettings;
 
@@ -157,8 +165,8 @@ public partial class UpdateViewModel : ObservableObject
         IsDownloading = true;
         DownloadFailed = false;
         DownloadProgressPercent = 0;
-        DownloadSpeedText = "-";
-        DownloadEtaText = "-";
+        DownloadSpeedText = "--";
+        DownloadEtaText = "--";
         _activeDownloadFilePath = null;
         StatusMessage = "Preparing download...";
         DownloadUpdateCommand.NotifyCanExecuteChanged();
@@ -191,6 +199,20 @@ public partial class UpdateViewModel : ObservableObject
                 fileName = $"Gamepad-Mapping-{resolution.VersionTag ?? "latest"}.zip";
 
             var targetPath = Path.Combine(AppPaths.GetUpdateDownloadsDirectory(), fileName);
+            if (_localFileService.FileExists(targetPath))
+            {
+                var overwrite = System.Windows.MessageBox.Show(
+                    $"A local file with the same name already exists.\n\n{fileName}\n\nDo you want to overwrite it?",
+                    "Overwrite Existing File",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+                if (overwrite != System.Windows.MessageBoxResult.Yes)
+                {
+                    StatusMessage = $"Download canceled for {fileName}.";
+                    return;
+                }
+            }
+
             _activeDownloadFilePath = targetPath;
             var progress = new Progress<ReleaseDownloadProgress>(OnDownloadProgressChanged);
 
@@ -202,7 +224,7 @@ public partial class UpdateViewModel : ObservableObject
                 _downloadCts.Token);
 
             DownloadProgressPercent = 100;
-            DownloadEtaText = "00:00";
+            DownloadEtaText = IsChineseUi() ? "已完成" : "Done";
             StatusMessage = $"Download complete: {fileName}";
             _activeDownloadFilePath = null;
             OpenInExplorer(targetPath);
@@ -240,8 +262,8 @@ public partial class UpdateViewModel : ObservableObject
 
         DownloadSpeedText = FormatSpeed(progress.BytesPerSecond);
         DownloadEtaText = progress.EstimatedRemaining.HasValue
-            ? FormatEta(progress.EstimatedRemaining.Value)
-            : "-";
+            ? FormatTimeLeft(progress.EstimatedRemaining.Value)
+            : "--";
     }
 
     private void OpenReleaseUrl() => OpenUrl(_releaseUrl ?? GetBaseReleaseUrl("latest"));
@@ -270,29 +292,55 @@ public partial class UpdateViewModel : ObservableObject
         _ => "unknown"
     };
 
-    private static string FormatSpeed(double bytesPerSecond)
+    private string FormatSpeed(double bytesPerSecond)
     {
-        if (bytesPerSecond <= 1d) return "-";
+        if (bytesPerSecond <= 1d) return "--";
 
+        const double b = 1d;
         const double kb = 1024d;
         const double mb = kb * 1024d;
-        if (bytesPerSecond >= mb) return $"{bytesPerSecond / mb:0.00} MB/s";
-        return $"{bytesPerSecond / kb:0.00} KB/s";
+        const double gb = mb * 1024d;
+        var culture = IsChineseUi() ? CultureInfo.GetCultureInfo("zh-CN") : CultureInfo.GetCultureInfo("en-US");
+
+        if (bytesPerSecond >= gb) return $"{(bytesPerSecond / gb).ToString("0.00", culture)} GB/s";
+        if (bytesPerSecond >= mb) return $"{(bytesPerSecond / mb).ToString("0.00", culture)} MB/s";
+        if (bytesPerSecond >= kb) return $"{(bytesPerSecond / kb).ToString("0.00", culture)} KB/s";
+        return $"{Math.Round(bytesPerSecond / b):0} B/s";
     }
 
-    private static string FormatEta(TimeSpan eta)
+    private string FormatTimeLeft(TimeSpan remaining)
     {
-        if (eta.TotalHours >= 1) return eta.ToString(@"hh\:mm\:ss");
-        return eta.ToString(@"mm\:ss");
+        if (remaining <= TimeSpan.Zero)
+            return IsChineseUi() ? "即将完成" : "Almost there";
+
+        var rounded = TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds));
+        if (IsChineseUi())
+        {
+            if (rounded.TotalHours >= 1)
+                return $"约 {(int)rounded.TotalHours} 小时 {rounded.Minutes} 分";
+            if (rounded.TotalMinutes >= 1)
+                return $"约 {(int)rounded.TotalMinutes} 分 {rounded.Seconds} 秒";
+            return $"约 {Math.Max(1, rounded.Seconds)} 秒";
+        }
+
+        if (rounded.TotalHours >= 1)
+            return $"about {(int)rounded.TotalHours}h {rounded.Minutes}m";
+        if (rounded.TotalMinutes >= 1)
+            return $"about {(int)rounded.TotalMinutes}m {rounded.Seconds}s";
+        return $"about {Math.Max(1, rounded.Seconds)}s";
     }
 
-    private static void TryDeleteFileIfExists(string? path)
+    private bool IsChineseUi()
     {
-        if (string.IsNullOrEmpty(path)) return;
+        var uiCulture = (_appSettings.UiCulture ?? string.Empty).Trim();
+        return uiCulture.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void TryDeleteFileIfExists(string? path)
+    {
         try
         {
-            if (File.Exists(path))
-                File.Delete(path);
+            _localFileService.DeleteFileIfExists(path);
         }
         catch
         {

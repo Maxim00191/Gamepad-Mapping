@@ -528,4 +528,10 @@
   <data name="TriggerMoment_Tap" xml:space="preserve">
     <value>Tap</value>
   </data>
+  <data name="UpdateDownloadSpeedLabel" xml:space="preserve">
+    <value>Speed</value>
+  </data>
+  <data name="UpdateDownloadTimeLeftLabel" xml:space="preserve">
+    <value>Time left</value>
+  </data>
 </root>

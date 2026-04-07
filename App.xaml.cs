@@ -1,5 +1,7 @@
 using Gamepad_Mapping.Interfaces.Services;
 using Gamepad_Mapping.Services;
+using Gamepad_Mapping.ViewModels;
+using GamepadMapperGUI.Interfaces.Services;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -31,6 +33,20 @@ public partial class App : Application
         ApplySystemTheme();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         CheckStartupElevationCompatibility();
+
+        var gitHubContentService = new GitHubContentService();
+        var profileService = new ProfileService();
+        var localFileService = new LocalFileService();
+        var mainViewModel = new MainViewModel(
+            profileService: profileService,
+            gitHubContentService: gitHubContentService,
+            communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService),
+            updateService: new UpdateService(gitHubContentService),
+            localFileService: localFileService);
+
+        var mainWindow = new MainWindow(mainViewModel);
+        MainWindow = mainWindow;
+        mainWindow.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)

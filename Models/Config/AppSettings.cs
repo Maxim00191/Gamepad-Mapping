@@ -162,4 +162,11 @@ public class AppSettings
     /// <summary>Whether to include pre-releases when checking for updates.</summary>
     [JsonProperty("includePrereleases")]
     public bool IncludePrereleases { get; set; } = false;
+
+    /// <summary>
+    /// Mirror prefix for GitHub URLs when origin is unreachable. Keep it as a full URL prefix ending with '/'.
+    /// Advanced users can override this in local_settings.json.
+    /// </summary>
+    [JsonProperty("githubMirrorBaseUrl")]
+    public string GithubMirrorBaseUrl { get; set; } = "https://ghfast.top/";
 }

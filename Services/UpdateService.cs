@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 
 namespace GamepadMapperGUI.Services;
@@ -19,12 +20,22 @@ namespace GamepadMapperGUI.Services;
 public class UpdateService : IUpdateService
 {
     private const string GitHubApiBase = "https://api.github.com/repos";
+    private static readonly TimeSpan PrimaryEndpointTimeout = TimeSpan.FromSeconds(4);
     private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 GamepadMapping/1.0";
     
     private readonly HttpClient _httpClient;
+    private readonly IGitHubContentService _gitHubContentService;
+    private readonly string _mirrorBaseUrl;
+    private bool _preferMirror;
 
-    public UpdateService()
+    public UpdateService(
+        IGitHubContentService? gitHubContentService = null,
+        ISettingsService? settingsService = null,
+        AppSettings? appSettings = null)
     {
+        _gitHubContentService = gitHubContentService ?? new GitHubContentService();
+        var resolvedSettings = appSettings ?? (settingsService ?? new SettingsService()).LoadSettings();
+        _mirrorBaseUrl = NormalizeMirrorBaseUrl(resolvedSettings.GithubMirrorBaseUrl);
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
     }
@@ -46,13 +57,11 @@ public class UpdateService : IUpdateService
 
             App.Logger.Info($"[UpdateService] Checking for updates (IncludePrereleases: {includePrereleases}). URL: {url}");
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-
-            using var responseMessage = await _httpClient.SendAsync(request);
-            if (responseMessage.IsSuccessStatusCode)
+            try
             {
-                var response = await responseMessage.Content.ReadAsStringAsync();
+                var response = await GetGitHubApiStringWithMirrorFallbackAsync(
+                    url,
+                    "application/vnd.github.v3+json");
                 
                 GitHubRelease? latestRelease = null;
                 if (includePrereleases)
@@ -78,15 +87,14 @@ public class UpdateService : IUpdateService
                     App.Logger.Warning($"[UpdateService] {errorMessage}");
                 }
             }
-            else
+            catch (HttpRequestException httpEx)
             {
-                var responseContent = await responseMessage.Content.ReadAsStringAsync();
-                isForbidden = responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden;
+                isForbidden = httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden;
                 errorMessage = isForbidden 
                     ? "GitHub API rate limit exceeded. Please check manually." 
-                    : $"GitHub API error: {responseMessage.StatusCode}";
+                    : $"GitHub API error: {httpEx.StatusCode}";
                 
-                App.Logger.Error($"[UpdateService] Check failed. Status: {responseMessage.StatusCode}, Response: {responseContent}");
+                App.Logger.Error($"[UpdateService] Check failed. Status: {httpEx.StatusCode}, Message: {httpEx.Message}");
             }
         }
         catch (Exception ex)
@@ -134,11 +142,7 @@ public class UpdateService : IUpdateService
         if (!string.IsNullOrWhiteSpace(destinationDirectory))
             Directory.CreateDirectory(destinationDirectory);
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, assetDownloadUrl);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
-
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var response = await SendAssetRequestWithMirrorFallbackAsync(assetDownloadUrl, cancellationToken);
 
         var totalBytes = response.Content.Headers.ContentLength;
         await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -229,13 +233,10 @@ public class UpdateService : IUpdateService
             ? $"{GitHubApiBase}/{owner}/{repo}/releases"
             : $"{GitHubApiBase}/{owner}/{repo}/releases/latest";
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-
-        using var responseMessage = await _httpClient.SendAsync(request, cancellationToken);
-        responseMessage.EnsureSuccessStatusCode();
-
-        var json = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
+        var json = await GetGitHubApiStringWithMirrorFallbackAsync(
+            url,
+            "application/vnd.github.v3+json",
+            cancellationToken);
         if (includePrereleases)
         {
             var releases = JsonSerializer.Deserialize<List<GitHubRelease>>(json);
@@ -243,6 +244,114 @@ public class UpdateService : IUpdateService
         }
 
         return JsonSerializer.Deserialize<GitHubRelease>(json);
+    }
+
+    private async Task<string> GetGitHubApiStringWithMirrorFallbackAsync(
+        string apiUrl,
+        string accept,
+        CancellationToken cancellationToken = default)
+    {
+        var mirrorUrl = _gitHubContentService.BuildMirrorProxyUrl(apiUrl, _mirrorBaseUrl);
+        if (_preferMirror)
+        {
+            try
+            {
+                var mirrored = await _gitHubContentService.GetGitHubApiStringAsync(
+                    mirrorUrl,
+                    accept,
+                    cancellationToken);
+                return mirrored;
+            }
+            catch
+            {
+                // Mirror unavailable, fallback to GitHub origin.
+            }
+        }
+
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(PrimaryEndpointTimeout);
+            var primary = await _gitHubContentService.GetGitHubApiStringAsync(
+                apiUrl,
+                accept,
+                cts.Token);
+            _preferMirror = false;
+            return primary;
+        }
+        catch
+        {
+            var mirrored = await _gitHubContentService.GetGitHubApiStringAsync(
+                mirrorUrl,
+                accept,
+                cancellationToken);
+            _preferMirror = true;
+            return mirrored;
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendAssetRequestWithMirrorFallbackAsync(
+        string originUrl,
+        CancellationToken cancellationToken)
+    {
+        var mirrorUrl = _gitHubContentService.BuildMirrorProxyUrl(originUrl, _mirrorBaseUrl);
+
+        if (_preferMirror)
+        {
+            try
+            {
+                var mirroredResponse = await SendAssetRequestAsync(mirrorUrl, cancellationToken);
+                _preferMirror = true;
+                return mirroredResponse;
+            }
+            catch
+            {
+                // Mirror failed; fallback to origin.
+            }
+        }
+
+        try
+        {
+            var originResponse = await SendAssetRequestAsync(originUrl, cancellationToken, applyPrimaryTimeout: true);
+            _preferMirror = false;
+            return originResponse;
+        }
+        catch
+        {
+            var mirroredResponse = await SendAssetRequestAsync(mirrorUrl, cancellationToken);
+            _preferMirror = true;
+            return mirroredResponse;
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendAssetRequestAsync(
+        string url,
+        CancellationToken cancellationToken,
+        bool applyPrimaryTimeout = false)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+        if (!applyPrimaryTimeout)
+        {
+            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return response;
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(PrimaryEndpointTimeout);
+        var timeoutResponse = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        timeoutResponse.EnsureSuccessStatusCode();
+        return timeoutResponse;
+    }
+
+    private static string NormalizeMirrorBaseUrl(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "https://ghfast.top/";
+        var trimmed = raw.Trim();
+        return trimmed.EndsWith("/", StringComparison.Ordinal) ? trimmed : $"{trimmed}/";
     }
 
     private static GitHubAsset? ResolveBestAsset(IReadOnlyList<GitHubAsset> assets, AppInstallMode installMode)

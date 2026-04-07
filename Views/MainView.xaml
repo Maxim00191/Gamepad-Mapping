@@ -313,9 +313,12 @@
                                                                Margin="0,4,0,0"
                                                                FontSize="10"
                                                                Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="Speed: " />
+                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateDownloadSpeedLabel], Mode=OneWay}" />
+                                                        <Run Text=": " />
                                                         <Run Text="{Binding DownloadSpeedText}" />
-                                                        <Run Text="  |  ETA: " />
+                                                        <Run Text="  |  " />
+                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateDownloadTimeLeftLabel], Mode=OneWay}" />
+                                                        <Run Text=": " />
                                                         <Run Text="{Binding DownloadEtaText}" />
                                                     </TextBlock>
                                                 </Grid>
