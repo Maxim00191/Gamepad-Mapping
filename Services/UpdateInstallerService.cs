@@ -76,19 +76,21 @@ public sealed class UpdateInstallerService : IUpdateInstallerService
 
             // Use -Command with a script block for more robust quoting and error handling
             // We use single quotes for internal strings and double-double quotes for the whole command
+            string Escape(string? val) => (val ?? "").Replace("'", "''");
+
             var scriptBlock = 
                 $"& {{ " +
                 $"$ErrorActionPreference = 'Stop'; " +
-                $". '{scriptPath.Replace("'", "''")}' " +
-                $"-TargetDir '{request.TargetDirectoryPath.Replace("'", "''")}' " +
-                $"-ZipRelativePath '{zipRelativePath.Replace("'", "''")}' " +
-                $"-AppExeRelativePath '{appExeRelativePath.Replace("'", "''")}' " +
-                $"-LogRelativePath '{logRelativePath.Replace("'", "''")}' " +
-                $"-PreserveDirsCsv '{preserveCsv.Replace("'", "''")}' " +
+                $". '{Escape(scriptPath)}' " +
+                $"-TargetDir '{Escape(request.TargetDirectoryPath)}' " +
+                $"-ZipRelativePath '{Escape(zipRelativePath)}' " +
+                $"-AppExeRelativePath '{Escape(appExeRelativePath)}' " +
+                $"-LogRelativePath '{Escape(logRelativePath)}' " +
+                $"-PreserveDirsCsv '{Escape(preserveCsv)}' " +
                 $"-WaitForProcessId {request.ProcessIdToWaitFor} " +
-                $"-ExpectedSha256 '{expectedSha256.Replace("'", "''")}' " +
+                $"-ExpectedSha256 '{Escape(expectedSha256)}' " +
                 $"-RemoveOrphanFiles:${(request.RemoveOrphanFiles ? "true" : "false")}; " +
-                $"if ($LASTEXITCODE -ne 0) {{ Read-Host 'Press Enter to exit...' }} " +
+                $"if ($LASTEXITCODE -ne 0) {{ Write-Host 'Installation failed with exit code ' $LASTEXITCODE; Read-Host 'Press Enter to exit...' }} " +
                 $"}}";
 
             psi.Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{scriptBlock.Replace("\"", "\"\"")}\"";
@@ -269,9 +271,9 @@ function Is-ReservedSystemRelativePath {
     return $false
 }
 
-$zipPath = [System.IO.Path]::GetFullPath((Join-Path $TargetDir $ZipRelativePath))
-$appExePath = [System.IO.Path]::GetFullPath((Join-Path $TargetDir $AppExeRelativePath))
-$script:EffectiveLogPath = [System.IO.Path]::GetFullPath((Join-Path $TargetDir $LogRelativePath))
+$zipPath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($TargetDir, $ZipRelativePath))
+$appExePath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($TargetDir, $AppExeRelativePath))
+$script:EffectiveLogPath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($TargetDir, $LogRelativePath))
 try {
     $logDir = Split-Path -Path $script:EffectiveLogPath -Parent
     if (-not [string]::IsNullOrWhiteSpace($logDir) -and -not (Test-Path -LiteralPath $logDir)) {

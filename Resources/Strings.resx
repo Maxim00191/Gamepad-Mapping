@@ -534,4 +534,111 @@
   <data name="UpdateDownloadTimeLeftLabel" xml:space="preserve">
     <value>Time left</value>
   </data>
+  <data name="UpdateCheckForUpdates" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Checking for updates...</value>
+  </data>
+  <data name="UpdateNewVersionAvailable" xml:space="preserve">
+    <value>New version available!</value>
+  </data>
+  <data name="UpdateUpToDate" xml:space="preserve">
+    <value>You are up to date.</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Failed to check for updates.</value>
+  </data>
+  <data name="UpdateDownloadRetry" xml:space="preserve">
+    <value>Retry download</value>
+  </data>
+  <data name="UpdateDownloadNewVersion" xml:space="preserve">
+    <value>Download New Version</value>
+  </data>
+  <data name="UpdatePreparingDownload" xml:space="preserve">
+    <value>Preparing download...</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Downloading {0}...</value>
+  </data>
+  <data name="UpdateDownloadDone" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="UpdateDownloadComplete" xml:space="preserve">
+    <value>Download complete: {0}</value>
+  </data>
+  <data name="UpdateDownloadCancelled" xml:space="preserve">
+    <value>Download cancelled.</value>
+  </data>
+  <data name="UpdateDownloadFailed" xml:space="preserve">
+    <value>Download failed: {0}</value>
+  </data>
+  <data name="UpdateAlmostThere" xml:space="preserve">
+    <value>Almost there</value>
+  </data>
+  <data name="UpdateAboutHoursMinutes" xml:space="preserve">
+    <value>about {0}h {1}m</value>
+  </data>
+  <data name="UpdateAboutMinutesSeconds" xml:space="preserve">
+    <value>about {0}m {1}s</value>
+  </data>
+  <data name="UpdateAboutSeconds" xml:space="preserve">
+    <value>about {0}s</value>
+  </data>
+  <data name="UpdateInstallTitle" xml:space="preserve">
+    <value>Install New Version</value>
+  </data>
+  <data name="UpdateInstallPromptNow" xml:space="preserve">
+    <value>Download completed: {0}
+
+Install now? The app will close automatically.</value>
+  </data>
+  <data name="UpdateInstallPackageNotFound" xml:space="preserve">
+    <value>Package file not found. Please download again.</value>
+  </data>
+  <data name="UpdateInstallReadyPrompt" xml:space="preserve">
+    <value>Ready to install: {0}
+
+The app will close and apply update. Continue?</value>
+  </data>
+  <data name="UpdateInstallLaunchFailed" xml:space="preserve">
+    <value>Failed to start installer script: {0}</value>
+  </data>
+  <data name="UpdateIncludePrereleases" xml:space="preserve">
+    <value>Include Beta/Pre-releases</value>
+  </data>
+  <data name="UpdateCurrentVersion" xml:space="preserve">
+    <value>Current Version</value>
+  </data>
+  <data name="UpdateLatestVersion" xml:space="preserve">
+    <value>Latest Version</value>
+  </data>
+  <data name="UpdateInstallMode" xml:space="preserve">
+    <value>Install Mode</value>
+  </data>
+  <data name="UpdateCheckButton" xml:space="preserve">
+    <value>Check</value>
+  </data>
+  <data name="UpdateInstallButton" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="UpdateCancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="UpdateOpenGitHubReleases" xml:space="preserve">
+    <value>Open GitHub Releases</value>
+  </data>
+  <data name="UpdateOverwriteExistingFile" xml:space="preserve">
+    <value>Overwrite Existing File</value>
+  </data>
+  <data name="UpdateOverwriteExistingFilePrompt" xml:space="preserve">
+    <value>A local file with the same name already exists.
+
+{0}
+
+Do you want to overwrite it?</value>
+  </data>
+  <data name="UpdateDownloadCanceled" xml:space="preserve">
+    <value>Download canceled for {0}.</value>
+  </data>
 </root>

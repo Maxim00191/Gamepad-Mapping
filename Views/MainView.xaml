@@ -217,7 +217,7 @@
 
                                             <Separator Margin="0,6,0,8" />
 
-                                            <TextBlock Text="Check for Updates"
+                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[UpdateCheckForUpdates], Mode=OneWay}"
                                                        FontWeight="SemiBold"
                                                        Margin="0,0,0,6" />
                                             <Grid DataContext="{Binding UpdatePanel}">
@@ -233,20 +233,23 @@
                                                 </Grid.ColumnDefinitions>
                                                 
                                                 <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
-                                                    <CheckBox Content="Include Beta/Pre-releases"
+                                                    <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[UpdateIncludePrereleases], Mode=OneWay}"
                                                               IsChecked="{Binding IncludePrereleases, Mode=TwoWay}"
                                                               Margin="0,0,0,4"
                                                               FontSize="11" />
                                                     <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="Current Version: " />
+                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateCurrentVersion], Mode=OneWay}" />
+                                                        <Run Text=": " />
                                                         <Run Text="{Binding CurrentVersion, Mode=OneWay}" />
                                                     </TextBlock>
                                                     <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="Latest Version: " />
+                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateLatestVersion], Mode=OneWay}" />
+                                                        <Run Text=": " />
                                                         <Run Text="{Binding LatestVersion, Mode=OneWay, TargetNullValue='Unknown'}" />
                                                     </TextBlock>
                                                     <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="Install Mode: " />
+                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateInstallMode], Mode=OneWay}" />
+                                                        <Run Text=": " />
                                                         <Run Text="{Binding InstallModeText, Mode=OneWay}" />
                                                     </TextBlock>
                                                     <TextBlock Text="{Binding StatusMessage}" 
@@ -273,12 +276,12 @@
                                                 <StackPanel Grid.Row="0"
                                                             Grid.Column="1"
                                                             VerticalAlignment="Center">
-                                                    <Button Content="Check"
+                                                    <Button Content="{Binding Source={StaticResource Loc}, Path=[UpdateCheckButton], Mode=OneWay}"
                                                             Padding="12,4"
                                                             VerticalAlignment="Center"
                                                             Command="{Binding CheckUpdateCommand}"
                                                             IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}" />
-                                                    <Button Content="Install"
+                                                    <Button Content="{Binding Source={StaticResource Loc}, Path=[UpdateInstallButton], Mode=OneWay}"
                                                             Margin="0,6,0,0"
                                                             Padding="12,4"
                                                             VerticalAlignment="Center"
@@ -298,7 +301,7 @@
                                                             Command="{Binding DownloadUpdateCommand}"
                                                             IsEnabled="{Binding IsDownloading, Converter={StaticResource InverseBooleanConverter}}" />
                                                     <Button Grid.Column="1"
-                                                            Content="Cancel"
+                                                            Content="{Binding Source={StaticResource Loc}, Path=[UpdateCancelButton], Mode=OneWay}"
                                                             Margin="8,0,0,0"
                                                             Padding="12,6"
                                                             VerticalAlignment="Center"
@@ -332,7 +335,7 @@
                                                 </Grid>
 
                                                 <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                                        Content="Open GitHub Releases"
+                                                        Content="{Binding Source={StaticResource Loc}, Path=[UpdateOpenGitHubReleases], Mode=OneWay}"
                                                         Margin="0,8,0,0"
                                                         Padding="0,6"
                                                         Command="{Binding OpenManualUrlCommand}"

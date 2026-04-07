@@ -68,7 +68,16 @@ public partial class UpdateViewModel : ObservableObject
     [ObservableProperty]
     private bool _downloadFailed;
 
-    public string DownloadPrimaryActionText => DownloadFailed ? "Retry download" : "Download New Version";
+    public string DownloadPrimaryActionText => DownloadFailed 
+        ? GetLoc("UpdateDownloadRetry") 
+        : GetLoc("UpdateDownloadNewVersion");
+
+    private string GetLoc(string key)
+    {
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            return loc[key];
+        return key;
+    }
 
     public bool IncludePrereleases
     {
@@ -141,7 +150,7 @@ public partial class UpdateViewModel : ObservableObject
 
         IsChecking = true;
         IsForbidden = false;
-        StatusMessage = "Checking for updates...";
+        StatusMessage = GetLoc("UpdateChecking");
         LatestVersion = null;
         DownloadUpdateCommand.NotifyCanExecuteChanged();
         InstallUpdateCommand.NotifyCanExecuteChanged();
@@ -159,14 +168,14 @@ public partial class UpdateViewModel : ObservableObject
             _releaseUrl = info.ReleaseUrl;
             IsForbidden = info.IsForbidden;
 
-            StatusMessage = info.ErrorMessage ?? (IsUpdateAvailable ? "New version available!" : "You are up to date.");
+            StatusMessage = info.ErrorMessage ?? (IsUpdateAvailable ? GetLoc("UpdateNewVersionAvailable") : GetLoc("UpdateUpToDate"));
             DownloadFailed = false;
             DownloadUpdateCommand.NotifyCanExecuteChanged();
             InstallUpdateCommand.NotifyCanExecuteChanged();
         }
         catch
         {
-            StatusMessage = "Failed to check for updates.";
+            StatusMessage = GetLoc("UpdateCheckFailed");
         }
         finally
         {
@@ -194,7 +203,7 @@ public partial class UpdateViewModel : ObservableObject
         DownloadSpeedText = "--";
         DownloadEtaText = "--";
         _activeDownloadFilePath = null;
-        StatusMessage = "Preparing download...";
+        StatusMessage = GetLoc("UpdatePreparingDownload");
         DownloadUpdateCommand.NotifyCanExecuteChanged();
 
         _downloadCts?.Dispose();
@@ -228,13 +237,13 @@ public partial class UpdateViewModel : ObservableObject
             if (_localFileService.FileExists(targetPath))
             {
                 var overwrite = System.Windows.MessageBox.Show(
-                    $"A local file with the same name already exists.\n\n{fileName}\n\nDo you want to overwrite it?",
-                    "Overwrite Existing File",
+                    string.Format(GetLoc("UpdateOverwriteExistingFilePrompt"), fileName),
+                    GetLoc("UpdateOverwriteExistingFile"),
                     System.Windows.MessageBoxButton.YesNo,
                     System.Windows.MessageBoxImage.Question);
                 if (overwrite != System.Windows.MessageBoxResult.Yes)
                 {
-                    StatusMessage = $"Download canceled for {fileName}.";
+                    StatusMessage = string.Format(GetLoc("UpdateDownloadCanceled"), fileName);
                     return;
                 }
             }
@@ -242,7 +251,7 @@ public partial class UpdateViewModel : ObservableObject
             _activeDownloadFilePath = targetPath;
             var progress = new Progress<ReleaseDownloadProgress>(OnDownloadProgressChanged);
 
-            StatusMessage = $"Downloading {fileName}...";
+            StatusMessage = string.Format(GetLoc("UpdateDownloading"), fileName);
             await _updateService.DownloadReleaseAssetAsync(
                 resolution.MatchedAsset.DownloadUrl,
                 targetPath,
@@ -250,8 +259,8 @@ public partial class UpdateViewModel : ObservableObject
                 _downloadCts.Token);
 
             DownloadProgressPercent = 100;
-            DownloadEtaText = IsChineseUi() ? "已完成" : "Done";
-            StatusMessage = $"Download complete: {fileName}";
+            DownloadEtaText = GetLoc("UpdateDownloadDone");
+            StatusMessage = string.Format(GetLoc("UpdateDownloadComplete"), fileName);
             _activeDownloadFilePath = null;
             _lastDownloadedPackagePath = targetPath;
             _lastDownloadedPackageName = fileName;
@@ -263,7 +272,7 @@ public partial class UpdateViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Download cancelled.";
+            StatusMessage = GetLoc("UpdateDownloadCancelled");
             TryDeleteFileIfExists(_activeDownloadFilePath);
             _activeDownloadFilePath = null;
             DownloadProgressPercent = 0;
@@ -272,7 +281,7 @@ public partial class UpdateViewModel : ObservableObject
         {
             DownloadFailed = true;
             DownloadProgressPercent = 0;
-            StatusMessage = $"Download failed: {ex.Message}";
+            StatusMessage = string.Format(GetLoc("UpdateDownloadFailed"), ex.Message);
         }
         finally
         {
@@ -344,23 +353,14 @@ public partial class UpdateViewModel : ObservableObject
     private string FormatTimeLeft(TimeSpan remaining)
     {
         if (remaining <= TimeSpan.Zero)
-            return IsChineseUi() ? "即将完成" : "Almost there";
+            return GetLoc("UpdateAlmostThere");
 
         var rounded = TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds));
-        if (IsChineseUi())
-        {
-            if (rounded.TotalHours >= 1)
-                return $"约 {(int)rounded.TotalHours} 小时 {rounded.Minutes} 分";
-            if (rounded.TotalMinutes >= 1)
-                return $"约 {(int)rounded.TotalMinutes} 分 {rounded.Seconds} 秒";
-            return $"约 {Math.Max(1, rounded.Seconds)} 秒";
-        }
-
         if (rounded.TotalHours >= 1)
-            return $"about {(int)rounded.TotalHours}h {rounded.Minutes}m";
+            return string.Format(GetLoc("UpdateAboutHoursMinutes"), (int)rounded.TotalHours, rounded.Minutes);
         if (rounded.TotalMinutes >= 1)
-            return $"about {(int)rounded.TotalMinutes}m {rounded.Seconds}s";
-        return $"about {Math.Max(1, rounded.Seconds)}s";
+            return string.Format(GetLoc("UpdateAboutMinutesSeconds"), (int)rounded.TotalMinutes, rounded.Seconds);
+        return string.Format(GetLoc("UpdateAboutSeconds"), Math.Max(1, rounded.Seconds));
     }
 
     private bool IsChineseUi()
@@ -371,10 +371,8 @@ public partial class UpdateViewModel : ObservableObject
 
     private void PromptInstallDownloadedPackage(string zipPath, string packageName)
     {
-        var title = IsChineseUi() ? "安装新版本" : "Install New Version";
-        var message = IsChineseUi()
-            ? $"已下载完成：{packageName}\n\n是否现在安装？安装时程序将自动退出。"
-            : $"Download completed: {packageName}\n\nInstall now? The app will close automatically.";
+        var title = GetLoc("UpdateInstallTitle");
+        var message = string.Format(GetLoc("UpdateInstallPromptNow"), packageName);
 
         var installNow = MessageBox.Show(
             message,
@@ -400,7 +398,7 @@ public partial class UpdateViewModel : ObservableObject
 
         if (!_localFileService.FileExists(packagePath))
         {
-            StatusMessage = IsChineseUi() ? "安装包不存在，请重新下载。" : "Package file not found. Please download again.";
+            StatusMessage = GetLoc("UpdateInstallPackageNotFound");
             InstallUpdateCommand.NotifyCanExecuteChanged();
             return;
         }
@@ -413,12 +411,10 @@ public partial class UpdateViewModel : ObservableObject
 
     private void InstallPackage(string zipPath, string packageName, bool askConfirmation)
     {
-        var title = IsChineseUi() ? "安装新版本" : "Install New Version";
+        var title = GetLoc("UpdateInstallTitle");
         if (askConfirmation)
         {
-            var message = IsChineseUi()
-                ? $"准备安装：{packageName}\n\n继续后程序将退出并安装更新，是否继续？"
-                : $"Ready to install: {packageName}\n\nThe app will close and apply update. Continue?";
+            var message = string.Format(GetLoc("UpdateInstallReadyPrompt"), packageName);
             var proceed = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (proceed != MessageBoxResult.Yes)
                 return;
@@ -436,9 +432,7 @@ public partial class UpdateViewModel : ObservableObject
 
         if (!_updateInstallerService.TryLaunchInstaller(request, out var errorMessage))
         {
-            var errorText = IsChineseUi()
-                ? $"启动安装脚本失败：{errorMessage ?? "未知错误"}"
-                : $"Failed to start installer script: {errorMessage ?? "Unknown error"}";
+            var errorText = string.Format(GetLoc("UpdateInstallLaunchFailed"), errorMessage ?? "Unknown error");
             MessageBox.Show(errorText, title, MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -515,6 +509,17 @@ public partial class UpdateViewModel : ObservableObject
             var v = assembly.GetName().Version;
             version = v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
         }
+
+        // Remove git hash/suffix (e.g., 1.0.0-alpha+abc1234 -> 1.0.0)
+        if (version.Contains('+'))
+        {
+            version = version.Split('+')[0];
+        }
+        if (version.Contains('-'))
+        {
+            version = version.Split('-')[0];
+        }
+
         return version;
     }
 }
