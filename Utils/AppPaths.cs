@@ -93,5 +93,17 @@ public static class AppPaths
         }
         return logsDir;
     }
+
+    public static string GetUpdateDownloadsDirectory()
+    {
+        var root = ResolveContentRoot();
+        var updateDir = Path.Combine(root, "Updates");
+        if (!Directory.Exists(updateDir))
+        {
+            Directory.CreateDirectory(updateDir);
+        }
+
+        return updateDir;
+    }
 }
 

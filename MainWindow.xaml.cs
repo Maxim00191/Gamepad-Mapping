@@ -1,12 +1,13 @@
-using System.Windows;
+﻿using System.Windows;
+using Gamepad_Mapping.ViewModels;
 
 namespace Gamepad_Mapping;
 
 public partial class MainWindow : Window
 {
-    private readonly ViewModels.MainViewModel _viewModel;
+    private readonly MainViewModel _viewModel;
 
-    public MainWindow()
+    public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
         // Force standard resizable window chrome at runtime in case any
@@ -15,7 +16,7 @@ public partial class MainWindow : Window
         ResizeMode = ResizeMode.CanResize;
         SizeToContent = SizeToContent.Manual;
         WindowState = WindowState.Normal;
-        _viewModel = new ViewModels.MainViewModel();
+        _viewModel = viewModel;
         DataContext = _viewModel;
     }
 

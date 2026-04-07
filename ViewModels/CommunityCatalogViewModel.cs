@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services;
@@ -67,7 +68,26 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
         try
         {
-            var success = await _communityService.DownloadTemplateAsync(template);
+            var precheck = await _communityService.CheckLocalTemplateConflictAsync(template);
+            if (precheck.HasSameFolderIdAndName)
+            {
+                var message =
+                    $"A local template with the same folder, id, and name already exists.\n\n" +
+                    $"Template: {template.DisplayName}\n\n" +
+                    "Do you want to overwrite it with the community version?";
+                var result = MessageBox.Show(
+                    message,
+                    "Overwrite Existing Template",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (result != MessageBoxResult.Yes)
+                {
+                    StatusMessage = $"Download canceled for {template.DisplayName}.";
+                    return;
+                }
+            }
+
+            var success = await _communityService.DownloadTemplateAsync(template, allowOverwrite: true);
             if (success)
             {
                 StatusMessage = $"Successfully downloaded {template.DisplayName}.";

@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
   "templatesDirectory": "Assets/Profiles/templates",
-  "defaultProfileId": "default"
+  "defaultProfileId": "default",
+  "githubMirrorBaseUrl": "https://ghfast.top/"
 }

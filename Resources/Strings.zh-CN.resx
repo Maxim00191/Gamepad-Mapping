@@ -528,4 +528,117 @@
   <data name="TriggerMoment_Tap" xml:space="preserve">
     <value>点按</value>
   </data>
+  <data name="UpdateDownloadSpeedLabel" xml:space="preserve">
+    <value>速度</value>
+  </data>
+  <data name="UpdateDownloadTimeLeftLabel" xml:space="preserve">
+    <value>剩余时间</value>
+  </data>
+  <data name="UpdateCheckForUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>正在检查更新...</value>
+  </data>
+  <data name="UpdateNewVersionAvailable" xml:space="preserve">
+    <value>发现新版本！</value>
+  </data>
+  <data name="UpdateUpToDate" xml:space="preserve">
+    <value>当前已是最新版本。</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>检查更新失败。</value>
+  </data>
+  <data name="UpdateDownloadRetry" xml:space="preserve">
+    <value>重试下载</value>
+  </data>
+  <data name="UpdateDownloadNewVersion" xml:space="preserve">
+    <value>下载新版本</value>
+  </data>
+  <data name="UpdatePreparingDownload" xml:space="preserve">
+    <value>正在准备下载...</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>正在下载 {0}...</value>
+  </data>
+  <data name="UpdateDownloadDone" xml:space="preserve">
+    <value>已完成</value>
+  </data>
+  <data name="UpdateDownloadComplete" xml:space="preserve">
+    <value>下载完成：{0}</value>
+  </data>
+  <data name="UpdateDownloadCancelled" xml:space="preserve">
+    <value>下载已取消。</value>
+  </data>
+  <data name="UpdateDownloadFailed" xml:space="preserve">
+    <value>下载失败：{0}</value>
+  </data>
+  <data name="UpdateAlmostThere" xml:space="preserve">
+    <value>即将完成</value>
+  </data>
+  <data name="UpdateAboutHoursMinutes" xml:space="preserve">
+    <value>约 {0} 小时 {1} 分</value>
+  </data>
+  <data name="UpdateAboutMinutesSeconds" xml:space="preserve">
+    <value>约 {0} 分 {1} 秒</value>
+  </data>
+  <data name="UpdateAboutSeconds" xml:space="preserve">
+    <value>约 {0} 秒</value>
+  </data>
+  <data name="UpdateInstallTitle" xml:space="preserve">
+    <value>安装新版本</value>
+  </data>
+  <data name="UpdateInstallPromptNow" xml:space="preserve">
+    <value>已下载完成：{0}
+
+是否现在安装？安装时程序将自动退出。</value>
+  </data>
+  <data name="UpdateInstallPackageNotFound" xml:space="preserve">
+    <value>安装包不存在，请重新下载。</value>
+  </data>
+  <data name="UpdateInstallReadyPrompt" xml:space="preserve">
+    <value>准备安装：{0}
+
+继续后程序将退出并安装更新，是否继续？</value>
+  </data>
+  <data name="UpdateInstallLaunchFailed" xml:space="preserve">
+    <value>启动安装脚本失败：{0}</value>
+  </data>
+  <data name="UpdateIncludePrereleases" xml:space="preserve">
+    <value>包含测试版/预发布版本</value>
+  </data>
+  <data name="UpdateCurrentVersion" xml:space="preserve">
+    <value>当前版本</value>
+  </data>
+  <data name="UpdateLatestVersion" xml:space="preserve">
+    <value>最新版本</value>
+  </data>
+  <data name="UpdateInstallMode" xml:space="preserve">
+    <value>安装模式</value>
+  </data>
+  <data name="UpdateCheckButton" xml:space="preserve">
+    <value>检查</value>
+  </data>
+  <data name="UpdateInstallButton" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="UpdateCancelButton" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="UpdateOpenGitHubReleases" xml:space="preserve">
+    <value>打开 GitHub 发布页面</value>
+  </data>
+  <data name="UpdateOverwriteExistingFile" xml:space="preserve">
+    <value>覆盖现有文件</value>
+  </data>
+  <data name="UpdateOverwriteExistingFilePrompt" xml:space="preserve">
+    <value>本地已存在同名文件。
+
+{0}
+
+是否覆盖？</value>
+  </data>
+  <data name="UpdateDownloadCanceled" xml:space="preserve">
+    <value>已取消下载 {0}。</value>
+  </data>
 </root>
