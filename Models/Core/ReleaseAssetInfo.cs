@@ -3,4 +3,5 @@ namespace GamepadMapperGUI.Models.Core;
 public record ReleaseAssetInfo(
     string Name,
     string DownloadUrl,
-    long? SizeBytes);
+    long? SizeBytes,
+    string? Sha256 = null);

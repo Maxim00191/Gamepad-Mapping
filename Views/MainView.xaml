@@ -270,12 +270,20 @@
                                                     </TextBlock>
                                                 </StackPanel>
 
-                                                <Button Grid.Row="0" Grid.Column="1" 
-                                                        Content="Check"
-                                                        Padding="12,4"
-                                                        VerticalAlignment="Center"
-                                                        Command="{Binding CheckUpdateCommand}"
-                                                        IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}" />
+                                                <StackPanel Grid.Row="0"
+                                                            Grid.Column="1"
+                                                            VerticalAlignment="Center">
+                                                    <Button Content="Check"
+                                                            Padding="12,4"
+                                                            VerticalAlignment="Center"
+                                                            Command="{Binding CheckUpdateCommand}"
+                                                            IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}" />
+                                                    <Button Content="Install"
+                                                            Margin="0,6,0,0"
+                                                            Padding="12,4"
+                                                            VerticalAlignment="Center"
+                                                            Command="{Binding InstallUpdateCommand}" />
+                                                </StackPanel>
 
                                                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
                                                       Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">

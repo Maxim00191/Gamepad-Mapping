@@ -37,12 +37,14 @@ public partial class App : Application
         var gitHubContentService = new GitHubContentService();
         var profileService = new ProfileService();
         var localFileService = new LocalFileService();
+        var updateInstallerService = new UpdateInstallerService();
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
             communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService),
             updateService: new UpdateService(gitHubContentService),
-            localFileService: localFileService);
+            localFileService: localFileService,
+            updateInstallerService: updateInstallerService);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;

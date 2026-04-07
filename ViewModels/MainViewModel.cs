@@ -60,6 +60,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
+    private readonly IUpdateInstallerService _updateInstallerService;
 
     public UpdateViewModel UpdatePanel { get; }
 
@@ -75,7 +76,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ICommunityTemplateService? communityService = null,
         IUpdateService? updateService = null,
         IGitHubContentService? gitHubContentService = null,
-        ILocalFileService? localFileService = null)
+        ILocalFileService? localFileService = null,
+        IUpdateInstallerService? updateInstallerService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
@@ -85,8 +87,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var sharedGitHubContentService = gitHubContentService ?? new GitHubContentService();
         _communityService = communityService ?? new CommunityTemplateService(_profileService, sharedGitHubContentService, _localFileService);
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, _appSettings);
+        _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
 
-        UpdatePanel = new UpdateViewModel(_updateService, _settingsService, _appSettings, _localFileService);
+        UpdatePanel = new UpdateViewModel(_updateService, _settingsService, _appSettings, _localFileService, _updateInstallerService);
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;

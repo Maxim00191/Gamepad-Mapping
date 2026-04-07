@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -121,10 +122,12 @@ public class UpdateService : IUpdateService
             if (matched is null)
                 return new ReleaseResolutionResult(release.TagName, release.HtmlUrl, null, $"No matching ZIP asset found for installation mode: {installMode}.");
 
+            var expectedSha256 = await TryResolveSha256ForAssetAsync(release.Assets, matched, cancellationToken);
+
             return new ReleaseResolutionResult(
                 release.TagName,
                 release.HtmlUrl,
-                new ReleaseAssetInfo(matched.Name ?? "release.zip", matched.BrowserDownloadUrl ?? string.Empty, matched.Size));
+                new ReleaseAssetInfo(matched.Name ?? "release.zip", matched.BrowserDownloadUrl ?? string.Empty, matched.Size, expectedSha256));
         }
         catch (Exception ex)
         {
@@ -379,6 +382,64 @@ public class UpdateService : IUpdateService
 
         // Fallback strategy for future packaging variants: first zip from release assets.
         return zipAssets.FirstOrDefault();
+    }
+
+    private async Task<string?> TryResolveSha256ForAssetAsync(
+        IReadOnlyList<GitHubAsset> assets,
+        GitHubAsset packageAsset,
+        CancellationToken cancellationToken)
+    {
+        var packageName = packageAsset.Name ?? string.Empty;
+        if (packageName.Length == 0)
+            return null;
+
+        static bool IsChecksumAsset(GitHubAsset asset) =>
+            (asset.Name ?? string.Empty).Contains("sha256", StringComparison.OrdinalIgnoreCase);
+
+        var checksumAsset = assets.FirstOrDefault(IsChecksumAsset);
+        if (checksumAsset?.BrowserDownloadUrl is null)
+            return null;
+
+        try
+        {
+            var checksumContent = await DownloadTextAssetWithMirrorFallbackAsync(checksumAsset.BrowserDownloadUrl, cancellationToken);
+            return ParseSha256FromChecksumContent(checksumContent, packageName);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<string> DownloadTextAssetWithMirrorFallbackAsync(string assetDownloadUrl, CancellationToken cancellationToken)
+    {
+        using var response = await SendAssetRequestWithMirrorFallbackAsync(assetDownloadUrl, cancellationToken);
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    private static string? ParseSha256FromChecksumContent(string content, string packageFileName)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return null;
+
+        var lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var escapedName = Regex.Escape(packageFileName);
+        var pattern = $@"\b([A-Fa-f0-9]{{64}})\b(?:\s+\*?{escapedName})?$";
+        foreach (var line in lines)
+        {
+            var match = Regex.Match(line, pattern, RegexOptions.CultureInvariant);
+            if (match.Success)
+                return match.Groups[1].Value.ToLowerInvariant();
+        }
+
+        if (lines.Length == 1)
+        {
+            var single = Regex.Match(lines[0], @"\b([A-Fa-f0-9]{64})\b", RegexOptions.CultureInvariant);
+            if (single.Success)
+                return single.Groups[1].Value.ToLowerInvariant();
+        }
+
+        return null;
     }
 
     private class GitHubRelease

@@ -2,7 +2,10 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -14,15 +17,20 @@ using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Services;
 using GamepadMapperGUI.Utils;
+using System.Collections.Generic;
+using System.Windows;
 
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class UpdateViewModel : ObservableObject
 {
+    private static readonly IReadOnlyList<string> PreservedInstallDirectories = new[] { "Assets", "Config" };
+
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
     private readonly ISettingsService _settingsService;
     private readonly AppSettings _appSettings;
+    private readonly IUpdateInstallerService _updateInstallerService;
 
     [ObservableProperty]
     private string _currentVersion = "1.0.0";
@@ -79,6 +87,7 @@ public partial class UpdateViewModel : ObservableObject
 
     public IAsyncRelayCommand CheckUpdateCommand { get; }
     public IAsyncRelayCommand DownloadUpdateCommand { get; }
+    public IRelayCommand InstallUpdateCommand { get; }
     public IRelayCommand CancelDownloadCommand { get; }
     public ICommand OpenReleaseUrlCommand { get; }
     public ICommand OpenManualUrlCommand { get; }
@@ -86,26 +95,33 @@ public partial class UpdateViewModel : ObservableObject
     private string? _releaseUrl;
     private CancellationTokenSource? _downloadCts;
     private string? _activeDownloadFilePath;
+    private string? _lastDownloadedPackagePath;
+    private string? _lastDownloadedPackageName;
+    private string? _lastDownloadedPackageSha256;
 
     public UpdateViewModel(
         IUpdateService updateService,
         ISettingsService settingsService,
         AppSettings appSettings,
-        ILocalFileService? localFileService = null)
+        ILocalFileService? localFileService = null,
+        IUpdateInstallerService? updateInstallerService = null)
     {
         _updateService = updateService;
         _localFileService = localFileService ?? new LocalFileService();
         _settingsService = settingsService;
         _appSettings = appSettings;
+        _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
 
         CheckUpdateCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
         DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, CanDownloadUpdate);
+        InstallUpdateCommand = new RelayCommand(InstallDownloadedPackage, CanInstallDownloadedPackage);
         CancelDownloadCommand = new RelayCommand(CancelDownload, () => IsDownloading);
         OpenReleaseUrlCommand = new RelayCommand(OpenReleaseUrl);
         OpenManualUrlCommand = new RelayCommand(OpenManualUrl);
 
         _currentVersion = GetCurrentVersion();
         InstallModeText = ToInstallModeText(AppInstallModeDetector.DetectCurrent());
+        RefreshLocalInstallPackageCandidate();
     }
 
     partial void OnDownloadFailedChanged(bool value) => OnPropertyChanged(nameof(DownloadPrimaryActionText));
@@ -114,6 +130,7 @@ public partial class UpdateViewModel : ObservableObject
     {
         CancelDownloadCommand.NotifyCanExecuteChanged();
         DownloadUpdateCommand.NotifyCanExecuteChanged();
+        InstallUpdateCommand.NotifyCanExecuteChanged();
     }
 
     private void CancelDownload() => _downloadCts?.Cancel();
@@ -127,6 +144,7 @@ public partial class UpdateViewModel : ObservableObject
         StatusMessage = "Checking for updates...";
         LatestVersion = null;
         DownloadUpdateCommand.NotifyCanExecuteChanged();
+        InstallUpdateCommand.NotifyCanExecuteChanged();
 
         try
         {
@@ -144,6 +162,7 @@ public partial class UpdateViewModel : ObservableObject
             StatusMessage = info.ErrorMessage ?? (IsUpdateAvailable ? "New version available!" : "You are up to date.");
             DownloadFailed = false;
             DownloadUpdateCommand.NotifyCanExecuteChanged();
+            InstallUpdateCommand.NotifyCanExecuteChanged();
         }
         catch
         {
@@ -152,11 +171,18 @@ public partial class UpdateViewModel : ObservableObject
         finally
         {
             IsChecking = false;
+            RefreshLocalInstallPackageCandidate();
             DownloadUpdateCommand.NotifyCanExecuteChanged();
+            InstallUpdateCommand.NotifyCanExecuteChanged();
         }
     }
 
     private bool CanDownloadUpdate() => IsUpdateAvailable && !IsChecking && !IsDownloading;
+    private bool CanInstallDownloadedPackage() =>
+        !IsChecking &&
+        !IsDownloading &&
+        !string.IsNullOrWhiteSpace(_lastDownloadedPackagePath) &&
+        _localFileService.FileExists(_lastDownloadedPackagePath);
 
     private async Task DownloadUpdateAsync()
     {
@@ -227,7 +253,13 @@ public partial class UpdateViewModel : ObservableObject
             DownloadEtaText = IsChineseUi() ? "已完成" : "Done";
             StatusMessage = $"Download complete: {fileName}";
             _activeDownloadFilePath = null;
-            OpenInExplorer(targetPath);
+            _lastDownloadedPackagePath = targetPath;
+            _lastDownloadedPackageName = fileName;
+            _lastDownloadedPackageSha256 = string.IsNullOrWhiteSpace(resolution.MatchedAsset.Sha256)
+                ? ComputeFileSha256(targetPath)
+                : resolution.MatchedAsset.Sha256;
+            InstallUpdateCommand.NotifyCanExecuteChanged();
+            PromptInstallDownloadedPackage(targetPath, fileName);
         }
         catch (OperationCanceledException)
         {
@@ -246,6 +278,7 @@ public partial class UpdateViewModel : ObservableObject
         {
             IsDownloading = false;
             DownloadUpdateCommand.NotifyCanExecuteChanged();
+            InstallUpdateCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -336,28 +369,135 @@ public partial class UpdateViewModel : ObservableObject
         return uiCulture.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
     }
 
+    private void PromptInstallDownloadedPackage(string zipPath, string packageName)
+    {
+        var title = IsChineseUi() ? "安装新版本" : "Install New Version";
+        var message = IsChineseUi()
+            ? $"已下载完成：{packageName}\n\n是否现在安装？安装时程序将自动退出。"
+            : $"Download completed: {packageName}\n\nInstall now? The app will close automatically.";
+
+        var installNow = MessageBox.Show(
+            message,
+            title,
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (installNow != MessageBoxResult.Yes)
+            return;
+
+        InstallPackage(zipPath, packageName, askConfirmation: false);
+    }
+
+    private void InstallDownloadedPackage()
+    {
+        var packagePath = _lastDownloadedPackagePath;
+        if (string.IsNullOrWhiteSpace(packagePath) || !_localFileService.FileExists(packagePath))
+            RefreshLocalInstallPackageCandidate();
+
+        packagePath = _lastDownloadedPackagePath;
+        if (string.IsNullOrWhiteSpace(packagePath))
+            return;
+
+        if (!_localFileService.FileExists(packagePath))
+        {
+            StatusMessage = IsChineseUi() ? "安装包不存在，请重新下载。" : "Package file not found. Please download again.";
+            InstallUpdateCommand.NotifyCanExecuteChanged();
+            return;
+        }
+
+        var packageName = string.IsNullOrWhiteSpace(_lastDownloadedPackageName)
+            ? Path.GetFileName(packagePath)
+            : _lastDownloadedPackageName;
+        InstallPackage(packagePath, packageName ?? "update.zip", askConfirmation: true);
+    }
+
+    private void InstallPackage(string zipPath, string packageName, bool askConfirmation)
+    {
+        var title = IsChineseUi() ? "安装新版本" : "Install New Version";
+        if (askConfirmation)
+        {
+            var message = IsChineseUi()
+                ? $"准备安装：{packageName}\n\n继续后程序将退出并安装更新，是否继续？"
+                : $"Ready to install: {packageName}\n\nThe app will close and apply update. Continue?";
+            var proceed = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (proceed != MessageBoxResult.Yes)
+                return;
+        }
+
+        var request = new UpdateInstallRequest(
+            ZipPackagePath: zipPath,
+            TargetDirectoryPath: AppPaths.ResolveContentRoot(),
+            AppExecutablePath: Environment.ProcessPath ?? string.Empty,
+            PreserveDirectoryNames: PreservedInstallDirectories,
+            ProcessIdToWaitFor: Environment.ProcessId,
+            ExpectedZipSha256: _lastDownloadedPackageSha256,
+            InstallLogPath: BuildInstallLogPath(),
+            RemoveOrphanFiles: true);
+
+        if (!_updateInstallerService.TryLaunchInstaller(request, out var errorMessage))
+        {
+            var errorText = IsChineseUi()
+                ? $"启动安装脚本失败：{errorMessage ?? "未知错误"}"
+                : $"Failed to start installer script: {errorMessage ?? "Unknown error"}";
+            MessageBox.Show(errorText, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        Application.Current?.Shutdown();
+    }
+
+    private static string BuildInstallLogPath()
+    {
+        var logsDir = AppPaths.GetLogsDirectory();
+        var fileName = $"update-install-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.log";
+        return Path.Combine(logsDir, fileName);
+    }
+
+    private static string? ComputeFileSha256(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            var hash = SHA256.HashData(stream);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void RefreshLocalInstallPackageCandidate()
+    {
+        try
+        {
+            var updatesDir = AppPaths.GetUpdateDownloadsDirectory();
+            if (!Directory.Exists(updatesDir))
+                return;
+
+            var newestZip = new DirectoryInfo(updatesDir)
+                .EnumerateFiles("*.zip", SearchOption.TopDirectoryOnly)
+                .OrderByDescending(f => f.LastWriteTimeUtc)
+                .FirstOrDefault();
+
+            if (newestZip is null)
+                return;
+
+            _lastDownloadedPackagePath = newestZip.FullName;
+            _lastDownloadedPackageName = newestZip.Name;
+            _lastDownloadedPackageSha256 ??= ComputeFileSha256(newestZip.FullName);
+        }
+        catch
+        {
+            // Ignore local package discovery failures.
+        }
+    }
+
     private void TryDeleteFileIfExists(string? path)
     {
         try
         {
             _localFileService.DeleteFileIfExists(path);
-        }
-        catch
-        {
-            // Ignore.
-        }
-    }
-
-    private static void OpenInExplorer(string filePath)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = $"/select,\"{filePath}\"",
-                UseShellExecute = true
-            });
         }
         catch
         {
