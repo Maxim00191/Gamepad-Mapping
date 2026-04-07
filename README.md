@@ -20,7 +20,13 @@ It is designed for games that do not have good native controller support, with o
 - **Radial menu actions**: trigger directional action selection from controller input.
 - **Foreground process filter**: map output only when a specific process is focused.
 - **Application settings**: centralized global settings saved to `Assets/Config/local_settings.json`.
+- **Built-in self-update**: check new releases, download installer assets, and start installation from inside the app.
 - **Community templates**: browse and download user-contributed profiles from the in-app **Community** tab (next to keyboard actions and radial menus in the profile editor). The app loads a catalog from [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) via GitHub Raw, with automatic fallback to the jsDelivr CDN when needed.
+
+## Self-update
+
+Gamepad Mapping includes a GitHub-based update flow that can resolve the latest release assets, download packages with progress feedback, and trigger installation.  
+The update pipeline supports fallback handling for release metadata/network access and verifies package integrity before install handoff.
 
 ## Community templates
 

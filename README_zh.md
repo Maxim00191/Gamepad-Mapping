@@ -20,7 +20,13 @@ Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的
 - **轮盘菜单操作**：通过手柄输入触发方向性操作选择。
 - **前台进程过滤**：仅当特定进程处于焦点时才映射输出。
 - **应用程序设置**：集中式全局设置，保存至 `Assets/Config/local_settings.json`。
+- **内置自动更新**：可在应用内检查新版本、下载安装包并发起安装流程。
 - **社区模板**：在配置编辑区与键盘动作、轮盘菜单并列的 **Community** 标签中浏览并下载社区贡献的配置。应用从 [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) 拉取目录索引（优先 GitHub Raw，不可用时自动降级到 jsDelivr CDN）。
+
+## 自动更新
+
+Gamepad Mapping 内置了基于 GitHub Release 的更新流程，可解析最新发布资源、显示下载进度并发起安装。  
+更新链路包含元数据/网络访问回退策略，并在安装交接前执行安装包完整性校验。
 
 ## 社区模板
 

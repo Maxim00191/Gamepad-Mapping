@@ -1,3 +1,37 @@
+## Changelog v2.1.0-beta - 2026-04-07
+
+### Added
+
+- **GitHub-based self-update pipeline:** Added release check, asset resolution, download orchestration, and fallback handling through `IUpdateService` / `UpdateService`.
+- **Installer execution flow:** Added `IUpdateInstallerService` / `UpdateInstallerService` with package verification (SHA-256), installation mode detection, and handoff request model (`UpdateInstallRequest`).
+- **Download progress model:** Added update progress/status models (`ReleaseDownloadProgress`, `ReleaseResolutionResult`, `ReleaseAssetInfo`) for UI binding and state tracking.
+- **Service abstractions:** Added `IGitHubContentService`, `ILocalFileService` and related implementations to support reusable GitHub content fetch and local file operations.
+
+### Changed
+
+- **UI integration:** Integrated update workflow into `MainView`, `MainViewModel`, and `UpdateViewModel`, including progress display, install actions, and localized status text.
+- **Localization:** Expanded update-related EN/zh-CN resources in `Strings.resx` and `Strings.zh-CN.resx`.
+- **Settings/config:** Extended default settings and app startup wiring (`App.xaml`, `App.xaml.cs`) to support update behavior.
+- **Version bump:** Promoted the project version from `2.1.0-alpha` to `2.1.0-beta`.
+
+## 更新日志 v2.1.0-beta - 2026-04-07
+
+### 新增
+
+- **基于 GitHub 的自更新流程：** 通过 `IUpdateService` / `UpdateService` 增加版本检查、资源解析、下载编排与回退处理能力。
+- **安装执行流程：** 新增 `IUpdateInstallerService` / `UpdateInstallerService`，支持安装包校验（SHA-256）、安装模式检测与安装请求模型（`UpdateInstallRequest`）。
+- **下载进度模型：** 新增 `ReleaseDownloadProgress`、`ReleaseResolutionResult`、`ReleaseAssetInfo` 等模型用于界面绑定与状态跟踪。
+- **服务抽象：** 增加 `IGitHubContentService`、`ILocalFileService` 及其实现，用于复用 GitHub 内容拉取与本地文件操作。
+
+### 更改
+
+- **界面集成：** 在 `MainView`、`MainViewModel` 与 `UpdateViewModel` 中接入更新流程，支持进度显示、安装操作与本地化状态提示。
+- **本地化：** 在 `Strings.resx` 与 `Strings.zh-CN.resx` 中补充更新相关的中英文资源。
+- **设置与启动：** 扩展默认设置与应用启动装配（`App.xaml`、`App.xaml.cs`）以支持更新行为。
+- **版本更新：** 将项目版本从 `2.1.0-alpha` 升级为 `2.1.0-beta`。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0-alpha...v2.1.0-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0-alpha...v2.1.0-beta)
+
 ## Changelog v2.1.0-alpha - 2026-04-07
 
 ### Added
