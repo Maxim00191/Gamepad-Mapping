@@ -271,6 +271,127 @@ function Is-ReservedSystemRelativePath {
     return $false
 }
 
+function Is-MergeTargetRelativePath {
+    param([string]$RelativePath)
+    if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+        return $false
+    }
+
+    $normalized = Normalize-RelativePath $RelativePath
+    return $normalized.Equals("Assets\Config\default.json", [System.StringComparison]::OrdinalIgnoreCase) -or
+           $normalized.Equals("Assets\Config\default_settings.json", [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Merge-JsonObject {
+    param(
+        [hashtable]$BaseObject,
+        [hashtable]$OverlayObject
+    )
+
+    $result = @{}
+    if ($BaseObject -ne $null) {
+        foreach ($key in $BaseObject.Keys) {
+            $result[$key] = $BaseObject[$key]
+        }
+    }
+
+    if ($OverlayObject -eq $null) {
+        return $result
+    }
+
+    foreach ($key in $OverlayObject.Keys) {
+        $baseValue = $null
+        $hasBase = $result.ContainsKey($key)
+        if ($hasBase) {
+            $baseValue = $result[$key]
+        }
+        $overlayValue = $OverlayObject[$key]
+
+        if ($hasBase -and $baseValue -is [hashtable] -and $overlayValue -is [hashtable]) {
+            $result[$key] = Merge-JsonObject -BaseObject $baseValue -OverlayObject $overlayValue
+            continue
+        }
+
+        # Local value wins on conflict; package only provides missing/new shape.
+        $result[$key] = $overlayValue
+    }
+
+    return $result
+}
+
+function ConvertTo-FormattedJsonObject {
+    param(
+        [string]$JsonRaw
+    )
+
+    $jsonObject = ConvertFrom-Json -InputObject $JsonRaw -AsHashtable -Depth 100
+    $formattedJson = $jsonObject | ConvertTo-Json -Depth 100
+    $normalizedObject = ConvertFrom-Json -InputObject $formattedJson -AsHashtable -Depth 100
+    return @{
+        Object = $normalizedObject
+        FormattedJson = $formattedJson
+    }
+}
+
+function Wait-FileUnlock {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [int]$MaxAttempts = 20,
+        [int]$DelayMilliseconds = 250
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+            $stream.Close()
+            return
+        } catch {
+            if ($attempt -eq $MaxAttempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+}
+
+function Stop-AppProcessesByPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$ExecutablePath,
+        [string]$ExcludeProcessId = ""
+    )
+
+    $targetFullPath = [System.IO.Path]::GetFullPath($ExecutablePath)
+    $targetName = [System.IO.Path]::GetFileNameWithoutExtension($targetFullPath)
+    $matchingProcesses = @(Get-Process -Name $targetName -ErrorAction SilentlyContinue)
+
+    foreach ($proc in $matchingProcesses) {
+        if (-not [string]::IsNullOrWhiteSpace($ExcludeProcessId) -and $proc.Id.ToString() -eq $ExcludeProcessId) {
+            continue
+        }
+
+        $procPath = $null
+        try {
+            $procPath = $proc.MainModule.FileName
+        } catch {
+            # Access denied for some processes; skip path filtering and try by name.
+        }
+
+        if ($procPath -ne $null) {
+            $procPath = [System.IO.Path]::GetFullPath($procPath)
+            if (-not $procPath.Equals($targetFullPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+        }
+
+        try {
+            Write-Log "Stopping process $($proc.ProcessName) (PID=$($proc.Id)) before file replacement."
+            Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+        } catch {
+            Write-Log "Failed to stop process PID=$($proc.Id): $($_.Exception.Message)"
+        }
+    }
+}
+
 $zipPath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($TargetDir, $ZipRelativePath))
 $appExePath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($TargetDir, $AppExeRelativePath))
 $script:EffectiveLogPath = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($TargetDir, $LogRelativePath))
@@ -291,6 +412,8 @@ if ($WaitForProcessId -gt 0) {
         # Ignore.
     }
 }
+
+Stop-AppProcessesByPath -ExecutablePath $appExePath -ExcludeProcessId "$WaitForProcessId"
 
 if (-not (Test-Path -LiteralPath $zipPath -PathType Leaf)) {
     throw "ZIP package not found: $zipPath"
@@ -412,6 +535,28 @@ try {
             $createdFiles.Add($normalizedRelative) | Out-Null
         }
 
+        if ((Test-Path -LiteralPath $destinationPath -PathType Leaf) -and (Is-MergeTargetRelativePath -RelativePath $normalizedRelative)) {
+            try {
+                Wait-FileUnlock -Path $destinationPath
+                $packageJsonRaw = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
+                $localJsonRaw = Get-Content -LiteralPath $destinationPath -Raw -Encoding UTF8
+                $packageNormalized = ConvertTo-FormattedJsonObject -JsonRaw $packageJsonRaw
+                $localNormalized = ConvertTo-FormattedJsonObject -JsonRaw $localJsonRaw
+                $packageJson = $packageNormalized.Object
+                $localJson = $localNormalized.Object
+                $mergedJson = Merge-JsonObject -BaseObject $packageJson -OverlayObject $localJson
+                $mergedJsonText = $mergedJson | ConvertTo-Json -Depth 100
+                [System.IO.File]::WriteAllText($destinationPath, $mergedJsonText, [System.Text.UTF8Encoding]::new($false))
+                Write-Log "Merged config file: $normalizedRelative"
+                continue
+            } catch {
+                Write-Log "Config merge failed, fallback to overwrite: $normalizedRelative Error=$($_.Exception.Message)"
+            }
+        }
+
+        if (Test-Path -LiteralPath $destinationPath -PathType Leaf) {
+            Wait-FileUnlock -Path $destinationPath
+        }
         Copy-Item -LiteralPath $file.FullName -Destination $destinationPath -Force
     }
     Write-Log "Install completed successfully."
