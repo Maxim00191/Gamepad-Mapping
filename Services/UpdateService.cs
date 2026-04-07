@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Models.Core;
 
 namespace GamepadMapperGUI.Services;
 
@@ -93,6 +98,85 @@ public class UpdateService : IUpdateService
         return new AppUpdateInfo(currentVersion, latestVersion, releaseUrl, isUpdateAvailable, errorMessage, isForbidden);
     }
 
+    public async Task<ReleaseResolutionResult> ResolveReleaseAssetAsync(string owner, string repo, bool includePrereleases, AppInstallMode installMode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var release = await GetLatestReleaseAsync(owner, repo, includePrereleases, cancellationToken);
+            if (release is null)
+                return new ReleaseResolutionResult(null, null, null, "No release information found.");
+
+            if (release.Assets is null || release.Assets.Count == 0)
+                return new ReleaseResolutionResult(release.TagName, release.HtmlUrl, null, "No downloadable assets in this release.");
+
+            var matched = ResolveBestAsset(release.Assets, installMode);
+            if (matched is null)
+                return new ReleaseResolutionResult(release.TagName, release.HtmlUrl, null, $"No matching ZIP asset found for installation mode: {installMode}.");
+
+            return new ReleaseResolutionResult(
+                release.TagName,
+                release.HtmlUrl,
+                new ReleaseAssetInfo(matched.Name ?? "release.zip", matched.BrowserDownloadUrl ?? string.Empty, matched.Size));
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error($"[UpdateService] Resolve release asset failed: {ex.Message}", ex);
+            return new ReleaseResolutionResult(null, null, null, $"Failed to resolve release asset: {ex.Message}");
+        }
+    }
+
+    public async Task DownloadReleaseAssetAsync(string assetDownloadUrl, string destinationFilePath, IProgress<ReleaseDownloadProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(assetDownloadUrl))
+            throw new ArgumentException("Asset download URL is required.", nameof(assetDownloadUrl));
+
+        var destinationDirectory = Path.GetDirectoryName(destinationFilePath);
+        if (!string.IsNullOrWhiteSpace(destinationDirectory))
+            Directory.CreateDirectory(destinationDirectory);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, assetDownloadUrl);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await using var output = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+
+        var buffer = new byte[1024 * 64];
+        long bytesReceived = 0;
+        var stopwatch = Stopwatch.StartNew();
+        var lastReportAt = TimeSpan.Zero;
+
+        while (true)
+        {
+            var read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+            if (read <= 0)
+                break;
+
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            bytesReceived += read;
+
+            var elapsed = stopwatch.Elapsed;
+            if (elapsed - lastReportAt < TimeSpan.FromMilliseconds(200) && totalBytes.HasValue && bytesReceived < totalBytes.Value)
+                continue;
+
+            var speed = elapsed.TotalSeconds > 0 ? bytesReceived / elapsed.TotalSeconds : 0d;
+            TimeSpan? eta = null;
+            if (totalBytes.HasValue && speed > 1d)
+            {
+                var remainingBytes = Math.Max(0, totalBytes.Value - bytesReceived);
+                eta = TimeSpan.FromSeconds(remainingBytes / speed);
+            }
+
+            progress?.Report(new ReleaseDownloadProgress(bytesReceived, totalBytes, speed, eta));
+            lastReportAt = elapsed;
+        }
+
+        progress?.Report(new ReleaseDownloadProgress(bytesReceived, totalBytes, 0d, TimeSpan.Zero));
+    }
+
     private string GetCurrentVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
@@ -139,6 +223,55 @@ public class UpdateService : IUpdateService
         return string.Compare(l, c, StringComparison.OrdinalIgnoreCase) > 0;
     }
 
+    private async Task<GitHubRelease?> GetLatestReleaseAsync(string owner, string repo, bool includePrereleases, CancellationToken cancellationToken)
+    {
+        var url = includePrereleases
+            ? $"{GitHubApiBase}/{owner}/{repo}/releases"
+            : $"{GitHubApiBase}/{owner}/{repo}/releases/latest";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
+
+        using var responseMessage = await _httpClient.SendAsync(request, cancellationToken);
+        responseMessage.EnsureSuccessStatusCode();
+
+        var json = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
+        if (includePrereleases)
+        {
+            var releases = JsonSerializer.Deserialize<List<GitHubRelease>>(json);
+            return releases?.FirstOrDefault();
+        }
+
+        return JsonSerializer.Deserialize<GitHubRelease>(json);
+    }
+
+    private static GitHubAsset? ResolveBestAsset(IReadOnlyList<GitHubAsset> assets, AppInstallMode installMode)
+    {
+        static bool IsZip(GitHubAsset a) => (a.Name ?? string.Empty).EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+        static bool ContainsToken(GitHubAsset a, string token) => (a.Name ?? string.Empty).Contains(token, StringComparison.OrdinalIgnoreCase);
+
+        var zipAssets = assets.Where(IsZip).ToList();
+        if (zipAssets.Count == 0)
+            return null;
+
+        var preferredToken = installMode switch
+        {
+            AppInstallMode.Fx => "-fx",
+            AppInstallMode.Single => "-single",
+            _ => string.Empty
+        };
+
+        if (!string.IsNullOrEmpty(preferredToken))
+        {
+            var preferred = zipAssets.FirstOrDefault(x => ContainsToken(x, preferredToken));
+            if (preferred is not null)
+                return preferred;
+        }
+
+        // Fallback strategy for future packaging variants: first zip from release assets.
+        return zipAssets.FirstOrDefault();
+    }
+
     private class GitHubRelease
     {
         [JsonPropertyName("tag_name")]
@@ -149,5 +282,20 @@ public class UpdateService : IUpdateService
 
         [JsonPropertyName("prerelease")]
         public bool Prerelease { get; set; }
+
+        [JsonPropertyName("assets")]
+        public List<GitHubAsset> Assets { get; set; } = new();
+    }
+
+    private class GitHubAsset
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("browser_download_url")]
+        public string? BrowserDownloadUrl { get; set; }
+
+        [JsonPropertyName("size")]
+        public long? Size { get; set; }
     }
 }

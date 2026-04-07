@@ -155,6 +155,48 @@
                                             MinWidth="340"
                                             MaxWidth="420">
                                         <StackPanel>
+                                            <StackPanel.Resources>
+                                                <Style x:Key="FlatSectionToggleStyle" TargetType="ToggleButton">
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Setter Property="BorderThickness" Value="0" />
+                                                    <Setter Property="Padding" Value="0" />
+                                                    <Setter Property="Margin" Value="0,0,0,4" />
+                                                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ToggleButton">
+                                                                <Grid Background="Transparent">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="14" />
+                                                                        <ColumnDefinition Width="*" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Path x:Name="Arrow"
+                                                                          Grid.Column="0"
+                                                                          Width="7"
+                                                                          Height="7"
+                                                                          Margin="0,0,6,0"
+                                                                          VerticalAlignment="Center"
+                                                                          Fill="{DynamicResource AppSecondaryTextBrush}"
+                                                                          Data="M 0 0 L 7 3.5 L 0 7 Z" />
+                                                                    <ContentPresenter Grid.Column="1"
+                                                                                      VerticalAlignment="Center"
+                                                                                      RecognizesAccessKey="True" />
+                                                                </Grid>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsChecked" Value="True">
+                                                                        <Setter TargetName="Arrow" Property="RenderTransform">
+                                                                            <Setter.Value>
+                                                                                <RotateTransform Angle="90" CenterX="3.5" CenterY="3.5" />
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                        <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AppTextBrush}" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </StackPanel.Resources>
                                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsHeader]}"
                                                        FontWeight="SemiBold"
                                                        FontSize="14"
@@ -183,6 +225,7 @@
                                                     <RowDefinition Height="Auto" />
                                                     <RowDefinition Height="Auto" />
                                                     <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
                                                 </Grid.RowDefinitions>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
@@ -201,6 +244,10 @@
                                                     <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
                                                         <Run Text="Latest Version: " />
                                                         <Run Text="{Binding LatestVersion, Mode=OneWay, TargetNullValue='Unknown'}" />
+                                                    </TextBlock>
+                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
+                                                        <Run Text="Install Mode: " />
+                                                        <Run Text="{Binding InstallModeText, Mode=OneWay}" />
                                                     </TextBlock>
                                                     <TextBlock Text="{Binding StatusMessage}" 
                                                                FontSize="11" 
@@ -230,15 +277,50 @@
                                                         Command="{Binding CheckUpdateCommand}"
                                                         IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}" />
 
-                                                <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                        Content="Download New Version"
-                                                        Margin="0,8,0,0"
-                                                        Padding="0,6"
-                                                        Style="{StaticResource AppAccentButtonStyle}"
-                                                        Command="{Binding OpenReleaseUrlCommand}"
-                                                        Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                                                      Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Grid.Column="0"
+                                                            Content="{Binding DownloadPrimaryActionText}"
+                                                            Padding="0,6"
+                                                            Style="{StaticResource AppAccentButtonStyle}"
+                                                            Command="{Binding DownloadUpdateCommand}"
+                                                            IsEnabled="{Binding IsDownloading, Converter={StaticResource InverseBooleanConverter}}" />
+                                                    <Button Grid.Column="1"
+                                                            Content="Cancel"
+                                                            Margin="8,0,0,0"
+                                                            Padding="12,6"
+                                                            VerticalAlignment="Center"
+                                                            Command="{Binding CancelDownloadCommand}"
+                                                            Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                </Grid>
 
-                                                <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                                                      Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <ProgressBar Grid.Row="0"
+                                                                 Height="8"
+                                                                 Minimum="0"
+                                                                 Maximum="100"
+                                                                 Value="{Binding DownloadProgressPercent}" />
+                                                    <TextBlock Grid.Row="1"
+                                                               Margin="0,4,0,0"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource AppSecondaryTextBrush}">
+                                                        <Run Text="Speed: " />
+                                                        <Run Text="{Binding DownloadSpeedText}" />
+                                                        <Run Text="  |  ETA: " />
+                                                        <Run Text="{Binding DownloadEtaText}" />
+                                                    </TextBlock>
+                                                </Grid>
+
+                                                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                                         Content="Open GitHub Releases"
                                                         Margin="0,8,0,0"
                                                         Padding="0,6"
@@ -248,120 +330,128 @@
 
                                             <Separator Margin="0,6,0,8" />
 
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsTimingSection]}"
-                                                       FontWeight="SemiBold"
-                                                       Margin="0,0,0,6" />
-                                            <UniformGrid Columns="2" Margin="0,0,0,6">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ModifierGraceLabel]}"
-                                                           Margin="0,0,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding ModifierGraceMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,0,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[LeadSuppressLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding LeadKeyReleaseSuppressMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapHoldLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding KeyboardTapHoldDurationMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapInterKeyDelayLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding TapInterKeyDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TextInterCharDelayLabel]}"
-                                                           Margin="0,4,8,0"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding TextInterCharDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,0" />
+                                            <ToggleButton x:Name="TimingSettingsToggle"
+                                                          Style="{StaticResource FlatSectionToggleStyle}">
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsTimingSection]}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                            </ToggleButton>
+                                            <UniformGrid Columns="2"
+                                                         Margin="0,2,0,0"
+                                                         Visibility="{Binding IsChecked, ElementName=TimingSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ModifierGraceLabel]}"
+                                                               Margin="0,0,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding ModifierGraceMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,0,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[LeadSuppressLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding LeadKeyReleaseSuppressMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapHoldLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding KeyboardTapHoldDurationMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapInterKeyDelayLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding TapInterKeyDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TextInterCharDelayLabel]}"
+                                                               Margin="0,4,8,0"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding TextInterCharDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,0" />
                                             </UniformGrid>
 
-                                            <Separator Margin="0,6,0,8" />
-
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsAnalogSection]}"
-                                                       FontWeight="SemiBold"
-                                                       Margin="0,0,0,6" />
-                                            <UniformGrid Columns="2">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DefaultAnalogThresholdLabel]}"
-                                                           Margin="0,0,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding DefaultAnalogActivationThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.00}}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,0,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MouseLookSensitivityLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding MouseLookSensitivity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AnalogEpsilonLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding AnalogChangeEpsilon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.000}}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[PollingIntervalLabel]}"
-                                                           Margin="0,4,8,0"
-                                                           TextWrapping="Wrap" />
-                                                <TextBox Text="{Binding GamepadPollingIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                         Width="88"
-                                                         HorizontalAlignment="Left"
-                                                         Margin="0,4,0,4" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <ComboBox SelectedIndex="{Binding RadialMenuConfirmModeIndex, Mode=TwoWay}"
-                                                          HorizontalAlignment="Stretch"
-                                                          Margin="0,4,0,0">
-                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReturnCenter]}" />
-                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
-                                                </ComboBox>
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeLabel]}"
-                                                           Margin="0,4,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <ComboBox SelectedIndex="{Binding RadialMenuHudLabelModeIndex, Mode=TwoWay}"
-                                                          HorizontalAlignment="Stretch"
-                                                          Margin="0,4,0,0">
-                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeBoth]}" />
-                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeDescriptionOnly]}" />
-                                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeKeyboardKeyOnly]}" />
-                                                </ComboBox>
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialHudScaleLabel]}"
-                                                           Margin="0,8,8,4"
-                                                           TextWrapping="Wrap" />
-                                                <StackPanel Orientation="Horizontal"
-                                                            Margin="0,8,0,0"
-                                                            VerticalAlignment="Center">
-                                                    <Slider Width="168"
-                                                            Minimum="{x:Static utils:RadialHudLayout.MinHudScale}"
-                                                            Maximum="{x:Static utils:RadialHudLayout.MaxHudScale}"
-                                                            SmallChange="0.05"
-                                                            LargeChange="0.25"
-                                                            TickFrequency="0.25"
-                                                            IsSnapToTickEnabled="False"
-                                                            VerticalAlignment="Center"
-                                                            Value="{Binding RadialHudScaleSetting, Mode=TwoWay}" />
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               Margin="10,0,0,0"
-                                                               MinWidth="40"
-                                                               Text="{Binding RadialHudScaleSetting, StringFormat={}{0:0.##}}" />
-                                                </StackPanel>
+                                            <ToggleButton x:Name="AnalogSettingsToggle"
+                                                          Style="{StaticResource FlatSectionToggleStyle}">
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsAnalogSection]}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                            </ToggleButton>
+                                            <UniformGrid Columns="2"
+                                                         Margin="0,2,0,0"
+                                                         Visibility="{Binding IsChecked, ElementName=AnalogSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DefaultAnalogThresholdLabel]}"
+                                                               Margin="0,0,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding DefaultAnalogActivationThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.00}}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,0,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MouseLookSensitivityLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding MouseLookSensitivity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AnalogEpsilonLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding AnalogChangeEpsilon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.000}}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[PollingIntervalLabel]}"
+                                                               Margin="0,4,8,0"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBox Text="{Binding GamepadPollingIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             Width="88"
+                                                             HorizontalAlignment="Left"
+                                                             Margin="0,4,0,4" />
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <ComboBox SelectedIndex="{Binding RadialMenuConfirmModeIndex, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch"
+                                                              Margin="0,4,0,0">
+                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReturnCenter]}" />
+                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
+                                                    </ComboBox>
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeLabel]}"
+                                                               Margin="0,4,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <ComboBox SelectedIndex="{Binding RadialMenuHudLabelModeIndex, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch"
+                                                              Margin="0,4,0,0">
+                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeBoth]}" />
+                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeDescriptionOnly]}" />
+                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeKeyboardKeyOnly]}" />
+                                                    </ComboBox>
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialHudScaleLabel]}"
+                                                               Margin="0,8,8,4"
+                                                               TextWrapping="Wrap" />
+                                                    <StackPanel Orientation="Horizontal"
+                                                                Margin="0,8,0,0"
+                                                                VerticalAlignment="Center">
+                                                        <Slider Width="168"
+                                                                Minimum="{x:Static utils:RadialHudLayout.MinHudScale}"
+                                                                Maximum="{x:Static utils:RadialHudLayout.MaxHudScale}"
+                                                                SmallChange="0.05"
+                                                                LargeChange="0.25"
+                                                                TickFrequency="0.25"
+                                                                IsSnapToTickEnabled="False"
+                                                                VerticalAlignment="Center"
+                                                                Value="{Binding RadialHudScaleSetting, Mode=TwoWay}" />
+                                                        <TextBlock VerticalAlignment="Center"
+                                                                   Margin="10,0,0,0"
+                                                                   MinWidth="40"
+                                                                   Text="{Binding RadialHudScaleSetting, StringFormat={}{0:0.##}}" />
+                                                    </StackPanel>
                                             </UniformGrid>
                                         </StackPanel>
                                     </Border>

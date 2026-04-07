@@ -82,7 +82,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _appSettings = _settingsService.LoadSettings();
 
-        UpdatePanel = new UpdateViewModel(_updateService, _appSettings);
+        UpdatePanel = new UpdateViewModel(_updateService, _settingsService, _appSettings);
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;

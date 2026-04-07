@@ -161,5 +161,5 @@ public class AppSettings
 
     /// <summary>Whether to include pre-releases when checking for updates.</summary>
     [JsonProperty("includePrereleases")]
-    public bool IncludePrereleases { get; set; } = true;
+    public bool IncludePrereleases { get; set; } = false;
 }
