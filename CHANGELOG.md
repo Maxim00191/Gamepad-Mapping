@@ -1,3 +1,37 @@
+## Changelog v2.1.0 - 2026-04-07
+
+### Added
+
+- **No new features in stable cut:** `v2.1.0` primarily promotes the `v2.1.0-beta` update system to stable without introducing additional user-facing features.
+
+### Fixed
+
+- **Installer hardening:** Improved installer execution safeguards for edge environments (permissions/path/process handoff) to reduce failed handoff cases during update.
+- **Update UX reliability:** Refined status/progress transitions and error fallback messages for clearer outcomes when update resolution or download fails.
+
+### Changed
+
+- **Release promotion:** Promoted the pre-release update pipeline from `v2.1.0-beta` to stable `v2.1.0`.
+- **Version bump:** Confirmed project version as `2.1.0` in release artifacts.
+
+## 更新日志 v2.1.0 - 2026-04-07
+
+### 新增
+
+- **稳定版未新增功能：** `v2.1.0` 主要将 `v2.1.0-beta` 的更新系统提升为稳定版，未引入额外的用户可见新功能。
+
+### 修复
+
+- **安装器稳健性：** 针对权限/路径/进程交接等边界环境增强安装执行保护，降低更新交接失败概率。
+- **更新体验可靠性：** 优化状态与进度切换及错误回退文案，使解析或下载失败时结果反馈更清晰。
+
+### 更改
+
+- **正式版发布：** 将 `v2.1.0-beta` 的预发布更新链路发布为稳定版 `v2.1.0`。
+- **版本确认：** 在发布产物中确认项目版本为 `2.1.0`。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0-beta...v2.1.0](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0-beta...v2.1.0)
+
 ## Changelog v2.1.0-beta - 2026-04-07
 
 ### Added
