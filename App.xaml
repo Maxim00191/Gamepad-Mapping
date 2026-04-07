@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
              xmlns:local="clr-namespace:Gamepad_Mapping"
+             xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:ui="clr-namespace:Gamepad_Mapping.Behaviors"
              xmlns:services="clr-namespace:GamepadMapperGUI.Services"
              StartupUri="MainWindow.xaml"
@@ -796,5 +797,6 @@
             </Setter>
         </Style>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <utils:StringHasContentToVisibilityConverter x:Key="StringHasContentToVisibilityConverter" />
     </Application.Resources>
 </Application>

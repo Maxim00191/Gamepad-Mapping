@@ -57,6 +57,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool _isTemplateSwitchHudActive;
     private bool _isInitializingUiLanguageSelection;
 
+    private readonly ICommunityTemplateService _communityService;
+
     public MainViewModel(
         IProfileService? profileService = null,
         IGamepadReader? gamepadReader = null,
@@ -65,11 +67,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IElevationHandler? elevationHandler = null,
         IAppStatusMonitor? appStatusMonitor = null,
         IMappingEngine? mappingEngine = null,
-        ISettingsService? settingsService = null)
+        ISettingsService? settingsService = null,
+        ICommunityTemplateService? communityService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new SettingsService();
+        _communityService = communityService ?? new CommunityTemplateService(_profileService);
 
         _appSettings = _settingsService.LoadSettings();
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
@@ -145,6 +149,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         NewBindingPanel = new NewBindingPanelViewModel(this);
         MappingEditorPanel = new MappingEditorViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
+        CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(
             StopGamepadCommand,
             StartGamepadCommand,
@@ -311,6 +316,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public MappingEditorViewModel MappingEditorPanel { get; }
 
     public ProfileCatalogPanelViewModel CatalogPanel { get; }
+
+    public CommunityCatalogViewModel CommunityCatalogPanel { get; }
 
     public GamepadMonitorViewModel GamepadMonitorPanel { get; }
 
@@ -790,8 +797,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _keyboardActions.Add(a);
         foreach (var rm in template.RadialMenus ?? [])
             _radialMenus.Add(rm);
-        _mappingEngine?.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
-        RefreshRadialDefinitionsInEngine();
+        
+        if (_mappingEngine != null)
+        {
+            _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+            RefreshRadialDefinitionsInEngine();
+        }
 
         Mappings.Clear();
         foreach (var mapping in template.Mappings)
@@ -862,6 +873,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void RefreshRadialDefinitionsInEngine()
     {
+        if (_mappingEngine == null) return;
         var template = SelectedTemplate != null ? _profileService.LoadSelectedTemplate(SelectedTemplate) : null;
         _mappingEngine.SetRadialMenuDefinitions(
             _radialMenus.Count == 0 ? null : _radialMenus.ToList(),

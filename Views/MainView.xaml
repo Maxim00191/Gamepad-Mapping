@@ -692,6 +692,15 @@
                             <sections:ProfileRadialMenusListView DataContext="{Binding CatalogPanel}" />
                         </Grid>
                     </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Text="Community" />
+                        </TabItem.Header>
+                        <Grid Margin="12"
+                              VerticalAlignment="Stretch">
+                            <sections:CommunityCatalogView DataContext="{Binding CommunityCatalogPanel}" />
+                        </Grid>
+                    </TabItem>
                 </TabControl>
             </Border>
 
