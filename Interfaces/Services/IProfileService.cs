@@ -8,30 +8,31 @@ public interface IProfileService
 {
     string DefaultProfileId { get; }
 
-    /// <summary>Last saved template profile id from settings; used to pre-select on startup.</summary>
+    /// <summary>Last saved template reference from settings (filename stem at root, or <c>CatalogFolder/stem</c>).</summary>
     string? LastSelectedTemplateProfileId { get; }
 
-    void PersistLastSelectedTemplateProfileId(string? profileId);
+    void PersistLastSelectedTemplateProfileId(string? storageKey);
     int ModifierGraceMs { get; }
 
     int LeadKeyReleaseSuppressMs { get; }
     ObservableCollection<TemplateOption> AvailableTemplates { get; }
     event EventHandler? ProfilesLoaded;
     string LoadTemplateDirectory();
-    GameProfileTemplate LoadTemplate(string profileId);
+    GameProfileTemplate LoadTemplate(string profileIdOrStorageKey);
     GameProfileTemplate LoadDefaultTemplate();
-    TemplateOption? ReloadTemplates(string? preferredProfileId = null);
-    TemplateOption? SelectTemplate(string? preferredProfileId = null);
+    TemplateOption? ReloadTemplates(string? preferredProfileIdOrStorageKey = null);
+    TemplateOption? SelectTemplate(string? preferredProfileIdOrStorageKey = null);
     GameProfileTemplate? LoadSelectedTemplate(TemplateOption? selectedTemplate);
-    bool TemplateExists(string profileId);
+    bool TemplateExists(string profileIdOrStorageKey);
 
     /// <summary>
-    /// Resolves a template reference to the file stem used for <c>{stem}.json</c> and <see cref="TemplateOption.ProfileId"/>.
-    /// Accepts either the filename stem or the <see cref="GameProfileTemplate.ProfileId"/> stored inside that JSON when they differ.
+    /// Resolves a template reference to its storage location. Accepts a storage key, filename stem when unique,
+    /// or <see cref="GameProfileTemplate.ProfileId"/> when it matches a single file.
     /// </summary>
-    bool TryResolveTemplateFileStem(string requestedProfileId, out string fileStem);
-    string CreateUniqueProfileId(string templateGroupId, string? displayName);
+    bool TryResolveTemplateLocation(string requestedId, out TemplateStorageLocation location);
+
+    string CreateUniqueProfileId(string templateGroupId, string? displayName, string? catalogFolder = null);
     void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true);
     GamepadMapperGUI.Interfaces.Core.IValidationResult ValidateTemplate(GameProfileTemplate template);
-    void DeleteTemplate(string profileId);
+    void DeleteTemplate(string profileIdOrStorageKey);
 }

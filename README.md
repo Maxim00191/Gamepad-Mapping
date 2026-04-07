@@ -5,13 +5,12 @@
 Gamepad Mapping is a Windows WPF app that converts **XInput controller input** into **keyboard and mouse output** through editable profile templates.  
 It is designed for games that do not have good native controller support, with optional foreground-process targeting to avoid accidental input in other windows.
 
-## What's new in 2.0
+## Highlights
 
-- New **radial menu system** with customizable HUD style (color, opacity, scale).
-- Expanded **action model** for profile mappings (including richer keyboard/radial workflows).
-- Improved **input pipeline behavior** for multi-stage radial interactions and conflict handling.
-- Better **template validation** and updated built-in templates (especially Roco Kingdom world/fight sets).
-- Stabilized UI rendering and layout behavior for radial-related screens.
+- **Deep controller workflows**: chords, combo leads, hold/tap thresholds, and on-controller **radial menus** with a customizable HUD—suited to games that expect many keyboard shortcuts.
+- **Template-first design**: mappings live in validated JSON you can edit, version, and share; optional **foreground process filter** keeps output scoped to the game you care about.
+- **Community-ready**: pull templates from the in-app catalog when you do not want to build a layout from scratch.
+- **Desktop-aware**: when targets run elevated, the app can help you relaunch with matching elevation so synthetic input is not blocked by UIPI.
 
 ## Core capabilities
 
@@ -21,6 +20,13 @@ It is designed for games that do not have good native controller support, with o
 - **Radial menu actions**: trigger directional action selection from controller input.
 - **Foreground process filter**: map output only when a specific process is focused.
 - **Application settings**: centralized global settings saved to `Assets/Config/local_settings.json`.
+- **Community templates**: browse and download user-contributed profiles from the in-app **Community** tab (next to keyboard actions and radial menus in the profile editor). The app loads a catalog from [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) via GitHub Raw, with automatic fallback to the jsDelivr CDN when needed.
+
+## Community templates
+
+Open a profile in the main window, then select the **Community** tab. Use **Refresh** to load the latest catalog from the network, then **Download** on an entry to save that template into your local templates folder (same JSON schema as built-in templates). After a successful download, the profile list updates so you can pick the new template.
+
+Contributions and catalog rules live in the community repository; the app does not ship those JSON files—they are fetched at runtime. Very frequent refreshes are throttled to avoid hammering the index endpoint.
 
 ## Requirements
 

@@ -19,8 +19,7 @@ public partial class ProfileService : IProfileService
 {
     private static readonly Regex ValidIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", RegexOptions.Compiled);
 
-    /// <summary>Maps filename stem or in-file <see cref="GameProfileTemplate.ProfileId"/> to the filename stem under the templates directory.</summary>
-    private readonly Dictionary<string, string> _templateLookupKeyToFileStem = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TemplateStorageLocation> _templateResolveIndex = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly ISettingsService _settingsService;
     private readonly TranslationService _translationService;
@@ -43,9 +42,9 @@ public partial class ProfileService : IProfileService
 
     public string? LastSelectedTemplateProfileId => _settings.LastSelectedTemplateProfileId;
 
-    public void PersistLastSelectedTemplateProfileId(string? profileId)
+    public void PersistLastSelectedTemplateProfileId(string? storageKey)
     {
-        _settings.LastSelectedTemplateProfileId = string.IsNullOrWhiteSpace(profileId) ? null : profileId.Trim();
+        _settings.LastSelectedTemplateProfileId = string.IsNullOrWhiteSpace(storageKey) ? null : storageKey.Trim();
         _settingsService.SaveSettings(_settings);
     }
 
@@ -63,22 +62,342 @@ public partial class ProfileService : IProfileService
         return templatesDir;
     }
 
-    public GameProfileTemplate LoadTemplate(string profileId)
+    public GameProfileTemplate LoadTemplate(string profileIdOrStorageKey)
     {
-        if (string.IsNullOrWhiteSpace(profileId))
-            throw new ArgumentException("Profile id is required.", nameof(profileId));
+        if (string.IsNullOrWhiteSpace(profileIdOrStorageKey))
+            throw new ArgumentException("Profile id is required.", nameof(profileIdOrStorageKey));
 
-        var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
+        if (!TryResolveTemplateLocation(profileIdOrStorageKey.Trim(), out var loc))
+            throw new FileNotFoundException($"Template not found: {profileIdOrStorageKey}");
+
+        var templatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
+            LoadTemplateDirectory(), loc.CatalogSubfolder, loc.FileStem);
+
         if (!_fileSystem.FileExists(templatePath))
             throw new FileNotFoundException($"Template not found: {templatePath}", templatePath);
 
+        return LoadTemplateFromPath(templatePath, loc.CatalogSubfolder, loc.FileStem);
+    }
+
+    public GameProfileTemplate LoadDefaultTemplate() => LoadTemplate(DefaultProfileId);
+
+    public TemplateOption? ReloadTemplates(string? preferredProfileIdOrStorageKey = null)
+    {
+        AvailableTemplates.Clear();
+        _templateResolveIndex.Clear();
+        var templatesDir = LoadTemplateDirectory();
+        if (!_fileSystem.DirectoryExists(templatesDir))
+        {
+            ProfilesLoaded?.Invoke(this, EventArgs.Empty);
+            return null;
+        }
+
+        var pending = new List<(TemplateOption Option, GameProfileTemplate Template, string Stem, string? Folder)>();
+        foreach (var (fullPath, catalogFolder, stem) in EnumerateTemplateCatalogJsonFiles(templatesDir))
+        {
+            try
+            {
+                var template = LoadTemplateFromPath(fullPath, catalogFolder, stem);
+                _templateResolveIndex[TemplateStorageKey.Format(catalogFolder, stem)] =
+                    new TemplateStorageLocation(catalogFolder, stem);
+
+                var logicalId = template.ProfileId?.Trim();
+                if (!string.IsNullOrEmpty(logicalId))
+                    _templateResolveIndex[logicalId] = new TemplateStorageLocation(catalogFolder, stem);
+
+                pending.Add((new TemplateOption
+                {
+                    ProfileId = stem,
+                    CatalogSubfolder = catalogFolder,
+                    TemplateGroupId = template.EffectiveTemplateGroupId,
+                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? stem : template.DisplayName,
+                    Author = (template.Author ?? string.Empty).Trim(),
+                    RadialMenus = template.RadialMenus?.ToList()
+                }, template, stem, catalogFolder));
+            }
+            catch
+            {
+                // Ignore invalid templates while loading the list.
+            }
+        }
+
+        var stemCounts = pending
+            .GroupBy(x => x.Stem, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var x in pending)
+        {
+            if (stemCounts[x.Stem] == 1)
+                _templateResolveIndex[x.Stem] = new TemplateStorageLocation(x.Folder, x.Stem);
+        }
+
+        foreach (var opt in pending.Select(p => p.Option).OrderBy(o => o.DisplayName, StringComparer.OrdinalIgnoreCase))
+            AvailableTemplates.Add(opt);
+
+        ProfilesLoaded?.Invoke(this, EventArgs.Empty);
+        return SelectTemplate(preferredProfileIdOrStorageKey);
+    }
+
+    public TemplateOption? SelectTemplate(string? preferredProfileIdOrStorageKey = null)
+    {
+        var p = (preferredProfileIdOrStorageKey ?? string.Empty).Trim();
+        if (p.Length > 0)
+        {
+            var exact = AvailableTemplates
+                .FirstOrDefault(t => string.Equals(t.StorageKey, p, StringComparison.OrdinalIgnoreCase));
+            if (exact is not null)
+                return exact;
+
+            if (TryResolveTemplateLocation(p, out var loc))
+            {
+                var fromIndex = AvailableTemplates.FirstOrDefault(o => o.MatchesLocation(loc));
+                if (fromIndex is not null)
+                    return fromIndex;
+            }
+
+            var sameStem = AvailableTemplates
+                .Where(t => string.Equals(t.ProfileId, p, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (sameStem.Count == 1)
+                return sameStem[0];
+        }
+
+        return
+            AvailableTemplates.FirstOrDefault(t =>
+                string.Equals(t.ProfileId, DefaultProfileId, StringComparison.OrdinalIgnoreCase)) ??
+            AvailableTemplates.FirstOrDefault(t =>
+                string.Equals(t.TemplateGroupId, DefaultProfileId, StringComparison.OrdinalIgnoreCase)) ??
+            AvailableTemplates.FirstOrDefault();
+    }
+
+    public GameProfileTemplate? LoadSelectedTemplate(TemplateOption? selectedTemplate)
+    {
+        if (selectedTemplate is null)
+            return null;
+
+        var path = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
+            LoadTemplateDirectory(),
+            selectedTemplate.CatalogSubfolder,
+            selectedTemplate.ProfileId);
+
+        if (!_fileSystem.FileExists(path))
+            return null;
+
+        return LoadTemplateFromPath(path, selectedTemplate.CatalogSubfolder, selectedTemplate.ProfileId);
+    }
+
+    public bool TryResolveTemplateLocation(string requestedId, out TemplateStorageLocation location)
+    {
+        location = default;
+        var id = (requestedId ?? string.Empty).Trim();
+        if (id.Length == 0)
+            return false;
+
+        if (_templateResolveIndex.TryGetValue(id, out location))
+            return true;
+
+        if (!AppPaths.TemplateCatalogPaths.TryParseStorageKey(id, out var folder, out var stem))
+            return false;
+
+        var loc = new TemplateStorageLocation(folder, stem);
+        if (_templateResolveIndex.TryGetValue(loc.StorageKey, out location))
+            return true;
+
+        return false;
+    }
+
+    public bool TemplateExists(string profileIdOrStorageKey)
+        => TryResolveTemplateLocation(profileIdOrStorageKey ?? string.Empty, out _);
+
+    /// <summary>
+    /// Heuristic: profiles whose effective template group ids (<see cref="GameProfileTemplate.EffectiveTemplateGroupId"/>) match or look like variants
+    /// (<c>mygame</c> and <c>mygame-battle</c>) typically target the same executable; missing <c>targetProcessName</c>
+    /// on the variant should inherit from the sibling the user already configured.
+    /// </summary>
+    public static bool ProfilesLikelyShareGameExecutable(string? previousTemplateGroupId, string? newTemplateGroupId)
+    {
+        if (string.IsNullOrWhiteSpace(previousTemplateGroupId) || string.IsNullOrWhiteSpace(newTemplateGroupId))
+            return false;
+
+        var a = previousTemplateGroupId.Trim();
+        var b = newTemplateGroupId.Trim();
+        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        static bool IsSegmentPrefix(string shorter, string longer) =>
+            longer.StartsWith(shorter + "-", StringComparison.OrdinalIgnoreCase)
+            || longer.StartsWith(shorter + ".", StringComparison.OrdinalIgnoreCase);
+
+        return a.Length <= b.Length ? IsSegmentPrefix(a, b) : IsSegmentPrefix(b, a);
+    }
+
+    public static bool IsValidId(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+        return ValidIdPattern.IsMatch(id.Trim());
+    }
+
+    public static string EnsureValidTemplateGroupId(string templateGroupId)
+    {
+        var normalized = (templateGroupId ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new ArgumentException("Template group ID (templateGroupId) is required.", nameof(templateGroupId));
+
+        if (!IsValidId(normalized))
+            throw new ArgumentException("Template group ID (templateGroupId) can only contain letters, digits, dot, underscore, and dash.", nameof(templateGroupId));
+
+        return normalized;
+    }
+
+    public string CreateUniqueProfileId(string templateGroupId, string? displayName, string? catalogFolder = null)
+    {
+        var normalizedTemplateGroupId = EnsureValidTemplateGroupId(templateGroupId);
+        var displaySegment = SlugSegment(displayName);
+        var baseId = string.IsNullOrWhiteSpace(displaySegment)
+            ? normalizedTemplateGroupId
+            : $"{normalizedTemplateGroupId}__{displaySegment}";
+
+        if (!TemplateJsonExistsInCatalog(catalogFolder, baseId))
+            return baseId;
+
+        var index = 2;
+        while (true)
+        {
+            var candidate = $"{baseId}-{index}";
+            if (!TemplateJsonExistsInCatalog(catalogFolder, candidate))
+                return candidate;
+            index++;
+        }
+    }
+
+    public void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true)
+    {
+        if (template is null) throw new ArgumentNullException(nameof(template));
+
+        var validation = ValidateTemplate(template);
+        if (!validation.IsValid)
+            throw new InvalidOperationException($"Cannot save profile with errors: {string.Join(", ", validation.Errors)}");
+
+        var templatesDir = LoadTemplateDirectory();
+        _fileSystem.CreateDirectory(templatesDir);
+
+        if (template.SchemaVersion <= 0)
+            template.SchemaVersion = 1;
+
+        template.DisplayName ??= string.Empty;
+        template.Mappings ??= new List<MappingEntry>();
+
+        var normalizedFolder = AppPaths.TemplateCatalogPaths.NormalizeCatalogSubfolderForSave(template.TemplateCatalogFolder ?? string.Empty);
+        template.TemplateCatalogFolder = string.IsNullOrEmpty(normalizedFolder) ? null : normalizedFolder;
+
+        if (string.IsNullOrWhiteSpace(template.ProfileId))
+        {
+            if (string.IsNullOrWhiteSpace(template.TemplateGroupId))
+                throw new InvalidOperationException("Cannot allocate a profile id without templateGroupId when profileId is empty.");
+            template.ProfileId = CreateUniqueProfileId(
+                EnsureValidTemplateGroupId(template.TemplateGroupId),
+                template.DisplayName,
+                template.TemplateCatalogFolder);
+        }
+        else
+        {
+            template.ProfileId = EnsureValidProfileId(template.ProfileId);
+        }
+
+        var g = (template.TemplateGroupId ?? string.Empty).Trim();
+        if (g.Length == 0 || string.Equals(g, template.ProfileId, StringComparison.OrdinalIgnoreCase))
+            template.TemplateGroupId = null;
+        else
+            template.TemplateGroupId = EnsureValidTemplateGroupId(g);
+
+        var templatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
+            templatesDir, template.TemplateCatalogFolder, template.ProfileId);
+
+        var parentDir = Path.GetDirectoryName(templatePath)!;
+        _fileSystem.CreateDirectory(parentDir);
+
+        if (!allowOverwrite && _fileSystem.FileExists(templatePath))
+            throw new InvalidOperationException($"A profile with id '{template.ProfileId}' already exists.");
+
+        var json = JsonConvert.SerializeObject(template, Formatting.Indented);
+        _fileSystem.WriteAllText(templatePath, json, Encoding.UTF8);
+    }
+
+    public void DeleteTemplate(string profileIdOrStorageKey)
+    {
+        var id = (profileIdOrStorageKey ?? string.Empty).Trim();
+        if (id.Length == 0) return;
+
+        if (TryResolveTemplateLocation(id, out var loc))
+        {
+            DeleteFileAtLocation(loc);
+            return;
+        }
+
+        if (AppPaths.TemplateCatalogPaths.TryParseStorageKey(id, out var folder, out var stem))
+            DeleteFileAtLocation(new TemplateStorageLocation(folder, stem));
+    }
+
+    public IValidationResult ValidateTemplate(GameProfileTemplate template)
+    {
+        var validator = new ProfileValidator();
+        return validator.Validate(template);
+    }
+
+    public static string EnsureValidProfileId(string profileId)
+    {
+        var normalized = (profileId ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new ArgumentException("Profile id is required.", nameof(profileId));
+
+        if (!ValidIdPattern.IsMatch(normalized))
+            throw new ArgumentException("Profile id contains invalid characters.", nameof(profileId));
+
+        return normalized;
+    }
+
+    private void DeleteFileAtLocation(TemplateStorageLocation loc)
+    {
+        var templatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
+            LoadTemplateDirectory(), loc.CatalogSubfolder, loc.FileStem);
+
+        if (_fileSystem.FileExists(templatePath))
+            _fileSystem.DeleteFile(templatePath);
+    }
+
+    private bool TemplateJsonExistsInCatalog(string? catalogFolder, string fileStem)
+    {
+        var path = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(LoadTemplateDirectory(), catalogFolder, fileStem);
+        return _fileSystem.FileExists(path);
+    }
+
+    private IEnumerable<(string fullPath, string? catalogFolder, string stem)> EnumerateTemplateCatalogJsonFiles(string templatesDir)
+    {
+        foreach (var file in _fileSystem.GetFiles(templatesDir, "*.json", SearchOption.TopDirectoryOnly))
+            yield return (file, null, Path.GetFileNameWithoutExtension(file));
+
+        foreach (var subDir in _fileSystem.GetDirectories(templatesDir))
+        {
+            var folderStr = Path.GetFileName(subDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (string.IsNullOrEmpty(folderStr))
+                continue;
+            foreach (var file in _fileSystem.GetFiles(subDir, "*.json", SearchOption.TopDirectoryOnly))
+                yield return (file, folderStr, Path.GetFileNameWithoutExtension(file));
+        }
+    }
+
+    private GameProfileTemplate LoadTemplateFromPath(string templatePath, string? catalogFolderFromDisk, string fileStemFromDisk)
+    {
         var json = _fileSystem.ReadAllText(templatePath, Encoding.UTF8);
         var template = JsonConvert.DeserializeObject<GameProfileTemplate>(json);
         if (template is null)
             throw new InvalidOperationException($"Failed to parse template JSON: {templatePath}");
 
+        template.TemplateCatalogFolder = string.IsNullOrEmpty(catalogFolderFromDisk) ? null : catalogFolderFromDisk;
+
         if (string.IsNullOrWhiteSpace(template.ProfileId))
-            template.ProfileId = profileId.Trim();
+            template.ProfileId = fileStemFromDisk;
 
         var culture = _translationService.Culture;
 
@@ -139,230 +458,6 @@ public partial class ProfileService : IProfileService
         TemplateKeyboardActionResolver.Apply(template);
 
         return template;
-    }
-
-    public GameProfileTemplate LoadDefaultTemplate() => LoadTemplate(DefaultProfileId);
-
-    public TemplateOption? ReloadTemplates(string? preferredProfileId = null)
-    {
-        AvailableTemplates.Clear();
-        _templateLookupKeyToFileStem.Clear();
-        var templatesDir = LoadTemplateDirectory();
-        if (!Directory.Exists(templatesDir))
-        {
-            ProfilesLoaded?.Invoke(this, EventArgs.Empty);
-            return null;
-        }
-
-        var jsonFiles = _fileSystem.GetFiles(templatesDir, "*.json", SearchOption.TopDirectoryOnly);
-        var options = new List<TemplateOption>();
-        foreach (var file in jsonFiles)
-        {
-            var profileId = Path.GetFileNameWithoutExtension(file);
-            try
-            {
-                var template = LoadTemplate(profileId);
-                _templateLookupKeyToFileStem[profileId] = profileId;
-                var logicalId = template.ProfileId?.Trim();
-                if (!string.IsNullOrEmpty(logicalId))
-                    _templateLookupKeyToFileStem[logicalId] = profileId;
-
-                options.Add(new TemplateOption
-                {
-                    ProfileId = profileId,
-                    TemplateGroupId = template.TemplateGroupId,
-                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? profileId : template.DisplayName,
-                    RadialMenus = template.RadialMenus?.ToList()
-                });
-            }
-            catch
-            {
-                // Ignore invalid templates while loading the list.
-            }
-        }
-
-        foreach (var option in options.OrderBy(o => o.DisplayName, StringComparer.OrdinalIgnoreCase))
-            AvailableTemplates.Add(option);
-
-        ProfilesLoaded?.Invoke(this, EventArgs.Empty);
-        return SelectTemplate(preferredProfileId);
-    }
-
-    public TemplateOption? SelectTemplate(string? preferredProfileId = null)
-    {
-        return
-            (preferredProfileId is not null
-                ? AvailableTemplates.FirstOrDefault(t =>
-                    string.Equals(t.ProfileId, preferredProfileId, StringComparison.OrdinalIgnoreCase))
-                : null) ??
-            AvailableTemplates.FirstOrDefault(t => t.ProfileId == DefaultProfileId) ??
-            AvailableTemplates.FirstOrDefault(t => t.TemplateGroupId == DefaultProfileId) ??
-            AvailableTemplates.FirstOrDefault();
-    }
-
-    public GameProfileTemplate? LoadSelectedTemplate(TemplateOption? selectedTemplate)
-    {
-        if (selectedTemplate is null)
-            return null;
-
-        return LoadTemplate(selectedTemplate.ProfileId);
-    }
-
-    public bool TryResolveTemplateFileStem(string requestedProfileId, out string fileStem)
-    {
-        fileStem = string.Empty;
-        var id = (requestedProfileId ?? string.Empty).Trim();
-        if (id.Length == 0)
-            return false;
-
-        var dir = LoadTemplateDirectory();
-        var directPath = Path.Combine(dir, $"{id}.json");
-        if (_fileSystem.FileExists(directPath))
-        {
-            fileStem = id;
-            return true;
-        }
-
-        if (_templateLookupKeyToFileStem.TryGetValue(id, out var stem))
-        {
-            var resolvedPath = Path.Combine(dir, $"{stem}.json");
-            if (_fileSystem.FileExists(resolvedPath))
-            {
-                fileStem = stem;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public bool TemplateExists(string profileId)
-    {
-        return TryResolveTemplateFileStem(profileId ?? string.Empty, out _);
-    }
-
-    /// <summary>
-    /// Heuristic: profiles whose <see cref="GameProfileTemplate.TemplateGroupId"/> values match or look like variants
-    /// (<c>mygame</c> and <c>mygame-battle</c>) typically target the same executable; missing <c>targetProcessName</c>
-    /// on the variant should inherit from the sibling the user already configured.
-    /// </summary>
-    public static bool ProfilesLikelyShareGameExecutable(string? previousTemplateGroupId, string? newTemplateGroupId)
-    {
-        if (string.IsNullOrWhiteSpace(previousTemplateGroupId) || string.IsNullOrWhiteSpace(newTemplateGroupId))
-            return false;
-
-        var a = previousTemplateGroupId.Trim();
-        var b = newTemplateGroupId.Trim();
-        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        static bool IsSegmentPrefix(string shorter, string longer) =>
-            longer.StartsWith(shorter + "-", StringComparison.OrdinalIgnoreCase)
-            || longer.StartsWith(shorter + ".", StringComparison.OrdinalIgnoreCase);
-
-        return a.Length <= b.Length ? IsSegmentPrefix(a, b) : IsSegmentPrefix(b, a);
-    }
-
-    public static bool IsValidId(string? id)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-            return false;
-        return ValidIdPattern.IsMatch(id.Trim());
-    }
-
-    public static string EnsureValidTemplateGroupId(string templateGroupId)
-    {
-        var normalized = (templateGroupId ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(normalized))
-            throw new ArgumentException("Template group ID (templateGroupId) is required.", nameof(templateGroupId));
-
-        if (!IsValidId(normalized))
-            throw new ArgumentException("Template group ID (templateGroupId) can only contain letters, digits, dot, underscore, and dash.", nameof(templateGroupId));
-
-        return normalized;
-    }
-
-    public string CreateUniqueProfileId(string templateGroupId, string? displayName)
-    {
-        var normalizedTemplateGroupId = EnsureValidTemplateGroupId(templateGroupId);
-        var displaySegment = SlugSegment(displayName);
-        var baseId = string.IsNullOrWhiteSpace(displaySegment)
-            ? normalizedTemplateGroupId
-            : $"{normalizedTemplateGroupId}__{displaySegment}";
-
-        if (!TemplateExists(baseId))
-        {
-            return baseId;
-        }
-
-        var index = 2;
-        while (true)
-        {
-            var candidate = $"{baseId}-{index}";
-            if (!TemplateExists(candidate))
-            {
-                return candidate;
-            }
-            index++;
-        }
-    }
-
-    public void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true)
-    {
-        if (template is null) throw new ArgumentNullException(nameof(template));
-
-        var validation = ValidateTemplate(template);
-        if (!validation.IsValid)
-            throw new InvalidOperationException($"Cannot save profile with errors: {string.Join(", ", validation.Errors)}");
-
-        var templatesDir = LoadTemplateDirectory();
-        _fileSystem.CreateDirectory(templatesDir);
-
-        if (template.SchemaVersion <= 0)
-            template.SchemaVersion = 1;
-
-        template.TemplateGroupId = EnsureValidTemplateGroupId(template.TemplateGroupId);
-        template.DisplayName ??= string.Empty;
-        template.Mappings ??= new System.Collections.Generic.List<MappingEntry>();
-
-        if (string.IsNullOrWhiteSpace(template.ProfileId))
-            template.ProfileId = CreateUniqueProfileId(template.TemplateGroupId, template.DisplayName);
-        else
-            template.ProfileId = EnsureValidProfileId(template.ProfileId);
-
-        var templatePath = Path.Combine(templatesDir, $"{template.ProfileId}.json");
-        if (!allowOverwrite && _fileSystem.FileExists(templatePath))
-            throw new InvalidOperationException($"A profile with id '{template.ProfileId}' already exists.");
-
-        var json = JsonConvert.SerializeObject(template, Formatting.Indented);
-        _fileSystem.WriteAllText(templatePath, json, Encoding.UTF8);
-    }
-
-    public void DeleteTemplate(string profileId)
-    {
-        if (string.IsNullOrWhiteSpace(profileId)) return;
-        var templatePath = Path.Combine(LoadTemplateDirectory(), $"{profileId.Trim()}.json");
-
-        if (_fileSystem.FileExists(templatePath))
-            _fileSystem.DeleteFile(templatePath);
-    }
-
-    public IValidationResult ValidateTemplate(GameProfileTemplate template)
-    {
-        var validator = new ProfileValidator();
-        return validator.Validate(template);
-    }
-
-    public static string EnsureValidProfileId(string profileId)
-    {
-        var normalized = (profileId ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(normalized))
-            throw new ArgumentException("Profile id is required.", nameof(profileId));
-
-        if (!ValidIdPattern.IsMatch(normalized))
-            throw new ArgumentException("Profile id contains invalid characters.", nameof(profileId));
-
-        return normalized;
     }
 
     private static string SlugSegment(string? value)
@@ -427,4 +522,3 @@ public partial class ProfileService : IProfileService
         return false;
     }
 }
-

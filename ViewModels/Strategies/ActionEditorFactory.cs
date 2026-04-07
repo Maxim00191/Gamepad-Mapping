@@ -21,7 +21,7 @@ public class ActionEditorFactory : IActionEditorFactory
         {
             MappingActionType.Keyboard => new KeyboardActionEditorViewModel(_mainViewModel.KeyboardCaptureService, _mainViewModel.KeyboardActions),
             MappingActionType.ItemCycle => new ItemCycleActionEditorViewModel(_mainViewModel.KeyboardCaptureService),
-            MappingActionType.TemplateToggle => new TemplateToggleActionEditorViewModel(_mainViewModel.GetProfileService(), _mainViewModel.SelectedTemplate?.ProfileId),
+            MappingActionType.TemplateToggle => new TemplateToggleActionEditorViewModel(_mainViewModel.GetProfileService(), _mainViewModel.SelectedTemplate?.StorageKey),
             MappingActionType.RadialMenu => new RadialMenuActionEditorViewModel(),
             _ => throw new ArgumentException($"Unsupported action type: {actionType}", nameof(actionType))
         };

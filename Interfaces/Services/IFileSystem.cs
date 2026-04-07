@@ -14,5 +14,6 @@ public interface IFileSystem
     void CopyFile(string sourcePath, string destinationPath, bool overwrite);
     void DeleteFile(string path);
     string[] GetFiles(string path, string searchPattern, SearchOption searchOption);
+    string[] GetDirectories(string path);
     string? GetDirectoryName(string path);
 }

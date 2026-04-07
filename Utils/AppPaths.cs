@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Utils;
 
@@ -57,6 +58,29 @@ public static class AppPaths
 
         // Fallback: current directory (works for local runs).
         return Directory.GetCurrentDirectory();
+    }
+
+    /// <summary>OS path layout under <c>Assets/Profiles/templates</c>; logical keys live in <see cref="TemplateStorageKey"/>.</summary>
+    public static class TemplateCatalogPaths
+    {
+        public static string BuildStorageKey(string? catalogSubfolder, string fileStem) =>
+            TemplateStorageKey.Format(catalogSubfolder, fileStem);
+
+        public static string NormalizeTrustedCatalogSubfolder(string? catalogSubfolder) =>
+            TemplateStorageKey.NormalizeTrustedFolder(catalogSubfolder);
+
+        public static bool TryParseStorageKey(string raw, out string? catalogSubfolder, out string fileStem) =>
+            TemplateStorageKey.TryParse(raw, out catalogSubfolder, out fileStem);
+
+        public static string GetTemplateJsonPath(string templatesRoot, string? catalogSubfolder, string fileStem)
+        {
+            var folder = TemplateStorageKey.NormalizeTrustedFolder(catalogSubfolder);
+            var dir = folder.Length == 0 ? templatesRoot : Path.Combine(templatesRoot, folder);
+            return Path.Combine(dir, $"{fileStem.Trim()}.json");
+        }
+
+        public static string NormalizeCatalogSubfolderForSave(string? raw) =>
+            TemplateStorageKey.ValidateSingleSegmentFolderForSave(raw);
     }
 
     public static string GetLogsDirectory()

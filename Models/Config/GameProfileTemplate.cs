@@ -13,8 +13,26 @@ public class GameProfileTemplate : IKeyboardActionCatalog
     [JsonProperty("profileId")]
     public string ProfileId { get; set; } = string.Empty;
 
-    [JsonProperty("templateGroupId")]
-    public string TemplateGroupId { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional shared id for multiple profiles of the same game (file-name namespace when auto-creating ids; also used to relate profiles for target-process inheritance).
+    /// When null, empty, or equal to <see cref="ProfileId"/>, this field is omitted in JSON and <see cref="EffectiveTemplateGroupId"/> is <see cref="ProfileId"/>.
+    /// </summary>
+    [JsonProperty("templateGroupId", NullValueHandling = NullValueHandling.Ignore)]
+    public string? TemplateGroupId { get; set; }
+
+    /// <summary>Logical game-group id: explicit <see cref="TemplateGroupId"/> when set, otherwise <see cref="ProfileId"/>.</summary>
+    public string EffectiveTemplateGroupId
+    {
+        get
+        {
+            var g = (TemplateGroupId ?? string.Empty).Trim();
+            return g.Length > 0 ? g : ProfileId;
+        }
+    }
+
+    /// <summary>Optional single-level folder under the templates root (e.g. a game display name). Empty = templates root.</summary>
+    [JsonProperty("templateCatalogFolder", NullValueHandling = NullValueHandling.Ignore)]
+    public string? TemplateCatalogFolder { get; set; }
 
     // Backward compatibility for older templates that used "gameId".
     [JsonProperty("gameId")]
@@ -23,12 +41,16 @@ public class GameProfileTemplate : IKeyboardActionCatalog
         set
         {
             if (string.IsNullOrWhiteSpace(TemplateGroupId) && !string.IsNullOrWhiteSpace(value))
-                TemplateGroupId = value;
+                TemplateGroupId = value.Trim();
         }
     }
 
     [JsonProperty("displayName")]
     public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>Optional template author (e.g. for a shared template catalog).</summary>
+    [JsonProperty("author", NullValueHandling = NullValueHandling.Ignore)]
+    public string? Author { get; set; }
 
     [JsonProperty("displayNameKey")]
     public string DisplayNameKey { get; set; } = string.Empty;

@@ -47,7 +47,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly ObservableCollection<KeyboardActionDefinition> _keyboardActions = new();
     private readonly ObservableCollection<RadialMenuDefinition> _radialMenus = new();
 
-    /// <summary>Last loaded template <see cref="GameProfileTemplate.TemplateGroupId"/>; used to carry <c>targetProcessName</c> across related profiles.</summary>
+    /// <summary>Last loaded template's effective group id; used to carry <c>targetProcessName</c> across related profiles.</summary>
     private string? _lastLoadedTemplateGroupIdForTargetInherit;
     private ComboHudWindow? _comboHudWindow;
     private TemplateSwitchHudWindow? _templateSwitchHudWindow;
@@ -57,6 +57,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool _isTemplateSwitchHudActive;
     private bool _isInitializingUiLanguageSelection;
 
+    private readonly ICommunityTemplateService _communityService;
+
     public MainViewModel(
         IProfileService? profileService = null,
         IGamepadReader? gamepadReader = null,
@@ -65,11 +67,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IElevationHandler? elevationHandler = null,
         IAppStatusMonitor? appStatusMonitor = null,
         IMappingEngine? mappingEngine = null,
-        ISettingsService? settingsService = null)
+        ISettingsService? settingsService = null,
+        ICommunityTemplateService? communityService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new SettingsService();
+        _communityService = communityService ?? new CommunityTemplateService(_profileService);
 
         _appSettings = _settingsService.LoadSettings();
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
@@ -145,6 +149,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         NewBindingPanel = new NewBindingPanelViewModel(this);
         MappingEditorPanel = new MappingEditorViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
+        CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(
             StopGamepadCommand,
             StartGamepadCommand,
@@ -254,9 +259,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         try
         {
-            App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.ProfileId})");
+            App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.StorageKey})");
             LoadSelectedTemplate();
-            _profileService.PersistLastSelectedTemplateProfileId(value?.ProfileId);
+            _profileService.PersistLastSelectedTemplateProfileId(value?.StorageKey);
         }
         catch (Exception ex)
         {
@@ -286,6 +291,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string currentTemplateTemplateGroupId = string.Empty;
 
     [ObservableProperty]
+    private string currentTemplateAuthor = string.Empty;
+
+    [ObservableProperty]
+    private string currentTemplateCatalogFolder = string.Empty;
+
+    [ObservableProperty]
     private int mappingCount;
 
     [ObservableProperty]
@@ -305,6 +316,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public MappingEditorViewModel MappingEditorPanel { get; }
 
     public ProfileCatalogPanelViewModel CatalogPanel { get; }
+
+    public CommunityCatalogViewModel CommunityCatalogPanel { get; }
 
     public GamepadMonitorViewModel GamepadMonitorPanel { get; }
 
@@ -538,15 +551,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
     {
         var id = (targetProfileId ?? string.Empty).Trim();
-        if (id.Length == 0 || !_profileService.TryResolveTemplateFileStem(id, out var fileStem))
+        if (id.Length == 0 || !_profileService.TryResolveTemplateLocation(id, out var loc))
             return;
 
-        var opt = _profileService.AvailableTemplates.FirstOrDefault(t =>
-            string.Equals(t.ProfileId, fileStem, StringComparison.OrdinalIgnoreCase));
+        var opt = _profileService.AvailableTemplates.FirstOrDefault(t => t.MatchesLocation(loc));
         if (opt is null)
             return;
 
-        if (string.Equals(SelectedTemplate?.ProfileId, opt.ProfileId, StringComparison.OrdinalIgnoreCase))
+        if (SelectedTemplate?.MatchesLocation(loc) == true)
             return;
 
         // Before ForceRelease: Sync() invokes OnComboHud(null) synchronously on the UI thread; guard must be on first.
@@ -772,7 +784,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         CurrentTemplateDisplayName = template.DisplayName;
         CurrentTemplateProfileId = template.ProfileId;
-        CurrentTemplateTemplateGroupId = template.TemplateGroupId;
+        CurrentTemplateTemplateGroupId = template.TemplateGroupId ?? string.Empty;
+        CurrentTemplateAuthor = template.Author ?? string.Empty;
+        CurrentTemplateCatalogFolder = template.TemplateCatalogFolder ?? string.Empty;
 
         _comboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
         foreach (var rm in _radialMenus.ToList())
@@ -783,8 +797,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _keyboardActions.Add(a);
         foreach (var rm in template.RadialMenus ?? [])
             _radialMenus.Add(rm);
-        _mappingEngine?.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
-        RefreshRadialDefinitionsInEngine();
+        
+        if (_mappingEngine != null)
+        {
+            _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
+            RefreshRadialDefinitionsInEngine();
+        }
 
         Mappings.Clear();
         foreach (var mapping in template.Mappings)
@@ -801,7 +819,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (fromFile.Length > 0)
             TemplateTargetProcessName = fromFile;
         else if (uiBefore.Length > 0
-                 && ProfileService.ProfilesLikelyShareGameExecutable(_lastLoadedTemplateGroupIdForTargetInherit, template.TemplateGroupId))
+                 && ProfileService.ProfilesLikelyShareGameExecutable(_lastLoadedTemplateGroupIdForTargetInherit, template.EffectiveTemplateGroupId))
         {
             TemplateTargetProcessName = uiBefore;
             template.TargetProcessName = uiBefore;
@@ -810,7 +828,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         else
             TemplateTargetProcessName = string.Empty;
 
-        _lastLoadedTemplateGroupIdForTargetInherit = template.TemplateGroupId;
+        _lastLoadedTemplateGroupIdForTargetInherit = template.EffectiveTemplateGroupId;
 
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
@@ -855,6 +873,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void RefreshRadialDefinitionsInEngine()
     {
+        if (_mappingEngine == null) return;
         var template = SelectedTemplate != null ? _profileService.LoadSelectedTemplate(SelectedTemplate) : null;
         _mappingEngine.SetRadialMenuDefinitions(
             _radialMenus.Count == 0 ? null : _radialMenus.ToList(),
@@ -927,7 +946,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void ReloadLocalizedTemplateContent()
     {
-        var selectedProfileId = SelectedTemplate?.ProfileId;
+        var selectedProfileId = SelectedTemplate?.StorageKey;
         var reselected = _profileService.ReloadTemplates(selectedProfileId);
         OnPropertyChanged(nameof(AvailableTemplates));
         if (reselected is not null)
@@ -950,8 +969,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
             }
 
             var targetId = mapping.TemplateToggle.AlternateProfileId?.Trim() ?? string.Empty;
-            var localizedName = AvailableTemplates.FirstOrDefault(t =>
-                string.Equals(t.ProfileId, targetId, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? string.Empty;
+            var localizedName = string.Empty;
+            if (targetId.Length > 0 && _profileService.TryResolveTemplateLocation(targetId, out var loc))
+            {
+                localizedName = AvailableTemplates.FirstOrDefault(t => t.MatchesLocation(loc))?.DisplayName
+                    ?? string.Empty;
+            }
             mapping.TemplateToggleDisplayName = localizedName;
         }
     }

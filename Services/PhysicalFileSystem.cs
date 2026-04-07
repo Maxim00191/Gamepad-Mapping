@@ -14,5 +14,6 @@ public class PhysicalFileSystem : IFileSystem
     public void CopyFile(string sourcePath, string destinationPath, bool overwrite) => File.Copy(sourcePath, destinationPath, overwrite);
     public void DeleteFile(string path) => File.Delete(path);
     public string[] GetFiles(string path, string searchPattern, SearchOption searchOption) => Directory.GetFiles(path, searchPattern, searchOption);
+    public string[] GetDirectories(string path) => Directory.GetDirectories(path);
     public string? GetDirectoryName(string path) => Path.GetDirectoryName(path);
 }

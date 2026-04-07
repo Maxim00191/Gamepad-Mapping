@@ -1,4 +1,5 @@
 using Gamepad_Mapping.ViewModels;
+using Gamepad_Mapping.ViewModels.Strategies;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using Moq;
@@ -51,8 +52,8 @@ public class MappingEditorViewModelTests
 
         vm.SyncFromSelection(entry);
 
-        Assert.Equal("A", vm.EditBindingFromButton);
-        Assert.Equal("Space", vm.EditBindingKeyboardKey);
+        Assert.Equal("A", vm.InputTrigger.EditBindingFromButton);
+        Assert.Equal("Space", (vm.CurrentActionEditor as KeyboardActionEditorViewModel)?.KeyboardKey);
         Assert.Equal(TriggerMoment.Tap, vm.EditBindingTrigger);
         Assert.Equal("Jump", vm.EditBindingDescription);
     }
@@ -61,12 +62,12 @@ public class MappingEditorViewModelTests
     public void BeginCreateNewMapping_ResetsProperties()
     {
         var vm = _mainViewModel.MappingEditorPanel;
-        vm.EditBindingKeyboardKey = "X";
+        if (vm.CurrentActionEditor is KeyboardActionEditorViewModel k) k.KeyboardKey = "X";
         
         vm.AddMappingCommand.Execute(null);
 
         Assert.True(vm.IsCreatingNewMapping);
-        Assert.Equal(string.Empty, vm.EditBindingKeyboardKey);
+        Assert.Equal(string.Empty, (vm.CurrentActionEditor as KeyboardActionEditorViewModel)?.KeyboardKey);
         Assert.Null(_mainViewModel.SelectedMapping);
     }
 
@@ -93,20 +94,20 @@ public class MappingEditorViewModelTests
         _mainViewModel.SelectedMapping = entry;
         vm.SyncFromSelection(entry);
 
-        vm.EditBindingKeyboardKey = "Space";
+        if (vm.CurrentActionEditor is KeyboardActionEditorViewModel k) k.KeyboardKey = "Space";
         vm.UpdateSelectedBindingCommand.Execute(null);
 
         Assert.Equal("Space", entry.KeyboardKey);
     }
 
     [Fact]
-    public void EditItemCycleEnabled_DisablesTemplateToggle()
+    public void SelectedActionType_ChangesEditor()
     {
         var vm = _mainViewModel.MappingEditorPanel;
         
-        vm.EditItemCycleEnabled = true;
+        vm.SelectedActionType = MappingActionType.ItemCycle;
         
-        Assert.False(vm.EditTemplateToggleEnabled);
+        Assert.IsType<ItemCycleActionEditorViewModel>(vm.CurrentActionEditor);
         Assert.False(vm.EditKeyboardAndHoldSectionsEnabled);
     }
 }

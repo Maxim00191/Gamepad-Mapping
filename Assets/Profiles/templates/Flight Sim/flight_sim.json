@@ -1,0 +1,118 @@
+﻿{
+  "schemaVersion": 1,
+  "profileId": "flight_sim",
+  "templateGroupId": "flight_sim",
+  "templateCatalogFolder": "Flight Sim",
+  "displayName": "飞行模拟（示例）",
+  "displayNameKey": "",
+  "mappings": [
+    {
+      "from": {
+        "type": "Button",
+        "value": "A"
+      },
+      "keyboardKey": "Spacebar",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "B"
+      },
+      "keyboardKey": "LeftCtrl",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "X"
+      },
+      "keyboardKey": "R",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "Y"
+      },
+      "keyboardKey": "F",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "LeftShoulder"
+      },
+      "keyboardKey": "Q",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "Button",
+        "value": "RightShoulder"
+      },
+      "keyboardKey": "E",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": null,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "LeftTrigger",
+        "value": "LeftTrigger"
+      },
+      "keyboardKey": "W",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": 0.6,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "RightTrigger",
+        "value": "RightTrigger"
+      },
+      "keyboardKey": "S",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": 0.6,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    },
+    {
+      "from": {
+        "type": "LeftThumbstick",
+        "value": "LeftThumbstick"
+      },
+      "keyboardKey": "WASD",
+      "description": "",
+      "trigger": "Pressed",
+      "analogThreshold": 0.2,
+      "holdKeyboardKey": "",
+      "holdThresholdMs": null
+    }
+  ]
+}

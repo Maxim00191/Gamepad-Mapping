@@ -1,29 +1,38 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.ProfileTemplatePanelView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections">
     <Border Style="{StaticResource SectionCardBorder}"
             Margin="0,0,0,12">
-        <StackPanel>
+        <StackPanel Grid.IsSharedSizeScope="True">
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileAndTemplate]}"
                        FontWeight="Bold"
                        Margin="0,0,0,10" />
 
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Template]}" Margin="0,0,0,4" />
-            <ComboBox ItemsSource="{Binding AvailableTemplates}"
-                      DisplayMemberPath="DisplayName"
-                      SelectedItem="{Binding SelectedTemplate}" />
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"
+                                      SharedSizeGroup="ProfileTemplateLabelCol" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Source={StaticResource Loc}, Path=[Template]}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0" />
+                <ComboBox Grid.Column="1"
+                          Height="32"
+                          VerticalContentAlignment="Center"
+                          ItemsSource="{Binding AvailableTemplates}"
+                          DisplayMemberPath="TemplatePickerLabel"
+                          SelectedItem="{Binding SelectedTemplate}" />
+            </Grid>
 
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}" Margin="0,10,0,4" />
-            <TextBox Text="{Binding CurrentTemplateProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,10,0,4" />
-            <TextBox Text="{Binding CurrentTemplateTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,10,0,4" />
-            <TextBox Text="{Binding CurrentTemplateDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <sections:TemplateIdentityFormView Margin="0,10,0,0"
+                                              DataContext="{Binding}" />
 
             <TextBlock Text="{Binding MappingCount, StringFormat=Mappings: {0}}"
-                       Margin="0,8,0,0" />
+                       Margin="0,10,0,0"
+                       Opacity="0.85" />
 
             <WrapPanel Margin="0,10,0,0">
                 <Button Content="{Binding Source={StaticResource Loc}, Path=[SaveProfile]}"
@@ -42,11 +51,74 @@
                        FontWeight="SemiBold"
                        Margin="0,0,0,8" />
 
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}" Margin="0,0,0,4" />
-            <TextBox Text="{Binding NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"
+                                      SharedSizeGroup="ProfileTemplateLabelCol" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}" Margin="0,8,0,4" />
-            <TextBox Text="{Binding NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           Text="{Binding Source={StaticResource Loc}, Path=[DisplayName]}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,8" />
+                <TextBox Grid.Row="0"
+                         Grid.Column="1"
+                         MinHeight="28"
+                         VerticalContentAlignment="Center"
+                         Margin="0,0,0,8"
+                         Text="{Binding NewProfileDisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           Text="{Binding Source={StaticResource Loc}, Path=[TemplateAuthor]}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,8" />
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
+                         MinHeight="28"
+                         VerticalContentAlignment="Center"
+                         Margin="0,0,0,8"
+                         Text="{Binding NewProfileAuthor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <Expander Grid.Row="2"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="2"
+                          IsExpanded="False"
+                          Margin="0,0,0,0">
+                    <Expander.Header>
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateIdentityHeader]}"
+                                   FontWeight="SemiBold" />
+                    </Expander.Header>
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileId]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
+                                 Text="{Binding NewProfileId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[GameKey]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
+                                 Text="{Binding NewProfileTemplateGroupId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateCatalogFolder]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="28"
+                                 VerticalContentAlignment="Center"
+                                 Text="{Binding NewProfileCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Expander>
+            </Grid>
 
             <WrapPanel Margin="0,12,0,0">
                 <Button Content="{Binding Source={StaticResource Loc}, Path=[CreateProfile]}"
