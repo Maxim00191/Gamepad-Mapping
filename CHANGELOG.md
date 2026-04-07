@@ -1,3 +1,37 @@
+## Changelog v2.1.0-alpha - 2026-04-07
+
+### Added
+
+- **Community template catalog:** In-app **Community** tab to browse the public index and download templates into your local library (GitHub Raw with jsDelivr CDN fallback, refresh throttling). Source repository: [GamepadMapping-CommunityProfiles](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles).
+- `**ICommunityTemplateService` / `CommunityTemplateService`:** Network fetch, validation-friendly download path, and integration with `ProfileService` reload after install.
+- **UI:** Template identity tooltips in the profile area for clearer `profileId` / group context.
+
+### Changed
+
+- **Template grouping:** Unified `templateGroupId` usage (including Roco Kingdom sets) and added `EffectiveTemplateGroupId` on `GameProfileTemplate` for consistent group resolution.
+- **Validation:** Stricter checks in `ProfileValidator` around template group metadata.
+- **Bundled templates & layout:** Per-game template folders (e.g. Flight Sim, Roco Kingdom), refreshed flight-sim content, and additional sample presets (e.g. Elden Ring default).
+- **UI styling:** Shared `ToolbarButtonStyle` for consistent toolbar buttons (including community catalog actions).
+- **Version bump:** Updated project version to `2.1.0`.
+
+## 更新日志 v2.1.0-alpha - 2026-04-07
+
+### 新增
+
+- **社区模板目录：** 应用内 **Community** 标签页浏览公开索引并下载模板到本地库（GitHub Raw，失败时降级 jsDelivr CDN；刷新节流）。模板索引与 JSON 由社区仓库维护：[GamepadMapping-CommunityProfiles](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles)。
+- `**ICommunityTemplateService` / `CommunityTemplateService`：** 网络拉取、下载与安装后通过 `ProfileService` 重载模板列表。
+- **界面：** 配置相关区域增加模板标识类提示，便于理解 `profileId` 与分组。
+
+### 更改
+
+- **模板分组：** 统一 `templateGroupId`（含洛克王国等套件），并在 `GameProfileTemplate` 上增加 `EffectiveTemplateGroupId` 以一致解析分组。
+- **校验：** `ProfileValidator` 对模板分组元数据加强校验。
+- **内置模板与目录：** 按游戏分子目录（如 Flight Sim、Roco Kingdom），更新飞行模拟模板，并补充示例预设（如 Elden Ring `default`）。
+- **界面样式：** 新增共享 `ToolbarButtonStyle`，统一工具栏按钮（含社区目录相关操作）。
+- **版本更新：** 项目版本更新至 `2.1.0`。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0...v2.1.0](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0...v2.1.0)
+
 ## Changelog v2.0.0 - 2026-04-07
 
 ### Added
@@ -34,7 +68,7 @@
 - **正式版发布：** 将 `2.0.0-alpha` / `2.0.0-beta` 的预发布能力整合并发布为稳定版 `2.0.0`。
 - **版本更新：** 将项目版本更新至 `2.0.0`。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-beta...v2.0.0
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-beta...v2.0.0](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-beta...v2.0.0)
 
 ## Changelog v2.0.0-beta - 2026-04-06
 
@@ -74,7 +108,7 @@
 - **版本更新：** 将项目版本更新至 `2.0.0-beta`。
 - **设置界面：** 重新组织了设置视图，包含专门的轮盘菜单配置部分。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-alpha...v2.0.0-beta
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-alpha...v2.0.0-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.0.0-alpha...v2.0.0-beta)
 
 ## Changelog v2.0.0-alpha - 2026-04-05
 
@@ -112,9 +146,7 @@
 
 - **版本更新：** 将项目版本更新至 `2.0.0-alpha`。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.3...v2.0.0-alpha
-
-
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.3...v2.0.0-alpha](https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.3...v2.0.0-alpha)
 
 ## Changelog `v1.4.3` — 2026-04-03
 
@@ -152,8 +184,7 @@
 
 - 战斗模板不再将单独的 D-pad 左/右映射到方向键；第 5 槽位只能通过上/下循环切换到达。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.2...v1.4.3
-
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.2...v1.4.3](https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.2...v1.4.3)
 
 ## Changelog `v1.4.2`
 
@@ -181,8 +212,7 @@
 - 通过`ApplicationIcon`在项目文件中设置应用程序图标。
 - 通过`Icon`属性在`MainWindow.xaml`中配置了主窗口图标。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.1...v1.4.2
-
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.1...v1.4.2](https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.1...v1.4.2)
 
 ## Changelog `v1.4.1`
 
@@ -221,8 +251,7 @@
 
 - 在`Gamepad Mapping.csproj`中项目版本已更新：`1.4.0` → `1.4.1`。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.0...v1.4.1
-
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.0...v1.4.1](https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.4.0...v1.4.1)
 
 ### Changelog `v1.4.0`
 
@@ -296,4 +325,4 @@
 - **代码维护：** 清理了 `MainViewModel.DispatchToUi` 中的细节（移除了不必要的空行）。
 - **仓库更新：** 微调了 `.gitignore`，为 `v1.4.0` 发布更新了版本号及 CI/CD 文档。
 
-**Full Changelog**: https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.3.0...v1.4.0
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.3.0...v1.4.0](https://github.com/Maxim00191/Gamepad-Mapping/compare/v1.3.0...v1.4.0)

@@ -5,13 +5,12 @@
 Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的配置文件模板将 **XInput 手柄输入**转换为**键盘和鼠标输出**。
 它专为没有良好原生手柄支持的游戏而设计，并提供可选的前台进程锁定功能，以避免在其他窗口中产生意外输入。
 
-## 2.0 版本的新特性
+## 软件特色
 
-- 全新的**轮盘菜单系统**，具有可自定义的 HUD 样式（颜色、透明度、缩放比例）。
-- 扩展了配置文件映射的**操作模型 (action model)**（包含更丰富的键盘/轮盘工作流）。
-- 改进了多阶段轮盘交互和冲突处理的**输入管道行为**。
-- 更好的**模板验证**以及更新的内置模板（特别是《洛克王国：世界》大世界/战斗预设）。
-- 稳定了与轮盘相关的屏幕的 UI 渲染和布局行为。
+- **复杂手柄映射能力**：支持组合键、连招前导、长按/轻触与阈值，以及手柄上的**轮盘菜单**与可自定义 HUD，适合键位多、原生手柄支持弱的游戏。
+- **模板驱动、可维护**：映射以经校验的 JSON 保存，便于编辑、备份与分享；可选的**前台进程过滤**让输出只作用于指定游戏窗口。
+- **对接社区模板**：应用内即可浏览、下载社区贡献的布局，无需从零搭配置。
+- **贴合 Windows 桌面环境**：目标进程以管理员运行时，应用可提示以同级权限重启，减轻 UIPI 对模拟输入的拦截。
 
 ## 核心功能
 
@@ -21,6 +20,13 @@ Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的
 - **轮盘菜单操作**：通过手柄输入触发方向性操作选择。
 - **前台进程过滤**：仅当特定进程处于焦点时才映射输出。
 - **应用程序设置**：集中式全局设置，保存至 `Assets/Config/local_settings.json`。
+- **社区模板**：在配置编辑区与键盘动作、轮盘菜单并列的 **Community** 标签中浏览并下载社区贡献的配置。应用从 [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) 拉取目录索引（优先 GitHub Raw，不可用时自动降级到 jsDelivr CDN）。
+
+## 社区模板
+
+在主窗口中打开某个配置后，切换到 **Community** 标签。点击 **Refresh** 从网络加载最新目录，再在条目上选择下载，即可将对应模板保存到本地模板目录（与内置模板使用相同的 JSON 结构）。下载成功后，配置列表会刷新，可直接选用新模板。
+
+模板内容与贡献规范见上述社区仓库；应用安装包内不包含这些 JSON，运行时按需拉取。短时间内过于频繁的刷新会被节流，以避免频繁请求目录接口。
 
 ## 环境要求
 
@@ -34,7 +40,7 @@ Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的
 dotnet restore "Gamepad Mapping.csproj"
 dotnet build "Gamepad Mapping.csproj" -c Release
 dotnet run --project "Gamepad Mapping.csproj"
-````
+```
 
 或者在 Visual Studio 中打开 `GamepadMapping.sln` 并运行启动项目。
 
@@ -81,13 +87,13 @@ dotnet test "GamepadMapping.sln" -c Release
 
 ## CI/CD (持续集成/持续部署)
 
-[GitHub Actions](https://www.google.com/search?q=.github/workflows/build.yml) 会在向 `main` 分支推送代码 (push) 和提交拉取请求 (PR) 时验证构建和测试。
+[GitHub Actions](.github/workflows/build.yml) 会在向 `main` 分支推送代码 (push) 和提交拉取请求 (PR) 时验证构建和测试。
 打上版本标签（如 `v*`）会创建发布构建（包含单文件版本和依赖框架的 win-x64 压缩包）并发布一个 GitHub Release。
 
 ## 更新日志
 
-有关发布历史，请参阅 [`CHANGELOG.md`](https://www.google.com/search?q=CHANGELOG.md)。
+有关发布历史，请参阅 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 许可证
 
-MIT — 详见 [`LICENSE`](https://www.google.com/search?q=LICENSE)。
+MIT — 详见 [`LICENSE`](LICENSE)。
