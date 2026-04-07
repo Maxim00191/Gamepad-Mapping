@@ -175,6 +175,79 @@
 
                                             <Separator Margin="0,6,0,8" />
 
+                                            <TextBlock Text="Check for Updates"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,0,0,6" />
+                                            <Grid DataContext="{Binding UpdatePanel}">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+                                                    <CheckBox Content="Include Beta/Pre-releases"
+                                                              IsChecked="{Binding IncludePrereleases, Mode=TwoWay}"
+                                                              Margin="0,0,0,4"
+                                                              FontSize="11" />
+                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
+                                                        <Run Text="Current Version: " />
+                                                        <Run Text="{Binding CurrentVersion, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
+                                                        <Run Text="Latest Version: " />
+                                                        <Run Text="{Binding LatestVersion, Mode=OneWay, TargetNullValue='Unknown'}" />
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding StatusMessage}" 
+                                                               FontSize="11" 
+                                                               FontWeight="SemiBold"
+                                                               Margin="0,2,0,0"
+                                                               TextWrapping="Wrap">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsUpdateAvailable}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource AppAccentTextBrush}" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsForbidden}" Value="True">
+                                                                        <Setter Property="Foreground" Value="#EB5757" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+
+                                                <Button Grid.Row="0" Grid.Column="1" 
+                                                        Content="Check"
+                                                        Padding="12,4"
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding CheckUpdateCommand}"
+                                                        IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}" />
+
+                                                <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                        Content="Download New Version"
+                                                        Margin="0,8,0,0"
+                                                        Padding="0,6"
+                                                        Style="{StaticResource AppAccentButtonStyle}"
+                                                        Command="{Binding OpenReleaseUrlCommand}"
+                                                        Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                                                <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                        Content="Open GitHub Releases"
+                                                        Margin="0,8,0,0"
+                                                        Padding="0,6"
+                                                        Command="{Binding OpenManualUrlCommand}"
+                                                        Visibility="{Binding IsForbidden, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            </Grid>
+
+                                            <Separator Margin="0,6,0,8" />
+
                                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsTimingSection]}"
                                                        FontWeight="SemiBold"
                                                        Margin="0,0,0,6" />

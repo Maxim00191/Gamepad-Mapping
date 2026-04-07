@@ -58,6 +58,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool _isInitializingUiLanguageSelection;
 
     private readonly ICommunityTemplateService _communityService;
+    private readonly IUpdateService _updateService;
+
+    public UpdateViewModel UpdatePanel { get; }
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -68,14 +71,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IAppStatusMonitor? appStatusMonitor = null,
         IMappingEngine? mappingEngine = null,
         ISettingsService? settingsService = null,
-        ICommunityTemplateService? communityService = null)
+        ICommunityTemplateService? communityService = null,
+        IUpdateService? updateService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new SettingsService();
         _communityService = communityService ?? new CommunityTemplateService(_profileService);
+        _updateService = updateService ?? new UpdateService();
 
         _appSettings = _settingsService.LoadSettings();
+
+        UpdatePanel = new UpdateViewModel(_updateService, _appSettings);
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;

@@ -147,9 +147,19 @@ public class AppSettings
     [JsonProperty("radialMenuHudLabelMode")]
     public string RadialMenuHudLabelMode { get; set; } = "both";
 
-    /// <summary>
-    /// Overall scale for the on-screen radial menu HUD (disc, slots, type). Clamped when applied; 1.0 = 400px disc diameter.
-    /// </summary>
+    /// <summary>Overall scale for the on-screen radial menu HUD (disc, slots, type). Clamped when applied; 1.0 = 400px disc diameter. </summary>
     [JsonProperty("radialHudScale")]
     public double RadialHudScale { get; set; } = 1.5;
+
+    /// <summary>GitHub repository owner (e.g. "Maxim00191").</summary>
+    [JsonProperty("githubRepoOwner")]
+    public string GithubRepoOwner { get; set; } = "Maxim00191";
+
+    /// <summary>GitHub repository name (e.g. "Gamepad-Mapping").</summary>
+    [JsonProperty("githubRepoName")]
+    public string GithubRepoName { get; set; } = "Gamepad-Mapping";
+
+    /// <summary>Whether to include pre-releases when checking for updates.</summary>
+    [JsonProperty("includePrereleases")]
+    public bool IncludePrereleases { get; set; } = true;
 }
