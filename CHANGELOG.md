@@ -1,3 +1,45 @@
+## Changelog v2.1.1 - 2026-04-08
+
+### Added
+
+- **Trusted update quota architecture:** Introduced `IUpdateQuotaPolicyProvider` + `UpdateQuotaPolicy` with a default `StaticUpdateQuotaPolicyProvider` so runtime limits are controlled by a policy layer rather than user-editable settings.
+- **Cached latest-version fallback model:** Added structured cache contracts (`IUpdateVersionCacheService`, `CachedUpdateVersionInfo`) and persisted latest successful release metadata under `Updates/`.
+- **Trusted UTC source abstraction:** Added `ITrustedUtcTimeService` / `TrustedUtcTimeService` to support network-backed UTC with local monotonic fallback for quota decisions.
+
+### Changed
+
+- **Asset resolution hardening:** Enforced whitelist matching for update packages (`-fx` / `-single`) and removed first-zip fallback to prevent selecting wrong assets when release attachments change order.
+- **Update failure messaging:** Unified update status-message composition so API/network error messages can also include the latest cached successful version hint.
+- **Version display normalization:** Current version display now strips build metadata (`+...`) while preserving pre-release labels (`-alpha`, `-beta`, `-rc`) to avoid user confusion.
+- **Quota ownership migration:** Runtime quota values are now policy-driven; legacy AppSettings quota fields remain for compatibility but are marked obsolete/ignored at runtime.
+- **Localization:** Localized cached-version fallback hint in both English and Chinese resources.
+
+### Fixed
+
+- **Cache persistence guard:** Latest-version cache is only written on successful release resolution; failed checks (timeout/network/API errors) no longer overwrite cache state.
+- **Time rollback resilience:** Quota state now enforces monotonic observed time to reduce bypass attempts via local clock rollback.
+
+## 更新日志 v2.1.1 - 2026-04-08
+
+### 新增
+
+- **更新配额策略架构：** 引入 `IUpdateQuotaPolicyProvider` + `UpdateQuotaPolicy`，并提供默认实现 `StaticUpdateQuotaPolicyProvider`，使运行时限额由策略层统一控制，而不是由可编辑本地设置直接决定。
+- **最新版本缓存模型：** 新增结构化缓存契约（`IUpdateVersionCacheService`、`CachedUpdateVersionInfo`），将最近一次成功检查到的版本信息持久化到 `Updates/`。
+- **可信 UTC 抽象：** 新增 `ITrustedUtcTimeService` / `TrustedUtcTimeService`，支持网络 UTC 与本地单调时间回退，用于配额判定。
+
+### 更改
+
+- **更新包解析加固：** 对安装包实施白名单匹配（仅 `-fx` / `-single`），移除“取第一个 zip”的兜底，避免发布附件顺序变化导致误选资产。
+- **更新失败提示统一：** 统一状态文案构建流程，使 API/网络错误场景也可附带“上次成功检查版本”的缓存提示。
+- **版本显示规范化：** 当前版本显示仅移除构建元数据（`+...`），保留预发布标识（`-alpha`、`-beta`、`-rc`），减少用户理解歧义。
+- **配额控制权迁移：** 运行时配额改为策略驱动；`AppSettings` 中旧配额字段仅保留兼容用途，已标记为过时且运行时忽略。
+- **本地化：** 为缓存回退提示补充英文与中文资源文本。
+
+### 修复
+
+- **缓存写入保护：** 仅在成功解析 release 时写入最新版本缓存；超时/网络/API 错误不再污染缓存状态。
+- **时间回拨防护：** 配额状态增加单调时间约束，降低通过本地回拨系统时间绕过限制的可能性。
+
 ## Changelog v2.1.0 - 2026-04-07
 
 ### Added
