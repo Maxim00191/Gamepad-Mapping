@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Models;
@@ -163,16 +164,25 @@ public class AppSettings
     [JsonProperty("includePrereleases")]
     public bool IncludePrereleases { get; set; } = false;
 
-    /// <summary>Minimum interval in seconds between two update-check API calls.</summary>
+    /// <summary>
+    /// Legacy compatibility field only. Runtime quota policy is provided by <c>IUpdateQuotaPolicyProvider</c>.
+    /// </summary>
     [JsonProperty("updateCheckCooldownSeconds")]
-    public int UpdateCheckCooldownSeconds { get; set; } = 45;
+    [Obsolete("Runtime update quota uses IUpdateQuotaPolicyProvider. This setting is ignored.")]
+    public int UpdateCheckCooldownSeconds { get; set; } = 12;
 
-    /// <summary>Maximum number of update checks allowed per UTC day.</summary>
+    /// <summary>
+    /// Legacy compatibility field only. Runtime quota policy is provided by <c>IUpdateQuotaPolicyProvider</c>.
+    /// </summary>
     [JsonProperty("updateCheckDailyLimit")]
+    [Obsolete("Runtime update quota uses IUpdateQuotaPolicyProvider. This setting is ignored.")]
     public int UpdateCheckDailyLimit { get; set; } = 30;
 
-    /// <summary>Maximum number of update package downloads allowed per UTC day.</summary>
+    /// <summary>
+    /// Legacy compatibility field only. Runtime quota policy is provided by <c>IUpdateQuotaPolicyProvider</c>.
+    /// </summary>
     [JsonProperty("updateDownloadDailyLimit")]
+    [Obsolete("Runtime update quota uses IUpdateQuotaPolicyProvider. This setting is ignored.")]
     public int UpdateDownloadDailyLimit { get; set; } = 5;
 
     /// <summary>

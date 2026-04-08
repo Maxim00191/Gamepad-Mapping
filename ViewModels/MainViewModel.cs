@@ -80,7 +80,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IUpdateInstallerService? updateInstallerService = null,
         IUpdateQuotaService? updateQuotaService = null,
         ITrustedUtcTimeService? trustedUtcTimeService = null,
-        IUpdateVersionCacheService? updateVersionCacheService = null)
+        IUpdateVersionCacheService? updateVersionCacheService = null,
+        IUpdateQuotaPolicyProvider? updateQuotaPolicyProvider = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
@@ -93,7 +94,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, _appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         var resolvedTrustedUtcTimeService = trustedUtcTimeService ?? new TrustedUtcTimeService();
-        var resolvedUpdateQuotaService = updateQuotaService ?? new UpdateQuotaService(_appSettings, resolvedTrustedUtcTimeService);
+        var resolvedUpdateQuotaPolicyProvider = updateQuotaPolicyProvider ?? new StaticUpdateQuotaPolicyProvider();
+        var resolvedUpdateQuotaService = updateQuotaService ?? new UpdateQuotaService(resolvedUpdateQuotaPolicyProvider, resolvedTrustedUtcTimeService);
 
         UpdatePanel = new UpdateViewModel(
             _updateService,

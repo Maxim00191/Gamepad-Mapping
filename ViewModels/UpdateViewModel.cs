@@ -124,7 +124,7 @@ public partial class UpdateViewModel : ObservableObject
         _settingsService = settingsService;
         _appSettings = appSettings;
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
-        _updateQuotaService = updateQuotaService ?? new UpdateQuotaService(_appSettings);
+        _updateQuotaService = updateQuotaService ?? new UpdateQuotaService(new StaticUpdateQuotaPolicyProvider());
         _updateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
 
         CheckUpdateCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
@@ -180,7 +180,7 @@ public partial class UpdateViewModel : ObservableObject
             _releaseUrl = info.ReleaseUrl;
             IsForbidden = info.IsForbidden;
 
-            StatusMessage = info.ErrorMessage ?? (IsUpdateAvailable ? GetLoc("UpdateNewVersionAvailable") : GetLoc("UpdateUpToDate"));
+            StatusMessage = BuildUpdateStatusMessage(info);
             DownloadFailed = false;
             DownloadUpdateCommand.NotifyCanExecuteChanged();
             InstallUpdateCommand.NotifyCanExecuteChanged();
@@ -568,7 +568,19 @@ public partial class UpdateViewModel : ObservableObject
 
     private string BuildUpdateCheckFailedMessageWithCacheFallback()
     {
-        var baseMessage = GetLoc("UpdateCheckFailed");
+        return BuildStatusMessageWithCachedVersionHint(GetLoc("UpdateCheckFailed"));
+    }
+
+    private string BuildUpdateStatusMessage(AppUpdateInfo info)
+    {
+        if (!string.IsNullOrWhiteSpace(info.ErrorMessage))
+            return BuildStatusMessageWithCachedVersionHint(info.ErrorMessage);
+
+        return IsUpdateAvailable ? GetLoc("UpdateNewVersionAvailable") : GetLoc("UpdateUpToDate");
+    }
+
+    private string BuildStatusMessageWithCachedVersionHint(string baseMessage)
+    {
         var cached = _updateVersionCacheService.TryGetLatestVersion(_appSettings.GithubRepoOwner, _appSettings.GithubRepoName);
         if (cached is null)
             return baseMessage;

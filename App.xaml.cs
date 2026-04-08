@@ -42,7 +42,8 @@ public partial class App : Application
         var appSettings = settingsService.LoadSettingsInternal();
         var updateVersionCacheService = new UpdateVersionCacheService();
         var trustedUtcTimeService = new TrustedUtcTimeService();
-        var updateQuotaService = new UpdateQuotaService(appSettings, trustedUtcTimeService);
+        var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
+        var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
@@ -53,7 +54,8 @@ public partial class App : Application
             updateQuotaService: updateQuotaService,
             settingsService: settingsService,
             trustedUtcTimeService: trustedUtcTimeService,
-            updateVersionCacheService: updateVersionCacheService);
+            updateVersionCacheService: updateVersionCacheService,
+            updateQuotaPolicyProvider: updateQuotaPolicyProvider);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;

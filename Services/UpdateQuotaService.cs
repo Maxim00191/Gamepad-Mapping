@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using GamepadMapperGUI.Interfaces.Services;
-using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Utils;
@@ -23,13 +22,15 @@ public sealed class UpdateQuotaService : IUpdateQuotaService
     private const int MaxDownloadDailyLimit = 50;
 
     private readonly object _syncRoot = new();
-    private readonly AppSettings _settings;
+    private readonly IUpdateQuotaPolicyProvider _policyProvider;
     private readonly string _stateFilePath;
     private readonly ITrustedUtcTimeService _trustedUtcTimeService;
 
-    public UpdateQuotaService(AppSettings settings, ITrustedUtcTimeService? trustedUtcTimeService = null)
+    public UpdateQuotaService(
+        IUpdateQuotaPolicyProvider? policyProvider = null,
+        ITrustedUtcTimeService? trustedUtcTimeService = null)
     {
-        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _policyProvider = policyProvider ?? new StaticUpdateQuotaPolicyProvider();
         _stateFilePath = AppPaths.GetUpdateQuotaStateFilePath();
         _trustedUtcTimeService = trustedUtcTimeService ?? new TrustedUtcTimeService();
     }
@@ -75,7 +76,8 @@ public sealed class UpdateQuotaService : IUpdateQuotaService
 
     private UpdateQuotaDecision TryConsumeCheckQuota(UpdateQuotaState state, DateTimeOffset now)
     {
-        var checkDailyLimit = Clamp(_settings.UpdateCheckDailyLimit, MinCheckDailyLimit, MaxCheckDailyLimit);
+        var policy = _policyProvider.GetCurrentPolicy();
+        var checkDailyLimit = Clamp(policy.CheckDailyLimit, MinCheckDailyLimit, MaxCheckDailyLimit);
         if (state.CheckCount >= checkDailyLimit)
         {
             return new UpdateQuotaDecision(
@@ -87,7 +89,7 @@ public sealed class UpdateQuotaService : IUpdateQuotaService
                 null);
         }
 
-        var cooldownSeconds = Clamp(_settings.UpdateCheckCooldownSeconds, MinCheckCooldownSeconds, MaxCheckCooldownSeconds);
+        var cooldownSeconds = Clamp(policy.CheckCooldownSeconds, MinCheckCooldownSeconds, MaxCheckCooldownSeconds);
         var lastCheckAt = DateTimeOffset.FromUnixTimeSeconds(Math.Max(0, state.LastCheckUnixSeconds));
         var elapsed = now - lastCheckAt;
         if (state.LastCheckUnixSeconds > 0 && elapsed < TimeSpan.FromSeconds(cooldownSeconds))
@@ -115,7 +117,8 @@ public sealed class UpdateQuotaService : IUpdateQuotaService
 
     private UpdateQuotaDecision TryConsumeDownloadQuota(UpdateQuotaState state)
     {
-        var downloadDailyLimit = Clamp(_settings.UpdateDownloadDailyLimit, MinDownloadDailyLimit, MaxDownloadDailyLimit);
+        var policy = _policyProvider.GetCurrentPolicy();
+        var downloadDailyLimit = Clamp(policy.DownloadDailyLimit, MinDownloadDailyLimit, MaxDownloadDailyLimit);
         if (state.DownloadCount >= downloadDailyLimit)
         {
             return new UpdateQuotaDecision(
