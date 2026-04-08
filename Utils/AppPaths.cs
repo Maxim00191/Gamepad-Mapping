@@ -105,5 +105,17 @@ public static class AppPaths
 
         return updateDir;
     }
+
+    public static string GetUpdateQuotaStateFilePath()
+    {
+        var updatesDir = GetUpdateDownloadsDirectory();
+        return Path.Combine(updatesDir, "update-quota.dat");
+    }
+
+    public static string GetUpdateVersionCacheFilePath()
+    {
+        var updatesDir = GetUpdateDownloadsDirectory();
+        return Path.Combine(updatesDir, "latest-version-cache.json");
+    }
 }
 

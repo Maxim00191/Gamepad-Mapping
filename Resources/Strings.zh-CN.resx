@@ -641,4 +641,7 @@
   <data name="UpdateDownloadCanceled" xml:space="preserve">
     <value>已取消下载 {0}。</value>
   </data>
+  <data name="UpdateCheckFailedCachedLatestHint" xml:space="preserve">
+    <value>上次成功检查版本：{0}（{1} UTC）。</value>
+  </data>
 </root>

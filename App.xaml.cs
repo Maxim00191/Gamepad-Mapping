@@ -38,13 +38,22 @@ public partial class App : Application
         var profileService = new ProfileService();
         var localFileService = new LocalFileService();
         var updateInstallerService = new UpdateInstallerService();
+        var settingsService = new SettingsService();
+        var appSettings = settingsService.LoadSettingsInternal();
+        var updateVersionCacheService = new UpdateVersionCacheService();
+        var trustedUtcTimeService = new TrustedUtcTimeService();
+        var updateQuotaService = new UpdateQuotaService(appSettings, trustedUtcTimeService);
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
             communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService),
-            updateService: new UpdateService(gitHubContentService),
+            updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
             localFileService: localFileService,
-            updateInstallerService: updateInstallerService);
+            updateInstallerService: updateInstallerService,
+            updateQuotaService: updateQuotaService,
+            settingsService: settingsService,
+            trustedUtcTimeService: trustedUtcTimeService,
+            updateVersionCacheService: updateVersionCacheService);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;

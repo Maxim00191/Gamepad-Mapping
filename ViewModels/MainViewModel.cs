@@ -77,7 +77,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IUpdateService? updateService = null,
         IGitHubContentService? gitHubContentService = null,
         ILocalFileService? localFileService = null,
-        IUpdateInstallerService? updateInstallerService = null)
+        IUpdateInstallerService? updateInstallerService = null,
+        IUpdateQuotaService? updateQuotaService = null,
+        ITrustedUtcTimeService? trustedUtcTimeService = null,
+        IUpdateVersionCacheService? updateVersionCacheService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _profileService = profileService ?? new ProfileService();
@@ -85,11 +88,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appSettings = _settingsService.LoadSettings();
         _localFileService = localFileService ?? new LocalFileService();
         var sharedGitHubContentService = gitHubContentService ?? new GitHubContentService();
+        var resolvedUpdateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
         _communityService = communityService ?? new CommunityTemplateService(_profileService, sharedGitHubContentService, _localFileService);
-        _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, _appSettings);
+        _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, _appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
+        var resolvedTrustedUtcTimeService = trustedUtcTimeService ?? new TrustedUtcTimeService();
+        var resolvedUpdateQuotaService = updateQuotaService ?? new UpdateQuotaService(_appSettings, resolvedTrustedUtcTimeService);
 
-        UpdatePanel = new UpdateViewModel(_updateService, _settingsService, _appSettings, _localFileService, _updateInstallerService);
+        UpdatePanel = new UpdateViewModel(
+            _updateService,
+            _settingsService,
+            _appSettings,
+            _localFileService,
+            _updateInstallerService,
+            resolvedUpdateQuotaService,
+            resolvedUpdateVersionCacheService);
         ModifierGraceMsSetting = _appSettings.ModifierGraceMs;
         LeadKeyReleaseSuppressMsSetting = _appSettings.LeadKeyReleaseSuppressMs;
         GamepadPollingIntervalMs = _appSettings.GamepadPollingIntervalMs;

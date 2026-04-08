@@ -31,6 +31,8 @@ public partial class UpdateViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly AppSettings _appSettings;
     private readonly IUpdateInstallerService _updateInstallerService;
+    private readonly IUpdateQuotaService _updateQuotaService;
+    private readonly IUpdateVersionCacheService _updateVersionCacheService;
 
     [ObservableProperty]
     private string _currentVersion = "1.0.0";
@@ -113,13 +115,17 @@ public partial class UpdateViewModel : ObservableObject
         ISettingsService settingsService,
         AppSettings appSettings,
         ILocalFileService? localFileService = null,
-        IUpdateInstallerService? updateInstallerService = null)
+        IUpdateInstallerService? updateInstallerService = null,
+        IUpdateQuotaService? updateQuotaService = null,
+        IUpdateVersionCacheService? updateVersionCacheService = null)
     {
         _updateService = updateService;
         _localFileService = localFileService ?? new LocalFileService();
         _settingsService = settingsService;
         _appSettings = appSettings;
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
+        _updateQuotaService = updateQuotaService ?? new UpdateQuotaService(_appSettings);
+        _updateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
 
         CheckUpdateCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
         DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, CanDownloadUpdate);
@@ -147,6 +153,12 @@ public partial class UpdateViewModel : ObservableObject
     private async Task CheckForUpdatesAsync()
     {
         if (IsChecking) return;
+        var quotaDecision = await _updateQuotaService.TryConsumeQuotaAsync(UpdateQuotaAction.Check);
+        if (!quotaDecision.IsAllowed)
+        {
+            StatusMessage = BuildQuotaBlockedMessage(quotaDecision);
+            return;
+        }
 
         IsChecking = true;
         IsForbidden = false;
@@ -175,7 +187,7 @@ public partial class UpdateViewModel : ObservableObject
         }
         catch
         {
-            StatusMessage = GetLoc("UpdateCheckFailed");
+            StatusMessage = BuildUpdateCheckFailedMessageWithCacheFallback();
         }
         finally
         {
@@ -196,6 +208,12 @@ public partial class UpdateViewModel : ObservableObject
     private async Task DownloadUpdateAsync()
     {
         if (IsDownloading) return;
+        var quotaDecision = await _updateQuotaService.TryConsumeQuotaAsync(UpdateQuotaAction.Download);
+        if (!quotaDecision.IsAllowed)
+        {
+            StatusMessage = BuildQuotaBlockedMessage(quotaDecision);
+            return;
+        }
 
         IsDownloading = true;
         DownloadFailed = false;
@@ -510,16 +528,62 @@ public partial class UpdateViewModel : ObservableObject
             version = v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
         }
 
-        // Remove git hash/suffix (e.g., 1.0.0-alpha+abc1234 -> 1.0.0)
+        // Remove build metadata while preserving pre-release labels (alpha/beta/rc).
         if (version.Contains('+'))
         {
             version = version.Split('+')[0];
         }
-        if (version.Contains('-'))
-        {
-            version = version.Split('-')[0];
-        }
 
         return version;
+    }
+
+    private string BuildQuotaBlockedMessage(UpdateQuotaDecision decision)
+    {
+        return decision.BlockReason switch
+        {
+            UpdateQuotaBlockReason.Cooldown => BuildCooldownBlockedMessage(decision),
+            UpdateQuotaBlockReason.DailyLimit => BuildDailyLimitBlockedMessage(decision),
+            _ => GetLoc("UpdateCheckFailed")
+        };
+    }
+
+    private string BuildCooldownBlockedMessage(UpdateQuotaDecision decision)
+    {
+        var retryAfter = decision.RetryAfter ?? TimeSpan.Zero;
+        var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+        return IsChineseUi()
+            ? $"请求过于频繁，请在 {seconds} 秒后重试。"
+            : $"Too many requests. Please retry in {seconds} seconds.";
+    }
+
+    private string BuildDailyLimitBlockedMessage(UpdateQuotaDecision decision)
+    {
+        var actionText = decision.Action == UpdateQuotaAction.Download
+            ? (IsChineseUi() ? "下载更新包" : "download update packages")
+            : (IsChineseUi() ? "检查更新" : "check for updates");
+        return IsChineseUi()
+            ? $"今日{actionText}次数已达上限（{decision.DailyLimit} 次）。请明天再试。"
+            : $"Daily limit reached for {actionText} ({decision.DailyLimit} per day). Please try again tomorrow.";
+    }
+
+    private string BuildUpdateCheckFailedMessageWithCacheFallback()
+    {
+        var baseMessage = GetLoc("UpdateCheckFailed");
+        var cached = _updateVersionCacheService.TryGetLatestVersion(_appSettings.GithubRepoOwner, _appSettings.GithubRepoName);
+        if (cached is null)
+            return baseMessage;
+
+        var hint = string.Format(
+            GetLoc("UpdateCheckFailedCachedLatestHint"),
+            cached.LatestVersion,
+            FormatCacheUtcTime(cached.CachedAtUtc));
+        return $"{baseMessage} {hint}";
+    }
+
+    private static string FormatCacheUtcTime(DateTimeOffset utcTime)
+    {
+        if (utcTime <= DateTimeOffset.MinValue)
+            return "--";
+        return utcTime.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss");
     }
 }

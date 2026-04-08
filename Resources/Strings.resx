@@ -641,4 +641,7 @@ Do you want to overwrite it?</value>
   <data name="UpdateDownloadCanceled" xml:space="preserve">
     <value>Download canceled for {0}.</value>
   </data>
+  <data name="UpdateCheckFailedCachedLatestHint" xml:space="preserve">
+    <value>Last successful check: {0} ({1} UTC).</value>
+  </data>
 </root>

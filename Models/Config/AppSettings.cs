@@ -163,6 +163,18 @@ public class AppSettings
     [JsonProperty("includePrereleases")]
     public bool IncludePrereleases { get; set; } = false;
 
+    /// <summary>Minimum interval in seconds between two update-check API calls.</summary>
+    [JsonProperty("updateCheckCooldownSeconds")]
+    public int UpdateCheckCooldownSeconds { get; set; } = 45;
+
+    /// <summary>Maximum number of update checks allowed per UTC day.</summary>
+    [JsonProperty("updateCheckDailyLimit")]
+    public int UpdateCheckDailyLimit { get; set; } = 30;
+
+    /// <summary>Maximum number of update package downloads allowed per UTC day.</summary>
+    [JsonProperty("updateDownloadDailyLimit")]
+    public int UpdateDownloadDailyLimit { get; set; } = 5;
+
     /// <summary>
     /// Mirror prefix for GitHub URLs when origin is unreachable. Keep it as a full URL prefix ending with '/'.
     /// Advanced users can override this in local_settings.json.

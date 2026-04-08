@@ -26,15 +26,18 @@ public class UpdateService : IUpdateService
     
     private readonly HttpClient _httpClient;
     private readonly IGitHubContentService _gitHubContentService;
+    private readonly IUpdateVersionCacheService _updateVersionCacheService;
     private readonly string _mirrorBaseUrl;
     private bool _preferMirror;
 
     public UpdateService(
         IGitHubContentService? gitHubContentService = null,
         ISettingsService? settingsService = null,
-        AppSettings? appSettings = null)
+        AppSettings? appSettings = null,
+        IUpdateVersionCacheService? updateVersionCacheService = null)
     {
         _gitHubContentService = gitHubContentService ?? new GitHubContentService();
+        _updateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
         var resolvedSettings = appSettings ?? (settingsService ?? new SettingsService()).LoadSettings();
         _mirrorBaseUrl = NormalizeMirrorBaseUrl(resolvedSettings.GithubMirrorBaseUrl);
         _httpClient = new HttpClient();
@@ -80,6 +83,7 @@ public class UpdateService : IUpdateService
                     latestVersion = latestRelease.TagName;
                     isUpdateAvailable = IsNewerVersion(currentVersion, latestVersion);
                     releaseUrl = latestRelease.HtmlUrl;
+                    _updateVersionCacheService.SaveLatestVersion(owner, repo, latestVersion, releaseUrl);
                     App.Logger.Info($"[UpdateService] Update check successful. Latest: {latestVersion}, Current: {currentVersion}");
                 }
                 else
@@ -194,6 +198,11 @@ public class UpdateService : IUpdateService
             var v = assembly.GetName().Version;
             version = v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.0";
         }
+
+        // Remove build metadata while preserving pre-release labels (alpha/beta/rc).
+        if (version.Contains('+', StringComparison.Ordinal))
+            version = version.Split('+')[0];
+
         return version;
     }
 
@@ -370,18 +379,14 @@ public class UpdateService : IUpdateService
         {
             AppInstallMode.Fx => "-fx",
             AppInstallMode.Single => "-single",
-            _ => string.Empty
+            _ => null
         };
 
-        if (!string.IsNullOrEmpty(preferredToken))
-        {
-            var preferred = zipAssets.FirstOrDefault(x => ContainsToken(x, preferredToken));
-            if (preferred is not null)
-                return preferred;
-        }
+        if (string.IsNullOrWhiteSpace(preferredToken))
+            return null;
 
-        // Fallback strategy for future packaging variants: first zip from release assets.
-        return zipAssets.FirstOrDefault();
+        // Whitelist strategy: only accept explicitly tagged package variants.
+        return zipAssets.FirstOrDefault(x => ContainsToken(x, preferredToken));
     }
 
     private async Task<string?> TryResolveSha256ForAssetAsync(
