@@ -1,10 +1,13 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.Core;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -19,7 +22,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
     [ObservableProperty]
     private string? _statusMessage;
 
-    public ObservableCollection<CommunityTemplateInfo> Templates { get; } = new();
+    public ObservableCollection<CommunityTemplateFolderGroup> FolderGroups { get; } = new();
 
     public CommunityCatalogViewModel(MainViewModel main, ICommunityTemplateService communityService)
     {
@@ -32,16 +35,24 @@ public partial class CommunityCatalogViewModel : ObservableObject
     {
         IsLoading = true;
         StatusMessage = "Loading community templates...";
-        Templates.Clear();
+        FolderGroups.Clear();
         RefreshTemplatesCommand.NotifyCanExecuteChanged();
 
         try
         {
             var templates = await _communityService.GetTemplatesAsync();
-            foreach (var t in templates)
+
+            var groupedTemplates = templates
+                .GroupBy(static t => ResolveFolderName(t.CatalogFolder))
+                .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var folderGroup in groupedTemplates)
             {
-                Templates.Add(t);
+                var groupedItems = new ObservableCollection<CommunityTemplateInfo>(
+                    folderGroup.OrderBy(static t => t.DisplayName, StringComparer.OrdinalIgnoreCase));
+                FolderGroups.Add(new CommunityTemplateFolderGroup(folderGroup.Key, groupedItems));
             }
+
             StatusMessage = templates.Count > 0 ? null : "No templates found.";
         }
         catch
@@ -91,7 +102,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
             if (success)
             {
                 StatusMessage = $"Successfully downloaded {template.DisplayName}.";
-                // 刷新主界面的模板列表
+                // Refresh templates in the main profile selector.
                 _main.RefreshTemplates(template.Id);
             }
             else
@@ -111,4 +122,10 @@ public partial class CommunityCatalogViewModel : ObservableObject
     }
 
     private bool CanDownloadTemplate(CommunityTemplateInfo? template) => !IsLoading;
+
+    private static string ResolveFolderName(string? catalogFolder)
+    {
+        var normalized = catalogFolder?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? "Uncategorized" : normalized;
+    }
 }
