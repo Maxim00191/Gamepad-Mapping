@@ -31,7 +31,11 @@ public class UpdateServiceFallbackTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(releaseJson);
 
-        var service = new UpdateService(contentMock.Object);
+        var appSettings = new AppSettings
+        {
+            GithubMirrorBaseUrl = "https://ghfast.top/"
+        };
+        var service = new UpdateService(contentMock.Object, appSettings: appSettings);
         var result = await service.CheckForUpdatesAsync("owner", "repo", includePrereleases: false);
 
         Assert.True(result.IsUpdateAvailable);
@@ -59,7 +63,11 @@ public class UpdateServiceFallbackTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(releaseJson);
 
-        var service = new UpdateService(contentMock.Object);
+        var appSettings = new AppSettings
+        {
+            GithubMirrorBaseUrl = "https://ghfast.top/"
+        };
+        var service = new UpdateService(contentMock.Object, appSettings: appSettings);
         _ = await service.CheckForUpdatesAsync("owner", "repo", includePrereleases: false);
         _ = await service.CheckForUpdatesAsync("owner", "repo", includePrereleases: false);
 
