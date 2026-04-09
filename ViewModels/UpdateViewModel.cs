@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,8 +23,6 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class UpdateViewModel : ObservableObject
 {
-    private static readonly IReadOnlyList<string> PreservedInstallDirectories = new[] { "Assets", "Config" };
-
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
     private readonly ISettingsService _settingsService;
@@ -71,8 +68,8 @@ public partial class UpdateViewModel : ObservableObject
     private bool _downloadFailed;
 
     public string DownloadPrimaryActionText => DownloadFailed 
-        ? GetLoc("UpdateDownloadRetry") 
-        : GetLoc("UpdateDownloadNewVersion");
+        ? GetLoc("UpdateDownloadRetry")
+        : (IsDownloading ? GetLoc("UpdateCancelButton") : GetLoc("UpdateDownloadNewVersion"));
 
     private string GetLoc(string key)
     {
@@ -98,6 +95,7 @@ public partial class UpdateViewModel : ObservableObject
 
     public IAsyncRelayCommand CheckUpdateCommand { get; }
     public IAsyncRelayCommand DownloadUpdateCommand { get; }
+    public IRelayCommand DownloadOrStopCommand { get; }
     public IRelayCommand InstallUpdateCommand { get; }
     public IRelayCommand CancelDownloadCommand { get; }
     public ICommand OpenReleaseUrlCommand { get; }
@@ -109,6 +107,7 @@ public partial class UpdateViewModel : ObservableObject
     private string? _lastDownloadedPackagePath;
     private string? _lastDownloadedPackageName;
     private string? _lastDownloadedPackageSha256;
+    private string? _lastDownloadedReleaseTag;
 
     public UpdateViewModel(
         IUpdateService updateService,
@@ -129,6 +128,7 @@ public partial class UpdateViewModel : ObservableObject
 
         CheckUpdateCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
         DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, CanDownloadUpdate);
+        DownloadOrStopCommand = new RelayCommand(DownloadOrStop, CanDownloadOrStop);
         InstallUpdateCommand = new RelayCommand(InstallDownloadedPackage, CanInstallDownloadedPackage);
         CancelDownloadCommand = new RelayCommand(CancelDownload, () => IsDownloading);
         OpenReleaseUrlCommand = new RelayCommand(OpenReleaseUrl);
@@ -141,11 +141,26 @@ public partial class UpdateViewModel : ObservableObject
 
     partial void OnDownloadFailedChanged(bool value) => OnPropertyChanged(nameof(DownloadPrimaryActionText));
 
+    partial void OnIsUpdateAvailableChanged(bool value)
+    {
+        DownloadUpdateCommand.NotifyCanExecuteChanged();
+        DownloadOrStopCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsCheckingChanged(bool value)
+    {
+        DownloadUpdateCommand.NotifyCanExecuteChanged();
+        DownloadOrStopCommand.NotifyCanExecuteChanged();
+        InstallUpdateCommand.NotifyCanExecuteChanged();
+    }
+
     partial void OnIsDownloadingChanged(bool value)
     {
         CancelDownloadCommand.NotifyCanExecuteChanged();
         DownloadUpdateCommand.NotifyCanExecuteChanged();
+        DownloadOrStopCommand.NotifyCanExecuteChanged();
         InstallUpdateCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(DownloadPrimaryActionText));
     }
 
     private void CancelDownload() => _downloadCts?.Cancel();
@@ -181,6 +196,7 @@ public partial class UpdateViewModel : ObservableObject
             IsForbidden = info.IsForbidden;
 
             StatusMessage = BuildUpdateStatusMessage(info);
+            AppendNetworkFallbackNoticeIfAny();
             DownloadFailed = false;
             DownloadUpdateCommand.NotifyCanExecuteChanged();
             InstallUpdateCommand.NotifyCanExecuteChanged();
@@ -199,11 +215,22 @@ public partial class UpdateViewModel : ObservableObject
     }
 
     private bool CanDownloadUpdate() => IsUpdateAvailable && !IsChecking && !IsDownloading;
+    private bool CanDownloadOrStop() => IsUpdateAvailable && !IsChecking;
     private bool CanInstallDownloadedPackage() =>
         !IsChecking &&
         !IsDownloading &&
         !string.IsNullOrWhiteSpace(_lastDownloadedPackagePath) &&
         _localFileService.FileExists(_lastDownloadedPackagePath);
+
+    private void DownloadOrStop()
+    {
+        if (IsDownloading)
+        {
+            CancelDownload();
+            return;
+        }
+        _ = DownloadUpdateAsync();
+    }
 
     private async Task DownloadUpdateAsync()
     {
@@ -240,10 +267,17 @@ public partial class UpdateViewModel : ObservableObject
                 _downloadCts.Token);
 
             _releaseUrl = resolution.ReleasePageUrl ?? _releaseUrl;
+            AppendNetworkFallbackNoticeIfAny();
             if (resolution.MatchedAsset is null)
             {
                 DownloadFailed = true;
-                StatusMessage = resolution.ErrorMessage ?? "No downloadable package available for current installation mode.";
+                StatusMessage = resolution.ErrorMessage ?? GetLoc("UpdateNoPackageForInstallMode");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(resolution.MatchedAsset.Sha256))
+            {
+                DownloadFailed = true;
+                StatusMessage = GetLoc("UpdateChecksumSignatureValidationFailed");
                 return;
             }
 
@@ -275,6 +309,7 @@ public partial class UpdateViewModel : ObservableObject
                 targetPath,
                 progress,
                 _downloadCts.Token);
+            AppendNetworkFallbackNoticeIfAny();
 
             DownloadProgressPercent = 100;
             DownloadEtaText = GetLoc("UpdateDownloadDone");
@@ -282,9 +317,8 @@ public partial class UpdateViewModel : ObservableObject
             _activeDownloadFilePath = null;
             _lastDownloadedPackagePath = targetPath;
             _lastDownloadedPackageName = fileName;
-            _lastDownloadedPackageSha256 = string.IsNullOrWhiteSpace(resolution.MatchedAsset.Sha256)
-                ? ComputeFileSha256(targetPath)
-                : resolution.MatchedAsset.Sha256;
+            _lastDownloadedPackageSha256 = resolution.MatchedAsset.Sha256;
+            _lastDownloadedReleaseTag = resolution.VersionTag;
             InstallUpdateCommand.NotifyCanExecuteChanged();
             PromptInstallDownloadedPackage(targetPath, fileName);
         }
@@ -420,6 +454,11 @@ public partial class UpdateViewModel : ObservableObject
             InstallUpdateCommand.NotifyCanExecuteChanged();
             return;
         }
+        if (string.IsNullOrWhiteSpace(_lastDownloadedPackageSha256))
+        {
+            StatusMessage = GetLoc("UpdateSecureChecksumMissing");
+            return;
+        }
 
         var packageName = string.IsNullOrWhiteSpace(_lastDownloadedPackageName)
             ? Path.GetFileName(packagePath)
@@ -442,15 +481,16 @@ public partial class UpdateViewModel : ObservableObject
             ZipPackagePath: zipPath,
             TargetDirectoryPath: AppPaths.ResolveContentRoot(),
             AppExecutablePath: Environment.ProcessPath ?? string.Empty,
-            PreserveDirectoryNames: PreservedInstallDirectories,
+            PreserveDirectoryNames: BuildPreservePathsForInstall(),
             ProcessIdToWaitFor: Environment.ProcessId,
+            TrustedReleaseTag: _lastDownloadedReleaseTag,
             ExpectedZipSha256: _lastDownloadedPackageSha256,
             InstallLogPath: BuildInstallLogPath(),
-            RemoveOrphanFiles: true);
+            RemoveOrphanFiles: ResolveRemoveOrphanFilesPolicy());
 
         if (!_updateInstallerService.TryLaunchInstaller(request, out var errorMessage))
         {
-            var errorText = string.Format(GetLoc("UpdateInstallLaunchFailed"), errorMessage ?? "Unknown error");
+            var errorText = string.Format(GetLoc("UpdateInstallLaunchFailed"), errorMessage ?? GetLoc("UpdateUnknownError"));
             MessageBox.Show(errorText, title, MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -465,19 +505,31 @@ public partial class UpdateViewModel : ObservableObject
         return Path.Combine(logsDir, fileName);
     }
 
-    private static string? ComputeFileSha256(string path)
+    private IReadOnlyList<string> BuildPreservePathsForInstall()
     {
-        try
+        var configured = _appSettings.UpdateInstallPolicy?.PreservePaths;
+        if (configured is null || configured.Count == 0)
         {
-            using var stream = File.OpenRead(path);
-            var hash = SHA256.HashData(stream);
-            return Convert.ToHexString(hash).ToLowerInvariant();
+            return
+            [
+                "Assets/Profiles/templates",
+                "Assets/Config/local_settings.json"
+            ];
         }
-        catch
-        {
-            return null;
-        }
+
+        return configured
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(NormalizePolicyPath)
+            .Where(x => x.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
+
+    private bool ResolveRemoveOrphanFilesPolicy() =>
+        _appSettings.UpdateInstallPolicy?.RemoveOrphanFiles ?? true;
+
+    private static string NormalizePolicyPath(string raw) =>
+        raw.Trim().Replace('/', '\\').Trim('\\');
 
     private void RefreshLocalInstallPackageCandidate()
     {
@@ -497,7 +549,8 @@ public partial class UpdateViewModel : ObservableObject
 
             _lastDownloadedPackagePath = newestZip.FullName;
             _lastDownloadedPackageName = newestZip.Name;
-            _lastDownloadedPackageSha256 ??= ComputeFileSha256(newestZip.FullName);
+            _lastDownloadedPackageSha256 = null;
+            _lastDownloadedReleaseTag = null;
         }
         catch
         {
@@ -551,19 +604,15 @@ public partial class UpdateViewModel : ObservableObject
     {
         var retryAfter = decision.RetryAfter ?? TimeSpan.Zero;
         var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
-        return IsChineseUi()
-            ? $"请求过于频繁，请在 {seconds} 秒后重试。"
-            : $"Too many requests. Please retry in {seconds} seconds.";
+        return string.Format(GetLoc("UpdateQuotaCooldownBlocked"), seconds);
     }
 
     private string BuildDailyLimitBlockedMessage(UpdateQuotaDecision decision)
     {
         var actionText = decision.Action == UpdateQuotaAction.Download
-            ? (IsChineseUi() ? "下载更新包" : "download update packages")
-            : (IsChineseUi() ? "检查更新" : "check for updates");
-        return IsChineseUi()
-            ? $"今日{actionText}次数已达上限（{decision.DailyLimit} 次）。请明天再试。"
-            : $"Daily limit reached for {actionText} ({decision.DailyLimit} per day). Please try again tomorrow.";
+            ? GetLoc("UpdateQuotaActionDownload")
+            : GetLoc("UpdateQuotaActionCheck");
+        return string.Format(GetLoc("UpdateQuotaDailyLimitBlocked"), actionText, decision.DailyLimit);
     }
 
     private string BuildUpdateCheckFailedMessageWithCacheFallback()
@@ -597,5 +646,21 @@ public partial class UpdateViewModel : ObservableObject
         if (utcTime <= DateTimeOffset.MinValue)
             return "--";
         return utcTime.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private void AppendNetworkFallbackNoticeIfAny()
+    {
+        var notice = _updateService.ConsumeLastNetworkFallbackNotice();
+        if (string.IsNullOrWhiteSpace(notice))
+            return;
+
+        if (string.IsNullOrWhiteSpace(StatusMessage))
+        {
+            StatusMessage = notice;
+            return;
+        }
+
+        if (!StatusMessage.Contains(notice, StringComparison.Ordinal))
+            StatusMessage = $"{StatusMessage} {notice}";
     }
 }

@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -37,11 +38,60 @@ jobs:
           dotnet restore "Gamepad Mapping.csproj"
           dotnet build "Gamepad Mapping.csproj" -c Release --no-restore
 
+  quality:
+    name: Quality gates
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore solution
+        run: dotnet restore "GamepadMapping.sln"
+
+      - name: Run tests
+        run: dotnet test "GamepadMapping.sln" -c Release --no-restore --nologo
+
+      - name: Detect release-related changes
+        id: changed
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            release_paths:
+              - 'Updater/**'
+              - 'publish/**'
+              - '.github/workflows/build.yml'
+              - 'Gamepad Mapping.csproj'
+              - 'GamepadMapping.sln'
+
+      - name: Updater release preflight
+        if: steps.changed.outputs.release_paths == 'true'
+        shell: pwsh
+        run: |
+          ./publish/preflight-release.ps1 -Configuration Release -RuntimeIdentifier win-x64
+
+      - name: Skip updater release preflight (no release path changes)
+        if: steps.changed.outputs.release_paths != 'true'
+        shell: pwsh
+        run: Write-Host "Skipping preflight: no updater/release pipeline files changed."
+
   release:
     name: Publish release
-    needs: build
+    needs: [build, quality]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
+    timeout-minutes: 30
+    environment: release
     permissions:
       contents: write
     steps:
@@ -63,6 +113,11 @@ jobs:
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false
           -o publish-fx
 
+      - name: Publish updater payload (win-x64, framework-dependent)
+        run: >
+          dotnet publish "Updater/Updater.csproj" -c Release -r win-x64 --self-contained false
+          -o publish-updater
+
       - name: Copy release docs into publish output
         shell: pwsh
         run: |
@@ -75,11 +130,108 @@ jobs:
             }
           }
 
+      - name: Load updater payload manifest
+        shell: pwsh
+        run: |
+          $manifest = "publish/updater-required-files.txt"
+          if (-not (Test-Path -LiteralPath $manifest)) {
+            throw "Updater payload manifest not found: $manifest"
+          }
+          $items = Get-Content -LiteralPath $manifest |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -and -not $_.StartsWith('#') }
+          if (-not $items -or $items.Count -eq 0) {
+            throw "Updater payload manifest is empty: $manifest"
+          }
+          $joined = [string]::Join(';', $items)
+          "UPDATER_REQUIRED_FILES=$joined" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Copy and verify updater payload in publish outputs
+        shell: pwsh
+        run: |
+          $required = $env:UPDATER_REQUIRED_FILES -split ';' | Where-Object { $_ }
+          foreach ($f in $required) {
+            $src = Join-Path 'publish-updater' $f
+            if (-not (Test-Path -LiteralPath $src)) {
+              throw "Missing required updater file in updater publish output: $src"
+            }
+            Copy-Item -LiteralPath $src -Destination 'publish-single' -Force
+            Copy-Item -LiteralPath $src -Destination 'publish-fx' -Force
+            foreach ($out in @('publish-single', 'publish-fx')) {
+              $path = Join-Path $out $f
+              if (-not (Test-Path -LiteralPath $path)) {
+                throw "Missing required updater file in publish output: $path"
+              }
+            }
+          }
+
       - name: Zip artifacts
         shell: pwsh
         run: |
           Compress-Archive -Path "publish-single\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip"
           Compress-Archive -Path "publish-fx\*" -DestinationPath "Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip"
+
+      - name: Generate SHA256SUMS
+        shell: pwsh
+        run: |
+          $files = @(
+            "Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip",
+            "Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip"
+          )
+          foreach ($f in $files) {
+            if (-not (Test-Path -LiteralPath $f)) {
+              throw "Missing release artifact: $f"
+            }
+          }
+          $lines = foreach ($f in $files) {
+            $hash = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $f"
+          }
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllLines("SHA256SUMS", $lines, $utf8)
+
+      - name: Sign SHA256SUMS (required)
+        shell: pwsh
+        env:
+          UPDATE_SIGNING_PRIVATE_KEY_PEM_B64: ${{ secrets.UPDATE_SIGNING_PRIVATE_KEY_PEM_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:UPDATE_SIGNING_PRIVATE_KEY_PEM_B64)) {
+            throw "Missing required secret: UPDATE_SIGNING_PRIVATE_KEY_PEM_B64"
+          }
+          $pemBytes = [Convert]::FromBase64String($env:UPDATE_SIGNING_PRIVATE_KEY_PEM_B64)
+          $pem = [System.Text.Encoding]::UTF8.GetString($pemBytes)
+          $rsa = [System.Security.Cryptography.RSA]::Create()
+          $rsa.ImportFromPem($pem)
+          $data = [System.IO.File]::ReadAllBytes("SHA256SUMS")
+          $signature = $rsa.SignData($data, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+          [System.IO.File]::WriteAllBytes("SHA256SUMS.sig", $signature)
+
+      - name: Verify SHA256SUMS signature in CI (self-check)
+        shell: pwsh
+        env:
+          UPDATE_SIGNING_PUBLIC_KEY_PEM_B64: ${{ secrets.UPDATE_SIGNING_PUBLIC_KEY_PEM_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:UPDATE_SIGNING_PUBLIC_KEY_PEM_B64)) {
+            throw "Missing required secret: UPDATE_SIGNING_PUBLIC_KEY_PEM_B64"
+          }
+          if (-not (Test-Path -LiteralPath "SHA256SUMS")) {
+            throw "Missing SHA256SUMS for signature verification."
+          }
+          if (-not (Test-Path -LiteralPath "SHA256SUMS.sig")) {
+            throw "Missing SHA256SUMS.sig for signature verification."
+          }
+
+          $pemBytes = [Convert]::FromBase64String($env:UPDATE_SIGNING_PUBLIC_KEY_PEM_B64)
+          $pem = [System.Text.Encoding]::UTF8.GetString($pemBytes)
+          $rsa = [System.Security.Cryptography.RSA]::Create()
+          $rsa.ImportFromPem($pem)
+
+          $data = [System.IO.File]::ReadAllBytes("SHA256SUMS")
+          $signature = [System.IO.File]::ReadAllBytes("SHA256SUMS.sig")
+          $ok = $rsa.VerifyData($data, $signature, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+          if (-not $ok) {
+            throw "Release integrity self-check failed: SHA256SUMS signature verification did not pass."
+          }
 
       - name: Prepare release body from CHANGELOG.md
         shell: pwsh
@@ -109,6 +261,23 @@ jobs:
           files: |
             Gamepad-Mapping-${{ github.ref_name }}-win-x64-single.zip
             Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip
+            SHA256SUMS
+            SHA256SUMS.sig
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-diagnostics-${{ github.ref_name }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            publish-single/**
+            publish-fx/**
+            publish-updater/**
+            release-body.md
+            SHA256SUMS
+            SHA256SUMS.sig

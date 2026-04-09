@@ -1,3 +1,41 @@
+## Changelog v2.1.1-alpha - 2026-04-09
+
+### Added
+
+- **Updater payload preflight script:** Added `publish/preflight-release.ps1` to validate updater payload manifest integrity and publish output consistency before release packaging.
+- **Single-source updater payload manifest:** Added `publish/updater-required-files.txt` as the canonical required-file list for updater release payload validation.
+
+### Changed
+
+- **Updater module naming cleanup:** Renamed `AtomicInstall*` types/files to `UpdaterInstall*` for clearer module intent without changing install behavior.
+- **Release packaging robustness:** Updated both local publish script and GitHub Actions release flow to explicitly publish/copy/verify updater runtime payload (`Updater.exe/.dll/.deps/.runtimeconfig`) in both `single` and `fx` artifacts.
+- **CI quality gates:** Added a dedicated `quality` job (tests + updater preflight), timeout controls (`20m/20m/30m`), release diagnostics artifact upload on failure, and path-aware preflight execution to reduce unnecessary CI time.
+- **Update-chain localization consistency:** Replaced remaining update-flow hardcoded status texts with resource keys and aligned EN/zh-CN resource entries.
+
+### Fixed
+
+- **Update download button enablement race:** Ensured update commands refresh `CanExecute` when `IsUpdateAvailable` / `IsChecking` changes so the download action becomes clickable immediately after a successful update check.
+- **RID publish path mismatch for updater payload:** Removed release-time gaps where updater files could be missing due to runtime-identifier output path differences.
+
+## 更新日志 v2.1.1-alpha - 2026-04-09
+
+### 新增
+
+- **更新器发布前自检脚本：** 新增 `publish/preflight-release.ps1`，在正式打包前校验 updater 载荷清单与发布产物一致性。
+- **Updater 载荷单一清单源：** 新增 `publish/updater-required-files.txt`，作为 updater 发布必需文件的统一来源。
+
+### 更改
+
+- **Updater 模块命名优化：** 将 `AtomicInstall*` 类型/文件统一重命名为 `UpdaterInstall*`，仅优化语义，不改变安装逻辑。
+- **发布打包链路加固：** 本地发布脚本与 GitHub Actions 发布流程均显式发布/拷贝/校验 updater 运行时载荷（`Updater.exe/.dll/.deps/.runtimeconfig`），覆盖 `single` 与 `fx` 两种产物。
+- **CI 质量门禁增强：** 新增 `quality` 作业（测试 + updater preflight）、超时控制（`20m/20m/30m`）、失败诊断产物上传，以及基于变更路径的 preflight 条件执行以减少不必要耗时。
+- **更新链路本地化一致性：** 将更新流程中剩余硬编码状态文案改为资源键，并补齐/对齐中英文资源项。
+
+### 修复
+
+- **下载按钮可点击状态竞态：** 在 `IsUpdateAvailable` / `IsChecking` 变化时刷新命令可执行状态，修复“检测到新版本后下载按钮不可点击”的问题。
+- **Updater 载荷 RID 路径不一致：** 修复因运行时标识输出目录差异导致的发布阶段 updater 文件缺失风险。
+
 ## Changelog v2.1.1 - 2026-04-08
 
 ### Added

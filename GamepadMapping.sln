@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamepadMapping.Tests", "Tests\GamepadMapping.Tests\GamepadMapping.Tests.csproj", "{8AF52585-2D20-4196-8FB3-E260F1FB722E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Updater", "Updater\Updater.csproj", "{6D061A03-9884-4C5C-B99A-075F74778AC7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{8AF52585-2D20-4196-8FB3-E260F1FB722E}.Release|x64.Build.0 = Release|Any CPU
 		{8AF52585-2D20-4196-8FB3-E260F1FB722E}.Release|x86.ActiveCfg = Release|Any CPU
 		{8AF52585-2D20-4196-8FB3-E260F1FB722E}.Release|x86.Build.0 = Release|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Debug|x64.Build.0 = Debug|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Debug|x86.Build.0 = Debug|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Release|x64.ActiveCfg = Release|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Release|x64.Build.0 = Release|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Release|x86.ActiveCfg = Release|Any CPU
+		{6D061A03-9884-4C5C-B99A-075F74778AC7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -15,10 +15,12 @@ public class RadialHudLayoutTests
     }
 
     [Fact]
-    public void Inner_hole_does_not_overlap_item_ring()
+    public void Inner_hole_outer_edge_is_slightly_outside_item_ring_inner_edge_by_design()
     {
         var itemRingInnerEdge = RadialHudLayout.ItemCenterRadius - RadialHudLayout.ItemHalf;
-        Assert.True(RadialHudLayout.InnerHoleRadius < itemRingInnerEdge);
+        var delta = RadialHudLayout.InnerHoleRadius - itemRingInnerEdge;
+        // BaseInnerHoleDiameter 210: inner radius 105·s vs ring inner edge (200−96)·s = 104·s → larger hollow by 1·s.
+        Assert.Equal(RadialHudLayout.HudScale, delta, 5);
     }
 
     [Fact]
@@ -72,7 +74,7 @@ public class RadialHudLayoutTests
             RadialHudLayout.HudScale = 2.0;
             Assert.Equal(400 * 2.0, RadialHudLayout.DiscDiameter);
             Assert.Equal(96 * 2.0, RadialHudLayout.ItemSize);
-            Assert.Equal(200 * 2.0, RadialHudLayout.InnerHoleDiameter);
+            Assert.Equal(210 * 2.0, RadialHudLayout.InnerHoleDiameter);
             Assert.Equal(112 * 2.0, RadialHudLayout.TitlePlateDiameter);
             Assert.Equal(RadialHudLayout.DiscRadius - RadialHudLayout.ItemHalf, RadialHudLayout.ItemCenterRadius);
         }

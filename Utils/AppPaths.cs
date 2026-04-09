@@ -117,5 +117,11 @@ public static class AppPaths
         var updatesDir = GetUpdateDownloadsDirectory();
         return Path.Combine(updatesDir, "latest-version-cache.json");
     }
+
+    public static string GetUpdateSecurityStateFilePath()
+    {
+        var updatesDir = GetUpdateDownloadsDirectory();
+        return Path.Combine(updatesDir, "update-security-state.json");
+    }
 }
 

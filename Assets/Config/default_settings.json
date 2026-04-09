@@ -2,5 +2,12 @@
   "schemaVersion": 1,
   "templatesDirectory": "Assets/Profiles/templates",
   "defaultProfileId": "default",
-  "githubMirrorBaseUrl": "https://ghfast.top/"
+  "githubMirrorBaseUrl": "",
+  "updateInstallPolicy": {
+    "preservePaths": [
+      "Assets/Profiles/templates",
+      "Assets/Config/local_settings.json"
+    ],
+    "removeOrphanFiles": true
+  }
 }

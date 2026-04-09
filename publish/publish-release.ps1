@@ -27,6 +27,19 @@ if (-not (Test-Path -LiteralPath $csproj)) {
     throw "Project not found: $csproj (keep this script in the publish/ folder at the repo root)."
 }
 
+$updaterManifestPath = Join-Path $publishRoot "updater-required-files.txt"
+if (-not (Test-Path -LiteralPath $updaterManifestPath)) {
+    throw "Updater payload manifest not found: $updaterManifestPath"
+}
+
+$requiredUpdaterFiles = Get-Content -LiteralPath $updaterManifestPath |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -and -not $_.StartsWith('#') }
+
+if (-not $requiredUpdaterFiles -or $requiredUpdaterFiles.Count -eq 0) {
+    throw "Updater payload manifest is empty: $updaterManifestPath"
+}
+
 if ([string]::IsNullOrWhiteSpace($Tag)) {
     Push-Location -LiteralPath $repoRoot
     try {
@@ -48,8 +61,9 @@ if ([string]::IsNullOrWhiteSpace($Tag)) {
 
 $publishSingle = Join-Path $publishRoot "single"
 $publishFx = Join-Path $publishRoot "fx"
+$publishUpdater = Join-Path $publishRoot "updater"
 
-foreach ($dir in @($publishSingle, $publishFx)) {
+foreach ($dir in @($publishSingle, $publishFx, $publishUpdater)) {
     if (Test-Path -LiteralPath $dir) {
         Remove-Item -LiteralPath $dir -Recurse -Force
     }
@@ -67,12 +81,35 @@ Write-Host "dotnet publish: framework-dependent win-x64 -> publish\fx" -Foregrou
     -o $publishFx
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+Write-Host "dotnet publish: updater payload (win-x64, framework-dependent) -> publish\\updater" -ForegroundColor Cyan
+& dotnet publish (Join-Path $repoRoot "Updater\Updater.csproj") -c Release -r win-x64 --self-contained false `
+    -o $publishUpdater
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 $docFiles = @('README.md', 'README_zh.md', 'CHANGELOG.md', 'RELEASE_NOTES.md')
 foreach ($outDir in @($publishSingle, $publishFx)) {
     foreach ($rel in $docFiles) {
         $src = Join-Path $repoRoot $rel
         if (Test-Path -LiteralPath $src) {
             Copy-Item -LiteralPath $src -Destination $outDir -Force
+        }
+    }
+}
+
+foreach ($f in $requiredUpdaterFiles) {
+    $src = Join-Path $publishUpdater $f
+    if (-not (Test-Path -LiteralPath $src)) {
+        throw "Updater publish output missing required file: $src"
+    }
+    Copy-Item -LiteralPath $src -Destination $publishSingle -Force
+    Copy-Item -LiteralPath $src -Destination $publishFx -Force
+}
+
+foreach ($outDir in @($publishSingle, $publishFx)) {
+    foreach ($f in $requiredUpdaterFiles) {
+        $p = Join-Path $outDir $f
+        if (-not (Test-Path -LiteralPath $p)) {
+            throw "Publish output missing required updater file: $p"
         }
     }
 }

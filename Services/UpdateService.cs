@@ -6,6 +6,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -15,6 +17,8 @@ using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Models.State;
+using GamepadMapperGUI.Utils;
 
 namespace GamepadMapperGUI.Services;
 
@@ -22,13 +26,16 @@ public class UpdateService : IUpdateService
 {
     private const string GitHubApiBase = "https://api.github.com/repos";
     private static readonly TimeSpan PrimaryEndpointTimeout = TimeSpan.FromSeconds(4);
+    private const long MaxReleaseAssetBytes = 1024L * 1024L * 1024L;
     private const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 GamepadMapping/1.0";
     
     private readonly HttpClient _httpClient;
     private readonly IGitHubContentService _gitHubContentService;
     private readonly IUpdateVersionCacheService _updateVersionCacheService;
     private readonly string _mirrorBaseUrl;
+    private readonly string _signingPublicKeyPem;
     private bool _preferMirror;
+    private string? _lastNetworkFallbackNotice;
 
     public UpdateService(
         IGitHubContentService? gitHubContentService = null,
@@ -40,6 +47,7 @@ public class UpdateService : IUpdateService
         _updateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
         var resolvedSettings = appSettings ?? (settingsService ?? new SettingsService()).LoadSettings();
         _mirrorBaseUrl = NormalizeMirrorBaseUrl(resolvedSettings.GithubMirrorBaseUrl);
+        _signingPublicKeyPem = UpdateReleaseSigningPublicKey.Pem.Trim();
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
     }
@@ -119,6 +127,27 @@ public class UpdateService : IUpdateService
             if (release is null)
                 return new ReleaseResolutionResult(null, null, null, "No release information found.");
 
+            var candidateTag = (release.TagName ?? string.Empty).Trim();
+            var currentVersion = GetCurrentVersion();
+            if (!IsNewerVersion(currentVersion, candidateTag))
+            {
+                return new ReleaseResolutionResult(
+                    release.TagName,
+                    release.HtmlUrl,
+                    null,
+                    $"Rollback protection blocked install: release {candidateTag} is not newer than current version {currentVersion}.");
+            }
+
+            var highestTrustedTag = TryGetHighestTrustedReleaseTag();
+            if (!string.IsNullOrWhiteSpace(highestTrustedTag) && IsOlderVersion(candidateTag, highestTrustedTag))
+            {
+                return new ReleaseResolutionResult(
+                    release.TagName,
+                    release.HtmlUrl,
+                    null,
+                    $"Rollback protection blocked install: release {candidateTag} is not newer than trusted baseline {highestTrustedTag}.");
+            }
+
             if (release.Assets is null || release.Assets.Count == 0)
                 return new ReleaseResolutionResult(release.TagName, release.HtmlUrl, null, "No downloadable assets in this release.");
 
@@ -127,6 +156,14 @@ public class UpdateService : IUpdateService
                 return new ReleaseResolutionResult(release.TagName, release.HtmlUrl, null, $"No matching ZIP asset found for installation mode: {installMode}.");
 
             var expectedSha256 = await TryResolveSha256ForAssetAsync(release.Assets, matched, cancellationToken);
+            if (string.IsNullOrWhiteSpace(expectedSha256))
+            {
+                return new ReleaseResolutionResult(
+                    release.TagName,
+                    release.HtmlUrl,
+                    null,
+                    "Signed checksum validation failed. Release packages must include verifiable SHA256SUMS.");
+            }
 
             return new ReleaseResolutionResult(
                 release.TagName,
@@ -144,6 +181,8 @@ public class UpdateService : IUpdateService
     {
         if (string.IsNullOrWhiteSpace(assetDownloadUrl))
             throw new ArgumentException("Asset download URL is required.", nameof(assetDownloadUrl));
+        if (!TryCreateSafeHttpsUri(assetDownloadUrl, out _))
+            throw new InvalidOperationException("Blocked non-HTTPS asset URL. Falling back to official GitHub download is required.");
 
         var destinationDirectory = Path.GetDirectoryName(destinationFilePath);
         if (!string.IsNullOrWhiteSpace(destinationDirectory))
@@ -152,6 +191,8 @@ public class UpdateService : IUpdateService
         using var response = await SendAssetRequestWithMirrorFallbackAsync(assetDownloadUrl, cancellationToken);
 
         var totalBytes = response.Content.Headers.ContentLength;
+        if (totalBytes.HasValue && totalBytes.Value > MaxReleaseAssetBytes)
+            throw new InvalidOperationException($"Blocked oversized update package ({totalBytes.Value} bytes). Maximum allowed is {MaxReleaseAssetBytes} bytes.");
         await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
         await using var output = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
 
@@ -168,6 +209,8 @@ public class UpdateService : IUpdateService
 
             await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             bytesReceived += read;
+            if (bytesReceived > MaxReleaseAssetBytes)
+                throw new InvalidOperationException($"Blocked oversized update package stream (>{MaxReleaseAssetBytes} bytes).");
 
             var elapsed = stopwatch.Elapsed;
             if (elapsed - lastReportAt < TimeSpan.FromMilliseconds(200) && totalBytes.HasValue && bytesReceived < totalBytes.Value)
@@ -186,6 +229,11 @@ public class UpdateService : IUpdateService
         }
 
         progress?.Report(new ReleaseDownloadProgress(bytesReceived, totalBytes, 0d, TimeSpan.Zero));
+    }
+
+    public string? ConsumeLastNetworkFallbackNotice()
+    {
+        return Interlocked.Exchange(ref _lastNetworkFallbackNotice, null);
     }
 
     private string GetCurrentVersion()
@@ -239,6 +287,21 @@ public class UpdateService : IUpdateService
         return string.Compare(l, c, StringComparison.OrdinalIgnoreCase) > 0;
     }
 
+    private bool IsOlderVersion(string candidate, string baseline) =>
+        !IsNewerVersion(candidate, baseline) && !AreSameVersion(candidate, baseline);
+
+    private static bool AreSameVersion(string a, string b) =>
+        string.Equals(NormalizeVersionForEquality(a), NormalizeVersionForEquality(b), StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeVersionForEquality(string version)
+    {
+        var v = (version ?? string.Empty).Trim().TrimStart('v');
+        var plus = v.IndexOf('+');
+        if (plus >= 0)
+            v = v[..plus];
+        return v;
+    }
+
     private async Task<GitHubRelease?> GetLatestReleaseAsync(string owner, string repo, bool includePrereleases, CancellationToken cancellationToken)
     {
         var url = includePrereleases
@@ -263,20 +326,31 @@ public class UpdateService : IUpdateService
         string accept,
         CancellationToken cancellationToken = default)
     {
-        var mirrorUrl = _gitHubContentService.BuildMirrorProxyUrl(apiUrl, _mirrorBaseUrl);
-        if (_preferMirror)
+        if (!TryCreateSafeHttpsUri(apiUrl, out _))
+            throw new InvalidOperationException("Blocked non-HTTPS GitHub API URL.");
+
+        var mirrorEnabled = !string.IsNullOrWhiteSpace(_mirrorBaseUrl);
+        var mirrorUrl = mirrorEnabled ? _gitHubContentService.BuildMirrorProxyUrl(apiUrl, _mirrorBaseUrl) : string.Empty;
+        var mirrorAllowed = TryCreateSafeHttpsUri(mirrorUrl, out _);
+        if (mirrorEnabled && !mirrorAllowed)
+            SetNetworkFallbackNotice();
+        if (_preferMirror && mirrorEnabled)
         {
             try
             {
-                var mirrored = await _gitHubContentService.GetGitHubApiStringAsync(
-                    mirrorUrl,
-                    accept,
-                    cancellationToken);
-                return mirrored;
+                if (mirrorAllowed)
+                {
+                    var mirrored = await _gitHubContentService.GetGitHubApiStringAsync(
+                        mirrorUrl,
+                        accept,
+                        cancellationToken);
+                    return mirrored;
+                }
             }
             catch
             {
                 // Mirror unavailable, fallback to GitHub origin.
+                SetNetworkFallbackNotice();
             }
         }
 
@@ -293,6 +367,8 @@ public class UpdateService : IUpdateService
         }
         catch
         {
+            if (!mirrorEnabled || !mirrorAllowed)
+                throw;
             var mirrored = await _gitHubContentService.GetGitHubApiStringAsync(
                 mirrorUrl,
                 accept,
@@ -306,30 +382,43 @@ public class UpdateService : IUpdateService
         string originUrl,
         CancellationToken cancellationToken)
     {
-        var mirrorUrl = _gitHubContentService.BuildMirrorProxyUrl(originUrl, _mirrorBaseUrl);
+        if (!TryCreateSafeHttpsUri(originUrl, out _))
+            throw new InvalidOperationException("Blocked non-HTTPS asset URL.");
 
-        if (_preferMirror)
+        var mirrorEnabled = !string.IsNullOrWhiteSpace(_mirrorBaseUrl);
+        var mirrorUrl = mirrorEnabled ? _gitHubContentService.BuildMirrorProxyUrl(originUrl, _mirrorBaseUrl) : string.Empty;
+        var mirrorAllowed = TryCreateSafeHttpsUri(mirrorUrl, out _);
+        if (mirrorEnabled && !mirrorAllowed)
+            SetNetworkFallbackNotice();
+
+        if (_preferMirror && mirrorEnabled)
         {
             try
             {
-                var mirroredResponse = await SendAssetRequestAsync(mirrorUrl, cancellationToken);
-                _preferMirror = true;
-                return mirroredResponse;
+                if (mirrorAllowed)
+                {
+                    var mirroredResponse = await SendAssetRequestAsync(mirrorUrl, cancellationToken);
+                    _preferMirror = true;
+                    return mirroredResponse;
+                }
             }
             catch
             {
                 // Mirror failed; fallback to origin.
+                SetNetworkFallbackNotice();
             }
         }
 
         try
         {
-            var originResponse = await SendAssetRequestAsync(originUrl, cancellationToken, applyPrimaryTimeout: true);
+            var originResponse = await SendAssetRequestAsync(originUrl, cancellationToken);
             _preferMirror = false;
             return originResponse;
         }
         catch
         {
+            if (!mirrorEnabled || !mirrorAllowed)
+                throw;
             var mirroredResponse = await SendAssetRequestAsync(mirrorUrl, cancellationToken);
             _preferMirror = true;
             return mirroredResponse;
@@ -338,32 +427,47 @@ public class UpdateService : IUpdateService
 
     private async Task<HttpResponseMessage> SendAssetRequestAsync(
         string url,
-        CancellationToken cancellationToken,
-        bool applyPrimaryTimeout = false)
+        CancellationToken cancellationToken)
     {
+        if (!TryCreateSafeHttpsUri(url, out _))
+            throw new InvalidOperationException($"Blocked non-HTTPS asset endpoint: {url}");
+
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
-
-        if (!applyPrimaryTimeout)
-        {
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            return response;
-        }
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(PrimaryEndpointTimeout);
-        var timeoutResponse = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-        timeoutResponse.EnsureSuccessStatusCode();
-        return timeoutResponse;
+        var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return response;
     }
 
     private static string NormalizeMirrorBaseUrl(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
-            return "https://ghfast.top/";
+            return string.Empty;
         var trimmed = raw.Trim();
+        if (!TryCreateSafeHttpsUri(trimmed, out _))
+            return string.Empty;
         return trimmed.EndsWith("/", StringComparison.Ordinal) ? trimmed : $"{trimmed}/";
+    }
+
+    private static bool TryCreateSafeHttpsUri(string? raw, out Uri? uri)
+    {
+        uri = null;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+        if (!Uri.TryCreate(raw.Trim(), UriKind.Absolute, out var parsed))
+            return false;
+        if (!string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (string.IsNullOrWhiteSpace(parsed.Host))
+            return false;
+        uri = parsed;
+        return true;
+    }
+
+    private void SetNetworkFallbackNotice()
+    {
+        const string notice = "检测到镜像地址异常或不可用，请检查你的URL，正在回退使用GitHub官方链接。";
+        Interlocked.Exchange(ref _lastNetworkFallbackNotice, notice);
     }
 
     private static GitHubAsset? ResolveBestAsset(IReadOnlyList<GitHubAsset> assets, AppInstallMode installMode)
@@ -398,16 +502,20 @@ public class UpdateService : IUpdateService
         if (packageName.Length == 0)
             return null;
 
-        static bool IsChecksumAsset(GitHubAsset asset) =>
-            (asset.Name ?? string.Empty).Contains("sha256", StringComparison.OrdinalIgnoreCase);
-
-        var checksumAsset = assets.FirstOrDefault(IsChecksumAsset);
-        if (checksumAsset?.BrowserDownloadUrl is null)
+        var checksumsAsset = assets.FirstOrDefault(a =>
+            string.Equals(a.Name, "SHA256SUMS", StringComparison.OrdinalIgnoreCase));
+        var signatureAsset = assets.FirstOrDefault(a =>
+            string.Equals(a.Name, "SHA256SUMS.sig", StringComparison.OrdinalIgnoreCase));
+        if (checksumsAsset?.BrowserDownloadUrl is null || signatureAsset?.BrowserDownloadUrl is null)
             return null;
 
         try
         {
-            var checksumContent = await DownloadTextAssetWithMirrorFallbackAsync(checksumAsset.BrowserDownloadUrl, cancellationToken);
+            var checksumBytes = await DownloadBinaryAssetWithMirrorFallbackAsync(checksumsAsset.BrowserDownloadUrl, cancellationToken);
+            var signatureBytes = await DownloadBinaryAssetWithMirrorFallbackAsync(signatureAsset.BrowserDownloadUrl, cancellationToken);
+            if (!VerifyChecksumSignature(checksumBytes, signatureBytes))
+                return null;
+            var checksumContent = Encoding.UTF8.GetString(checksumBytes);
             return ParseSha256FromChecksumContent(checksumContent, packageName);
         }
         catch
@@ -416,10 +524,50 @@ public class UpdateService : IUpdateService
         }
     }
 
-    private async Task<string> DownloadTextAssetWithMirrorFallbackAsync(string assetDownloadUrl, CancellationToken cancellationToken)
+    private async Task<byte[]> DownloadBinaryAssetWithMirrorFallbackAsync(string assetDownloadUrl, CancellationToken cancellationToken)
     {
         using var response = await SendAssetRequestWithMirrorFallbackAsync(assetDownloadUrl, cancellationToken);
-        return await response.Content.ReadAsStringAsync(cancellationToken);
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
+    private bool VerifyChecksumSignature(byte[] checksumBytes, byte[] signatureBytes)
+    {
+        if (checksumBytes is null || checksumBytes.Length == 0 || signatureBytes is null || signatureBytes.Length == 0)
+            return false;
+        if (string.IsNullOrWhiteSpace(_signingPublicKeyPem))
+            return false;
+
+        try
+        {
+            using var rsa = RSA.Create();
+            rsa.ImportFromPem(_signingPublicKeyPem);
+            return rsa.VerifyData(checksumBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string? TryGetHighestTrustedReleaseTag()
+    {
+        try
+        {
+            var path = AppPaths.GetUpdateSecurityStateFilePath();
+            if (!File.Exists(path))
+                return null;
+
+            var json = File.ReadAllText(path, Encoding.UTF8);
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+
+            var state = JsonSerializer.Deserialize<UpdateSecurityState>(json);
+            return state?.HighestTrustedReleaseTag?.Trim();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string? ParseSha256FromChecksumContent(string content, string packageFileName)

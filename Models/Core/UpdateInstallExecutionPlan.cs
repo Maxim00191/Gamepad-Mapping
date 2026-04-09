@@ -1,14 +1,16 @@
+using System;
 using System.Collections.Generic;
 
 namespace GamepadMapperGUI.Models.Core;
 
-public sealed record UpdateInstallRequest(
+public sealed record UpdateInstallExecutionPlan(
     string ZipPackagePath,
     string TargetDirectoryPath,
     string AppExecutablePath,
     IReadOnlyList<string> PreserveDirectoryNames,
     int ProcessIdToWaitFor,
-    string? TrustedReleaseTag = null,
-    string? ExpectedZipSha256 = null,
-    string? InstallLogPath = null,
-    bool RemoveOrphanFiles = true);
+    string? TrustedReleaseTag,
+    string ExpectedZipSha256,
+    string InstallLogPath,
+    bool RemoveOrphanFiles,
+    DateTimeOffset CreatedAtUtc);

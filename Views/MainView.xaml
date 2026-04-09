@@ -298,15 +298,8 @@
                                                             Content="{Binding DownloadPrimaryActionText}"
                                                             Padding="0,6"
                                                             Style="{StaticResource AppAccentButtonStyle}"
-                                                            Command="{Binding DownloadUpdateCommand}"
-                                                            IsEnabled="{Binding IsDownloading, Converter={StaticResource InverseBooleanConverter}}" />
-                                                    <Button Grid.Column="1"
-                                                            Content="{Binding Source={StaticResource Loc}, Path=[UpdateCancelButton], Mode=OneWay}"
-                                                            Margin="8,0,0,0"
-                                                            Padding="12,6"
-                                                            VerticalAlignment="Center"
-                                                            Command="{Binding CancelDownloadCommand}"
-                                                            Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                            Command="{Binding DownloadOrStopCommand}" />
+                                                    <Border Grid.Column="1" />
                                                 </Grid>
 
                                                 <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
