@@ -20,6 +20,7 @@ var exitCode = ExitGeneralFailure;
 try
 {
     var planPath = ResolvePlanPath(args);
+    var ackPath = ResolveAckPath(args);
     if (!File.Exists(planPath))
         throw new FileNotFoundException("Install plan not found.", planPath);
 
@@ -27,6 +28,8 @@ try
     var plan = JsonSerializer.Deserialize<InstallExecutionPlanDto>(json);
     if (plan is null)
         throw new InvalidOperationException("Failed to parse install plan.");
+
+    TryWriteAckFile(ackPath);
 
     var runner = new UpdaterInstallRunner();
     exitCode = runner.Run(plan);
@@ -70,6 +73,29 @@ static string ResolvePlanPath(string[] args)
     }
 
     throw new ArgumentException("Missing required argument: --plan <path>");
+}
+
+static string? ResolveAckPath(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (string.Equals(args[i], "--ack", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+            return args[i + 1];
+    }
+
+    return null;
+}
+
+static void TryWriteAckFile(string? ackPath)
+{
+    if (string.IsNullOrWhiteSpace(ackPath))
+        return;
+
+    var fullPath = Path.GetFullPath(ackPath);
+    var dir = Path.GetDirectoryName(fullPath);
+    if (!string.IsNullOrWhiteSpace(dir))
+        Directory.CreateDirectory(dir);
+    File.WriteAllText(fullPath, DateTimeOffset.UtcNow.ToString("O"));
 }
 
 static void RelaunchFromTemp(string[] originalArgs)

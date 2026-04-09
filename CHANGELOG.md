@@ -5,12 +5,32 @@
 - **Public testing build (beta):** This release is for update-chain verification and may contain breaking issues. Please avoid downloading/installing unless you are explicitly participating in beta validation.
 - **Upgrade path validation focus:** Intended to verify real-world migration from `v2.1.2-alpha` to signed updater releases (`beta` and later), including download, integrity verification, install handoff, and restart flow.
 
+### Changed
+
+- **Updater startup handoff reliability:** Added an explicit startup handshake (`--ack`) between main app and updater. The main app now waits for updater acknowledgment before shutdown, reducing "black window flash then no update" failures.
+- **Release-note extraction in CI:** Updated release-body extraction to capture the full same-version block (English + Chinese), preventing truncation at the Chinese section heading.
+
+### Fixed
+
+- **Installer caller PID timing mismatch:** Relaxed caller-process validation for the expected handoff case where the original process exits before updater validation starts, avoiding silent early exit with no install progress.
+- **Settings initialization race in tests/CI:** Hardened first-run local settings bootstrap against concurrent file creation (`already exists`) during parallel test execution.
+
 ## 更新日志 v2.1.2-beta - 2026-04-09
 
 ### 说明
 
 - **公开测试版（beta）：** 该版本用于更新链路验证，可能存在稳定性或兼容性问题。若你不是明确参与测试，请尽量不要下载或安装。
 - **升级链路验证优先：** 该版本重点验证从 `v2.1.2-alpha` 升级到后续签名版本（`beta` 及以后）的全流程，包括下载、完整性校验、安装交接与重启路径。
+
+### 更改
+
+- **Updater 启动交接可靠性：** 新增主程序与 updater 的启动握手机制（`--ack`）。主程序仅在收到 updater 接管确认后才退出，降低“黑窗一闪后无更新”的失败概率。
+- **CI 发布说明提取：** 调整 release body 提取规则，按同版本范围提取完整中英文段，避免在中文标题处被截断。
+
+### 修复
+
+- **安装调用方 PID 时序不匹配：** 兼容“主进程先退出、updater 后校验”的正常交接时序，避免因 PID 已退出导致 updater 过早失败且无安装进展。
+- **测试/CI 设置初始化并发竞态：** 加固首次本地设置初始化流程，规避并行测试场景下 `already exists` 文件竞争导致的偶发失败。
 
 ## Changelog v2.1.2-alpha - 2026-04-09
 

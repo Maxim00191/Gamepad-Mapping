@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Utils;
@@ -32,6 +33,7 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
         var planDirectory = Path.Combine(AppPaths.GetUpdateDownloadsDirectory(), "install-plans");
         Directory.CreateDirectory(planDirectory);
         var planPath = Path.Combine(planDirectory, $"install-plan-{Guid.NewGuid():N}.json");
+        var ackPath = Path.Combine(planDirectory, $"install-ack-{Guid.NewGuid():N}.txt");
 
         var preserveNames = (request.PreserveDirectoryNames ?? [])
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -63,7 +65,7 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
         var psi = new ProcessStartInfo
         {
             FileName = updaterPath,
-            Arguments = $"--plan \"{planPath}\"",
+            Arguments = $"--plan \"{planPath}\" --ack \"{ackPath}\"",
             UseShellExecute = true,
             Verb = needsElevation ? "runas" : "open",
             WorkingDirectory = request.TargetDirectoryPath,
@@ -72,10 +74,15 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
 
         try
         {
+            TryDeleteFileIfExists(ackPath);
             var process = Process.Start(psi);
-            return process is null
-                ? new UpdateInstallExecutionResult(false, "Failed to start updater process.")
-                : new UpdateInstallExecutionResult(true);
+            if (process is null)
+                return new UpdateInstallExecutionResult(false, "Failed to start updater process.");
+
+            var handshake = WaitForUpdaterHandshake(process, ackPath, timeoutMs: 20000);
+            return handshake.Succeeded
+                ? new UpdateInstallExecutionResult(true)
+                : new UpdateInstallExecutionResult(false, handshake.ErrorMessage);
         }
         catch (Exception ex)
         {
@@ -151,6 +158,36 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
         catch
         {
             return false;
+        }
+    }
+
+    private static (bool Succeeded, string? ErrorMessage) WaitForUpdaterHandshake(Process process, string ackPath, int timeoutMs)
+    {
+        var deadlineUtc = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < deadlineUtc)
+        {
+            if (File.Exists(ackPath))
+                return (true, null);
+
+            if (process.HasExited)
+                return (false, $"Updater exited before startup handshake (exit code {process.ExitCode}).");
+
+            Thread.Sleep(100);
+        }
+
+        return (false, "Updater startup handshake timed out before confirmation.");
+    }
+
+    private static void TryDeleteFileIfExists(string path)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // Best effort cleanup.
         }
     }
 }

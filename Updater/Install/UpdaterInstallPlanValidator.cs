@@ -42,7 +42,7 @@ internal static class UpdaterInstallPlanValidator
 
         if (plan.ProcessIdToWaitFor <= 0)
             throw new InvalidOperationException("Invalid installer caller process id.");
-        if (!IsMatchingCallerProcess(plan.ProcessIdToWaitFor, appExePath))
+        if (!IsMatchingCallerProcessOrExited(plan.ProcessIdToWaitFor, appExePath))
             throw new InvalidOperationException("Installer caller process verification failed.");
 
         var marker = Path.Combine(targetDir, "Assets", "Config", "default_settings.json");
@@ -50,7 +50,7 @@ internal static class UpdaterInstallPlanValidator
             throw new InvalidOperationException("Target directory is not recognized as a valid Gamepad Mapping installation.");
     }
 
-    private static bool IsMatchingCallerProcess(int processId, string expectedProcessPath)
+    private static bool IsMatchingCallerProcessOrExited(int processId, string expectedProcessPath)
     {
         try
         {
@@ -62,6 +62,12 @@ internal static class UpdaterInstallPlanValidator
                 Path.GetFullPath(actualPath),
                 Path.GetFullPath(expectedProcessPath),
                 StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException)
+        {
+            // Caller process already exited before updater validation runs.
+            // This is expected in the normal handoff flow.
+            return true;
         }
         catch
         {
