@@ -1,4 +1,4 @@
-## Changelog v2.1.1-alpha - 2026-04-09
+## Changelog v2.1.2-alpha - 2026-04-09
 
 ### Added
 
@@ -17,7 +17,7 @@
 - **Update download button enablement race:** Ensured update commands refresh `CanExecute` when `IsUpdateAvailable` / `IsChecking` changes so the download action becomes clickable immediately after a successful update check.
 - **RID publish path mismatch for updater payload:** Removed release-time gaps where updater files could be missing due to runtime-identifier output path differences.
 
-## 更新日志 v2.1.1-alpha - 2026-04-09
+## 更新日志 v2.1.2-alpha - 2026-04-09
 
 ### 新增
 
