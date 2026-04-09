@@ -38,7 +38,15 @@ public class SettingsService : ISettingsService
         if (!_fileSystem.FileExists(localPath) && _fileSystem.FileExists(defaultPath))
         {
             _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(localPath)!);
-            _fileSystem.CopyFile(defaultPath, localPath, overwrite: false);
+            try
+            {
+                _fileSystem.CopyFile(defaultPath, localPath, overwrite: false);
+            }
+            catch (IOException) when (_fileSystem.FileExists(localPath))
+            {
+                // Another concurrent initialization already created local settings.
+                // Treat as success and continue loading from localPath.
+            }
         }
 
         var pathToLoad = _fileSystem.FileExists(localPath) ? localPath : defaultPath;
