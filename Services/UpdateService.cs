@@ -515,6 +515,7 @@ public class UpdateService : IUpdateService
             var signatureBytes = await DownloadBinaryAssetWithMirrorFallbackAsync(signatureAsset.BrowserDownloadUrl, cancellationToken);
             if (!VerifyChecksumSignature(checksumBytes, signatureBytes))
                 return null;
+            PersistVerifiedChecksumArtifacts(checksumBytes, signatureBytes);
             var checksumContent = Encoding.UTF8.GetString(checksumBytes);
             return ParseSha256FromChecksumContent(checksumContent, packageName);
         }
@@ -546,6 +547,22 @@ public class UpdateService : IUpdateService
         catch
         {
             return false;
+        }
+    }
+
+    private static void PersistVerifiedChecksumArtifacts(byte[] checksumBytes, byte[] signatureBytes)
+    {
+        try
+        {
+            var updatesDir = AppPaths.GetUpdateDownloadsDirectory();
+            var checksumPath = Path.Combine(updatesDir, "SHA256SUMS");
+            var signaturePath = Path.Combine(updatesDir, "SHA256SUMS.sig");
+            File.WriteAllBytes(checksumPath, checksumBytes);
+            File.WriteAllBytes(signaturePath, signatureBytes);
+        }
+        catch
+        {
+            // Best effort cache for local reinstall path; live download/install flow should continue.
         }
     }
 

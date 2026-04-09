@@ -4,7 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -549,13 +551,86 @@ public partial class UpdateViewModel : ObservableObject
 
             _lastDownloadedPackagePath = newestZip.FullName;
             _lastDownloadedPackageName = newestZip.Name;
-            _lastDownloadedPackageSha256 = null;
+            _lastDownloadedPackageSha256 = TryResolveExpectedSha256ForLocalPackage(newestZip.FullName);
             _lastDownloadedReleaseTag = null;
         }
         catch
         {
             // Ignore local package discovery failures.
         }
+    }
+
+    private string? TryResolveExpectedSha256ForLocalPackage(string packagePath)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(packagePath))
+                return null;
+
+            var packageName = Path.GetFileName(packagePath);
+            if (string.IsNullOrWhiteSpace(packageName))
+                return null;
+
+            var updatesDir = AppPaths.GetUpdateDownloadsDirectory();
+            var checksumPath = Path.Combine(updatesDir, "SHA256SUMS");
+            var signaturePath = Path.Combine(updatesDir, "SHA256SUMS.sig");
+            if (!File.Exists(checksumPath) || !File.Exists(signaturePath))
+                return null;
+
+            var checksumBytes = File.ReadAllBytes(checksumPath);
+            var signatureBytes = File.ReadAllBytes(signaturePath);
+            if (!VerifyLocalChecksumSignature(checksumBytes, signatureBytes))
+                return null;
+
+            var checksumContent = Encoding.UTF8.GetString(checksumBytes);
+            return ParseSha256FromChecksumContent(checksumContent, packageName);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool VerifyLocalChecksumSignature(byte[] checksumBytes, byte[] signatureBytes)
+    {
+        if (checksumBytes is null || checksumBytes.Length == 0 || signatureBytes is null || signatureBytes.Length == 0)
+            return false;
+
+        try
+        {
+            using var rsa = RSA.Create();
+            rsa.ImportFromPem(UpdateReleaseSigningPublicKey.Pem.Trim());
+            return rsa.VerifyData(checksumBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string? ParseSha256FromChecksumContent(string content, string packageFileName)
+    {
+        if (string.IsNullOrWhiteSpace(content) || string.IsNullOrWhiteSpace(packageFileName))
+            return null;
+
+        var lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var escapedName = Regex.Escape(packageFileName);
+        var pattern = $@"\b([A-Fa-f0-9]{{64}})\b(?:\s+\*?{escapedName})?$";
+        foreach (var line in lines)
+        {
+            var match = Regex.Match(line, pattern, RegexOptions.CultureInvariant);
+            if (match.Success)
+                return match.Groups[1].Value.ToLowerInvariant();
+        }
+
+        if (lines.Length == 1)
+        {
+            var single = Regex.Match(lines[0], @"\b([A-Fa-f0-9]{64})\b", RegexOptions.CultureInvariant);
+            if (single.Success)
+                return single.Groups[1].Value.ToLowerInvariant();
+        }
+
+        return null;
     }
 
     private void TryDeleteFileIfExists(string? path)

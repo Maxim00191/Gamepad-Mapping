@@ -1,36 +1,48 @@
-## Changelog v2.1.2-beta - 2026-04-09
+## Changelog v2.1.3-alpha - 2026-04-09
 
 ### Note
+- **Public testing build (alpha):** This release is for update-chain verification and may contain breaking issues. Please avoid downloading/installing unless you are explicitly participating in alpha validation.
+- **Upgrade path validation focus:** Intended to verify real-world migration from `v2.1.2-beta` to signed updater releases (`v2.1.3-alpha` and later), including download, integrity verification, install handoff, and restart flow.
 
-- **Public testing build (beta):** This release is for update-chain verification and may contain breaking issues. Please avoid downloading/installing unless you are explicitly participating in beta validation.
-- **Upgrade path validation focus:** Intended to verify real-world migration from `v2.1.2-alpha` to signed updater releases (`beta` and later), including download, integrity verification, install handoff, and restart flow.
+
+## 更新日志 v2.1.3-alpha - 2026-04-09
+
+### 说明
+- **公开测试版（alpha）：** 该版本用于更新链路验证，可能存在稳定性或兼容性问题。若你不是明确参与测试，请尽量不要下载或安装。
+- **升级链路验证优先：** 该版本重点验证从 `v2.1.2-beta` 升级到后续签名版本（`v2.1.3-alpha` 及以后）的全流程，包括下载、完整性校验、安装交接与重启路径。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.3-alpha](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.3-alpha)
+
+
+## Changelog v2.1.2-beta - 2026-04-09
 
 ### Changed
 
 - **Updater startup handoff reliability:** Added an explicit startup handshake (`--ack`) between main app and updater. The main app now waits for updater acknowledgment before shutdown, reducing "black window flash then no update" failures.
 - **Release-note extraction in CI:** Updated release-body extraction to capture the full same-version block (English + Chinese), preventing truncation at the Chinese section heading.
+- **Local reinstall ergonomics with signature retention:** Persist verified `SHA256SUMS` and `SHA256SUMS.sig` under `Updates/` so retry installs can reuse local artifacts instead of forcing a full re-download.
 
 ### Fixed
 
 - **Installer caller PID timing mismatch:** Relaxed caller-process validation for the expected handoff case where the original process exits before updater validation starts, avoiding silent early exit with no install progress.
 - **Settings initialization race in tests/CI:** Hardened first-run local settings bootstrap against concurrent file creation (`already exists`) during parallel test execution.
+- **Local package reinstall validation path:** Local install now re-verifies checksum signature from cached `SHA256SUMS(.sig)` and resolves expected SHA-256 for the selected ZIP before install handoff.
 
 ## 更新日志 v2.1.2-beta - 2026-04-09
-
-### 说明
-
-- **公开测试版（beta）：** 该版本用于更新链路验证，可能存在稳定性或兼容性问题。若你不是明确参与测试，请尽量不要下载或安装。
-- **升级链路验证优先：** 该版本重点验证从 `v2.1.2-alpha` 升级到后续签名版本（`beta` 及以后）的全流程，包括下载、完整性校验、安装交接与重启路径。
 
 ### 更改
 
 - **Updater 启动交接可靠性：** 新增主程序与 updater 的启动握手机制（`--ack`）。主程序仅在收到 updater 接管确认后才退出，降低“黑窗一闪后无更新”的失败概率。
 - **CI 发布说明提取：** 调整 release body 提取规则，按同版本范围提取完整中英文段，避免在中文标题处被截断。
+- **本地重装体验优化并保留签名文件：** 在 `Updates/` 下保留已验证通过的 `SHA256SUMS` 与 `SHA256SUMS.sig`，失败重试安装时可复用本地校验资产，减少重复下载。
 
 ### 修复
 
 - **安装调用方 PID 时序不匹配：** 兼容“主进程先退出、updater 后校验”的正常交接时序，避免因 PID 已退出导致 updater 过早失败且无安装进展。
 - **测试/CI 设置初始化并发竞态：** 加固首次本地设置初始化流程，规避并行测试场景下 `already exists` 文件竞争导致的偶发失败。
+- **本地安装包重试校验路径：** 本地安装前会基于缓存的 `SHA256SUMS(.sig)` 重新验签并解析目标 ZIP 的期望 SHA-256，再交给安装流程，防止篡改包绕过。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.2-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.2-beta)
 
 ## Changelog v2.1.2-alpha - 2026-04-09
 
@@ -69,6 +81,8 @@
 
 - **下载按钮可点击状态竞态：** 在 `IsUpdateAvailable` / `IsChecking` 变化时刷新命令可执行状态，修复“检测到新版本后下载按钮不可点击”的问题。
 - **Updater 载荷 RID 路径不一致：** 修复因运行时标识输出目录差异导致的发布阶段 updater 文件缺失风险。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.1...v2.1.2-alpha](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.1...v2.1.2-alpha)
 
 ## Changelog v2.1.1 - 2026-04-08
 
@@ -111,6 +125,8 @@
 
 - **缓存写入保护：** 仅在成功解析 release 时写入最新版本缓存；超时/网络/API 错误不再污染缓存状态。
 - **时间回拨防护：** 配额状态增加单调时间约束，降低通过本地回拨系统时间绕过限制的可能性。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0...v2.1.1](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0...v2.1.1)
 
 ## Changelog v2.1.0 - 2026-04-07
 
