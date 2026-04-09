@@ -241,15 +241,18 @@ jobs:
         run: |
           $raw = Get-Content -LiteralPath "CHANGELOG.md" -Raw
           if ([string]::IsNullOrWhiteSpace($raw)) { throw "CHANGELOG.md is empty." }
-          $pattern = '(?ms)^## (?:Changelog|更新日志) `?v.+?`?(?=^## (?:Changelog|更新日志) `?v|\z)'
+          $ver = $env:TAG_NAME.TrimStart('v')
+          $escapedVer = [regex]::Escape($ver)
+          # Capture the full release block for this version:
+          # English section + optional Chinese section, up to next English version heading.
+          $pattern = "(?ms)^##\s+Changelog\s+`?v$escapedVer`?.*?(?=^##\s+Changelog\s+`?v|\z)"
           if ($raw -notmatch $pattern) {
-            throw "CHANGELOG.md must contain a top section starting with '## Changelog v...' or '## 更新日志 v...'."
+            throw "CHANGELOG.md must contain a section starting with '## Changelog v$ver'."
           }
           $body = $matches[0].TrimEnd()
-          $ver = $env:TAG_NAME.TrimStart('v')
           $firstLine = (($body -split "`r?`n")[0]).TrimEnd()
-          if ($firstLine -notmatch "^## (?:Changelog|更新日志) `?v$([regex]::Escape($ver))`?(\s|—|$)") {
-            throw "CHANGELOG first heading must be '## Changelog v$ver ...' or '## 更新日志 v$ver ...' (tag $($env:TAG_NAME)); got: $firstLine"
+          if ($firstLine -notmatch "^##\s+Changelog\s+`?v$escapedVer`?(\s|—|-|$)") {
+            throw "CHANGELOG first heading must be '## Changelog v$ver ...' (tag $($env:TAG_NAME)); got: $firstLine"
           }
           $path = Join-Path (Get-Location) "release-body.md"
           $utf8 = New-Object System.Text.UTF8Encoding($false)

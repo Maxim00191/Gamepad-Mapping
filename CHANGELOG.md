@@ -1,3 +1,17 @@
+## Changelog v2.1.2-beta - 2026-04-09
+
+### Note
+
+- **Public testing build (beta):** This release is for update-chain verification and may contain breaking issues. Please avoid downloading/installing unless you are explicitly participating in beta validation.
+- **Upgrade path validation focus:** Intended to verify real-world migration from `v2.1.2-alpha` to signed updater releases (`beta` and later), including download, integrity verification, install handoff, and restart flow.
+
+## 更新日志 v2.1.2-beta - 2026-04-09
+
+### 说明
+
+- **公开测试版（beta）：** 该版本用于更新链路验证，可能存在稳定性或兼容性问题。若你不是明确参与测试，请尽量不要下载或安装。
+- **升级链路验证优先：** 该版本重点验证从 `v2.1.2-alpha` 升级到后续签名版本（`beta` 及以后）的全流程，包括下载、完整性校验、安装交接与重启路径。
+
 ## Changelog v2.1.2-alpha - 2026-04-09
 
 ### Added
