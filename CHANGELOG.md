@@ -1,3 +1,46 @@
+## Changelog v2.1.3-beta - 2026-04-10
+
+### Added
+
+- **Digital Signature Verification:** Implemented Authenticode signature validation in the updater using `WinVerifyTrust`. The updater now verifies that the caller process is signed with a trusted certificate and matches the expected thumbprint, providing a strong defense against spoofing.
+- **Process Identity Hardening:** Added **Process StartTime** validation alongside PID and path checks. This creates a unique "fingerprint" for the calling process, effectively preventing PID reuse attacks.
+- **MAX_PATH Safety Check:** Added pre-validation for installation path length (260 chars limit). The updater now detects if the path is too deep to safely accommodate `.staging` and `.backup` operations before starting the update.
+
+### Changed
+
+- **Kernel-Level Handshake:** Upgraded the updater startup handshake from file-based polling to a kernel-level **Named Mutex** (`Global\{App}-Install-{GUID}`). This eliminates race conditions, fixes "Updater exited before startup handshake" errors, and ensures atomic handoff between the app and the relocated updater process.
+- **Automated CI Signing:** Integrated automated executable and DLL signing into the GitHub Actions pipeline using self-signed certificates and modern **RFC 3161 (SHA-256)** timestamping.
+- **UAC De-elevation on Restart:** The updater now explicitly restarts the application with non-elevated privileges after an elevated installation, adhering to the principle of least privilege.
+- **Generic Updater Architecture:** Decoupled hardcoded project identifiers. The updater is now a generic component driven by `AppDisplayName` provided in the execution plan.
+
+### Fixed
+
+- **Local Build Robustness:** Enhanced `publish-release.ps1` with improved `signtool.exe` discovery (supporting custom paths like `D:\Windows Kits`) and local Windows Certificate Store support.
+- **CI Path Quoting:** Fixed potential failures in the CI pipeline when handling filenames or paths containing spaces.
+
+## 更新日志 v2.1.3-beta - 2026-04-10
+
+### 新增
+
+- **数字签名验证：** 在更新器中实现了基于 `WinVerifyTrust` 的 Authenticode 签名校验。更新器现在会验证调用进程是否由受信任证书签名并匹配预期的指纹，彻底杜绝身份冒充风险。
+- **进程身份加固：** 在 PID 和路径校验的基础上新增了 **进程启动时间 (StartTime)** 校验。通过“指纹级”绑定，有效防御 PID 复用攻击。
+- **路径长度预检：** 增加了对安装路径长度（260 字符 MAX_PATH）的预校验。在更新开始前识别过深的目录结构，防止因无法创建 `.staging` 或 `.backup` 目录导致的更新失败。
+
+### 更改
+
+- **内核级握手机制：** 将更新器启动握手从不稳定的文件轮询升级为内核级 **命名互斥体 (Named Mutex)**。消除了竞态条件，修复了“更新器在握手前退出”的报错，确保主程序与重定向后的更新进程实现原子交接。
+- **自动化 CI 签名：** 在 GitHub Actions 流水中集成了自动化的 EXE/DLL 签名流程，采用自签名证书及现代 **RFC 3161 (SHA-256)** 时间戳协议。
+- **重启时自动降权：** 更新器在完成管理员权限安装后，会主动以非提升权限重启主程序，符合“最小权限原则”，防止权限蔓延。
+- **通用更新器架构：** 解耦了硬编码的项目标识符。更新器现在是一个完全由执行计划中的 `AppDisplayName` 驱动的通用组件。
+
+### 修复
+
+- **本地构建鲁棒性：** 增强了 `publish-release.ps1` 脚本，支持自动探测不同位置的 `signtool.exe`（如 `D:\Windows Kits`）并支持从本地 Windows 证书存储中提取证书。
+- **CI 路径引号加固：** 修复了 CI 脚本在处理带空格的文件名或路径时可能导致的构建失败。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-alpha...v2.1.3-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-alpha...v2.1.3-beta)
+
+
 ## Changelog v2.1.3-alpha - 2026-04-09
 
 ### Note

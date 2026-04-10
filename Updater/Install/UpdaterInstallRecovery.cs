@@ -7,7 +7,7 @@ namespace Updater.Install;
 
 internal static class UpdaterInstallRecovery
 {
-    public static void WriteEmergencyRecoveryHint(string targetDir, string backupDir, InstallLogger logger)
+    public static void WriteEmergencyRecoveryHint(string targetDir, string backupDir, InstallLogger logger, string appDisplayName)
     {
         var message =
             $"CRITICAL: Automatic rollback failed. Application target directory may be missing.\n" +
@@ -21,7 +21,7 @@ internal static class UpdaterInstallRecovery
         {
             var notePath = Path.Combine(
                 Directory.GetParent(backupDir)?.FullName ?? Path.GetTempPath(),
-                "GamepadMapping-RECOVERY-INSTRUCTIONS.txt");
+                $"{appDisplayName}-RECOVERY-INSTRUCTIONS.txt");
             File.WriteAllText(notePath, message, new UTF8Encoding(false));
             logger.Error($"Recovery instructions file written: {notePath}");
             TryOpenRecoveryInstructions(notePath, logger);

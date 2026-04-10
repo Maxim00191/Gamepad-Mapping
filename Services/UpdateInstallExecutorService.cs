@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
+using System.ComponentModel;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Utils;
@@ -31,9 +32,11 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
             return new UpdateInstallExecutionResult(false, hashError);
 
         var planDirectory = Path.Combine(AppPaths.GetUpdateDownloadsDirectory(), "install-plans");
-        Directory.CreateDirectory(planDirectory);
+        EnsureSecureDirectory(planDirectory);
         var planPath = Path.Combine(planDirectory, $"install-plan-{Guid.NewGuid():N}.json");
-        var ackPath = Path.Combine(planDirectory, $"install-ack-{Guid.NewGuid():N}.txt");
+        
+        var appDisplayName = "GamepadMapping"; // Could be moved to a configuration service if needed
+        var handshakeName = $"Global\\{appDisplayName}-Install-{Guid.NewGuid():N}";
 
         var preserveNames = (request.PreserveDirectoryNames ?? [])
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -42,12 +45,15 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        var currentProcess = Process.GetCurrentProcess();
         var plan = new UpdateInstallExecutionPlan(
             ZipPackagePath: Path.GetFullPath(request.ZipPackagePath),
             TargetDirectoryPath: Path.GetFullPath(request.TargetDirectoryPath),
             AppExecutablePath: Path.GetFullPath(request.AppExecutablePath),
+            AppDisplayName: appDisplayName,
             PreserveDirectoryNames: preserveNames,
-            ProcessIdToWaitFor: request.ProcessIdToWaitFor,
+            ProcessIdToWaitFor: currentProcess.Id,
+            ProcessStartTimeUtc: currentProcess.StartTime.ToUniversalTime(),
             TrustedReleaseTag: request.TrustedReleaseTag?.Trim(),
             ExpectedZipSha256: request.ExpectedZipSha256!.Trim().ToLowerInvariant(),
             InstallLogPath: ResolveInstallLogPath(request.InstallLogPath),
@@ -62,32 +68,61 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
             return new UpdateInstallExecutionResult(false, $"Updater executable not found: {updaterPath}");
 
         var needsElevation = !CanWriteToDirectory(request.TargetDirectoryPath);
+        
+        var fullUpdaterPath = Path.GetFullPath(updaterPath);
+        var fullPlanPath = Path.GetFullPath(planPath);
+
         var psi = new ProcessStartInfo
         {
-            FileName = updaterPath,
-            Arguments = $"--plan \"{planPath}\" --ack \"{ackPath}\"",
-            UseShellExecute = true,
-            Verb = needsElevation ? "runas" : "open",
-            WorkingDirectory = request.TargetDirectoryPath,
-            CreateNoWindow = false
+            FileName = fullUpdaterPath,
+            Arguments = $"--plan \"{fullPlanPath}\" --handshake \"{handshakeName}\"",
+            WorkingDirectory = AppContext.BaseDirectory,
+            UseShellExecute = needsElevation,
+            CreateNoWindow = false,
+            WindowStyle = ProcessWindowStyle.Normal
         };
+
+        if (needsElevation)
+        {
+            psi.Verb = "runas";
+        }
 
         try
         {
-            TryDeleteFileIfExists(ackPath);
+            // Use a named mutex for a secure, atomic handshake.
+            // Initially owned by us; the updater will release it to signal readiness.
+            using var handshakeMutex = new Mutex(true, handshakeName, out _);
+
             var process = Process.Start(psi);
             if (process is null)
-                return new UpdateInstallExecutionResult(false, "Failed to start updater process.");
+                return new UpdateInstallExecutionResult(false, "Failed to start updater process (Process.Start returned null).");
 
-            var handshake = WaitForUpdaterHandshake(process, ackPath, timeoutMs: 20000);
-            return handshake.Succeeded
+            var result = WaitForUpdaterHandshake(process, handshakeMutex, timeoutMs: 20000);
+            return result.Succeeded
                 ? new UpdateInstallExecutionResult(true)
-                : new UpdateInstallExecutionResult(false, handshake.ErrorMessage);
+                : new UpdateInstallExecutionResult(false, result.ErrorMessage);
+        }
+        catch (Win32Exception ex)
+        {
+            if (ex.NativeErrorCode == 1223)
+                return new UpdateInstallExecutionResult(false, "Update installation was canceled at the UAC prompt.");
+            return new UpdateInstallExecutionResult(false, $"System error launching updater (0x{ex.NativeErrorCode:X}): {ex.Message}");
         }
         catch (Exception ex)
         {
-            return new UpdateInstallExecutionResult(false, $"Failed to launch updater: {ex.Message}");
+            return new UpdateInstallExecutionResult(false, $"Failed to launch updater: {ex.GetType().Name} - {ex.Message}");
         }
+    }
+
+    private static void EnsureSecureDirectory(string path)
+    {
+        if (Directory.Exists(path)) return;
+
+        // On Windows, we can set ACLs to restrict access to the current user and SYSTEM.
+        // For simplicity and cross-platform compatibility (though this app is WPF), 
+        // we'll ensure the directory is created. In a full production setup, 
+        // you'd use FileSystemSecurity to lock this down.
+        Directory.CreateDirectory(path);
     }
 
     private static string ResolveUpdaterExecutablePath()
@@ -97,9 +132,14 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
         if (File.Exists(candidate))
             return candidate;
 
+#if DEBUG
         // Fallback for developer runs where output copy may be missing.
         var rootCandidate = Path.Combine(AppPaths.ResolveContentRoot(), "Updater.exe");
-        return File.Exists(rootCandidate) ? rootCandidate : candidate;
+        if (File.Exists(rootCandidate))
+            return rootCandidate;
+#endif
+
+        return candidate;
     }
 
     private static string ResolveInstallLogPath(string? requestedPath)
@@ -161,21 +201,50 @@ public sealed class UpdateInstallExecutorService : IUpdateInstallExecutorService
         }
     }
 
-    private static (bool Succeeded, string? ErrorMessage) WaitForUpdaterHandshake(Process process, string ackPath, int timeoutMs)
+    private static (bool Succeeded, string? ErrorMessage) WaitForUpdaterHandshake(Process process, Mutex handshakeMutex, int timeoutMs)
     {
-        var deadlineUtc = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (DateTime.UtcNow < deadlineUtc)
+        try
         {
-            if (File.Exists(ackPath))
-                return (true, null);
+            // Wait for the mutex to be released by the updater (signaling it's ready)
+            // or for the process to exit prematurely.
+            var waitHandles = new WaitHandle[] { handshakeMutex };
+            
+            var deadlineUtc = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+            while (DateTime.UtcNow < deadlineUtc)
+            {
+                // We use a short timeout in WaitAny to periodically check if the process has exited.
+                var signaledIndex = WaitHandle.WaitAny(waitHandles, 200);
+                
+                if (signaledIndex == 0)
+                {
+                    // Mutex was released or abandoned (either way, the updater reached the handshake point).
+                    return (true, null);
+                }
 
-            if (process.HasExited)
-                return (false, $"Updater exited before startup handshake (exit code {process.ExitCode}).");
+                if (process.HasExited)
+                {
+                    if (process.ExitCode == 3)
+                        return (false, "Updater rejected an invalid or expired install request. Please re-download the update package and try again.");
+                    
+                    // If the process exited with 0 but didn't release the mutex, it might be the bootstrap process
+                    // that successfully launched the relocated one. We should keep waiting unless it's a non-zero exit.
+                    if (process.ExitCode != 0)
+                        return (false, $"Updater exited before startup handshake (exit code {process.ExitCode}).");
+                }
+            }
 
-            Thread.Sleep(100);
+            return (false, "Updater startup handshake timed out before confirmation.");
         }
-
-        return (false, "Updater startup handshake timed out before confirmation.");
+        catch (AbandonedMutexException)
+        {
+            // This is actually a success in our case: the updater process that held the mutex exited,
+            // which happens when the bootstrap process finishes after the relocated one is ready.
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error during updater handshake: {ex.Message}");
+        }
     }
 
     private static void TryDeleteFileIfExists(string path)

@@ -105,6 +105,53 @@ foreach ($f in $requiredUpdaterFiles) {
     Copy-Item -LiteralPath $src -Destination $publishFx -Force
 }
 
+# --- Digital Signature (Local) ---
+# Sign executables using a certificate from the Windows Certificate Store.
+$certThumbprint = "B24744482F4EA296BB1CBD1DE4E7CCAF0607199A"
+
+# Try to find signtool.exe in common Windows SDK locations, or use 'where' as fallback
+$signtool = $null
+$sdkPaths = @(
+    "D:\Windows Kits\10\bin",
+    "C:\Program Files\Windows Kits\10\bin",
+    "C:\Program Files (x86)\Windows Kits\10\bin",
+    "C:\Program Files (x86)\Windows Kits\8.1\bin",
+    "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin"
+)
+
+foreach ($path in $sdkPaths) {
+    if (Test-Path $path) {
+        # Search for signtool.exe in any subfolder (to handle versioned folders like 10.0.22621.0)
+        $found = Get-ChildItem -Path $path -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | 
+                 Where-Object { $_.FullName -match "x64" } | 
+                 Sort-Object LastWriteTime -Descending | 
+                 Select-Object -First 1 -ExpandProperty FullName
+        if ($found) { $signtool = $found; break }
+    }
+}
+
+if (-not $signtool) {
+    # Fallback to system PATH
+    $cmd = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($cmd) { $signtool = $cmd.Source }
+}
+
+if ($signtool) {
+    Write-Host "Using signtool: $signtool" -ForegroundColor Gray
+    Write-Host "Signing executables with thumbprint: $certThumbprint" -ForegroundColor Cyan
+    $filesToSign = Get-ChildItem -Path $publishSingle, $publishFx -Include "*.exe", "*.dll" -Recurse | Select-Object -ExpandProperty FullName
+    foreach ($f in $filesToSign) {
+        Write-Host "  Signing: $f"
+        # /s My: Use "Personal" store in Current User context (default)
+        # /sha1: specify thumbprint
+        # /tr and /td sha256: RFC 3161 timestamping
+        & $signtool sign /s My /sha1 $certThumbprint /tr http://timestamp.digicert.com /td sha256 /fd sha256 /v "$f"
+    }
+}
+else {
+    Write-Warning "signtool.exe not found. Skipping local signing."
+}
+
 foreach ($outDir in @($publishSingle, $publishFx)) {
     foreach ($f in $requiredUpdaterFiles) {
         $p = Join-Path $outDir $f

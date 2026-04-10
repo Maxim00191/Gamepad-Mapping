@@ -91,7 +91,7 @@ internal sealed class UpdaterInstallRunner
                 {
                     rollbackFailed = true;
                     logger.Error($"Rollback failed: {rollbackEx.Message}");
-                    UpdaterInstallRecovery.WriteEmergencyRecoveryHint(targetDir, oldRoot, logger);
+                    UpdaterInstallRecovery.WriteEmergencyRecoveryHint(targetDir, oldRoot, logger, plan.AppDisplayName);
                 }
             }
 

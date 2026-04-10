@@ -125,8 +125,8 @@ jobs:
           $docs = @('README.md', 'README_zh.md', 'CHANGELOG.md', 'RELEASE_NOTES.md')
           foreach ($out in @('publish-single', 'publish-fx')) {
             foreach ($f in $docs) {
-              if (Test-Path -LiteralPath $f) {
-                Copy-Item -LiteralPath $f -Destination $out -Force
+              if (Test-Path -LiteralPath "$f") {
+                Copy-Item -LiteralPath "$f" -Destination "$out" -Force
               }
             }
           }
@@ -135,36 +135,63 @@ jobs:
         shell: pwsh
         run: |
           $manifest = "publish/updater-required-files.txt"
-          if (-not (Test-Path -LiteralPath $manifest)) {
+          if (-not (Test-Path -LiteralPath "$manifest")) {
             throw "Updater payload manifest not found: $manifest"
           }
-          $items = Get-Content -LiteralPath $manifest |
+          $items = Get-Content -LiteralPath "$manifest" |
             ForEach-Object { $_.Trim() } |
             Where-Object { $_ -and -not $_.StartsWith('#') }
           if (-not $items -or $items.Count -eq 0) {
             throw "Updater payload manifest is empty: $manifest"
           }
           $joined = [string]::Join(';', $items)
-          "UPDATER_REQUIRED_FILES=$joined" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "UPDATER_REQUIRED_FILES=$joined" | Out-File -FilePath "$env:GITHUB_ENV" -Encoding utf8 -Append
 
       - name: Copy and verify updater payload in publish outputs
         shell: pwsh
         run: |
           $required = $env:UPDATER_REQUIRED_FILES -split ';' | Where-Object { $_ }
           foreach ($f in $required) {
-            $src = Join-Path 'publish-updater' $f
-            if (-not (Test-Path -LiteralPath $src)) {
+            $src = Join-Path 'publish-updater' "$f"
+            if (-not (Test-Path -LiteralPath "$src")) {
               throw "Missing required updater file in updater publish output: $src"
             }
-            Copy-Item -LiteralPath $src -Destination 'publish-single' -Force
-            Copy-Item -LiteralPath $src -Destination 'publish-fx' -Force
+            Copy-Item -LiteralPath "$src" -Destination 'publish-single' -Force
+            Copy-Item -LiteralPath "$src" -Destination 'publish-fx' -Force
             foreach ($out in @('publish-single', 'publish-fx')) {
-              $path = Join-Path $out $f
-              if (-not (Test-Path -LiteralPath $path)) {
+              $path = Join-Path "$out" "$f"
+              if (-not (Test-Path -LiteralPath "$path")) {
                 throw "Missing required updater file in publish output: $path"
               }
             }
           }
+
+      - name: Sign executables (Self-signed)
+        shell: pwsh
+        env:
+          CERT_BASE64: ${{ secrets.CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CERT_BASE64)) {
+            Write-Warning "CERT_BASE64 secret is missing. Skipping executable signing."
+            return
+          }
+          $certPath = Join-Path (Get-Location) "cert.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:CERT_BASE64))
+          
+          # Find signtool.exe
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Filter "signtool.exe" -Recurse | 
+                      Where-Object { $_.FullName -match "x64" } | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signtool) { throw "signtool.exe not found." }
+
+          $filesToSign = Get-ChildItem -Path "publish-single", "publish-fx" -Include "*.exe", "*.dll" -Recurse | Select-Object -ExpandProperty FullName
+          foreach ($f in $filesToSign) {
+            Write-Host "Signing: $f"
+            # Use RFC 3161 (/tr and /td sha256) for modern SHA-256 timestamping.
+            # Use --% to stop PowerShell from parsing arguments, or ensure $f is quoted for the external command.
+            & $signtool sign /f "$certPath" /p "$($env:CERT_PASSWORD)" /tr http://timestamp.digicert.com /td sha256 /fd sha256 /v "$f"
+          }
+          Remove-Item "$certPath" -Force
 
       - name: Zip artifacts
         shell: pwsh
@@ -180,12 +207,12 @@ jobs:
             "Gamepad-Mapping-${{ github.ref_name }}-win-x64-fx.zip"
           )
           foreach ($f in $files) {
-            if (-not (Test-Path -LiteralPath $f)) {
+            if (-not (Test-Path -LiteralPath "$f")) {
               throw "Missing release artifact: $f"
             }
           }
           $lines = foreach ($f in $files) {
-            $hash = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()
+            $hash = (Get-FileHash -LiteralPath "$f" -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $f"
           }
           $utf8 = New-Object System.Text.UTF8Encoding($false)

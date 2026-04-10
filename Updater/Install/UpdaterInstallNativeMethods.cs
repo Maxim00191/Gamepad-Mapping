@@ -48,6 +48,70 @@ internal static class UpdaterInstallNativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool CloseHandle(IntPtr handle);
 
+    #region WinTrust API (Digital Signature Verification)
+
+    internal static readonly Guid WINTRUST_ACTION_GENERIC_VERIFY_V2 = new Guid("{00AAC56B-CD44-11d0-8CC2-00C04FC295EE}");
+
+    [DllImport("wintrust.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    internal static extern int WinVerifyTrust(
+        IntPtr hwnd,
+        [MarshalAs(UnmanagedType.LPStruct)] Guid pgActionID,
+        IntPtr pWVTData);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct WINTRUST_FILE_INFO
+    {
+        public int cbStruct;
+        public string pcwszFilePath;
+        public IntPtr hFile;
+        public IntPtr pgKnownSubject;
+
+        public WINTRUST_FILE_INFO(string filePath)
+        {
+            cbStruct = Marshal.SizeOf<WINTRUST_FILE_INFO>();
+            pcwszFilePath = filePath;
+            hFile = IntPtr.Zero;
+            pgKnownSubject = IntPtr.Zero;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct WINTRUST_DATA
+    {
+        public int cbStruct;
+        public IntPtr pPolicyCallbackData;
+        public IntPtr pSIPClientData;
+        public uint dwUIChoice;
+        public uint fdwRevocationChecks;
+        public uint dwUnionChoice;
+        public IntPtr pFile;
+        public uint dwStateAction;
+        public IntPtr hWVTStateData;
+        public string? pwszURLReference;
+        public uint dwProvFlags;
+        public uint dwUIContext;
+        public IntPtr pSignatureSettings;
+
+        public WINTRUST_DATA(IntPtr pFilePtr)
+        {
+            cbStruct = Marshal.SizeOf<WINTRUST_DATA>();
+            pPolicyCallbackData = IntPtr.Zero;
+            pSIPClientData = IntPtr.Zero;
+            dwUIChoice = 2; // WTD_UI_NONE
+            fdwRevocationChecks = 0; // WTD_REVOKE_NONE
+            dwUnionChoice = 1; // WTD_CHOICE_FILE
+            pFile = pFilePtr;
+            dwStateAction = 0; // WTD_STATEACTION_IGNORE
+            hWVTStateData = IntPtr.Zero;
+            pwszURLReference = null;
+            dwProvFlags = 0x00000040; // WTD_SAFER_FLAG
+            dwUIContext = 0;
+            pSignatureSettings = IntPtr.Zero;
+        }
+    }
+
+    #endregion
+
     internal enum TOKEN_TYPE
     {
         TokenPrimary = 1,

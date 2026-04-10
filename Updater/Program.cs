@@ -20,7 +20,7 @@ var exitCode = ExitGeneralFailure;
 try
 {
     var planPath = ResolvePlanPath(args);
-    var ackPath = ResolveAckPath(args);
+    var handshakeName = ResolveHandshakeName(args);
     if (!File.Exists(planPath))
         throw new FileNotFoundException("Install plan not found.", planPath);
 
@@ -29,7 +29,9 @@ try
     if (plan is null)
         throw new InvalidOperationException("Failed to parse install plan.");
 
-    TryWriteAckFile(ackPath);
+    // Validate once before acknowledging startup, so launcher can keep app alive on invalid/stale plans.
+    UpdaterInstallPlanValidator.Validate(plan);
+    SignalHandshake(handshakeName);
 
     var runner = new UpdaterInstallRunner();
     exitCode = runner.Run(plan);
@@ -75,27 +77,59 @@ static string ResolvePlanPath(string[] args)
     throw new ArgumentException("Missing required argument: --plan <path>");
 }
 
-static string? ResolveAckPath(string[] args)
+static string? ResolveHandshakeName(string[] args)
 {
     for (var i = 0; i < args.Length; i++)
     {
-        if (string.Equals(args[i], "--ack", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        if (string.Equals(args[i], "--handshake", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
             return args[i + 1];
     }
 
     return null;
 }
 
-static void TryWriteAckFile(string? ackPath)
+static string? ResolveAppDisplayName(string[] args)
 {
-    if (string.IsNullOrWhiteSpace(ackPath))
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (string.Equals(args[i], "--plan", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        {
+            var planPath = args[i + 1];
+            if (File.Exists(planPath))
+            {
+                try
+                {
+                    var json = File.ReadAllText(planPath);
+                    var plan = JsonSerializer.Deserialize<InstallExecutionPlanDto>(json);
+                    return plan?.AppDisplayName;
+                }
+                catch { /* Best effort */ }
+            }
+        }
+    }
+
+    return null;
+}
+
+static void SignalHandshake(string? handshakeName)
+{
+    if (string.IsNullOrWhiteSpace(handshakeName))
         return;
 
-    var fullPath = Path.GetFullPath(ackPath);
-    var dir = Path.GetDirectoryName(fullPath);
-    if (!string.IsNullOrWhiteSpace(dir))
-        Directory.CreateDirectory(dir);
-    File.WriteAllText(fullPath, DateTimeOffset.UtcNow.ToString("O"));
+    try
+    {
+        if (Mutex.TryOpenExisting(handshakeName, out var mutex))
+        {
+            // Releasing the mutex signals the waiting process that we are ready.
+            mutex.ReleaseMutex();
+            mutex.Dispose();
+        }
+    }
+    catch
+    {
+        // Handshake signaling is best-effort; if it fails, the launcher will timeout
+        // or detect process exit.
+    }
 }
 
 static void RelaunchFromTemp(string[] originalArgs)
@@ -106,7 +140,9 @@ static void RelaunchFromTemp(string[] originalArgs)
 
     var sourceDir = Path.GetDirectoryName(currentExePath)
         ?? throw new InvalidOperationException("Cannot resolve updater executable directory.");
-    var tempDir = Path.Combine(Path.GetTempPath(), $"GamepadMapping-Updater-{Guid.NewGuid():N}");
+    
+    var appDisplayName = ResolveAppDisplayName(originalArgs) ?? "GenericApp";
+    var tempDir = Path.Combine(Path.GetTempPath(), $"{appDisplayName}-Updater-{Guid.NewGuid():N}");
     Directory.CreateDirectory(tempDir);
 
     CopyIfExists(Path.Combine(sourceDir, "Updater.exe"), Path.Combine(tempDir, "Updater.exe"));
@@ -130,6 +166,28 @@ static void RelaunchFromTemp(string[] originalArgs)
     using var process = Process.Start(psi);
     if (process is null)
         throw new InvalidOperationException("Failed to relaunch updater from temp directory.");
+
+    // The bootstrap process should wait for the relocated process to signal the handshake
+    // before exiting, to ensure the launcher doesn't see a premature exit.
+    var handshakeName = ResolveHandshakeName(originalArgs);
+    if (!string.IsNullOrWhiteSpace(handshakeName))
+    {
+        try
+        {
+            if (Mutex.TryOpenExisting(handshakeName, out var mutex))
+            {
+                // Wait for the relocated process to release the mutex.
+                // We use a timeout to avoid hanging if the relocated process fails.
+                mutex.WaitOne(TimeSpan.FromSeconds(15));
+                mutex.ReleaseMutex(); // Release it again so the launcher can see it.
+                mutex.Dispose();
+            }
+        }
+        catch
+        {
+            // Best effort.
+        }
+    }
 }
 
 static void CopyIfExists(string sourcePath, string destinationPath)
