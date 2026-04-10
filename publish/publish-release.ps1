@@ -69,6 +69,13 @@ foreach ($dir in @($publishSingle, $publishFx, $publishUpdater)) {
     }
 }
 
+$localSettingsFile = Join-Path $repoRoot "Assets\Config\local_settings.json"
+$tempLocalSettingsFile = Join-Path $publishRoot "local_settings.json.tmp"
+if (Test-Path -LiteralPath $localSettingsFile) {
+    Write-Host "Temporarily moving local_settings.json..." -ForegroundColor Yellow
+    Move-Item -LiteralPath $localSettingsFile -Destination $tempLocalSettingsFile -Force
+}
+
 Write-Host "dotnet publish: single-file, self-contained win-x64 -> publish\single" -ForegroundColor Cyan
 & dotnet publish $csproj -c Release -r win-x64 --self-contained true `
     -o $publishSingle `

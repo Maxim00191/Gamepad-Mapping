@@ -13,8 +13,9 @@
              Focusable="True"
              Background="{DynamicResource AppBackgroundBrush}"
              Foreground="{DynamicResource AppTextBrush}">
-   <Grid Margin="12"
-         Background="{DynamicResource AppBackgroundBrush}">
+   <Grid>
+       <Grid Margin="12"
+             Background="{DynamicResource AppBackgroundBrush}">
        <Grid.ColumnDefinitions>
            <ColumnDefinition Width="*" />
            <ColumnDefinition Width="Auto" />
@@ -929,6 +930,12 @@
                                 Focusable="False" />
             </Border>
         </Grid>
-    </Grid>
+       </Grid>
+       <local:CornerToastOverlay DataContext="{Binding ToastHost}"
+                                 VerticalAlignment="Bottom"
+                                 HorizontalAlignment="Right"
+                                 Margin="0,0,8,8"
+                                 Panel.ZIndex="50" />
+   </Grid>
 </UserControl>
 

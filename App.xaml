@@ -31,6 +31,7 @@
         <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FF1C418A" />
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF1A1A1E" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF4B4E5A" />
+        <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#E8FFFFFF" />
 
         <Style x:Key="SectionCardBorder" TargetType="{x:Type Border}">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />

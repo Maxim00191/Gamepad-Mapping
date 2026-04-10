@@ -1,3 +1,34 @@
+## Changelog v2.1.3 - 2026-04-10
+
+### Added
+
+- **Persistent Update Results:** The updater now records a structured result (`update-last-result.json`) upon completion, enabling the application to detect both successful and failed update attempts.
+- **Update Failure Notifications:** Implemented a persistent notification system for update failures. If an update fails after the application shuts down, the user will now see a "Try Again" corner toast on the next manual launch.
+- **Unified Notification Service:** Introduced `IUpdateNotificationService` to centralize the lifecycle of update-related feedback, replacing the previous success-only implementation.
+- **Debug UI Testing:** Added hidden developer flags (`--debug-update-success`, `--debug-update-failed`) available in debug builds to verify corner toast UI without performing a real installation.
+- **Enhanced Command-Line Parsing:** Robustified argument detection for the `--updated` flag to support various shell-escaped formats.
+
+### Changed
+
+- **UI Lifecycle Optimization:** Refactored `UpdateViewModel` to remove active background polling for status files. The application now uses a more efficient check-once-on-startup model for pending toasts.
+
+
+## 更新日志 v2.1.3 - 2026-04-10
+
+### 新增
+
+- **持久化更新结果：** 更新器现在会在完成后记录结构化结果文件 (`update-last-result.json`)，使主程序能够准确识别更新成功或失败的具体状态。
+- **更新失败通知：** 实现了针对更新失败的持久化提醒机制。如果更新在程序关闭后失败，用户在下次手动启动时将看到“请重试”的角标提示。
+- **统一通知服务：** 引入 `IUpdateNotificationService` 统一管理更新相关的反馈生命周期，取代了原有的仅限成功提示的实现。
+- **调试 UI 测试支持：** 在调试版本中增加了隐藏的开发者指令 (`--debug-update-success`, `--debug-update-failed`)，无需真实安装即可验证通知 UI 的显示效果。
+- **增强型命令行解析：** 加固了对 `--updated` 参数检测逻辑，兼容各种 shell 转义格式。
+
+### 更改
+
+- **界面生命周期优化：** 重构了 `UpdateViewModel`，移除了对状态文件的后台主动轮询。主程序现在采用更高效的“启动时单次检查”模式来处理待显示通知。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-alpha...v2.1.3-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-beta...v2.1.3)
+
 ## Changelog v2.1.3-beta - 2026-04-10
 
 ### Added

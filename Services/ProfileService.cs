@@ -27,7 +27,12 @@ public partial class ProfileService : IProfileService
     private readonly IPathProvider _pathProvider;
     private readonly AppSettings _settings;
 
-    public ProfileService(ISettingsService? settingsService = null, TranslationService? translationService = null, IFileSystem? fileSystem = null, IPathProvider? pathProvider = null)
+    public ProfileService(
+        ISettingsService? settingsService = null,
+        TranslationService? translationService = null,
+        IFileSystem? fileSystem = null,
+        IPathProvider? pathProvider = null,
+        AppSettings? appSettings = null)
     {
         _fileSystem = fileSystem ?? new PhysicalFileSystem();
         _pathProvider = pathProvider ?? new AppPathProvider();
@@ -35,7 +40,7 @@ public partial class ProfileService : IProfileService
         _translationService = translationService
             ?? Application.Current?.Resources["Loc"] as TranslationService
             ?? new TranslationService();
-        _settings = _settingsService.LoadSettings();
+        _settings = appSettings ?? _settingsService.LoadSettings();
     }
 
     public string DefaultProfileId => _settings.DefaultProfileId;

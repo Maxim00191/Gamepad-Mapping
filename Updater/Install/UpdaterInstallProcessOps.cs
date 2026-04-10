@@ -107,7 +107,7 @@ internal static class UpdaterInstallProcessOps
         logger.Error($"Process drain timeout reached before swap. Target executable may still be running: {targetFullPath}");
     }
 
-    public static void RestartApplication(string targetDir, string appExeRelativePath, InstallLogger logger)
+    public static void RestartApplication(string targetDir, string appExeRelativePath, InstallLogger logger, string? trustedReleaseTag)
     {
         var appPath = Path.GetFullPath(Path.Combine(targetDir, appExeRelativePath));
         if (!File.Exists(appPath))
@@ -118,9 +118,10 @@ internal static class UpdaterInstallProcessOps
 
         try
         {
+            var args = trustedReleaseTag is null ? null : new[] { $"--updated {trustedReleaseTag}" };
             if (IsCurrentProcessElevated())
             {
-                if (TryStartUnelevatedViaActiveSessionToken(appPath, logger))
+                if (TryStartUnelevatedViaActiveSessionToken(appPath, logger, args))
                 {
                     logger.Info($"Application restarted unelevated via active user token: {appPath}");
                     return;
@@ -130,7 +131,7 @@ internal static class UpdaterInstallProcessOps
                 return;
             }
 
-            Process.Start(new ProcessStartInfo { FileName = appPath, UseShellExecute = true });
+            Process.Start(new ProcessStartInfo { FileName = appPath, UseShellExecute = true, Arguments = args is null ? null : string.Join(" ", args) });
             logger.Info($"Application restarted: {appPath}");
         }
         catch (Exception ex)
@@ -146,7 +147,7 @@ internal static class UpdaterInstallProcessOps
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 
-    private static bool TryStartUnelevatedViaActiveSessionToken(string appPath, InstallLogger logger)
+    private static bool TryStartUnelevatedViaActiveSessionToken(string appPath, InstallLogger logger, string[]? args)
     {
         try
         {
@@ -180,7 +181,7 @@ internal static class UpdaterInstallProcessOps
                     if (UpdaterInstallNativeMethods.CreateProcessAsUser(
                             primaryToken,
                             appPath,
-                            null,
+                            args is null ? null : string.Join(" ", args),
                             IntPtr.Zero,
                             IntPtr.Zero,
                             false,

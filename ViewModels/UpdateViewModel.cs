@@ -20,10 +20,11 @@ using GamepadMapperGUI.Services;
 using GamepadMapperGUI.Utils;
 using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class UpdateViewModel : ObservableObject
+public partial class UpdateViewModel : ObservableObject, IDisposable
 {
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
@@ -32,6 +33,7 @@ public partial class UpdateViewModel : ObservableObject
     private readonly IUpdateInstallerService _updateInstallerService;
     private readonly IUpdateQuotaService _updateQuotaService;
     private readonly IUpdateVersionCacheService _updateVersionCacheService;
+    private readonly IAppToastService _appToastService;
 
     [ObservableProperty]
     private string _currentVersion = "1.0.0";
@@ -69,7 +71,7 @@ public partial class UpdateViewModel : ObservableObject
     [ObservableProperty]
     private bool _downloadFailed;
 
-    public string DownloadPrimaryActionText => DownloadFailed 
+    public string DownloadPrimaryActionText => DownloadFailed
         ? GetLoc("UpdateDownloadRetry")
         : (IsDownloading ? GetLoc("UpdateCancelButton") : GetLoc("UpdateDownloadNewVersion"));
 
@@ -118,7 +120,8 @@ public partial class UpdateViewModel : ObservableObject
         ILocalFileService? localFileService = null,
         IUpdateInstallerService? updateInstallerService = null,
         IUpdateQuotaService? updateQuotaService = null,
-        IUpdateVersionCacheService? updateVersionCacheService = null)
+        IUpdateVersionCacheService? updateVersionCacheService = null,
+        IAppToastService? appToastService = null)
     {
         _updateService = updateService;
         _localFileService = localFileService ?? new LocalFileService();
@@ -127,6 +130,7 @@ public partial class UpdateViewModel : ObservableObject
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateQuotaService = updateQuotaService ?? new UpdateQuotaService(new StaticUpdateQuotaPolicyProvider());
         _updateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
+        _appToastService = appToastService ?? new AppToastService();
 
         CheckUpdateCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
         DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, CanDownloadUpdate);
@@ -187,10 +191,10 @@ public partial class UpdateViewModel : ObservableObject
         try
         {
             var info = await _updateService.CheckForUpdatesAsync(
-                _appSettings.GithubRepoOwner, 
+                _appSettings.GithubRepoOwner,
                 _appSettings.GithubRepoName,
                 IncludePrereleases);
-            
+
             CurrentVersion = info.CurrentVersion;
             LatestVersion = info.LatestVersion;
             IsUpdateAvailable = info.IsUpdateAvailable;
@@ -492,9 +496,11 @@ public partial class UpdateViewModel : ObservableObject
 
         if (!_updateInstallerService.TryLaunchInstaller(request, out var errorMessage))
         {
-            var errorText = string.Format(GetLoc("UpdateInstallLaunchFailed"), errorMessage ?? GetLoc("UpdateUnknownError"));
-            MessageBox.Show(errorText, title, MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
+            // Installation failed
+            var failureMessage = string.Format(GetLoc("UpdateInstallLaunchFailed"), errorMessage ?? GetLoc("UpdateUnknownError"));
+            MessageBox.Show(failureMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
+
+            return; // Exit the method as installation failed
         }
 
         Application.Current?.Shutdown();
@@ -615,7 +621,7 @@ public partial class UpdateViewModel : ObservableObject
 
         var lines = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var escapedName = Regex.Escape(packageFileName);
-        var pattern = $@"\b([A-Fa-f0-9]{{64}})\b(?:\s+\*?{escapedName})?$";
+        var pattern = $@"\b([A-Fa-f0-9]{{64}})\b(?: \s*\*?{escapedName})?$";
         foreach (var line in lines)
         {
             var match = Regex.Match(line, pattern, RegexOptions.CultureInvariant);
@@ -649,7 +655,7 @@ public partial class UpdateViewModel : ObservableObject
     {
         var assembly = Assembly.GetExecutingAssembly();
         var version = CustomAttributeExtensions.GetCustomAttribute<AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion;
-        
+
         if (string.IsNullOrEmpty(version))
         {
             var v = assembly.GetName().Version;
@@ -737,5 +743,10 @@ public partial class UpdateViewModel : ObservableObject
 
         if (!StatusMessage.Contains(notice, StringComparison.Ordinal))
             StatusMessage = $"{StatusMessage} {notice}";
+    }
+
+    public void Dispose()
+    {
+        _downloadCts?.Dispose();
     }
 }

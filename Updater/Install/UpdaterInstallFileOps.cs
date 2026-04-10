@@ -173,6 +173,29 @@ internal static class UpdaterInstallFileOps
         }
     }
 
+    public static void WriteUpdateResult(string targetDir, bool success, string? errorMessage, InstallLogger logger)
+    {
+        try
+        {
+            var updatesDir = Path.Combine(targetDir, "Updates");
+            Directory.CreateDirectory(updatesDir);
+            var resultPath = Path.Combine(updatesDir, "update-last-result.json");
+            var result = new
+            {
+                Status = success ? "success" : "failed",
+                Message = errorMessage,
+                TimestampUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+            };
+            var json = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(resultPath, json, new UTF8Encoding(false));
+            logger.Info($"Update result written: success={success}, msg={errorMessage ?? "none"}");
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"Failed to write update result: {ex.Message}");
+        }
+    }
+
     public static void SafeDeleteDirectory(string path, InstallLogger logger)
     {
         try

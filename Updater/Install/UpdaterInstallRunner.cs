@@ -70,16 +70,18 @@ internal sealed class UpdaterInstallRunner
             logger.Info("Atomic directory swap completed.");
 
             UpdaterInstallFileOps.WriteUpdateSecurityState(targetDir, plan.TrustedReleaseTag, logger);
-            UpdaterInstallProcessOps.RestartApplication(targetDir, appExeRelativePath, logger);
+            UpdaterInstallProcessOps.RestartApplication(targetDir, appExeRelativePath, logger, plan.TrustedReleaseTag);
             UpdaterInstallFileOps.SafeDeleteDirectory(oldRoot, logger);
             UpdaterInstallFileOps.SafeDeleteDirectory(preserveBackupRoot, logger);
             UpdaterInstallFileOps.SafeDeleteFile(trustedZipPath, logger);
+            UpdaterInstallFileOps.WriteUpdateResult(targetDir, true, null, logger);
             logger.Info("Atomic updater completed successfully.");
             return 0;
         }
         catch (Exception ex)
         {
             logger.Error($"Install failed: {ex.Message}");
+            UpdaterInstallFileOps.WriteUpdateResult(targetDir, false, ex.Message, logger);
             if (swapStarted && !Directory.Exists(targetDir) && Directory.Exists(oldRoot))
             {
                 try

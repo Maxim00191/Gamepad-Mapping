@@ -668,4 +668,28 @@
   <data name="UpdateQuotaDailyLimitBlocked" xml:space="preserve">
     <value>今日{0}次数已达上限（{1} 次）。请明天再试。</value>
   </data>
+  <data name="UpdateSuccessToastTitle" xml:space="preserve">
+    <value>更新已安装</value>
+  </data>
+  <data name="UpdateSuccessToastMessage" xml:space="preserve">
+    <value>当前版本：{0}</value>
+  </data>
+  <data name="UpdateSuccessToastCloseTooltip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="UpdateFailedToastTitle" xml:space="preserve">
+    <value>更新失败</value>
+  </data>
+  <data name="UpdateFailedToastMessage" xml:space="preserve">
+    <value>更新失败，请重试。</value>
+  </data>
+  <data name="ToastDismissTooltip" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="WelcomeToastTitle" xml:space="preserve">
+    <value>欢迎使用 Gamepad Mapping</value>
+  </data>
+  <data name="WelcomeToastMessage" xml:space="preserve">
+    <value>感谢使用。选择一个模板，映射按键后即可开始游戏。需要时可在「设置」中更改语言、检查更新等。</value>
+  </data>
 </root>
