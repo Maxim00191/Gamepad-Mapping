@@ -29,133 +29,151 @@ public sealed class AppStatusChangedEventArgs : EventArgs
     public string StatusText { get; }
 }
 
-public sealed class AppStatusMonitor : IAppStatusMonitor
-{
-    private readonly IProcessTargetService _processTargetService;
-    private readonly IElevationHandler _elevationHandler;
-    private readonly Timer _timer;
-    private readonly object _sync = new();
-
-    private ProcessInfo? _selectedTargetProcess;
-    private bool _isProcessTargetingEnabled;
-    private bool _disposed;
-
-    public AppStatusMonitor(
-        IProcessTargetService processTargetService,
-        IElevationHandler elevationHandler,
-        TimeSpan? pollInterval = null)
+    public sealed class AppStatusMonitor : IAppStatusMonitor
     {
-        _processTargetService = processTargetService;
-        _elevationHandler = elevationHandler;
-        CurrentState = AppTargetingState.NoTargetSelected;
-        CurrentStatusText = "No target selected - output suppressed";
+        private readonly IProcessTargetService _processTargetService;
+        private readonly IElevationHandler _elevationHandler;
+        private readonly Timer _timer;
+        private readonly object _sync = new();
 
-        var interval = pollInterval ?? TimeSpan.FromSeconds(1);
-        _timer = new Timer(_ => EvaluateNow(), null, interval, interval);
-    }
+        private ProcessInfo? _selectedTargetProcess;
+        private bool _isProcessTargetingEnabled;
+        private int _focusGracePeriodMs = 500;
+        private bool _disposed;
+        private long _lastForegroundMatchTimestamp = 0;
 
-    public event EventHandler<AppStatusChangedEventArgs>? StatusChanged;
-
-    private readonly object _stateLock = new();
-
-    public AppTargetingState CurrentState { get; private set; }
-
-    public string CurrentStatusText { get; private set; }
-
-    public bool CanSendOutput
-    {
-        get
+        public AppStatusMonitor(
+            IProcessTargetService processTargetService,
+            IElevationHandler elevationHandler,
+            TimeSpan? pollInterval = null,
+            int initialGracePeriodMs = 500)
         {
-            lock (_stateLock)
-                return CurrentState == AppTargetingState.Connected;
-        }
-    }
+            _processTargetService = processTargetService;
+            _elevationHandler = elevationHandler;
+            _focusGracePeriodMs = initialGracePeriodMs;
+            CurrentState = AppTargetingState.NoTargetSelected;
+            CurrentStatusText = "No target selected - output suppressed";
 
-    public void UpdateTarget(ProcessInfo? selectedTargetProcess, bool isProcessTargetingEnabled)
-    {
-        lock (_sync)
-        {
-            _selectedTargetProcess = selectedTargetProcess;
-            _isProcessTargetingEnabled = isProcessTargetingEnabled;
+            var interval = pollInterval ?? TimeSpan.FromSeconds(1);
+            _timer = new Timer(_ => EvaluateNow(), null, interval, interval);
         }
 
-        EvaluateNow();
-    }
+        public event EventHandler<AppStatusChangedEventArgs>? StatusChanged;
 
-    public bool EvaluateNow()
-    {
-        try
+        public AppTargetingState CurrentState { get; private set; }
+
+        public string CurrentStatusText { get; private set; }
+
+        public bool CanSendOutput
         {
-            ProcessInfo? selectedTargetProcess;
-            bool isProcessTargetingEnabled;
+            get
+            {
+                lock (_sync)
+                    return CurrentState == AppTargetingState.Connected;
+            }
+        }
+
+        public void UpdateTarget(ProcessInfo? selectedTargetProcess, bool isProcessTargetingEnabled)
+        {
             lock (_sync)
             {
-                selectedTargetProcess = _selectedTargetProcess;
-                isProcessTargetingEnabled = _isProcessTargetingEnabled;
+                _selectedTargetProcess = selectedTargetProcess;
+                _isProcessTargetingEnabled = isProcessTargetingEnabled;
             }
 
-            var (state, statusText) = EvaluateState(selectedTargetProcess, isProcessTargetingEnabled);
-            bool shouldNotify;
-            bool canSend;
-            lock (_stateLock)
+            EvaluateNow();
+        }
+
+        public void UpdateGracePeriod(int gracePeriodMs)
+        {
+            lock (_sync)
             {
-                shouldNotify = state != CurrentState || !string.Equals(statusText, CurrentStatusText, StringComparison.Ordinal);
-                if (shouldNotify)
+                _focusGracePeriodMs = gracePeriodMs;
+            }
+        }
+
+        public bool EvaluateNow()
+        {
+            try
+            {
+                AppTargetingState newState;
+                string newStatusText;
+                bool shouldNotify;
+                bool canSend;
+
+                lock (_sync)
                 {
-                    CurrentState = state;
-                    CurrentStatusText = statusText;
+                    (newState, newStatusText) = EvaluateStateInternal();
+                    shouldNotify = newState != CurrentState || !string.Equals(newStatusText, CurrentStatusText, StringComparison.Ordinal);
+                    if (shouldNotify)
+                    {
+                        CurrentState = newState;
+                        CurrentStatusText = newStatusText;
+                    }
+                    canSend = CurrentState == AppTargetingState.Connected;
                 }
 
-                canSend = CurrentState == AppTargetingState.Connected;
+                if (shouldNotify)
+                    StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(newState, newStatusText));
+
+                return canSend;
+            }
+            catch (Exception ex)
+            {
+                App.Logger.Error("Error during AppStatusMonitor.EvaluateNow", ex);
+                return false;
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_sync)
+            {
+                if (_disposed)
+                    return;
+                _disposed = true;
+            }
+            _timer.Dispose();
+        }
+
+        private (AppTargetingState State, string StatusText) EvaluateStateInternal()
+        {
+            if (!_isProcessTargetingEnabled || _selectedTargetProcess is null)
+            {
+                _lastForegroundMatchTimestamp = 0;
+                return (AppTargetingState.NoTargetSelected, "No target selected - output suppressed");
             }
 
-            if (shouldNotify)
-                StatusChanged?.Invoke(this, new AppStatusChangedEventArgs(state, statusText));
+            var uipiTarget = ResolveProcessForUipi(_selectedTargetProcess);
+            if (uipiTarget is not null && _elevationHandler.IsBlockedByUipi(uipiTarget))
+            {
+                _lastForegroundMatchTimestamp = 0;
+                return (
+                    AppTargetingState.BlockedByUipi,
+                    $"Target requires admin privileges: {uipiTarget.ProcessName} (PID {uipiTarget.ProcessId})");
+            }
 
-            return canSend;
-        }
-        catch (Exception ex)
-        {
-            App.Logger.Error("Error during AppStatusMonitor.EvaluateNow", ex);
-            return false;
-        }
-    }
+            var now = Environment.TickCount64;
+            var isForegroundMatch = _processTargetService.IsForeground(_selectedTargetProcess);
+            
+            if (isForegroundMatch)
+            {
+                _lastForegroundMatchTimestamp = now;
+                var pid = DisplayPidForStatus(_selectedTargetProcess);
+                return (AppTargetingState.Connected, $"Connected: {_selectedTargetProcess.ProcessName} (PID {pid})");
+            }
 
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
+            // If we were connected recently, allow a grace period before cutting off input.
+            if (_lastForegroundMatchTimestamp > 0 && (now - _lastForegroundMatchTimestamp) < _focusGracePeriodMs)
+            {
+                var pid = DisplayPidForStatus(_selectedTargetProcess);
+                return (AppTargetingState.Connected, $"Connected (Grace Period): {_selectedTargetProcess.ProcessName} (PID {pid})");
+            }
 
-        _disposed = true;
-        _timer.Dispose();
-    }
-
-    private (AppTargetingState State, string StatusText) EvaluateState(
-        ProcessInfo? selectedTargetProcess,
-        bool isProcessTargetingEnabled)
-    {
-        if (!isProcessTargetingEnabled || selectedTargetProcess is null)
-            return (AppTargetingState.NoTargetSelected, "No target selected - output suppressed");
-
-        var uipiTarget = ResolveProcessForUipi(selectedTargetProcess);
-        if (uipiTarget is not null && _elevationHandler.IsBlockedByUipi(uipiTarget))
-        {
             return (
-                AppTargetingState.BlockedByUipi,
-                $"Target requires admin privileges: {uipiTarget.ProcessName} (PID {uipiTarget.ProcessId})");
+                AppTargetingState.WaitingForForeground,
+                $"Waiting for target foreground: {_selectedTargetProcess.ProcessName} (PID {DisplayPidForStatus(_selectedTargetProcess)})");
         }
-
-        var isForegroundMatch = _processTargetService.IsForeground(selectedTargetProcess);
-        if (isForegroundMatch)
-        {
-            var pid = DisplayPidForStatus(selectedTargetProcess);
-            return (AppTargetingState.Connected, $"Connected: {selectedTargetProcess.ProcessName} (PID {pid})");
-        }
-
-        return (
-            AppTargetingState.WaitingForForeground,
-            $"Waiting for target foreground: {selectedTargetProcess.ProcessName} (PID {DisplayPidForStatus(selectedTargetProcess)})");
-    }
 
     private int DisplayPidForStatus(ProcessInfo selected)
     {

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -22,3 +21,4 @@ internal interface IRadialMenuController : IActionSession
     bool TryClose(string radialMenuId, string sourceToken, bool dispatchSelection, bool suppressChord = false);
     void ForceReset();
 }
+

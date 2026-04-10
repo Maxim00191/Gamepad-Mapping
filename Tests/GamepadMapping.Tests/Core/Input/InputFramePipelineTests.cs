@@ -1,7 +1,7 @@
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 
 namespace GamepadMapping.Tests.Core.Input;
 
@@ -82,3 +82,5 @@ public class InputFramePipelineTests
         Assert.True(context.IsFirstFrame);
     }
 }
+
+

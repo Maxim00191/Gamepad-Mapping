@@ -10,7 +10,7 @@ using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 using Xunit;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
@@ -863,3 +863,5 @@ public sealed class MappingEngineRadialMenuTests
         mockMouse.Verify(m => m.LeftClickAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }
+
+

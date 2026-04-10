@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Vortice.XInput;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Models;
 
@@ -23,3 +23,4 @@ public static class GamepadChordSegmentCatalog
         return list;
     }
 }
+

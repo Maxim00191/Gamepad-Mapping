@@ -201,4 +201,10 @@ public class AppSettings
     /// <summary>After the welcome corner toast is dismissed, this is set and persisted so it shows only once.</summary>
     [JsonProperty("hasSeenWelcomeToast")]
     public bool HasSeenWelcomeToast { get; set; }
+
+    /// <summary>
+    /// Grace period (ms) for app focus loss before suppressing output. Helps with transient overlays.
+    /// </summary>
+    [JsonProperty("focusGracePeriodMs")]
+    public int FocusGracePeriodMs { get; set; } = 500;
 }

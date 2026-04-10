@@ -1,4 +1,4 @@
-using Vortice.XInput;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Core;
 
 namespace GamepadMapperGUI.Interfaces.Core;
@@ -14,3 +14,4 @@ internal interface IActiveAction
     /// <summary>Forcefully terminates the action.</summary>
     void ForceCancel();
 }
+

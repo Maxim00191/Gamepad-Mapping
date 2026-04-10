@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Input;
+using GamepadMapperGUI.Core.Processing;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core;
@@ -15,7 +16,7 @@ internal sealed class AnalogProcessor
 {
     private readonly record struct StateKey(GamepadBindingType Type, string Value, Key Key, TriggerMoment Trigger);
     private readonly Dictionary<StateKey, bool> _analogOutputStates = new();
-    private readonly Dictionary<string, bool> _nativeTriggerEdgeByStateId = new(StringComparer.Ordinal);
+    private readonly Dictionary<AnalogStateId, bool> _nativeTriggerEdgeByStateId = new();
     private readonly HashSet<StateKey> _activeStates = new();
     private readonly Dictionary<string, Key> _keyEnumCache = new(StringComparer.OrdinalIgnoreCase);
     private float _mouseLookResidualLeftX;
@@ -166,7 +167,7 @@ internal sealed class AnalogProcessor
     /// <summary>
     /// Threshold crossing for native LT/RT bindings that are not keyed by <see cref="Key"/> (e.g. radial menu on analog trigger).
     /// </summary>
-    public AnalogOutputTransition EvaluateTriggerEdge(string stateIdentity, MappingEntry mapping, float triggerValue)
+    public AnalogOutputTransition EvaluateTriggerEdge(AnalogStateId stateIdentity, MappingEntry mapping, float triggerValue)
     {
         var threshold = mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : DefaultAnalogThreshold;
         _nativeTriggerEdgeByStateId.TryGetValue(stateIdentity, out var currentState);

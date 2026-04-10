@@ -14,7 +14,7 @@ internal sealed class RadialMenuMiddleware(
 
     public void Invoke(InputFrameContext context, Action<InputFrameContext> next)
     {
-        var activeRadial = controller.ActiveRadial;
+        var activeRadial = controller.ActiveRadial; // Capture reference to current active radial
         if (activeRadial == null)
         {
             _lastRadialId = null;

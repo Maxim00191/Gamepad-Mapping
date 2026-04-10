@@ -2,7 +2,7 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 
 namespace GamepadMapping.Tests.Core.Processing;
 
@@ -94,3 +94,5 @@ public class ButtonEventPreparationMiddlewareTests
         };
     }
 }
+
+

@@ -1,7 +1,7 @@
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 
 namespace GamepadMapping.Tests.Core.Input;
 
@@ -68,3 +68,5 @@ public class InputFrameTransitionMiddlewareTests
         });
     }
 }
+
+

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Windows.Input;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -527,3 +526,4 @@ internal sealed class ButtonMappingProcessor
     private static float GetTriggerMatchThreshold(MappingEntry mapping) =>
         mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : 0.35f;
 }
+

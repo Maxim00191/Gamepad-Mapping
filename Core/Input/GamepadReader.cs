@@ -3,18 +3,24 @@ using System.Numerics;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Interfaces;
 using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core
 {
-    public class GamepadReader : IGamepadReader
+    public class GamepadReader : IGamepadReader, IDisposable
     {
-        private bool _isRunning;
+        private readonly IXInput _xinput;
+
+        private Task? _pollingTask;
+        private CancellationTokenSource? _cts;
         private int _pollingRateMs = 10;
-        private State _previousState;
+        private InputFrame _previousFrame;
         private bool _hasPreviousState;
         private bool _isFirstFrameEmission;
         private readonly uint _userIndex = 0;
+        private readonly object _startStopLock = new();
+        private bool _disposed;
 
         private float _leftThumbstickDeadzone;
         private float _rightThumbstickDeadzone;
@@ -30,6 +36,7 @@ namespace GamepadMapperGUI.Core
         public event Action<InputFrame>? OnInputFrame;
 
         public GamepadReader(
+            IXInput xinput,
             float? leftThumbstickDeadzone = null,
             float? rightThumbstickDeadzone = null,
             float? leftTriggerInnerDeadzone = null,
@@ -37,6 +44,7 @@ namespace GamepadMapperGUI.Core
             float? rightTriggerInnerDeadzone = null,
             float? rightTriggerOuterDeadzone = null)
         {
+            _xinput = xinput;
             if (leftThumbstickDeadzone is { } left)
                 LeftThumbstickDeadzone = left;
             if (rightThumbstickDeadzone is { } right)
@@ -107,83 +115,120 @@ namespace GamepadMapperGUI.Core
 
         public void Start()
         {
-            if (_isRunning) return;
-            _isRunning = true;
+            lock (_startStopLock)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(GamepadReader));
+                if (_cts != null && !_cts.IsCancellationRequested) return;
 
-            _hasPreviousState = XInput.GetState(_userIndex, out _previousState);
-            _isFirstFrameEmission = true;
-            Task.Run(() => PollingLoop());
-            App.Logger.Info("Gamepad reader started.");
+                _cts?.Dispose();
+                _cts = new CancellationTokenSource();
+
+                _isFirstFrameEmission = true;
+                _hasPreviousState = false;
+                
+                var token = _cts.Token;
+                _pollingTask = Task.Run(() => PollingLoop(token), token);
+                App.Logger.Info("Gamepad reader started.");
+            }
         }
 
         public void Stop()
         {
-            if (!_isRunning) return;
-            _isRunning = false;
+            CancellationTokenSource? ctsToCancel = null;
+            Task? taskToWait = null;
+
+            lock (_startStopLock)
+            {
+                if (_cts == null || _cts.IsCancellationRequested) return;
+                
+                ctsToCancel = _cts;
+                taskToWait = _pollingTask;
+                _cts = null;
+                _pollingTask = null;
+            }
+
+            ctsToCancel?.Cancel();
+            try
+            {
+                taskToWait?.Wait(500);
+            }
+            catch (AggregateException) { } // Expected on cancellation
+            finally
+            {
+                ctsToCancel?.Dispose();
+            }
             App.Logger.Info("Gamepad reader stopped.");
         }
 
-        private void PollingLoop()
+        public void Dispose()
         {
-            while (_isRunning)
+            lock (_startStopLock)
             {
-                if (XInput.GetState(_userIndex, out State currentState))
+                if (_disposed) return;
+                _disposed = true;
+            }
+
+            Stop();
+        }
+
+        private void PollingLoop(CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
                 {
-                    var currentButtons = currentState.Gamepad.Buttons;
-                    var timestampMs = Environment.TickCount64;
-
-                    var currentLeftThumb = NormalizeThumbstick(currentState.Gamepad.LeftThumbX, currentState.Gamepad.LeftThumbY, _leftThumbstickDeadzone);
-                    var currentRightThumb = NormalizeThumbstick(currentState.Gamepad.RightThumbX, currentState.Gamepad.RightThumbY, _rightThumbstickDeadzone);
-                    var currentLeftTrigger = NormalizeTrigger(currentState.Gamepad.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone);
-                    var currentRightTrigger = NormalizeTrigger(currentState.Gamepad.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone);
-
-                    var shouldEmit =
-                        _isFirstFrameEmission ||
-                        (_hasPreviousState && currentButtons != _previousState.Gamepad.Buttons) ||
-                        (_hasPreviousState && HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.LeftThumbX, _previousState.Gamepad.LeftThumbY, _leftThumbstickDeadzone), currentLeftThumb, AnalogChangeEpsilon)) ||
-                        // Right stick: emit while engaged (steady aim) so mouse-look stays continuous; left stick is delta-only.
-                        (_hasPreviousState &&
-                         (HasAnalogChanged(NormalizeThumbstick(_previousState.Gamepad.RightThumbX, _previousState.Gamepad.RightThumbY, _rightThumbstickDeadzone), currentRightThumb, AnalogChangeEpsilon) ||
-                          IsAnalogEngaged(currentRightThumb, AnalogChangeEpsilon))) ||
-                        (_hasPreviousState &&
-                         HasAnalogChanged(
-                             NormalizeTrigger(_previousState.Gamepad.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone),
-                             currentLeftTrigger,
-                             AnalogChangeEpsilon)) ||
-                        (_hasPreviousState &&
-                         HasAnalogChanged(
-                             NormalizeTrigger(_previousState.Gamepad.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone),
-                             currentRightTrigger,
-                             AnalogChangeEpsilon));
-
-                    if (shouldEmit)
+                    if (_xinput.GetState(_userIndex, out State xState))
                     {
-                        OnInputFrame?.Invoke(new InputFrame(
-                            Buttons: currentButtons,
-                            LeftThumbstick: currentLeftThumb,
-                            RightThumbstick: currentRightThumb,
-                            LeftTrigger: currentLeftTrigger,
-                            RightTrigger: currentRightTrigger,
-                            IsConnected: true,
-                            TimestampMs: timestampMs));
-                    }
+                        var timestampMs = Environment.TickCount64;
+                            var currentState = new InputFrame(
+                                Buttons: (GamepadMapperGUI.Models.GamepadButtons)xState.Gamepad.Buttons,
+                                LeftThumbstick: NormalizeThumbstick(xState.Gamepad.LeftThumbX, xState.Gamepad.LeftThumbY, _leftThumbstickDeadzone),
+                                RightThumbstick: NormalizeThumbstick(xState.Gamepad.RightThumbX, xState.Gamepad.RightThumbY, _rightThumbstickDeadzone),
+                                LeftTrigger: NormalizeTrigger(xState.Gamepad.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone),
+                                RightTrigger: NormalizeTrigger(xState.Gamepad.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone),
+                                IsConnected: true,
+                                TimestampMs: timestampMs);
 
-                    _previousState = currentState;
-                    _hasPreviousState = true;
-                    _isFirstFrameEmission = false;
+                            var shouldEmit =
+                                _isFirstFrameEmission ||
+                                (_hasPreviousState && currentState.Buttons != _previousFrame.Buttons) ||
+                                (_hasPreviousState && HasAnalogChanged(_previousFrame.LeftThumbstick, currentState.LeftThumbstick, AnalogChangeEpsilon)) ||
+                                // Right stick: emit while engaged (steady aim) so mouse-look stays continuous; left stick is delta-only.
+                                (_hasPreviousState &&
+                                 (HasAnalogChanged(_previousFrame.RightThumbstick, currentState.RightThumbstick, AnalogChangeEpsilon) ||
+                                  IsAnalogEngaged(currentState.RightThumbstick, AnalogChangeEpsilon))) ||
+                                (_hasPreviousState &&
+                                 HasAnalogChanged(_previousFrame.LeftTrigger, currentState.LeftTrigger, AnalogChangeEpsilon)) ||
+                                (_hasPreviousState &&
+                                 HasAnalogChanged(_previousFrame.RightTrigger, currentState.RightTrigger, AnalogChangeEpsilon));
+
+                            if (shouldEmit)
+                            {
+                                OnInputFrame?.Invoke(currentState);
+                            }
+
+                            _previousFrame = currentState;
+                            _hasPreviousState = true;
+                            _isFirstFrameEmission = false;
+                        }
+                    else
+                    {
+                        if (_hasPreviousState)
+                        {
+                            OnInputFrame?.Invoke(InputFrame.Disconnected(Environment.TickCount64));
+
+                            _hasPreviousState = false;
+                            _isFirstFrameEmission = true;
+                        }
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    if (_hasPreviousState)
-                    {
-                        OnInputFrame?.Invoke(InputFrame.Disconnected(Environment.TickCount64));
-
-                        _hasPreviousState = false;
-                        _isFirstFrameEmission = true;
-                    }
+                    App.Logger.Error("Critical error in GamepadReader PollingLoop", ex);
                 }
 
-                Thread.Sleep(_pollingRateMs);
+                if (ct.WaitHandle.WaitOne(_pollingRateMs))
+                    break;
             }
         }
 

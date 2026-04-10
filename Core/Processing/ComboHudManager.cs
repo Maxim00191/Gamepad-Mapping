@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -278,3 +277,4 @@ internal sealed class ComboHudManager : IDisposable
         _comboHudDelayTimer = null;
     }
 }
+

@@ -8,7 +8,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
-using GamepadMapperGUI.Services;
+        using GamepadMapperGUI.Services;
+        using GamepadMapperGUI.Interfaces;
 using GamepadMapperGUI.Utils;
 using System.IO;
 using System.Linq;
@@ -67,6 +68,7 @@ public partial class App : Application
         var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
         var appToastService = new AppToastService();
         ToastService = appToastService;
+        var xinputService = new XInputService();
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
@@ -79,7 +81,8 @@ public partial class App : Application
             trustedUtcTimeService: trustedUtcTimeService,
             updateVersionCacheService: updateVersionCacheService,
             updateQuotaPolicyProvider: updateQuotaPolicyProvider,
-            appToastService: appToastService);
+            appToastService: appToastService,
+            xinput: xinputService);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;

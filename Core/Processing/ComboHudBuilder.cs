@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -325,3 +324,4 @@ internal static class ComboHudBuilder
         return string.IsNullOrWhiteSpace(mapping.KeyboardKey) ? string.Empty : mapping.KeyboardKey.Trim();
     }
 }
+

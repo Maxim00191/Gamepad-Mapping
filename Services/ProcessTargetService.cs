@@ -161,16 +161,10 @@ public sealed class ProcessTargetService : IProcessTargetService
         if (fgPid <= 0)
             return false;
 
-        try
-        {
-            using var fgProcess = Process.GetProcessById(fgPid);
-            return string.Equals(fgProcess.ProcessName, processName, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
+        return string.Equals(_win32.GetProcessName(fgPid), processName, StringComparison.OrdinalIgnoreCase);
     }
+
+    private string GetProcessNameSafe(int processId) => _win32.GetProcessName(processId);
 
     public string GetForegroundWindowTitle()
     {

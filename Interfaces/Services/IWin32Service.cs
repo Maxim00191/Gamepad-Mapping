@@ -16,4 +16,5 @@ public interface IWin32Service
     bool CloseHandle(IntPtr hObject);
     uint SendInput(uint nInputs, IntPtr pInputs, int cbSize);
     uint MapVirtualKey(uint uCode, uint uMapType);
+    string GetProcessName(int processId);
 }

@@ -7,7 +7,7 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 using Xunit;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
@@ -716,3 +716,5 @@ public class MappingEngineTests
         mockKeyboard.Verify(k => k.KeyDown(Key.E), Times.Once);
     }
 }
+
+

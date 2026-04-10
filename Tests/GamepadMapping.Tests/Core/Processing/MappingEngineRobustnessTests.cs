@@ -7,7 +7,7 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 using Xunit;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
@@ -958,3 +958,5 @@ public class MappingEngineRobustnessTests
         mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
+
+

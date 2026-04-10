@@ -39,6 +39,11 @@ public sealed class Win32Service : IWin32Service
     [DllImport("user32.dll")]
     private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref int lpdwSize);
+
+    private const uint ProcessQueryLimitedInformation = 0x1000;
+
     IntPtr IWin32Service.GetForegroundWindow() => GetForegroundWindow();
 
     uint IWin32Service.GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId) => GetWindowThreadProcessId(hWnd, out lpdwProcessId);
@@ -57,4 +62,41 @@ public sealed class Win32Service : IWin32Service
     uint IWin32Service.SendInput(uint nInputs, IntPtr pInputs, int cbSize) => SendInput(nInputs, pInputs, cbSize);
 
     uint IWin32Service.MapVirtualKey(uint uCode, uint uMapType) => MapVirtualKey(uCode, uMapType);
+
+    string IWin32Service.GetProcessName(int processId)
+    {
+        if (processId <= 0) return string.Empty;
+
+        var handle = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        if (handle == IntPtr.Zero) return string.Empty;
+
+        try
+        {
+            var buffer = new StringBuilder(1024);
+            var size = buffer.Capacity;
+            if (QueryFullProcessImageName(handle, 0, buffer, ref size))
+            {
+                var fullPath = buffer.ToString();
+                return System.IO.Path.GetFileNameWithoutExtension(fullPath);
+            }
+        }
+        catch
+        {
+            // Fallback to legacy method if image name query fails.
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+
+        try
+        {
+            using var p = System.Diagnostics.Process.GetProcessById(processId);
+            return p.ProcessName;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
 }
