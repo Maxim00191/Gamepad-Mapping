@@ -247,13 +247,22 @@
     <value>应用程序设置</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>调整全局时间、手柄轮询间隔、模拟触发阈值与键鼠模拟等。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+    <value>调整全局时间、键鼠输出 API、手柄轮询间隔、模拟触发阈值与键鼠模拟等。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>选择语言</value>
   </data>
   <data name="AppLanguageLabel" xml:space="preserve">
     <value>语言</value>
+  </data>
+  <data name="AppSettingsInputEmulationSection" xml:space="preserve">
+    <value>键盘与鼠标输出</value>
+  </data>
+  <data name="InputApiWin32Label" xml:space="preserve">
+    <value>Win32（SendInput — user32）</value>
+  </data>
+  <data name="InputApiWin32Hint" xml:space="preserve">
+    <value>使用 Windows SendInput 注入按键与鼠标。后续可加入更多后端。</value>
   </data>
   <data name="AppSettingsTimingSection" xml:space="preserve">
     <value>时间与键盘</value>

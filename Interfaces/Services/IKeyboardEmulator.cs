@@ -3,8 +3,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace GamepadMapperGUI.Interfaces.Core;
+namespace GamepadMapperGUI.Interfaces.Services;
 
+/// <summary>
+/// Injected keyboard output simulation (implementation may use Win32, Interception, etc.).
+/// </summary>
 public interface IKeyboardEmulator
 {
     void KeyDown(Key key);

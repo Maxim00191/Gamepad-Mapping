@@ -247,13 +247,22 @@
     <value>Application settings</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>Timing, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
+    <value>Timing, input API, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>Language Options</value>
   </data>
   <data name="AppLanguageLabel" xml:space="preserve">
     <value>Language</value>
+  </data>
+  <data name="AppSettingsInputEmulationSection" xml:space="preserve">
+    <value>Keyboard &amp; mouse output</value>
+  </data>
+  <data name="InputApiWin32Label" xml:space="preserve">
+    <value>Win32 (SendInput — user32)</value>
+  </data>
+  <data name="InputApiWin32Hint" xml:space="preserve">
+    <value>Uses Windows SendInput for simulated keys and mouse. More backends can be added later.</value>
   </data>
   <data name="AppSettingsTimingSection" xml:space="preserve">
     <value>Timing &amp; keyboard</value>

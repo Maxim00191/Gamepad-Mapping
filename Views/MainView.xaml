@@ -338,6 +338,24 @@
 
                                             <Separator Margin="0,6,0,8" />
 
+                                            <ToggleButton x:Name="InputEmulationSettingsToggle"
+                                                          Style="{StaticResource FlatSectionToggleStyle}">
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsInputEmulationSection]}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                            </ToggleButton>
+                                            <StackPanel Margin="0,2,0,0"
+                                                        Visibility="{Binding IsChecked, ElementName=InputEmulationSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <CheckBox Margin="0,0,0,4"
+                                                          IsChecked="{Binding InputApiWin32Selected, Mode=TwoWay}"
+                                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Hint]}">
+                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Label]}"
+                                                               TextWrapping="Wrap" />
+                                                </CheckBox>
+                                            </StackPanel>
+
+                                            <Separator Margin="0,6,0,8" />
+
                                             <ToggleButton x:Name="TimingSettingsToggle"
                                                           Style="{StaticResource FlatSectionToggleStyle}">
                                                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsTimingSection]}"

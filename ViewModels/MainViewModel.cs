@@ -45,6 +45,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IUpdateNotificationService _updateNotificationService;
     private readonly IAppToastService _appToastService;
     private readonly AppToastViewModel _toastHost;
+    private readonly IKeyboardEmulator? _keyboardEmulatorOverride;
+    private readonly IMouseEmulator? _mouseEmulatorOverride;
+    private bool _suppressInputApiUiSync;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -69,8 +72,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IUpdateQuotaPolicyProvider? updateQuotaPolicyProvider = null,
         IUpdateNotificationService? updateNotificationService = null,
         IAppToastService? appToastService = null,
+        IKeyboardEmulator? keyboardEmulator = null,
+        IMouseEmulator? mouseEmulator = null,
         IXInput? xinput = null)
     {
+        if ((keyboardEmulator is null) != (mouseEmulator is null))
+            throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
+
+        _keyboardEmulatorOverride = keyboardEmulator;
+        _mouseEmulatorOverride = mouseEmulator;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _settingsService = settingsService ?? new SettingsService();
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
@@ -254,6 +264,35 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private ComboHudPlacement comboHudPlacementSetting;
     partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value) => UpdateSetting(s => s.ComboHudPlacement = value.ToString());
 
+    /// <summary>Win32 SendInput backend (additional APIs will add sibling flags later).</summary>
+    [ObservableProperty] private bool inputApiWin32Selected = true;
+
+    partial void OnInputApiWin32SelectedChanged(bool value)
+    {
+        if (_suppressInputApiUiSync)
+            return;
+        if (!value)
+        {
+            _suppressInputApiUiSync = true;
+            try
+            {
+                InputApiWin32Selected = true;
+            }
+            finally
+            {
+                _suppressInputApiUiSync = false;
+            }
+            return;
+        }
+
+        var prev = NormalizeInputEmulationApiId(_settingsOrchestrator.Settings.InputEmulationApi);
+        if (string.Equals(prev, InputEmulationApiIds.Win32, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        UpdateSetting(s => s.InputEmulationApi = InputEmulationApiIds.Win32);
+        RecreateMappingEngineForCurrentInputApi();
+    }
+
     private void UpdateSetting(Action<AppSettings> update, Action<AppSettings>? after = null)
     {
         update(_settingsOrchestrator.Settings);
@@ -314,9 +353,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private IMappingEngine CreateMappingEngine()
     {
-        return new MappingEngine(
-            new KeyboardEmulator(),
-            new MouseEmulator(),
+        var (keyboard, mouse) = _keyboardEmulatorOverride is { } kbd && _mouseEmulatorOverride is { } ms
+            ? (kbd, ms)
+            : InputEmulationServices.CreatePair(_settingsOrchestrator.Settings.InputEmulationApi);
+
+        return NewMappingEngine(keyboard, mouse);
+    }
+
+    private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse) =>
+        new MappingEngine(
+            keyboard,
+            mouse,
             () => _appStatusMonitor.CanSendOutput,
             a => _dispatcher.BeginInvoke(a),
             v => GamepadMonitorPanel.LastMappedOutput = v,
@@ -332,7 +379,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
             radialMenuHud: new RadialMenuHudPresenter(() => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex, () => (int)GamepadMonitorPanel.ComboHudPanelAlpha),
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
             getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0 ? RadialMenuConfirmMode.ReturnStickToCenter : RadialMenuConfirmMode.ReleaseGuideKey);
+
+    private void RecreateMappingEngineForCurrentInputApi()
+    {
+        if (_keyboardEmulatorOverride is not null && _mouseEmulatorOverride is not null)
+            return;
+
+        var (kbd, mouse) = InputEmulationServices.CreatePair(_settingsOrchestrator.Settings.InputEmulationApi);
+        _mappingManager.ReplaceEngine(NewMappingEngine(kbd, mouse), ComboLeadButtonsPersist);
     }
+
+    private static string NormalizeInputEmulationApiId(string? raw) =>
+        string.IsNullOrWhiteSpace(raw) ? InputEmulationApiIds.Win32 : raw.Trim();
 
     // Helper methods for UI refresh
     internal void RefreshRightPanelSurface()
@@ -374,6 +432,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
         TapInterKeyDelayMs = appSettings.TapInterKeyDelayMs;
         TextInterCharDelayMs = appSettings.TextInterCharDelayMs;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
+
+        _suppressInputApiUiSync = true;
+        try
+        {
+            var api = NormalizeInputEmulationApiId(appSettings.InputEmulationApi);
+            if (!string.Equals(api, InputEmulationApiIds.Win32, StringComparison.OrdinalIgnoreCase))
+            {
+                appSettings.InputEmulationApi = InputEmulationApiIds.Win32;
+                _settingsOrchestrator.SaveSettings();
+            }
+
+            InputApiWin32Selected = string.Equals(api, InputEmulationApiIds.Win32, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            _suppressInputApiUiSync = false;
+        }
     }
 
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)

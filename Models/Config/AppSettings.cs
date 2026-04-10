@@ -207,4 +207,10 @@ public class AppSettings
     /// </summary>
     [JsonProperty("focusGracePeriodMs")]
     public int FocusGracePeriodMs { get; set; } = 500;
+
+    /// <summary>
+    /// Keyboard/mouse simulation backend (<see cref="InputEmulationApiIds.Win32"/> = SendInput). Extensible for other drivers.
+    /// </summary>
+    [JsonProperty("inputEmulationApi")]
+    public string InputEmulationApi { get; set; } = InputEmulationApiIds.Win32;
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Interfaces.Services;
@@ -24,4 +25,7 @@ public interface IMappingManager : IDisposable
     void ProcessInputFrame(InputFrame frame, bool allowOutput);
     void RefreshEngineDefinitions();
     void ForceReleaseOutputs();
+
+    /// <summary>Replaces the mapping engine (e.g. after changing input API). Releases outputs on the old engine first.</summary>
+    void ReplaceEngine(IMappingEngine newEngine, IReadOnlyList<string>? comboLeadButtons);
 }

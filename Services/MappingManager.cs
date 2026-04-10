@@ -14,7 +14,7 @@ namespace GamepadMapperGUI.Services;
 /// </summary>
 public partial class MappingManager : ObservableObject, IMappingManager
 {
-    private readonly IMappingEngine _engine;
+    private IMappingEngine _engine;
     private readonly IProfileService _profileService;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
 
@@ -81,6 +81,16 @@ public partial class MappingManager : ObservableObject, IMappingManager
     {
         _engine.ForceReleaseAllOutputs();
         _engine.ForceReleaseAnalogOutputs();
+    }
+
+    public void ReplaceEngine(IMappingEngine newEngine, IReadOnlyList<string>? comboLeadButtons)
+    {
+        ArgumentNullException.ThrowIfNull(newEngine);
+        ForceReleaseOutputs();
+        _engine.Dispose();
+        _engine = newEngine;
+        _engine.SetComboLeadButtonsFromTemplate(comboLeadButtons);
+        RefreshEngineDefinitions();
     }
 
     public void Dispose()

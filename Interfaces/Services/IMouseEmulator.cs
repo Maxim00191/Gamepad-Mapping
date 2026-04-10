@@ -1,8 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GamepadMapperGUI.Interfaces.Core;
+namespace GamepadMapperGUI.Interfaces.Services;
 
+/// <summary>
+/// Injected mouse button/wheel/move simulation (implementation may use Win32, etc.).
+/// </summary>
 public interface IMouseEmulator
 {
     void LeftDown();

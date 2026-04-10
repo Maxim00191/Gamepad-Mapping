@@ -3,19 +3,17 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Gamepad_Mapping;
-using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Services;
 
 namespace GamepadMapperGUI.Core;
 
-public sealed class MouseEmulator : IMouseEmulator
+/// <summary>Mouse output via Win32 <c>SendInput</c> (<see cref="ISendInputChannel"/>).</summary>
+public sealed class Win32MouseEmulator : IMouseEmulator
 {
-    private readonly IWin32Service _win32;
+    private readonly ISendInputChannel _sendChannel;
 
-    /// <summary>
-    /// Brief down-hold before up, aligned with <see cref="KeyboardEmulator"/> tap keys so games that poll input each frame register clicks.
-    /// </summary>
+    /// <summary>Brief down-hold before up, aligned with <see cref="Win32KeyboardEmulator"/> tap timing.</summary>
     private const int ClickHoldMs = 30;
 
     private const uint InputMouse = 0;
@@ -57,9 +55,9 @@ public sealed class MouseEmulator : IMouseEmulator
         public IntPtr dwExtraInfo;
     }
 
-    public MouseEmulator(IWin32Service? win32 = null)
+    public Win32MouseEmulator(ISendInputChannel? sendChannel = null)
     {
-        _win32 = win32 ?? new Win32Service();
+        _sendChannel = sendChannel ?? new Win32SendInputChannel();
     }
 
     public void LeftDown() => SendMouseInput(MouseeventfLeftdown);
@@ -141,11 +139,11 @@ public sealed class MouseEmulator : IMouseEmulator
         };
 
         var size = Marshal.SizeOf<INPUT>();
-        IntPtr ptr = Marshal.AllocHGlobal(size);
+        var ptr = Marshal.AllocHGlobal(size);
         try
         {
             Marshal.StructureToPtr(input, ptr, false);
-            var sent = _win32.SendInput(1, ptr, size);
+            var sent = _sendChannel.SendInput(1, (nint)ptr, size);
             if (sent != 1)
             {
                 var err = Marshal.GetLastWin32Error();
