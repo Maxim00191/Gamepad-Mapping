@@ -24,6 +24,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private bool _frameDispatchAllowed;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
+    private readonly Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> _enqueueItemCycleTap;
+    private readonly Action<string, TriggerMoment, Key[], Key, string, string> _enqueueChordTap;
     private readonly OutputStateTracker _outputStateTracker = new();
     private readonly AnalogProcessor _analogProcessor = new();
     private readonly IInputDispatcher _inputDispatcher;
@@ -108,6 +110,9 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             setMappedOutput,
             setMappingStatus);
 
+        _enqueueItemCycleTap = EnqueueItemCycleTap;
+        _enqueueChordTap = (source, trigger, mods, key, label, token) => _inputDispatcher.EnqueueChordTap(source, trigger, mods, key, label, token);
+
         _radialMenuController = new RadialMenuController(
             _radialMenuHud,
             _runOnUi,
@@ -169,7 +174,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         _setMappedOutput,
         _setMappingStatus,
         QueueOutputDispatch,
-        EnqueueItemCycleTap,
+        _enqueueItemCycleTap,
+        _enqueueChordTap,
         TryDispatchAction,
         mappings => ResolveComboLeads(mappings),
         _leadKeyReleaseSuppressMs,
@@ -343,26 +349,35 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         return new Processing.AnalogStateId(side, mapping.ActionType, mapping.KeyboardKey, mapping.Description);
     }
 
-    private IExecutableAction ResolveExecutableAction(MappingEntry mapping)
+    private IExecutableAction? ResolveExecutableAction(MappingEntry mapping)
     {
         return mapping.ActionType switch
         {
             MappingActionType.RadialMenu => new Actions.RadialMenuAction(mapping, _radialMenuController),
-            MappingActionType.ItemCycle => new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap),
+            MappingActionType.ItemCycle => new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _enqueueItemCycleTap),
             MappingActionType.TemplateToggle => new Actions.TemplateToggleAction(mapping, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _requestTemplateSwitchToProfileId),
-            _ => new Actions.KeyboardAction(mapping.KeyboardKey, TryDispatchLegacyKeyboard)
+            MappingActionType.Keyboard when mapping.From.Type != GamepadBindingType.Button =>
+                new Actions.KeyboardAction(mapping.KeyboardKey, TryDispatchLegacyKeyboard),
+            MappingActionType.Keyboard => null,
+            _ => null,
         };
     }
 
+    /// <summary>
+    /// Keyboard dispatch for non-button sources (triggers, thumbsticks) where <see cref="ButtonMappingProcessor"/> does not run.
+    /// Button mappings use <c>null</c> <see cref="MappingEntry.ExecutableAction"/> and the processor's unified path with <see cref="OutputStateTracker"/>.
+    /// </summary>
     private bool TryDispatchLegacyKeyboard(string keyboardKey, TriggerMoment trigger, out string? errorStatus)
     {
         errorStatus = null;
         if (!InputTokenResolver.TryResolveMappedOutput(keyboardKey, out var output, out var baseLabel))
             return false;
 
-        // Note: sourceToken and chordButtons are handled by ButtonMappingProcessor
-        // This legacy path is only for the Execute call within TryDispatchAction
-        return false; // ButtonMappingProcessor handles the actual dispatch for KeyboardAction
+        var outputLabel = $"{baseLabel} ({trigger})";
+        _setMappedOutput(outputLabel);
+        _setMappingStatus($"{keyboardKey} ({trigger}) -> {outputLabel}");
+        QueueOutputDispatch("LegacySource", trigger, output, outputLabel, keyboardKey);
+        return true;
     }
 
     private void TrySyncComboHud(InputFrameContext context)
@@ -376,25 +391,6 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
         if (frameHasButtonEdges || _comboHudManager.AwaitingComboHudDelay)
             _comboHudManager.Sync();
-    }
-
-    private static HashSet<GamepadButtons> ToActiveButtonsSet(GamepadButtons buttons)
-    {
-        var result = new HashSet<GamepadButtons>();
-        var mask = (uint)buttons;
-        if (mask == 0) return result;
-
-        for (var bitIndex = 0; bitIndex < 32; bitIndex++)
-        {
-            var bit = 1u << bitIndex;
-            if ((mask & bit) == 0) continue;
-
-            var flag = (GamepadButtons)bit;
-            if (Enum.IsDefined(typeof(GamepadButtons), flag))
-                result.Add(flag);
-        }
-
-        return result;
     }
 
     private void HandleButtonMappingsInternal(
@@ -660,7 +656,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         if (action.ItemCycle is { } ic)
         {
             var mapping = new MappingEntry { ItemCycle = ic };
-            var executable = new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap);
+            var executable = new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _enqueueItemCycleTap);
             return executable.Execute(TriggerMoment.Tap, sourceToken, out errorStatus);
         }
 
@@ -675,16 +671,5 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         }
 
         return false;
-    }
-
-    private void ClearRadialSessionState()
-    {
-        // State is now managed by _radialMenuController
-    }
-
-    private void AbandonRadialMenuSessionForForceReset()
-    {
-        _runOnUi(() => _radialMenuHud.HideMenu());
-        ClearRadialSessionState();
     }
 }

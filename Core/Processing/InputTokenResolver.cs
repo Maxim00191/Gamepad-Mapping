@@ -54,6 +54,9 @@ internal static class InputTokenResolver
     public static string NormalizeKeyboardKeyToken(string keyboardKey)
     {
         var token = keyboardKey.Trim();
+        if (token.Length == 0 && keyboardKey.Length > 0 && keyboardKey.AsSpan().Contains(' '))
+            return nameof(Key.Space);
+
         return KeyAliases.TryGetValue(token, out var alias) ? alias : token;
     }
 
@@ -82,6 +85,38 @@ internal static class InputTokenResolver
         }
 
         keys = list.ToArray();
+        return true;
+    }
+
+    /// <summary>
+    /// Parses a chord string like "Ctrl+C" or "Alt+Shift+S" into modifiers and a main key.
+    /// Returns true if the string is a valid chord.
+    /// </summary>
+    public static bool TryParseChord(string? chord, out Key[] modifiers, out Key mainKey)
+    {
+        modifiers = Array.Empty<Key>();
+        mainKey = Key.None;
+
+        if (string.IsNullOrWhiteSpace(chord) || !chord.Contains('+'))
+            return false;
+
+        var parts = chord.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2)
+            return false;
+
+        var modifierList = new List<Key>();
+        for (int i = 0; i < parts.Length - 1; i++)
+        {
+            var mod = ParseKey(parts[i]);
+            if (mod == Key.None) return false;
+            modifierList.Add(mod);
+        }
+
+        var main = ParseKey(parts[^1]);
+        if (main == Key.None) return false;
+
+        modifiers = modifierList.ToArray();
+        mainKey = main;
         return true;
     }
 

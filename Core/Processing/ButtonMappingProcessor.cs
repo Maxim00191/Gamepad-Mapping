@@ -18,6 +18,7 @@ internal sealed class ButtonMappingProcessor
     private readonly Action<string> _setMappingStatus;
     private readonly Action<string, TriggerMoment, DispatchedOutput, string, string> _queueOutputDispatch;
     private readonly Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> _enqueueItemCycleTap;
+    private readonly Action<string, TriggerMoment, Key[], Key, string, string> _enqueueChordTap;
     public delegate bool TryDispatchActionDelegate(
         MappingEntry mapping,
         TriggerMoment trigger,
@@ -40,6 +41,7 @@ internal sealed class ButtonMappingProcessor
         Action<string> setMappingStatus,
         Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch,
         Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> enqueueItemCycleTap,
+        Action<string, TriggerMoment, Key[], Key, string, string> enqueueChordTap,
         TryDispatchActionDelegate tryDispatchAction,
         Func<IReadOnlyCollection<MappingEntry>, HashSet<GamepadButtons>> resolveComboLeads,
         int leadKeyReleaseSuppressMs,
@@ -55,6 +57,7 @@ internal sealed class ButtonMappingProcessor
             _setMappingStatus = setMappingStatus;
             _queueOutputDispatch = queueOutputDispatch;
             _enqueueItemCycleTap = enqueueItemCycleTap;
+            _enqueueChordTap = enqueueChordTap;
             _tryDispatchAction = tryDispatchAction;
             _resolveComboLeads = resolveComboLeads;
             _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
@@ -68,17 +71,9 @@ internal sealed class ButtonMappingProcessor
             if (context.IsSuppressed)
                 return;
 
-        if (context.Trigger == TriggerMoment.Released && 
+        if (context.Trigger == TriggerMoment.Released &&
             _activeActionTracker.IsButtonSuppressedByActiveChord(context.Button))
-        {
-            // Even if suppressed, we must ensure the button is unregistered from any tracking
-            // to prevent stale state from blocking future presses.
             _activeActionTracker.ProcessButtonReleased(context.Button);
-            
-            // CRITICAL: DO NOT return here. We must allow the release event to flow down
-            // to _holdSessionManager and other cleanup logic, otherwise they will
-            // think the button is still being held (ghost state).
-        }
 
         if (context.Trigger == TriggerMoment.Released &&
             _holdSessionManager.TryFinalizeDualActionOnRelease(
@@ -235,6 +230,15 @@ internal sealed class ButtonMappingProcessor
                     {
                         if (actionErr is not null)
                             _setMappingStatus(actionErr);
+                        continue;
+                    }
+
+                    if (InputTokenResolver.TryParseChord(candidate.Mapping.KeyboardKey, out var modifiers, out var mainKey))
+                    {
+                        var chordLabel = $"{candidate.Mapping.KeyboardKey} ({context.Trigger})";
+                        _setMappedOutput(chordLabel);
+                        _setMappingStatus($"Queued Chord: {candidate.SourceToken} ({context.Trigger}) -> {chordLabel}");
+                        _enqueueChordTap(candidate.SourceToken, context.Trigger, modifiers, mainKey, chordLabel, candidate.Mapping.KeyboardKey ?? string.Empty);
                         continue;
                     }
 
@@ -493,14 +497,25 @@ internal sealed class ButtonMappingProcessor
 
                     // 3. Fallback to standard Tap dispatch for standard keyboard keys
                     if (pressed is not null &&
-                        ChordResolver.TryParseButtonChord(pressed.From!.Value, out _, out _, out _, out var soloToken) &&
-                        InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
+                        ChordResolver.TryParseButtonChord(pressed.From!.Value, out _, out _, out _, out var soloToken))
                     {
-                        var outLabel = $"{tapLabel} (Tap)";
-                        _setMappedOutput(outLabel);
-                        _setMappingStatus($"Queued: {soloToken} (Tap) -> {outLabel}");
-                        _queueOutputDispatch(soloToken, TriggerMoment.Tap, soloOut, outLabel, pressed.KeyboardKey ?? string.Empty);
-                        return true;
+                        if (InputTokenResolver.TryParseChord(pressed.KeyboardKey, out var pressMods, out var pressKey))
+                        {
+                            var chordLabel = $"{pressed.KeyboardKey} (Tap)";
+                            _setMappedOutput(chordLabel);
+                            _setMappingStatus($"Deferred solo (short): {button} -> {chordLabel}");
+                            _enqueueChordTap(soloToken, TriggerMoment.Tap, pressMods, pressKey, chordLabel, pressed.KeyboardKey ?? string.Empty);
+                            return true;
+                        }
+
+                        if (InputTokenResolver.TryResolveMappedOutput(pressed.KeyboardKey, out var soloOut, out var tapLabel))
+                        {
+                            var outLabel = $"{tapLabel} (Tap)";
+                            _setMappedOutput(outLabel);
+                            _setMappingStatus($"Queued: {soloToken} (Tap) -> {outLabel}");
+                            _queueOutputDispatch(soloToken, TriggerMoment.Tap, soloOut, outLabel, pressed.KeyboardKey ?? string.Empty);
+                            return true;
+                        }
                     }
 
                     if (tap is not null &&
