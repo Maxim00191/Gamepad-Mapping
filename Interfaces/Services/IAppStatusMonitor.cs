@@ -1,6 +1,5 @@
-using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Models.State;
 
 namespace GamepadMapperGUI.Interfaces.Services;
 

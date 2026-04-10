@@ -1,5 +1,5 @@
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Interfaces;
+using GamepadMapperGUI.Interfaces.Core;
 using Vortice.XInput;
 
 namespace GamepadMapping.Tests.Mocks;

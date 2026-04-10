@@ -1,4 +1,4 @@
-using GamepadMapperGUI.Interfaces;
+using GamepadMapperGUI.Interfaces.Core;
 using Vortice.XInput;
 
 namespace GamepadMapperGUI.Services;

@@ -1,6 +1,7 @@
 using System;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services;
 using Moq;
 using Xunit;

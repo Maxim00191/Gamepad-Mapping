@@ -1,10 +1,11 @@
 using System.Numerics;
 using GamepadMapperGUI.Core;
-using GamepadMapperGUI.Interfaces;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using GamepadMapping.Tests.Mocks;
 using Moq;
 using Vortice.XInput;
+using GamepadButtons = GamepadMapperGUI.Models.GamepadButtons;
 
 
 namespace GamepadMapping.Tests.Core.Input;

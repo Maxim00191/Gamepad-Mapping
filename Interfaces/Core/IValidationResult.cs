@@ -8,8 +8,3 @@ public interface IValidationResult
     IEnumerable<string> Errors { get; }
     IEnumerable<string> Warnings { get; }
 }
-
-public interface IValidator<in T>
-{
-    IValidationResult Validate(T instance);
-}

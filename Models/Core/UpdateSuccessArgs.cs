@@ -1,3 +1,3 @@
-namespace Gamepad_Mapping;
+namespace GamepadMapperGUI.Models;
 
 public readonly record struct UpdateSuccessArgs(string ReleaseTag);

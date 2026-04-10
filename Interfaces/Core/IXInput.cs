@@ -1,6 +1,6 @@
 using Vortice.XInput;
 
-namespace GamepadMapperGUI.Interfaces;
+namespace GamepadMapperGUI.Interfaces.Core;
 
 public interface IXInput
 {

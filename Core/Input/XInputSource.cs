@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using GamepadMapperGUI.Interfaces;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 using Vortice.XInput;

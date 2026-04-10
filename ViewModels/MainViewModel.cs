@@ -15,7 +15,6 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
-using GamepadMapperGUI.Interfaces;
 using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services;
 using Gamepad_Mapping.Utils;
@@ -134,7 +133,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         var engine = mappingEngine ?? CreateMappingEngine();
         _mappingManager = new MappingManager(engine, _profileService);
-        _mappingManager.MappingsChanged += (_, _) => OnPropertyChanged(nameof(MappingCount));
+        _mappingManager.MappingsChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(MappingCount));
+            OnPropertyChanged(nameof(Mappings));
+        };
         _mappingManager.OnInputProcessed += (frame, result) => GamepadMonitorPanel.RecordInputFrameSnapshot(frame, result, 
             reader is GamepadReader gr1 ? gr1.LeftThumbstickDeadzone : 0, 
             reader is GamepadReader gr2 ? gr2.RightThumbstickDeadzone : 0);

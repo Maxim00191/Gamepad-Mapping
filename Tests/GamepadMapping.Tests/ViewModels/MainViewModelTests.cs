@@ -97,7 +97,7 @@ public class MainViewModelTests
                 mappingEditorNotified = true;
         };
 
-        vm.Mappings = new ObservableCollection<MappingEntry>();
+        vm.Mappings.Add(new MappingEntry());
 
         Assert.True(mappingEditorNotified);
     }

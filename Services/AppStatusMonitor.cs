@@ -9,19 +9,6 @@ using GamepadMapperGUI.Models.State;
 
 namespace GamepadMapperGUI.Services;
 
-public sealed class AppStatusChangedEventArgs : EventArgs
-{
-    public AppStatusChangedEventArgs(AppTargetingState state, string statusText)
-    {
-        State = state;
-        StatusText = statusText;
-    }
-
-    public AppTargetingState State { get; }
-
-    public string StatusText { get; }
-}
-
 public sealed class AppStatusMonitor : IAppStatusMonitor
 {
     private readonly IProcessTargetService _processTargetService;

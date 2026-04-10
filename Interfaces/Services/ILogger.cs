@@ -1,12 +1,4 @@
-namespace Gamepad_Mapping.Interfaces.Services;
-
-public enum LogLevel
-{
-    Debug,
-    Info,
-    Warning,
-    Error
-}
+namespace GamepadMapperGUI.Interfaces.Services;
 
 public interface ILogger
 {

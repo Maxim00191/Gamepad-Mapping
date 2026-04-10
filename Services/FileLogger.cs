@@ -1,8 +1,8 @@
 using System.IO;
-using Gamepad_Mapping.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Utils;
 
-namespace Gamepad_Mapping.Services;
+namespace GamepadMapperGUI.Services;
 
 public class FileLogger : ILogger
 {

@@ -1,5 +1,3 @@
-using Gamepad_Mapping.Interfaces.Services;
-using Gamepad_Mapping.Services;
 using Gamepad_Mapping.ViewModels;
 using GamepadMapperGUI.Interfaces.Services;
 using Microsoft.Win32;
@@ -9,7 +7,6 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using GamepadMapperGUI.Services;
-using GamepadMapperGUI.Interfaces;
 using GamepadMapperGUI.Utils;
 using System.IO;
 using System.Linq;
