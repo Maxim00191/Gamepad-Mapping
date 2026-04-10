@@ -213,4 +213,10 @@ public class AppSettings
     /// </summary>
     [JsonProperty("inputEmulationApi")]
     public string InputEmulationApi { get; set; } = InputEmulationApiIds.Win32;
+
+    /// <summary>
+    /// Gamepad input source backend (<see cref="GamepadSourceApiIds.XInput"/> = XInput).
+    /// </summary>
+    [JsonProperty("gamepadSourceApi")]
+    public string GamepadSourceApi { get; set; } = GamepadSourceApiIds.XInput;
 }

@@ -346,12 +346,27 @@
                                             </ToggleButton>
                                             <StackPanel Margin="0,2,0,0"
                                                         Visibility="{Binding IsChecked, ElementName=InputEmulationSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <CheckBox Margin="0,0,0,4"
-                                                          IsChecked="{Binding InputApiWin32Selected, Mode=TwoWay}"
-                                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Hint]}">
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Label]}"
-                                                               TextWrapping="Wrap" />
-                                                </CheckBox>
+                                                <ComboBox Margin="0,0,0,4"
+                                                          ItemsSource="{Binding AvailableInputApis}"
+                                                          SelectedItem="{Binding SelectedInputApi, Mode=TwoWay}"
+                                                          DisplayMemberPath="DisplayName"
+                                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Hint]}" />
+                                            </StackPanel>
+
+                                            <Separator Margin="0,6,0,8" />
+
+                                            <ToggleButton x:Name="GamepadSourceSettingsToggle"
+                                                          Style="{StaticResource FlatSectionToggleStyle}">
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsGamepadSourceSection]}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                            </ToggleButton>
+                                            <StackPanel Margin="0,2,0,0"
+                                                        Visibility="{Binding IsChecked, ElementName=GamepadSourceSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <ComboBox Margin="0,0,0,4"
+                                                          ItemsSource="{Binding AvailableGamepadApis}"
+                                                          SelectedItem="{Binding SelectedGamepadApi, Mode=TwoWay}"
+                                                          DisplayMemberPath="DisplayName" />
                                             </StackPanel>
 
                                             <Separator Margin="0,6,0,8" />

@@ -8,12 +8,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
-        using GamepadMapperGUI.Services;
-        using GamepadMapperGUI.Interfaces;
+using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Interfaces;
 using GamepadMapperGUI.Utils;
 using System.IO;
 using System.Linq;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Core.Input;
+using GamepadMapperGUI.Core;
 
 namespace Gamepad_Mapping;
 
@@ -69,6 +71,7 @@ public partial class App : Application
         var appToastService = new AppToastService();
         ToastService = appToastService;
         var xinputService = new XInputService();
+        var gamepadSource = new XInputSource(xinputService);
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
@@ -82,7 +85,8 @@ public partial class App : Application
             updateVersionCacheService: updateVersionCacheService,
             updateQuotaPolicyProvider: updateQuotaPolicyProvider,
             appToastService: appToastService,
-            xinput: xinputService);
+            xinput: xinputService,
+            gamepadSource: gamepadSource);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;

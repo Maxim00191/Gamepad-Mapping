@@ -1,4 +1,5 @@
 using System;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Interfaces.Services;
@@ -17,4 +18,9 @@ public interface IGamepadService : IDisposable
     
     void SetThumbstickDeadzones(float left, float right);
     void SetTriggerDeadzones(float leftInner, float leftOuter, float rightInner, float rightOuter);
+
+    /// <summary>
+    /// Replaces the underlying reader.
+    /// </summary>
+    void ReplaceReader(IGamepadReader reader);
 }

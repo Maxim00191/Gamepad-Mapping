@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
+using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Interfaces;
@@ -47,7 +48,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly AppToastViewModel _toastHost;
     private readonly IKeyboardEmulator? _keyboardEmulatorOverride;
     private readonly IMouseEmulator? _mouseEmulatorOverride;
-    private bool _suppressInputApiUiSync;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -74,7 +74,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IAppToastService? appToastService = null,
         IKeyboardEmulator? keyboardEmulator = null,
         IMouseEmulator? mouseEmulator = null,
-        IXInput? xinput = null)
+        IXInput? xinput = null,
+        IGamepadSource? gamepadSource = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
@@ -118,7 +119,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, appSettings.ThumbstickDeadzone);
 
         var reader = gamepadReader ?? new GamepadReader(
-            xinput ?? new XInputService(),
+            gamepadSource ?? new XInputSource(xinput ?? new XInputService()),
             initialLeftDeadzone,
             initialRightDeadzone,
             appSettings.LeftTriggerInnerDeadzone,
@@ -261,36 +262,89 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int textInterCharDelayMs;
     partial void OnTextInterCharDelayMsChanged(int value) => UpdateSetting(s => s.TextInterCharDelayMs = Math.Clamp(value, 0, 1000));
 
-    [ObservableProperty] private ComboHudPlacement comboHudPlacementSetting;
-    partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value) => UpdateSetting(s => s.ComboHudPlacement = value.ToString());
+    public ObservableCollection<ComboHudPlacement> ComboHudPlacements { get; } = new(Enum.GetValues<ComboHudPlacement>());
 
-    /// <summary>Win32 SendInput backend (additional APIs will add sibling flags later).</summary>
-    [ObservableProperty] private bool inputApiWin32Selected = true;
+    public record InputApiOption(string Id, string DisplayName);
+    public ObservableCollection<InputApiOption> AvailableInputApis { get; } = new();
+    public ObservableCollection<InputApiOption> AvailableGamepadApis { get; } = new();
 
-    partial void OnInputApiWin32SelectedChanged(bool value)
+    [ObservableProperty] private InputApiOption? selectedInputApi;
+    [ObservableProperty] private InputApiOption? selectedGamepadApi;
+
+    private bool _suppressInputApiUiSync;
+    private bool _suppressGamepadSourceUiSync;
+
+    partial void OnSelectedInputApiChanged(InputApiOption? value)
     {
-        if (_suppressInputApiUiSync)
-            return;
-        if (!value)
-        {
-            _suppressInputApiUiSync = true;
-            try
-            {
-                InputApiWin32Selected = true;
-            }
-            finally
-            {
-                _suppressInputApiUiSync = false;
-            }
-            return;
-        }
+        if (_suppressInputApiUiSync || value == null) return;
+        var apiId = NormalizeInputEmulationApiId(value.Id);
+        if (string.Equals(_settingsOrchestrator.Settings.InputEmulationApi, apiId, StringComparison.OrdinalIgnoreCase)) return;
 
-        var prev = NormalizeInputEmulationApiId(_settingsOrchestrator.Settings.InputEmulationApi);
-        if (string.Equals(prev, InputEmulationApiIds.Win32, StringComparison.OrdinalIgnoreCase))
-            return;
-
-        UpdateSetting(s => s.InputEmulationApi = InputEmulationApiIds.Win32);
+        UpdateSetting(s => s.InputEmulationApi = apiId);
         RecreateMappingEngineForCurrentInputApi();
+    }
+
+    partial void OnSelectedGamepadApiChanged(InputApiOption? value)
+    {
+        if (_suppressGamepadSourceUiSync || value == null) return;
+        UpdateGamepadSource(value.Id);
+    }
+
+    private void UpdateGamepadSource(string apiId)
+    {
+        var prev = _settingsOrchestrator.Settings.GamepadSourceApi;
+        if (string.Equals(prev, apiId, StringComparison.OrdinalIgnoreCase)) return;
+
+        UpdateSetting(s => s.GamepadSourceApi = apiId);
+        RecreateGamepadReaderForCurrentSource();
+    }
+
+    private void SyncInputApiUi(string apiId)
+    {
+        _suppressInputApiUiSync = true;
+        try
+        {
+            SelectedInputApi = AvailableInputApis.FirstOrDefault(a => string.Equals(a.Id, apiId, StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            _suppressInputApiUiSync = false;
+        }
+    }
+
+    private void SyncGamepadSourceUi(string apiId)
+    {
+        _suppressGamepadSourceUiSync = true;
+        try
+        {
+            SelectedGamepadApi = AvailableGamepadApis.FirstOrDefault(a => string.Equals(a.Id, apiId, StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            _suppressGamepadSourceUiSync = false;
+        }
+    }
+
+    private void RecreateGamepadReaderForCurrentSource()
+    {
+        var api = _settingsOrchestrator.Settings.GamepadSourceApi;
+        IGamepadSource source = api switch
+        {
+            GamepadSourceApiIds.DualSense => throw new NotImplementedException("DualSense source not yet implemented."),
+            _ => new XInputSource(new XInputService())
+        };
+
+        var reader = new GamepadReader(
+            source,
+            GamepadMonitorPanel.LeftThumbstickDeadzone,
+            GamepadMonitorPanel.RightThumbstickDeadzone,
+            GamepadMonitorPanel.LeftTriggerInnerDeadzone,
+            GamepadMonitorPanel.LeftTriggerOuterDeadzone,
+            GamepadMonitorPanel.RightTriggerInnerDeadzone,
+            GamepadMonitorPanel.RightTriggerOuterDeadzone);
+
+        _gamepadService.ReplaceReader(reader);
+        OnPropertyChanged(nameof(IsGamepadRunning));
     }
 
     private void UpdateSetting(Action<AppSettings> update, Action<AppSettings>? after = null)
@@ -416,6 +470,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private static float ResolveStickDeadzone(float specific, float shared) => specific > 0f ? Math.Clamp(specific, 0f, 0.9f) : Math.Clamp(shared, 0f, 0.9f);
 
+    [ObservableProperty] private ComboHudPlacement comboHudPlacementSetting;
+    partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value) => UpdateSetting(s => s.ComboHudPlacement = value.ToString());
+
     private void InitializeUiSettings(AppSettings appSettings)
     {
         FocusGracePeriodMsSetting = appSettings.FocusGracePeriodMs;
@@ -433,22 +490,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         TextInterCharDelayMs = appSettings.TextInterCharDelayMs;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
 
-        _suppressInputApiUiSync = true;
-        try
-        {
-            var api = NormalizeInputEmulationApiId(appSettings.InputEmulationApi);
-            if (!string.Equals(api, InputEmulationApiIds.Win32, StringComparison.OrdinalIgnoreCase))
-            {
-                appSettings.InputEmulationApi = InputEmulationApiIds.Win32;
-                _settingsOrchestrator.SaveSettings();
-            }
+        AvailableInputApis.Clear();
+        AvailableInputApis.Add(new InputApiOption(InputEmulationApiIds.Win32, _settingsOrchestrator.Localize("InputApiWin32Label")));
 
-            InputApiWin32Selected = string.Equals(api, InputEmulationApiIds.Win32, StringComparison.OrdinalIgnoreCase);
-        }
-        finally
-        {
-            _suppressInputApiUiSync = false;
-        }
+        AvailableGamepadApis.Clear();
+        AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.XInput, _settingsOrchestrator.Localize("GamepadSourceXInputLabel")));
+        AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.DualSense, _settingsOrchestrator.Localize("GamepadSourceDualSenseLabel")));
+
+        SyncInputApiUi(NormalizeInputEmulationApiId(appSettings.InputEmulationApi));
+        SyncGamepadSourceUi(appSettings.GamepadSourceApi ?? GamepadSourceApiIds.XInput);
     }
 
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)

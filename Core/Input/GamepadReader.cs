@@ -3,14 +3,12 @@ using System.Numerics;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Interfaces;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core
 {
     public class GamepadReader : IGamepadReader, IDisposable
     {
-        private readonly IXInput _xinput;
+        private readonly IGamepadSource _source;
 
         private Task? _pollingTask;
         private CancellationTokenSource? _cts;
@@ -18,7 +16,6 @@ namespace GamepadMapperGUI.Core
         private InputFrame _previousFrame;
         private bool _hasPreviousState;
         private bool _isFirstFrameEmission;
-        private readonly uint _userIndex = 0;
         private readonly object _startStopLock = new();
         private bool _disposed;
 
@@ -36,7 +33,7 @@ namespace GamepadMapperGUI.Core
         public event Action<InputFrame>? OnInputFrame;
 
         public GamepadReader(
-            IXInput xinput,
+            IGamepadSource source,
             float? leftThumbstickDeadzone = null,
             float? rightThumbstickDeadzone = null,
             float? leftTriggerInnerDeadzone = null,
@@ -44,7 +41,7 @@ namespace GamepadMapperGUI.Core
             float? rightTriggerInnerDeadzone = null,
             float? rightTriggerOuterDeadzone = null)
         {
-            _xinput = xinput;
+            _source = source ?? throw new ArgumentNullException(nameof(source));
             if (leftThumbstickDeadzone is { } left)
                 LeftThumbstickDeadzone = left;
             if (rightThumbstickDeadzone is { } right)
@@ -59,21 +56,18 @@ namespace GamepadMapperGUI.Core
                 RightTriggerOuterDeadzone = rto;
         }
 
-        /// <summary>Left thumbstick deadzone in normalized [0..1] range, clamped internally.</summary>
         public float LeftThumbstickDeadzone
         {
             get => _leftThumbstickDeadzone;
             set => _leftThumbstickDeadzone = Math.Clamp(value, 0f, 0.9f);
         }
 
-        /// <summary>Right thumbstick deadzone in normalized [0..1] range, clamped internally.</summary>
         public float RightThumbstickDeadzone
         {
             get => _rightThumbstickDeadzone;
             set => _rightThumbstickDeadzone = Math.Clamp(value, 0f, 0.9f);
         }
 
-        /// <summary>Left trigger inner threshold [0..1]; values at or below map to 0.</summary>
         public float LeftTriggerInnerDeadzone
         {
             get => _leftTriggerInnerDeadzone;
@@ -86,14 +80,12 @@ namespace GamepadMapperGUI.Core
             }
         }
 
-        /// <summary>Left trigger outer threshold [inner+span..1]; values at or above map to 1.</summary>
         public float LeftTriggerOuterDeadzone
         {
             get => _leftTriggerOuterDeadzone;
             set => _leftTriggerOuterDeadzone = Math.Clamp(value, _leftTriggerInnerDeadzone + TriggerDeadzoneMinSpan, 1f);
         }
 
-        /// <summary>Right trigger inner threshold (same semantics as <see cref="LeftTriggerInnerDeadzone"/>).</summary>
         public float RightTriggerInnerDeadzone
         {
             get => _rightTriggerInnerDeadzone;
@@ -106,7 +98,6 @@ namespace GamepadMapperGUI.Core
             }
         }
 
-        /// <summary>Right trigger outer threshold (same semantics as <see cref="LeftTriggerOuterDeadzone"/>).</summary>
         public float RightTriggerOuterDeadzone
         {
             get => _rightTriggerOuterDeadzone;
@@ -128,7 +119,6 @@ namespace GamepadMapperGUI.Core
                 
                 var token = _cts.Token;
                 _pollingTask = Task.Run(() => PollingLoop(token), token);
-                App.Logger.Info("Gamepad reader started.");
             }
         }
 
@@ -152,12 +142,11 @@ namespace GamepadMapperGUI.Core
             {
                 taskToWait?.Wait(500);
             }
-            catch (AggregateException) { } // Expected on cancellation
+            catch (AggregateException) { }
             finally
             {
                 ctsToCancel?.Dispose();
             }
-            App.Logger.Info("Gamepad reader stopped.");
         }
 
         public void Dispose()
@@ -177,40 +166,31 @@ namespace GamepadMapperGUI.Core
             {
                 try
                 {
-                    if (_xinput.GetState(_userIndex, out State xState))
+                    if (_source.TryGetFrame(out InputFrame rawFrame))
                     {
-                        var timestampMs = Environment.TickCount64;
-                            var currentState = new InputFrame(
-                                Buttons: (GamepadMapperGUI.Models.GamepadButtons)xState.Gamepad.Buttons,
-                                LeftThumbstick: NormalizeThumbstick(xState.Gamepad.LeftThumbX, xState.Gamepad.LeftThumbY, _leftThumbstickDeadzone),
-                                RightThumbstick: NormalizeThumbstick(xState.Gamepad.RightThumbX, xState.Gamepad.RightThumbY, _rightThumbstickDeadzone),
-                                LeftTrigger: NormalizeTrigger(xState.Gamepad.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone),
-                                RightTrigger: NormalizeTrigger(xState.Gamepad.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone),
-                                IsConnected: true,
-                                TimestampMs: timestampMs);
+                        var currentState = ProcessFrame(rawFrame);
 
-                            var shouldEmit =
-                                _isFirstFrameEmission ||
-                                (_hasPreviousState && currentState.Buttons != _previousFrame.Buttons) ||
-                                (_hasPreviousState && HasAnalogChanged(_previousFrame.LeftThumbstick, currentState.LeftThumbstick, AnalogChangeEpsilon)) ||
-                                // Right stick: emit while engaged (steady aim) so mouse-look stays continuous; left stick is delta-only.
-                                (_hasPreviousState &&
-                                 (HasAnalogChanged(_previousFrame.RightThumbstick, currentState.RightThumbstick, AnalogChangeEpsilon) ||
-                                  IsAnalogEngaged(currentState.RightThumbstick, AnalogChangeEpsilon))) ||
-                                (_hasPreviousState &&
-                                 HasAnalogChanged(_previousFrame.LeftTrigger, currentState.LeftTrigger, AnalogChangeEpsilon)) ||
-                                (_hasPreviousState &&
-                                 HasAnalogChanged(_previousFrame.RightTrigger, currentState.RightTrigger, AnalogChangeEpsilon));
+                        var shouldEmit =
+                            _isFirstFrameEmission ||
+                            (_hasPreviousState && currentState.Buttons != _previousFrame.Buttons) ||
+                            (_hasPreviousState && HasAnalogChanged(_previousFrame.LeftThumbstick, currentState.LeftThumbstick, AnalogChangeEpsilon)) ||
+                            (_hasPreviousState &&
+                             (HasAnalogChanged(_previousFrame.RightThumbstick, currentState.RightThumbstick, AnalogChangeEpsilon) ||
+                              IsAnalogEngaged(currentState.RightThumbstick, AnalogChangeEpsilon))) ||
+                            (_hasPreviousState &&
+                             HasAnalogChanged(_previousFrame.LeftTrigger, currentState.LeftTrigger, AnalogChangeEpsilon)) ||
+                            (_hasPreviousState &&
+                             HasAnalogChanged(_previousFrame.RightTrigger, currentState.RightTrigger, AnalogChangeEpsilon));
 
-                            if (shouldEmit)
-                            {
-                                OnInputFrame?.Invoke(currentState);
-                            }
-
-                            _previousFrame = currentState;
-                            _hasPreviousState = true;
-                            _isFirstFrameEmission = false;
+                        if (shouldEmit)
+                        {
+                            OnInputFrame?.Invoke(currentState);
                         }
+
+                        _previousFrame = currentState;
+                        _hasPreviousState = true;
+                        _isFirstFrameEmission = false;
+                    }
                     else
                     {
                         if (_hasPreviousState)
@@ -232,28 +212,32 @@ namespace GamepadMapperGUI.Core
             }
         }
 
-        private static float NormalizeTrigger(byte value, float inner, float outer)
+        private InputFrame ProcessFrame(InputFrame frame)
         {
-            var raw = value / 255f;
+            if (!frame.IsConnected) return frame;
+
+            return frame with
+            {
+                LeftThumbstick = ApplyDeadzoneToStick(frame.LeftThumbstick, _leftThumbstickDeadzone),
+                RightThumbstick = ApplyDeadzoneToStick(frame.RightThumbstick, _rightThumbstickDeadzone),
+                LeftTrigger = NormalizeTrigger(frame.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone),
+                RightTrigger = NormalizeTrigger(frame.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone)
+            };
+        }
+
+        private static float NormalizeTrigger(float raw, float inner, float outer)
+        {
             if (raw <= inner) return 0f;
             if (raw >= outer) return 1f;
             return (raw - inner) / (outer - inner);
         }
 
-        private static Vector2 NormalizeThumbstick(short x, short y, float deadzone)
+        private static Vector2 ApplyDeadzoneToStick(Vector2 stick, float deadzone)
         {
-            var nx = ApplyDeadzone(NormalizeAxis(x), deadzone);
-            var ny = ApplyDeadzone(NormalizeAxis(y), deadzone);
-            return new Vector2(nx, ny);
-        }
-
-        private static float NormalizeAxis(short value)
-        {
-            // Handle the -32768 edge so we map to a clean [-1..1] range.
-            var normalized = value < 0 ? value / 32768f : value / 32767f;
-            if (normalized > 1f) return 1f;
-            if (normalized < -1f) return -1f;
-            return normalized;
+            return new Vector2(
+                ApplyDeadzone(stick.X, deadzone),
+                ApplyDeadzone(stick.Y, deadzone)
+            );
         }
 
         private static float ApplyDeadzone(float v, float deadzone)

@@ -11,14 +11,16 @@ namespace GamepadMapperGUI.Services;
 /// </summary>
 public class GamepadService : IGamepadService
 {
-    private readonly IGamepadReader _reader;
+    private IGamepadReader _reader;
     private bool _isRunning;
 
     public GamepadService(IGamepadReader reader)
     {
         _reader = reader ?? throw new ArgumentNullException(nameof(reader));
-        _reader.OnInputFrame += (frame) => OnInputFrame?.Invoke(frame);
+        _reader.OnInputFrame += HandleInputFrame;
     }
+
+    private void HandleInputFrame(InputFrame frame) => OnInputFrame?.Invoke(frame);
 
     public bool IsRunning => _isRunning;
 
@@ -40,26 +42,35 @@ public class GamepadService : IGamepadService
 
     public void SetThumbstickDeadzones(float left, float right)
     {
-        if (_reader is GamepadReader gr)
-        {
-            gr.LeftThumbstickDeadzone = left;
-            gr.RightThumbstickDeadzone = right;
-        }
+        _reader.LeftThumbstickDeadzone = left;
+        _reader.RightThumbstickDeadzone = right;
     }
 
     public void SetTriggerDeadzones(float leftInner, float leftOuter, float rightInner, float rightOuter)
     {
-        if (_reader is GamepadReader gr)
-        {
-            gr.LeftTriggerInnerDeadzone = leftInner;
-            gr.LeftTriggerOuterDeadzone = leftOuter;
-            gr.RightTriggerInnerDeadzone = rightInner;
-            gr.RightTriggerOuterDeadzone = rightOuter;
-        }
+        _reader.LeftTriggerInnerDeadzone = leftInner;
+        _reader.LeftTriggerOuterDeadzone = leftOuter;
+        _reader.RightTriggerInnerDeadzone = rightInner;
+        _reader.RightTriggerOuterDeadzone = rightOuter;
+    }
+
+    public void ReplaceReader(IGamepadReader reader)
+    {
+        var wasRunning = _isRunning;
+        if (wasRunning) Stop();
+
+        _reader.OnInputFrame -= HandleInputFrame;
+        _reader.Dispose();
+
+        _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _reader.OnInputFrame += HandleInputFrame;
+
+        if (wasRunning) Start();
     }
 
     public void Dispose()
     {
         Stop();
+        _reader.Dispose();
     }
 }

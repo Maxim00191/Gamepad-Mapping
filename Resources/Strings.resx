@@ -264,6 +264,21 @@
   <data name="InputApiWin32Hint" xml:space="preserve">
     <value>Uses Windows SendInput for simulated keys and mouse. More backends can be added later.</value>
   </data>
+  <data name="AppSettingsGamepadSourceSection" xml:space="preserve">
+    <value>Gamepad input source</value>
+  </data>
+  <data name="GamepadSourceXInputLabel" xml:space="preserve">
+    <value>XInput (Xbox controllers)</value>
+  </data>
+  <data name="GamepadSourceXInputHint" xml:space="preserve">
+    <value>Standard Windows API for Xbox and compatible controllers.</value>
+  </data>
+  <data name="GamepadSourceDualSenseLabel" xml:space="preserve">
+    <value>DualSense (PlayStation 5)</value>
+  </data>
+  <data name="GamepadSourceDualSenseHint" xml:space="preserve">
+    <value>Native support for DualSense features (adaptive triggers, etc). Not yet implemented.</value>
+  </data>
   <data name="AppSettingsTimingSection" xml:space="preserve">
     <value>Timing &amp; keyboard</value>
   </data>

@@ -11,15 +11,15 @@ namespace GamepadMapping.Tests.Core.Input;
 
 public class GamepadReaderTests
 {
-    private readonly Mock<IXInput> _mockXInput;
+    private readonly Mock<IGamepadSource> _mockSource;
     private readonly GamepadReader _gamepadReader;
     private readonly List<InputFrame> _capturedInputFrames;
 
     public GamepadReaderTests()
     {
-        _mockXInput = new Mock<IXInput>();
+        _mockSource = new Mock<IGamepadSource>();
         _capturedInputFrames = new List<InputFrame>();
-        _gamepadReader = new GamepadReader(_mockXInput.Object);
+        _gamepadReader = new GamepadReader(_mockSource.Object);
         _gamepadReader.OnInputFrame += frame => _capturedInputFrames.Add(frame);
     }
 
@@ -28,16 +28,16 @@ public class GamepadReaderTests
     {
         // Arrange
         int callCount = 0;
-        _mockXInput
-            .Setup(x => x.GetState(It.IsAny<uint>(), out It.Ref<State>.IsAny))
-            .Callback(new IXInputGetStateCallback((uint idx, out State s) => 
+        _mockSource
+            .Setup(x => x.TryGetFrame(out It.Ref<InputFrame>.IsAny))
+            .Callback(new TryGetFrameCallback((out InputFrame f) => 
             {
                 callCount++;
-                if (callCount == 2) // Throw on the first call inside the background loop
+                if (callCount == 2)
                 {
-                    throw new Exception("Simulated XInput exception");
+                    throw new Exception("Simulated source exception");
                 }
-                s = new State();
+                f = new InputFrame(GamepadButtons.None, Vector2.Zero, Vector2.Zero, 0, 0, true, 0);
             }))
             .Returns(true);
 
@@ -55,18 +55,19 @@ public class GamepadReaderTests
     {
         // Arrange
         int callCount = 0;
-        State connectedState = default;
-        // We can't easily set Gamepad.Buttons if it's a read-only struct from Vortice.XInput.
-        // For this test, we just need GetState to return true/false.
-        State disconnectedState = default;
-
-        _mockXInput
-            .Setup(x => x.GetState(It.IsAny<uint>(), out It.Ref<State>.IsAny))
-            .Callback(new IXInputGetStateCallback((uint idx, out State s) => 
+        _mockSource
+            .Setup(x => x.TryGetFrame(out It.Ref<InputFrame>.IsAny))
+            .Callback(new TryGetFrameCallback((out InputFrame f) => 
             {
                 callCount++;
-                if (callCount == 1 || callCount == 4) s = connectedState;
-                else s = disconnectedState;
+                if (callCount == 1 || callCount == 4)
+                {
+                    f = new InputFrame(GamepadButtons.None, Vector2.Zero, Vector2.Zero, 0, 0, true, 0);
+                }
+                else
+                {
+                    f = InputFrame.Disconnected(0);
+                }
             }))
             .Returns(() => callCount == 1 || callCount == 4);
 
@@ -77,8 +78,6 @@ public class GamepadReaderTests
 
         // Assert
         Assert.NotEmpty(_capturedInputFrames);
-        var disconnectedFrame = _capturedInputFrames.FirstOrDefault(f => !f.IsConnected);
-        // InputFrame is a record/struct, IsConnected is a property.
         Assert.Contains(_capturedInputFrames, f => !f.IsConnected);
     }
 
@@ -86,17 +85,11 @@ public class GamepadReaderTests
     public async Task PollingLoop_UpdatesPreviousStateCorrectly()
     {
         // Arrange
-        int callCount = 0;
-        State state1 = default;
-        State state2 = default;
-
-        _mockXInput
-            .Setup(x => x.GetState(It.IsAny<uint>(), out It.Ref<State>.IsAny))
-            .Callback(new IXInputGetStateCallback((uint idx, out State s) => 
+        _mockSource
+            .Setup(x => x.TryGetFrame(out It.Ref<InputFrame>.IsAny))
+            .Callback(new TryGetFrameCallback((out InputFrame f) => 
             {
-                callCount++;
-                if (callCount == 1) s = state1;
-                else s = state2;
+                f = new InputFrame(GamepadButtons.None, Vector2.Zero, Vector2.Zero, 0, 0, true, 0);
             }))
             .Returns(true);
 
@@ -106,13 +99,10 @@ public class GamepadReaderTests
         _gamepadReader.Stop();
 
         // Assert
-        // We can't easily verify button changes if we can't set them on the State struct.
-        // But we can verify that we got at least some connected frames.
         Assert.True(_capturedInputFrames.Count(f => f.IsConnected) >= 1);
     }
 
-    // Helper delegate for Moq Callback with out parameters
-    private delegate void IXInputGetStateCallback(uint userIndex, out State state);
+    private delegate void TryGetFrameCallback(out InputFrame frame);
 }
 
 
