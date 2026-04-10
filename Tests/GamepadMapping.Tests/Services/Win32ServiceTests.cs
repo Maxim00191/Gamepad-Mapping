@@ -1,5 +1,9 @@
 using System.Diagnostics;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Xunit;
 
 namespace GamepadMapping.Tests.Services;
@@ -37,3 +41,4 @@ public class Win32ServiceTests
         Assert.Equal(string.Empty, actualName);
     }
 }
+

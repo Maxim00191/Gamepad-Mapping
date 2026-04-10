@@ -1,6 +1,10 @@
 using Gamepad_Mapping.ViewModels;
 using Gamepad_Mapping.ViewModels.Strategies;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using Moq;
 using System.Collections.ObjectModel;
@@ -111,3 +115,4 @@ public class MappingEditorViewModelTests
         Assert.False(vm.EditKeyboardAndHoldSectionsEnabled);
     }
 }
+

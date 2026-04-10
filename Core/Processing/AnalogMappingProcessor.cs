@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Windows.Input;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core;
@@ -201,3 +205,4 @@ internal sealed class AnalogMappingProcessor
             _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy);
     }
 }
+

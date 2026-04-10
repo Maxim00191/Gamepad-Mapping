@@ -500,5 +500,5 @@ Logs/
 .cursor-tree.txt
 .cursorignore
 Scripts-Tests/
-Updates/*
+Updates
 publish/updater

@@ -1,4 +1,8 @@
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using GamepadMapping.Tests.Mocks;
 using Xunit;
 using System;
@@ -79,3 +83,4 @@ public class ProfileServicePathTests
         public void SaveSettings(GamepadMapperGUI.Models.AppSettings settings) { }
     }
 }
+

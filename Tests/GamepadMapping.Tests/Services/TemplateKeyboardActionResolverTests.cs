@@ -1,5 +1,9 @@
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -102,3 +106,4 @@ public class TemplateKeyboardActionResolverTests
         Assert.Equal("roll", (string?)jo["actionId"]);
     }
 }
+

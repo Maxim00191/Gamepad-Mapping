@@ -9,7 +9,11 @@ using GamepadMapperGUI.Models;
 
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -267,3 +271,4 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         return $"radial{Guid.NewGuid():N}"[..12];
     }
 }
+

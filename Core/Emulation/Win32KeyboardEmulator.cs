@@ -5,8 +5,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Gamepad_Mapping;
-using GamepadMapperGUI.Interfaces.Services;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 
 using GamepadMapperGUI.Services.Win32;
 using static GamepadMapperGUI.Services.Win32.Win32InputConstants;
@@ -272,3 +280,5 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
         }
     }
 }
+
+

@@ -1,4 +1,8 @@
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapping.Tests.Mocks;
 using Xunit;
@@ -48,3 +52,4 @@ public class SettingsServiceTests
         Assert.Equal(expectedOutL, settings.LeftTriggerOuterDeadzone, 3);
     }
 }
+

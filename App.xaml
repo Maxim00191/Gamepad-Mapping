@@ -5,7 +5,7 @@
              xmlns:local="clr-namespace:Gamepad_Mapping"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:ui="clr-namespace:Gamepad_Mapping.Behaviors"
-             xmlns:services="clr-namespace:GamepadMapperGUI.Services"
+             xmlns:services="clr-namespace:GamepadMapperGUI.Services.Infrastructure"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <services:TranslationService x:Key="Loc" />

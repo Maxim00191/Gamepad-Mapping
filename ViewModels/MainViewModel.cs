@@ -14,9 +14,17 @@ using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models.State;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using Gamepad_Mapping.Views;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
@@ -129,7 +137,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
         _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
-        _appStatusMonitor = appStatusMonitor ?? new GamepadMapperGUI.Services.AppStatusMonitor(_processTargetService, _elevationHandler, initialGracePeriodMs: appSettings.FocusGracePeriodMs);
+        _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(_processTargetService, _elevationHandler, initialGracePeriodMs: appSettings.FocusGracePeriodMs);
 
         var engine = mappingEngine ?? CreateMappingEngine();
         _mappingManager = new MappingManager(engine, _profileService);
@@ -521,3 +529,4 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _uiOrchestrator.ShowToast(_settingsOrchestrator.Localize("UpdateSuccessToastTitle"), _settingsOrchestrator.FormatUpdateSuccessMessage(App.LaunchUpdateSuccessArgs.Value.ReleaseTag));
     }
 }
+

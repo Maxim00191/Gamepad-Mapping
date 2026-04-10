@@ -2,9 +2,14 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Update;
 using Moq;
 
 namespace GamepadMapping.Tests.Services;
@@ -122,3 +127,4 @@ public class UpdateServiceFallbackTests
         Assert.Contains("non-HTTPS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
+

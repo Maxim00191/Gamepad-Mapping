@@ -1,6 +1,10 @@
 using System;
 using System.Text;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 
 namespace GamepadMapping.Tests.Mocks;
 
@@ -40,3 +44,4 @@ public class MockWin32Service : IWin32Service
     public uint MapVirtualKey(uint uCode, uint uMapType) => MapVirtualKeyFunc(uCode, uMapType);
     public string GetProcessName(int processId) => GetProcessNameFunc(processId);
 }
+

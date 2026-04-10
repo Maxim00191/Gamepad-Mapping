@@ -3,7 +3,11 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 
 namespace Gamepad_Mapping.Utils;
 
@@ -31,3 +35,4 @@ public class TriggerMomentToLocalizationConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+

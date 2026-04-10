@@ -7,7 +7,11 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using Moq;
 
@@ -863,5 +867,6 @@ public sealed class MappingEngineRadialMenuTests
         mockMouse.Verify(m => m.LeftClickAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }
+
 
 

@@ -4,7 +4,11 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using GamepadMapperGUI.Models.Core;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Moq;
 using Moq.Protected;
 
@@ -100,3 +104,4 @@ public class GitHubContentServiceTests
         Assert.True(result.UsedCdn);
     }
 }
+

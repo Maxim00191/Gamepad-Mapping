@@ -1,4 +1,8 @@
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Xunit;
 
 namespace GamepadMapping.Tests.Services;
@@ -24,3 +28,4 @@ public class ProfileServiceShareTargetTests
     public void ProfilesLikelyShareGameExecutable_Negative(string? prev, string? next) =>
         Assert.False(ProfileService.ProfilesLikelyShareGameExecutable(prev, next));
 }
+

@@ -1,4 +1,8 @@
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapping.Tests.Mocks;
@@ -34,3 +38,4 @@ public class MockProcessTargetService : IProcessTargetService
     public bool IsCurrentProcessElevated() => IsCurrentProcessElevatedFunc();
     public bool IsProcessElevated(int processId) => IsProcessElevatedFunc(processId);
 }
+
