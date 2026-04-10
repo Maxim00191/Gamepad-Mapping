@@ -25,29 +25,18 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class MainViewModel : ObservableObject, IDisposable
 {
-    private static readonly UiLanguageOption[] SupportedUiLanguages =
-    [
-        new("zh-CN", "简体中文"),
-        new("en-US", "English")
-    ];
-
     private readonly Dispatcher _dispatcher;
     private readonly IProfileService _profileService;
-    private readonly IGamepadReader _gamepadReader;
+    private readonly IGamepadService _gamepadService;
+    private readonly IMappingManager _mappingManager;
+    private readonly IUiOrchestrator _uiOrchestrator;
     private readonly IProcessTargetService _processTargetService;
     private readonly IKeyboardCaptureService _keyboardCaptureService;
     private readonly IElevationHandler _elevationHandler;
     private readonly IAppStatusMonitor _appStatusMonitor;
-    private readonly IMappingEngine _mappingEngine;
-    private readonly PresentationOrchestrator _presentationOrchestrator;
+    private readonly ISettingsService _settingsService;
     private readonly SettingsOrchestrator _settingsOrchestrator;
     private readonly ProfileOrchestrator _profileOrchestrator;
-    private readonly EventHandler _profilesLoadedHandler;
-    private readonly EventHandler<AppStatusChangedEventArgs> _appStatusChangedHandler;
-    private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
-
-    private readonly ObservableCollection<KeyboardActionDefinition> _keyboardActions = new();
-    private readonly ObservableCollection<RadialMenuDefinition> _radialMenus = new();
 
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
@@ -58,7 +47,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly AppToastViewModel _toastHost;
 
     public UpdateViewModel UpdatePanel { get; }
-
     public AppToastViewModel ToastHost => _toastHost;
 
     public MainViewModel(
@@ -84,11 +72,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IXInput? xinput = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-        var settingsServiceInstance = settingsService ?? new SettingsService();
-        _settingsOrchestrator = new SettingsOrchestrator(settingsServiceInstance);
+        _settingsService = settingsService ?? new SettingsService();
+        _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
         var appSettings = _settingsOrchestrator.Settings;
 
-        _profileService = profileService ?? new ProfileService(settingsService: settingsServiceInstance, appSettings: appSettings);
+        _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
         _profileOrchestrator = new ProfileOrchestrator(_profileService, _processTargetService);
         _profileOrchestrator.TemplateLoaded += OnTemplateLoaded;
@@ -98,178 +86,80 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var sharedGitHubContentService = gitHubContentService ?? new GitHubContentService();
         var resolvedUpdateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
         _communityService = communityService ?? new CommunityTemplateService(_profileService, sharedGitHubContentService, _localFileService);
-        _updateService = updateService ?? new UpdateService(sharedGitHubContentService, settingsServiceInstance, appSettings, resolvedUpdateVersionCacheService);
+        _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
         _appToastService = appToastService ?? new AppToastService();
         _toastHost = new AppToastViewModel(_appToastService);
-        var resolvedTrustedUtcTimeService = trustedUtcTimeService ?? new TrustedUtcTimeService();
-        var resolvedUpdateQuotaPolicyProvider = updateQuotaPolicyProvider ?? new StaticUpdateQuotaPolicyProvider();
-        var resolvedUpdateQuotaService = updateQuotaService ?? new UpdateQuotaService(resolvedUpdateQuotaPolicyProvider, resolvedTrustedUtcTimeService);
+        
+        var presentation = new PresentationOrchestrator(_dispatcher);
+        _uiOrchestrator = new UiOrchestrator(presentation, _appToastService, _dispatcher);
 
         UpdatePanel = new UpdateViewModel(
             _updateService,
-            settingsServiceInstance,
+            _settingsService,
             appSettings,
             _localFileService,
             _updateInstallerService,
-            resolvedUpdateQuotaService,
+            updateQuotaService ?? new UpdateQuotaService(updateQuotaPolicyProvider ?? new StaticUpdateQuotaPolicyProvider(), trustedUtcTimeService ?? new TrustedUtcTimeService()),
             resolvedUpdateVersionCacheService);
 
-        var baseDeadzone = appSettings.ThumbstickDeadzone;
-        static float ResolveStickDeadzone(float specific, float shared)
-        {
-            var value = specific > 0f ? specific : shared;
-            return Math.Clamp(value, 0f, 0.9f);
-        }
+        var initialLeftDeadzone = ResolveStickDeadzone(appSettings.LeftThumbstickDeadzone, appSettings.ThumbstickDeadzone);
+        var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, appSettings.ThumbstickDeadzone);
 
-        var initialLeftDeadzone = ResolveStickDeadzone(appSettings.LeftThumbstickDeadzone, baseDeadzone);
-        var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, baseDeadzone);
-
-        _gamepadReader = gamepadReader ??
-            new GamepadReader(
-                xinput ?? new XInputService(),
-                initialLeftDeadzone,
-                initialRightDeadzone,
-                appSettings.LeftTriggerInnerDeadzone,
-                appSettings.LeftTriggerOuterDeadzone,
-                appSettings.RightTriggerInnerDeadzone,
-                appSettings.RightTriggerOuterDeadzone);
+        var reader = gamepadReader ?? new GamepadReader(
+            xinput ?? new XInputService(),
+            initialLeftDeadzone,
+            initialRightDeadzone,
+            appSettings.LeftTriggerInnerDeadzone,
+            appSettings.LeftTriggerOuterDeadzone,
+            appSettings.RightTriggerInnerDeadzone,
+            appSettings.RightTriggerOuterDeadzone);
+        _gamepadService = new GamepadService(reader);
+        
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
         _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
-        _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(_processTargetService, _elevationHandler, initialGracePeriodMs: appSettings.FocusGracePeriodMs);
-        _presentationOrchestrator = new PresentationOrchestrator(_dispatcher);
+        _appStatusMonitor = appStatusMonitor ?? new GamepadMapperGUI.Services.AppStatusMonitor(_processTargetService, _elevationHandler, initialGracePeriodMs: appSettings.FocusGracePeriodMs);
+
+        var engine = mappingEngine ?? CreateMappingEngine();
+        _mappingManager = new MappingManager(engine, _profileService);
+        _mappingManager.MappingsChanged += (_, _) => OnPropertyChanged(nameof(MappingCount));
+        _mappingManager.OnInputProcessed += (frame, result) => GamepadMonitorPanel.RecordInputFrameSnapshot(frame, result, 
+            reader is GamepadReader gr1 ? gr1.LeftThumbstickDeadzone : 0, 
+            reader is GamepadReader gr2 ? gr2.RightThumbstickDeadzone : 0);
 
         InitializeUiSettings(appSettings);
-
-        _profilesLoadedHandler = (_, _) => OnPropertyChanged(nameof(AvailableTemplates));
-        _appStatusChangedHandler = (_, args) =>
-            DispatchToUi(() => _presentationOrchestrator.UpdateStatus(args.State, args.StatusText));
-
-        Mappings = new ObservableCollection<MappingEntry>();
-        AvailableGamepadButtons = new ObservableCollection<string>(GamepadChordSegmentCatalog.AllSegmentNames);
-        AvailableTriggerModes = new ObservableCollection<TriggerMoment>(Enum.GetValues<TriggerMoment>());
-        Mappings.CollectionChanged += (_, _) =>
-        {
-            UpdateMappingCount();
-            _mappingsSnapshot = Mappings.ToList();
-        };
-
         InitializeChildViewModels(initialLeftDeadzone, initialRightDeadzone, appSettings);
 
-        _mappingEngine = mappingEngine ?? CreateMappingEngine();
-        _keyboardActions.CollectionChanged += (_, _) => RefreshRadialDefinitionsInEngine();
-        _radialMenus.CollectionChanged += OnRadialMenusCollectionChanged;
-        _profileService.ProfilesLoaded += _profilesLoadedHandler;
-        _appStatusMonitor.StatusChanged += _appStatusChangedHandler;
+        _profileService.ProfilesLoaded += (_, _) => OnPropertyChanged(nameof(AvailableTemplates));
+        _appStatusMonitor.StatusChanged += (_, args) => _uiOrchestrator.UpdateStatus(args.State, args.StatusText);
+        _gamepadService.OnInputFrame += frame => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.EvaluateNow());
 
-        _gamepadReader.OnInputFrame += HandleInputFrame;
-
-        // Forward property changes from orchestrators to notify UI
-        _presentationOrchestrator.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(PresentationOrchestrator.TargetStatusText)) OnPropertyChanged(nameof(TargetStatusText));
-            else if (e.PropertyName == nameof(PresentationOrchestrator.TargetState)) OnPropertyChanged(nameof(TargetState));
+        _uiOrchestrator.PropertyChanged += (s, e) => {
+            OnPropertyChanged(e.PropertyName);
         };
         _profileOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
         _settingsOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
 
         _profileOrchestrator.LoadSelectedTemplate();
-
         StartGamepad();
         RefreshRightPanelSurface();
         _dispatcher.BeginInvoke(ScheduleInitialToasts, DispatcherPriority.Loaded);
     }
 
-    partial void OnProfileListTabIndexChanged(int value) => RefreshRightPanelSurface();
+    public ObservableCollection<MappingEntry> Mappings => _mappingManager.Mappings;
+    public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _mappingManager.KeyboardActions;
+    public ObservableCollection<RadialMenuDefinition> RadialMenus => _mappingManager.RadialMenus;
+    public int MappingCount => _mappingManager.MappingCount;
 
-    internal void RefreshRightPanelSurface()
+    public MappingEntry? SelectedMapping
     {
-        var showMapping = ProfileListTabIndex == 0 &&
-            (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
-        var showKeyboard = ProfileListTabIndex == 1 && CatalogPanel.SelectedKeyboardAction is not null;
-        var showRadial = ProfileListTabIndex == 2 && CatalogPanel.SelectedRadialMenu is not null;
-
-        RightPanelSurface = showMapping
-            ? ProfileRightPanelSurface.Mapping
-            : showKeyboard
-                ? ProfileRightPanelSurface.KeyboardAction
-                : showRadial
-                    ? ProfileRightPanelSurface.RadialMenu
-                    : ProfileRightPanelSurface.None;
+        get => _mappingManager.SelectedMapping;
+        set => _mappingManager.SelectedMapping = value;
     }
 
-    public ObservableCollection<TemplateOption> AvailableTemplates => _profileOrchestrator.AvailableTemplates;
+    public bool IsGamepadRunning => _gamepadService.IsRunning;
 
-    public TemplateOption? SelectedTemplate
-    {
-        get => _profileOrchestrator.SelectedTemplate;
-        set => _profileOrchestrator.SelectedTemplate = value;
-    }
-
-    public string CurrentTemplateDisplayName
-    {
-        get => _profileOrchestrator.CurrentTemplateDisplayName;
-        set => _profileOrchestrator.CurrentTemplateDisplayName = value;
-    }
-
-    public string CurrentTemplateProfileId
-    {
-        get => _profileOrchestrator.CurrentTemplateProfileId;
-        set => _profileOrchestrator.CurrentTemplateProfileId = value;
-    }
-
-    public string CurrentTemplateTemplateGroupId
-    {
-        get => _profileOrchestrator.CurrentTemplateTemplateGroupId;
-        set => _profileOrchestrator.CurrentTemplateTemplateGroupId = value;
-    }
-
-    public string CurrentTemplateAuthor
-    {
-        get => _profileOrchestrator.CurrentTemplateAuthor;
-        set => _profileOrchestrator.CurrentTemplateAuthor = value;
-    }
-
-    public string CurrentTemplateCatalogFolder
-    {
-        get => _profileOrchestrator.CurrentTemplateCatalogFolder;
-        set => _profileOrchestrator.CurrentTemplateCatalogFolder = value;
-    }
-
-    public string TemplateTargetProcessName
-    {
-        get => _profileOrchestrator.TemplateTargetProcessName;
-        set
-        {
-            if (_profileOrchestrator.TemplateTargetProcessName == value) return;
-            _profileOrchestrator.TemplateTargetProcessName = value;
-            ApplyDeclaredProcessTarget();
-            OnPropertyChanged();
-        }
-    }
-
-    public IReadOnlyList<string>? ComboLeadButtonsPersist => _profileOrchestrator.ComboLeadButtonsPersist;
-
-    [ObservableProperty]
-    private ObservableCollection<MappingEntry> mappings;
-
-    [ObservableProperty]
-    private ObservableCollection<string> availableGamepadButtons;
-
-    [ObservableProperty]
-    private ObservableCollection<TriggerMoment> availableTriggerModes;
-
-    [ObservableProperty]
-    private MappingEntry? selectedMapping;
-
-    [ObservableProperty]
-    private int mappingCount;
-
-    [ObservableProperty]
-    private bool isGamepadRunning;
-
-    /// <summary>Left workspace: 0 mappings, 1 keyboard actions, 2 radial menus.</summary>
     [ObservableProperty]
     private int profileListTabIndex;
 
@@ -277,17 +167,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private ProfileRightPanelSurface rightPanelSurface;
 
     public ProfileTemplatePanelViewModel ProfileTemplatePanel { get; private set; } = null!;
-
     public NewBindingPanelViewModel NewBindingPanel { get; private set; } = null!;
-
     public MappingEditorViewModel MappingEditorPanel { get; private set; } = null!;
-
     public ProfileCatalogPanelViewModel CatalogPanel { get; private set; } = null!;
-
     public CommunityCatalogViewModel CommunityCatalogPanel { get; private set; } = null!;
-
     public GamepadMonitorViewModel GamepadMonitorPanel { get; private set; } = null!;
-
     public ProcessTargetPanelViewModel ProcessTargetPanel { get; private set; } = null!;
 
     [ObservableProperty]
@@ -296,701 +180,136 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool isProcessTargetingEnabled;
 
-    public string TargetStatusText => _presentationOrchestrator.TargetStatusText;
-
-    public AppTargetingState TargetState => _presentationOrchestrator.TargetState;
+    public string TargetStatusText => _uiOrchestrator.TargetStatusText;
+    public AppTargetingState TargetState => _uiOrchestrator.TargetState;
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
     {
         if (template is null) return;
-
-        foreach (var rm in _radialMenus.ToList())
-            rm.Items.CollectionChanged -= OnRadialMenuItemsCollectionChanged;
-        _keyboardActions.Clear();
-        _radialMenus.Clear();
-        foreach (var a in template.KeyboardActions ?? [])
-            _keyboardActions.Add(a);
-        foreach (var rm in template.RadialMenus ?? [])
-            _radialMenus.Add(rm);
-        
-        if (_mappingEngine != null)
-        {
-            _mappingEngine.SetComboLeadButtonsFromTemplate(template.ComboLeadButtons);
-            RefreshRadialDefinitionsInEngine();
-        }
-
-        Mappings.Clear();
-        foreach (var mapping in template.Mappings)
-            Mappings.Add(mapping);
-
-        _mappingsSnapshot = Mappings.ToList();
-
-        SelectedMapping = Mappings.FirstOrDefault();
-        MappingCount = Mappings.Count;
-
+        _mappingManager.LoadTemplate(template);
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
-
-        CatalogPanel.SelectedKeyboardAction = null;
-        CatalogPanel.SelectedRadialMenu = null;
-        CatalogPanel.SelectedRadialSlot = null;
+        CatalogPanel.ResetSelection();
         RefreshRightPanelSurface();
     }
 
     private void ApplyDeclaredProcessTarget()
     {
-        var raw = TemplateTargetProcessName;
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            SelectedTargetProcess = null;
-            return;
-        }
-
-        SelectedTargetProcess = _processTargetService.CreateTargetFromDeclaredProcessName(raw);
+        SelectedTargetProcess = string.IsNullOrWhiteSpace(TemplateTargetProcessName) 
+            ? null 
+            : _processTargetService.CreateTargetFromDeclaredProcessName(TemplateTargetProcessName);
     }
 
-    private void SyncAppStatusMonitor()
-    {
-        _appStatusMonitor.UpdateTarget(SelectedTargetProcess, IsProcessTargetingEnabled);
-    }
+    private void SyncAppStatusMonitor() => _appStatusMonitor.UpdateTarget(SelectedTargetProcess, IsProcessTargetingEnabled);
 
     partial void OnSelectedTargetProcessChanged(ProcessInfo? value)
     {
-        if (value is not null)
-            _elevationHandler.CheckAndPromptElevation(value);
-
+        if (value is not null) _elevationHandler.CheckAndPromptElevation(value);
         IsProcessTargetingEnabled = value is not null;
         SyncAppStatusMonitor();
     }
 
     partial void OnIsProcessTargetingEnabledChanged(bool value) => SyncAppStatusMonitor();
 
-    [ObservableProperty]
-    private int focusGracePeriodMsSetting;
+    // Settings Properties
+    [ObservableProperty] private int focusGracePeriodMsSetting;
+    partial void OnFocusGracePeriodMsSettingChanged(int value) => UpdateSetting(s => s.FocusGracePeriodMs = Math.Clamp(value, 0, 5000), s => _appStatusMonitor.UpdateGracePeriod(s.FocusGracePeriodMs));
 
-    partial void OnFocusGracePeriodMsSettingChanged(int value)
+    [ObservableProperty] private int modifierGraceMsSetting;
+    partial void OnModifierGraceMsSettingChanged(int value) => UpdateSetting(s => s.ModifierGraceMs = Math.Clamp(value, 50, 10_000));
+
+    [ObservableProperty] private int leadKeyReleaseSuppressMsSetting;
+    partial void OnLeadKeyReleaseSuppressMsSettingChanged(int value) => UpdateSetting(s => s.LeadKeyReleaseSuppressMs = Math.Clamp(value, 50, 10_000));
+
+    [ObservableProperty] private int gamepadPollingIntervalMs;
+    partial void OnGamepadPollingIntervalMsChanged(int value) => UpdateSetting(s => s.GamepadPollingIntervalMs = Math.Clamp(value, 5, 30));
+
+    [ObservableProperty] private int radialMenuConfirmModeIndex;
+    partial void OnRadialMenuConfirmModeIndexChanged(int value) => UpdateSetting(s => s.RadialMenuConfirmMode = value == 0 ? "returnStickToCenter" : "releaseGuideKey");
+
+    [ObservableProperty] private int radialMenuHudLabelModeIndex;
+    partial void OnRadialMenuHudLabelModeIndexChanged(int value) => UpdateSetting(s => s.RadialMenuHudLabelMode = RadialMenuHudLabelModeParser.ToSettingString((RadialMenuHudLabelMode)Math.Clamp(value, 0, 2)));
+
+    [ObservableProperty] private double radialHudScaleSetting;
+    partial void OnRadialHudScaleSettingChanged(double value) => UpdateSetting(s => s.RadialHudScale = RadialHudLayout.ClampHudScale(value), s => RadialHudLayout.HudScale = s.RadialHudScale);
+
+    [ObservableProperty] private float defaultAnalogActivationThreshold;
+    partial void OnDefaultAnalogActivationThresholdChanged(float value) => UpdateSetting(s => s.DefaultAnalogActivationThreshold = Math.Clamp(value, 0.01f, 1f));
+
+    [ObservableProperty] private float mouseLookSensitivity;
+    partial void OnMouseLookSensitivityChanged(float value) => UpdateSetting(s => s.MouseLookSensitivity = Math.Clamp(value, 1f, 100f));
+
+    [ObservableProperty] private float analogChangeEpsilon;
+    partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(s => s.AnalogChangeEpsilon = Math.Clamp(value, 0.001f, 0.1f));
+
+    [ObservableProperty] private int keyboardTapHoldDurationMs;
+    partial void OnKeyboardTapHoldDurationMsChanged(int value) => UpdateSetting(s => s.KeyboardTapHoldDurationMs = Math.Clamp(value, 20, 50));
+
+    [ObservableProperty] private int tapInterKeyDelayMs;
+    partial void OnTapInterKeyDelayMsChanged(int value) => UpdateSetting(s => s.TapInterKeyDelayMs = Math.Clamp(value, 0, 1000));
+
+    [ObservableProperty] private int textInterCharDelayMs;
+    partial void OnTextInterCharDelayMsChanged(int value) => UpdateSetting(s => s.TextInterCharDelayMs = Math.Clamp(value, 0, 1000));
+
+    [ObservableProperty] private ComboHudPlacement comboHudPlacementSetting;
+    partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value) => UpdateSetting(s => s.ComboHudPlacement = value.ToString());
+
+    private void UpdateSetting(Action<AppSettings> update, Action<AppSettings>? after = null)
     {
-        var clamped = Math.Clamp(value, 0, 5000);
-        if (clamped != value) focusGracePeriodMsSetting = clamped;
-        UpdateAndSaveSettings(s => s.FocusGracePeriodMs = clamped);
-        _appStatusMonitor.UpdateGracePeriod(clamped);
+        update(_settingsOrchestrator.Settings);
+        _settingsOrchestrator.SaveSettings();
+        after?.Invoke(_settingsOrchestrator.Settings);
     }
 
-    [ObservableProperty]
-    private int modifierGraceMsSetting;
+    public IKeyboardCaptureService KeyboardCaptureService => _keyboardCaptureService;
+    public IProfileService GetProfileService() => _profileService;
+    public ObservableCollection<string> AvailableGamepadButtons { get; } = new(GamepadChordSegmentCatalog.AllSegmentNames);
+    public ObservableCollection<TriggerMoment> AvailableTriggerModes { get; } = new(Enum.GetValues<TriggerMoment>());
 
-    partial void OnModifierGraceMsSettingChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 50, 10_000);
-        if (clamped != value) modifierGraceMsSetting = clamped;
-        UpdateAndSaveSettings(s => s.ModifierGraceMs = clamped);
-    }
+    public void RefreshTemplates(string? preferredProfileId = null) => _profileOrchestrator.RefreshTemplates(preferredProfileId);
+    public void ReloadSelectedTemplate() => _profileOrchestrator.LoadSelectedTemplate();
+    public bool TryCaptureKeyboardKey(Key key, Key? systemKey = null) => _keyboardCaptureService.TryCaptureKeyboardKey(key, systemKey);
+    public void CancelKeyboardKeyRecording() => _keyboardCaptureService.CancelCapture();
 
-    [ObservableProperty]
-    private int leadKeyReleaseSuppressMsSetting;
+    public string CurrentTemplateProfileId { get => _profileOrchestrator.CurrentTemplateProfileId; set => _profileOrchestrator.CurrentTemplateProfileId = value; }
+    public string CurrentTemplateTemplateGroupId { get => _profileOrchestrator.CurrentTemplateTemplateGroupId; set => _profileOrchestrator.CurrentTemplateTemplateGroupId = value; }
+    public string CurrentTemplateAuthor { get => _profileOrchestrator.CurrentTemplateAuthor; set => _profileOrchestrator.CurrentTemplateAuthor = value; }
+    public string CurrentTemplateCatalogFolder { get => _profileOrchestrator.CurrentTemplateCatalogFolder; set => _profileOrchestrator.CurrentTemplateCatalogFolder = value; }
+    public IReadOnlyList<string>? ComboLeadButtonsPersist => _profileOrchestrator.ComboLeadButtonsPersist;
 
-    partial void OnLeadKeyReleaseSuppressMsSettingChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 50, 10_000);
-        if (clamped != value) leadKeyReleaseSuppressMsSetting = clamped;
-        UpdateAndSaveSettings(s => s.LeadKeyReleaseSuppressMs = clamped);
-    }
-
-    [ObservableProperty]
-    private int gamepadPollingIntervalMs;
-
-    partial void OnGamepadPollingIntervalMsChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 5, 30);
-        if (clamped != value) gamepadPollingIntervalMs = clamped;
-        UpdateAndSaveSettings(s => s.GamepadPollingIntervalMs = clamped);
-    }
-
-    [ObservableProperty]
-    private int radialMenuConfirmModeIndex;
-
-    partial void OnRadialMenuConfirmModeIndexChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 0, 1);
-        if (clamped != value) radialMenuConfirmModeIndex = clamped;
-        UpdateAndSaveSettings(s => s.RadialMenuConfirmMode = clamped == 0 ? "returnStickToCenter" : "releaseGuideKey");
-    }
-
-    [ObservableProperty]
-    private int radialMenuHudLabelModeIndex;
-
-    partial void OnRadialMenuHudLabelModeIndexChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 0, 2);
-        if (clamped != value) radialMenuHudLabelModeIndex = clamped;
-        UpdateAndSaveSettings(s => s.RadialMenuHudLabelMode =
-            RadialMenuHudLabelModeParser.ToSettingString((RadialMenuHudLabelMode)clamped));
-    }
-
-    [ObservableProperty]
-    private double radialHudScaleSetting;
-
-    partial void OnRadialHudScaleSettingChanged(double value)
-    {
-        var clamped = RadialHudLayout.ClampHudScale(value);
-        if (Math.Abs(clamped - value) > 1e-6) radialHudScaleSetting = clamped;
-        RadialHudLayout.HudScale = clamped;
-        UpdateAndSaveSettings(s => s.RadialHudScale = clamped);
-    }
-
-    [ObservableProperty]
-    private float defaultAnalogActivationThreshold;
-
-    partial void OnDefaultAnalogActivationThresholdChanged(float value)
-    {
-        var clamped = Math.Clamp(value, 0.01f, 1f);
-        if (Math.Abs(clamped - value) > float.Epsilon) defaultAnalogActivationThreshold = clamped;
-        UpdateAndSaveSettings(s => s.DefaultAnalogActivationThreshold = clamped);
-    }
-
-    [ObservableProperty]
-    private float mouseLookSensitivity;
-
-    partial void OnMouseLookSensitivityChanged(float value)
-    {
-        var clamped = Math.Clamp(value, 1f, 100f);
-        if (Math.Abs(clamped - value) > float.Epsilon) mouseLookSensitivity = clamped;
-        UpdateAndSaveSettings(s => s.MouseLookSensitivity = clamped);
-    }
-
-    [ObservableProperty]
-    private float analogChangeEpsilon;
-
-    partial void OnAnalogChangeEpsilonChanged(float value)
-    {
-        var clamped = Math.Clamp(value, 0.001f, 0.1f);
-        if (Math.Abs(clamped - value) > float.Epsilon) analogChangeEpsilon = clamped;
-        UpdateAndSaveSettings(s => s.AnalogChangeEpsilon = clamped);
-    }
-
-    [ObservableProperty]
-    private int keyboardTapHoldDurationMs;
-
-    partial void OnKeyboardTapHoldDurationMsChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 20, 50);
-        if (clamped != value) keyboardTapHoldDurationMs = clamped;
-        UpdateAndSaveSettings(s => s.KeyboardTapHoldDurationMs = clamped);
-    }
-
-    [ObservableProperty]
-    private int tapInterKeyDelayMs;
-
-    partial void OnTapInterKeyDelayMsChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 0, 1000);
-        if (clamped != value) tapInterKeyDelayMs = clamped;
-        UpdateAndSaveSettings(s => s.TapInterKeyDelayMs = clamped);
-    }
-
-    [ObservableProperty]
-    private int textInterCharDelayMs;
-
-    partial void OnTextInterCharDelayMsChanged(int value)
-    {
-        var clamped = Math.Clamp(value, 0, 1000);
-        if (clamped != value) textInterCharDelayMs = clamped;
-        UpdateAndSaveSettings(s => s.TextInterCharDelayMs = clamped);
-    }
-
-    [ObservableProperty]
-    private ComboHudPlacement comboHudPlacementSetting;
-
-    partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value)
-    {
-        UpdateAndSaveSettings(s => s.ComboHudPlacement = value.ToString());
-    }
-
-    public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
-
-    public UiLanguageOption? SelectedUiLanguage
-    {
-        get => _settingsOrchestrator.SelectedUiLanguage;
-        set => _settingsOrchestrator.SelectedUiLanguage = value;
-    }
-
-    private void ApplyTemplateSwitchFromGamepad(string targetProfileId)
-    {
-        var id = (targetProfileId ?? string.Empty).Trim();
-        if (id.Length == 0 || !_profileService.TryResolveTemplateLocation(id, out var loc))
-            return;
-
-        var opt = _profileService.AvailableTemplates.FirstOrDefault(t => t.MatchesLocation(loc));
-        if (opt is null)
-            return;
-
-        if (SelectedTemplate?.MatchesLocation(loc) == true)
-            return;
-
-        // Before ForceRelease: Sync() invokes OnComboHud(null) synchronously on the UI thread; guard must be on first.
-        if (GamepadMonitorPanel.IsHudEnabled)
-        {
-            _mappingEngine.InvalidateComboHudPresentation();
-            ShowTemplateSwitchHud(opt.DisplayName);
-        }
-
-        _mappingEngine.ForceReleaseAllOutputs();
-        _mappingEngine.ForceReleaseAnalogOutputs();
-        SelectedTemplate = opt;
-    }
-
-    [RelayCommand(CanExecute = nameof(CanStartGamepad))]
-    private void StartGamepad()
-    {
-        if (IsGamepadRunning)
-            return;
-
-        _gamepadReader.Start();
-        IsGamepadRunning = true;
-        GamepadMonitorPanel.IsGamepadRunning = true;
-    }
-
-    private bool CanStartGamepad() => !IsGamepadRunning;
-
-    [RelayCommand(CanExecute = nameof(CanStopGamepad))]
-    private void StopGamepad()
-    {
-        if (!IsGamepadRunning)
-            return;
-
-        _gamepadReader.Stop();
-        _mappingEngine.ForceReleaseAllOutputs();
-        _mappingEngine.ForceReleaseAnalogOutputs();
-        IsGamepadRunning = false;
-        GamepadMonitorPanel.IsGamepadRunning = false;
-    }
-
-    private bool CanStopGamepad() => IsGamepadRunning;
-
-    partial void OnIsGamepadRunningChanged(bool value)
-    {
-        StartGamepadCommand.NotifyCanExecuteChanged();
-        StopGamepadCommand.NotifyCanExecuteChanged();
-    }
-
-    private void ScheduleInitialToasts()
-    {
-#if DEBUG
-        if (TryShowDebugCornerToast())
-            return;
-#endif
-
-        var launchArgs = App.LaunchUpdateSuccessArgs;
-        if (launchArgs is not null)
-        {
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = _settingsOrchestrator.Localize("UpdateSuccessToastTitle"),
-                Message = _settingsOrchestrator.FormatUpdateSuccessMessage(launchArgs.Value.ReleaseTag),
-                AutoHideSeconds = null,
-                OnClosed = () => _updateNotificationService.AcknowledgeSuccess(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
-                InvokeOnClosedWhenExitingApplication = true
-            });
-            // Clear the argument so it doesn't show again on subsequent launches from e.g. a shortcut
-            App.LaunchUpdateSuccessArgs = null;
-            return;
-        }
-
-        var pendingUpdate = _updateNotificationService.TryGetPendingSuccessToast();
-        if (pendingUpdate is not null)
-        {
-            var p = pendingUpdate.Value;
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = _settingsOrchestrator.Localize("UpdateSuccessToastTitle"),
-                Message = _settingsOrchestrator.FormatUpdateSuccessMessage(p.ReleaseTag),
-                AutoHideSeconds = null,
-                OnClosed = () => _updateNotificationService.AcknowledgeSuccess(p.UpdatedAtUnixSeconds),
-                InvokeOnClosedWhenExitingApplication = true
-            });
-            return;
-        }
-
-        var pendingFailure = _updateNotificationService.TryGetPendingFailureToast();
-        if (pendingFailure is not null)
-        {
-            var p = pendingFailure.Value;
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = _settingsOrchestrator.Localize("UpdateFailedToastTitle"),
-                Message = p.ErrorMessage ?? _settingsOrchestrator.Localize("UpdateInstallLaunchFailed"),
-                AutoHideSeconds = null,
-                OnClosed = () => _updateNotificationService.AcknowledgeFailure(),
-                InvokeOnClosedWhenExitingApplication = true
-            });
-            return;
-        }
-
-        if (!_settingsOrchestrator.Settings.HasSeenWelcomeToast)
-        {
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = _settingsOrchestrator.Localize("WelcomeToastTitle"),
-                Message = _settingsOrchestrator.Localize("WelcomeToastMessage"),
-                AutoHideSeconds = null,
-                OnClosed = () =>
-                {
-                    _settingsOrchestrator.Settings.HasSeenWelcomeToast = true;
-                    _settingsOrchestrator.SaveSettings();
-                },
-                InvokeOnClosedWhenExitingApplication = false
-            });
-        }
-    }
-
-#if DEBUG
-    private bool TryShowDebugCornerToast()
-    {
-        var args = Environment.GetCommandLineArgs();
-        if (args.Any(a => string.Equals(a, "--debug-toast", StringComparison.OrdinalIgnoreCase)))
-        {
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = "Debug: corner toast",
-                Message = "Launched with --debug-toast. Dismiss or wait for auto-hide; no update or welcome flow runs.",
-                AutoHideSeconds = null,
-                InvokeOnClosedWhenExitingApplication = false
-            });
-            return true;
-        }
-
-        if (args.Any(a => string.Equals(a, "--debug-update-success", StringComparison.OrdinalIgnoreCase)))
-        {
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = _settingsOrchestrator.Localize("UpdateSuccessToastTitle"),
-                Message = _settingsOrchestrator.FormatUpdateSuccessMessage("vDebugSuccess"),
-                AutoHideSeconds = null,
-                InvokeOnClosedWhenExitingApplication = false
-            });
-            return true;
-        }
-
-        if (args.Any(a => string.Equals(a, "--debug-update-failed", StringComparison.OrdinalIgnoreCase)))
-        {
-            _appToastService.Show(new AppToastRequest
-            {
-                Title = _settingsOrchestrator.Localize("UpdateFailedToastTitle"),
-                Message = _settingsOrchestrator.Localize("UpdateFailedToastMessage"),
-                AutoHideSeconds = null,
-                InvokeOnClosedWhenExitingApplication = false
-            });
-            return true;
-        }
-
-        return false;
-    }
-#endif
+    [RelayCommand] private void StartGamepad() { _gamepadService.Start(); OnPropertyChanged(nameof(IsGamepadRunning)); GamepadMonitorPanel.IsGamepadRunning = true; }
+    [RelayCommand] private void StopGamepad() { _gamepadService.Stop(); _mappingManager.ForceReleaseOutputs(); OnPropertyChanged(nameof(IsGamepadRunning)); GamepadMonitorPanel.IsGamepadRunning = false; }
 
     public void Dispose()
     {
-        try
-        {
-            _presentationOrchestrator.Dispose();
-            _gamepadReader.OnInputFrame -= HandleInputFrame;
-            _gamepadReader.Stop();
-            _appToastService.NotifyApplicationExiting();
-            _toastHost.Dispose();
-            _mappingEngine.Dispose();
-            GamepadMonitorPanel.Dispose();
-            _appStatusMonitor.StatusChanged -= _appStatusChangedHandler;
-            _appStatusMonitor.Dispose();
-            _profileService.ProfilesLoaded -= _profilesLoadedHandler;
-        }
-        catch
-        {
-            // Best-effort shutdown.
-        }
+        _uiOrchestrator.Dispose();
+        _gamepadService.Dispose();
+        _mappingManager.Dispose();
+        _appStatusMonitor.Dispose();
+        _toastHost.Dispose();
     }
 
-    partial void OnSelectedMappingChanged(MappingEntry? value)
-    {
-        MappingEditorPanel.SyncFromSelection(value);
-        RefreshRightPanelSurface();
-    }
+    // ... (rest of the properties and helper methods from ProfileOrchestrator and SettingsOrchestrator)
+    public ObservableCollection<TemplateOption> AvailableTemplates => _profileOrchestrator.AvailableTemplates;
+    public TemplateOption? SelectedTemplate { get => _profileOrchestrator.SelectedTemplate; set => _profileOrchestrator.SelectedTemplate = value; }
+    public string CurrentTemplateDisplayName { get => _profileOrchestrator.CurrentTemplateDisplayName; set => _profileOrchestrator.CurrentTemplateDisplayName = value; }
+    public string TemplateTargetProcessName { get => _profileOrchestrator.TemplateTargetProcessName; set { _profileOrchestrator.TemplateTargetProcessName = value; ApplyDeclaredProcessTarget(); OnPropertyChanged(); } }
+    
+    public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
+    public UiLanguageOption? SelectedUiLanguage { get => _settingsOrchestrator.SelectedUiLanguage; set => _settingsOrchestrator.SelectedUiLanguage = value; }
 
-    private void HandleInputFrame(InputFrame frame)
-    {
-        var allow = _appStatusMonitor.EvaluateNow();
-        var (leftDz, rightDz) = _gamepadReader is GamepadReader gr 
-            ? (gr.LeftThumbstickDeadzone, gr.RightThumbstickDeadzone)
-            : (GamepadMonitorPanel.LeftThumbstickDeadzone, GamepadMonitorPanel.RightThumbstickDeadzone);
-
-        var result = _mappingEngine.ProcessInputFrame(frame, _mappingsSnapshot, allow);
-        GamepadMonitorPanel.RecordInputFrameSnapshot(frame, result, leftDz, rightDz);
-    }
-
-    private void DispatchToUi(Action action, DispatcherPriority priority = DispatcherPriority.Normal)
-    {
-        if (action is null) return;
-        if (_dispatcher.CheckAccess())
-            action();
-        else
-            _dispatcher.BeginInvoke(action, priority);
-    }
+    private void HandleInputFrame(InputFrame frame) => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.EvaluateNow());
 
     private void OnComboHud(ComboHudContent? content)
     {
-        DispatchToUi(() =>
-        {
-            if (!GamepadMonitorPanel.IsHudEnabled)
-            {
-                _presentationOrchestrator.HideAllHuds();
-                return;
-            }
-
-            var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
-            var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
-            _presentationOrchestrator.ShowComboHud(content, a, o, ComboHudPlacementSetting);
-        }, DispatcherPriority.Input);
+        if (!GamepadMonitorPanel.IsHudEnabled) { _uiOrchestrator.HideAllHuds(); return; }
+        _uiOrchestrator.ShowComboHud(content, (byte)GamepadMonitorPanel.ComboHudPanelAlpha, GamepadMonitorPanel.ComboHudShadowOpacity, ComboHudPlacementSetting.ToString());
     }
 
     private void ShowTemplateSwitchHud(string profileDisplayName)
     {
-        if (!GamepadMonitorPanel.IsHudEnabled)
-            return;
-
-        var seconds = Math.Clamp(GamepadMonitorPanel.TemplateSwitchHudSeconds, 0.5, 5.0);
-        var a = (byte)Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220);
-        var o = Math.Clamp(GamepadMonitorPanel.ComboHudShadowOpacity, 0.08, 0.60);
-
-        _presentationOrchestrator.ShowTemplateSwitchHud(
-            profileDisplayName, 
-            seconds, 
-            a, 
-            o, 
-            ComboHudPlacementSetting,
-            onFinished: () =>
-            {
-                _mappingEngine.InvalidateComboHudPresentation();
-                _mappingEngine.RefreshComboHud();
-            });
-    }
-
-    private void OnComboHudChromeChanged(int panelAlpha, double shadowOpacity)
-    {
-        var a = Math.Clamp(panelAlpha, 24, 220);
-        var o = Math.Clamp(shadowOpacity, 0.08, 0.60);
-        _settingsOrchestrator.Settings.ComboHudPanelAlpha = a;
-        _settingsOrchestrator.Settings.ComboHudShadowOpacity = o;
-        _settingsOrchestrator.SaveSettings();
-
-        _presentationOrchestrator.ApplyHudVisuals(a, o);
-    }
-
-    private void OnTemplateSwitchHudSecondsChanged(double seconds)
-    {
-        var clamped = Math.Clamp(seconds, 0.5, 5.0);
-        _settingsOrchestrator.Settings.TemplateSwitchHudSeconds = clamped;
-        _settingsOrchestrator.SaveSettings();
-    }
-
-    private void OnHudEnabledChanged(bool isEnabled)
-    {
-        if (!isEnabled)
-        {
-            _presentationOrchestrator.HideAllHuds();
-            GamepadMonitorPanel.ComboHudGateHint = string.Empty;
-        }
-    }
-
-    public ObservableCollection<KeyboardActionDefinition> KeyboardActions => _keyboardActions;
-
-    public ObservableCollection<RadialMenuDefinition> RadialMenus => _radialMenus;
-
-    public IProfileService GetProfileService() => _profileService;
-
-    public IKeyboardCaptureService KeyboardCaptureService => _keyboardCaptureService;
-
-    public void RefreshTemplates(string? preferredProfileId = null)
-        => _profileOrchestrator.RefreshTemplates(preferredProfileId);
-
-    public void ReloadSelectedTemplate()
-        => _profileOrchestrator.LoadSelectedTemplate();
-
-    public bool TryCaptureKeyboardKey(Key key, Key? systemKey = null)
-        => _keyboardCaptureService.TryCaptureKeyboardKey(key, systemKey);
-
-    public void CancelKeyboardKeyRecording()
-        => _keyboardCaptureService.CancelCapture();
-
-    private void OnChildPanelConfigurationChanged(object? sender, EventArgs e) => UpdateMappingCount();
-
-    private void UpdateMappingCount() => MappingCount = Mappings.Count;
-
-    private void RefreshRadialDefinitionsInEngine()
-    {
-        if (_mappingEngine == null) return;
-        var template = SelectedTemplate != null ? _profileService.LoadSelectedTemplate(SelectedTemplate) : null;
-        _mappingEngine.SetRadialMenuDefinitions(
-            _radialMenus.Count == 0 ? null : _radialMenus.ToList(),
-            _keyboardActions.Count == 0 ? null : _keyboardActions.ToList(),
-            template);
-    }
-
-    private void OnRadialMenusCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action == NotifyCollectionChangedAction.Reset)
-        {
-            RefreshRadialDefinitionsInEngine();
-            return;
-        }
-
-        if (e.OldItems != null)
-        {
-            foreach (RadialMenuDefinition rm in e.OldItems)
-                rm.Items.CollectionChanged -= OnRadialMenuItemsCollectionChanged;
-        }
-
-        if (e.NewItems != null)
-        {
-            foreach (RadialMenuDefinition rm in e.NewItems)
-                rm.Items.CollectionChanged += OnRadialMenuItemsCollectionChanged;
-        }
-
-        RefreshRadialDefinitionsInEngine();
-    }
-
-    private void OnRadialMenuItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
-        RefreshRadialDefinitionsInEngine();
-
-    private void OnThumbstickDeadzoneChanged(float left, float right)
-    {
-        UpdateAndSaveSettings(s =>
-        {
-            s.LeftThumbstickDeadzone = left;
-            s.RightThumbstickDeadzone = right;
-        });
-
-        if (_gamepadReader is GamepadReader gr)
-        {
-            gr.LeftThumbstickDeadzone = left;
-            gr.RightThumbstickDeadzone = right;
-        }
-    }
-
-    private void OnTriggerDeadzonesChanged(float leftInner, float leftOuter, float rightInner, float rightOuter)
-    {
-        UpdateAndSaveSettings(s =>
-        {
-            s.LeftTriggerInnerDeadzone = leftInner;
-            s.LeftTriggerOuterDeadzone = leftOuter;
-            s.RightTriggerInnerDeadzone = rightInner;
-            s.RightTriggerOuterDeadzone = rightOuter;
-        });
-
-        if (_gamepadReader is GamepadReader gr)
-        {
-            gr.LeftTriggerInnerDeadzone = leftInner;
-            gr.LeftTriggerOuterDeadzone = leftOuter;
-            gr.RightTriggerInnerDeadzone = rightInner;
-            gr.RightTriggerOuterDeadzone = rightOuter;
-        }
-    }
-
-    private void UpdateAndSaveSettings(Action<AppSettings> action)
-    {
-        action(_settingsOrchestrator.Settings);
-        _settingsOrchestrator.SaveSettings();
-    }
-
-    private static ComboHudPlacement ParseComboHudPlacement(string? raw)
-    {
-        return Enum.TryParse<ComboHudPlacement>(raw, true, out var parsed)
-            ? parsed
-            : ComboHudPlacement.BottomRight;
-    }
-
-    private void ReloadLocalizedTemplateContent()
-    {
-        _profileOrchestrator.ReloadLocalizedContent();
-    }
-
-    private void UpdateTemplateToggleDisplayNames()
-    {
-        if (Mappings is null || Mappings.Count == 0)
-            return;
-
-        foreach (var mapping in Mappings)
-        {
-            if (mapping.TemplateToggle is null)
-            {
-                mapping.TemplateToggleDisplayName = string.Empty;
-                continue;
-            }
-
-            var targetId = mapping.TemplateToggle.AlternateProfileId?.Trim() ?? string.Empty;
-            var localizedName = string.Empty;
-            if (targetId.Length > 0 && _profileService.TryResolveTemplateLocation(targetId, out var loc))
-            {
-                localizedName = AvailableTemplates.FirstOrDefault(t => t.MatchesLocation(loc))?.DisplayName
-                    ?? string.Empty;
-            }
-            mapping.TemplateToggleDisplayName = localizedName;
-        }
-    }
-
-    private static float ResolveStickDeadzone(float specific, float shared)
-    {
-        var value = specific > 0f ? specific : shared;
-        return Math.Clamp(value, 0f, 0.9f);
-    }
-
-    private void InitializeUiSettings(AppSettings appSettings)
-    {
-        FocusGracePeriodMsSetting = appSettings.FocusGracePeriodMs;
-        ModifierGraceMsSetting = appSettings.ModifierGraceMs;
-        LeadKeyReleaseSuppressMsSetting = appSettings.LeadKeyReleaseSuppressMs;
-        GamepadPollingIntervalMs = appSettings.GamepadPollingIntervalMs;
-        RadialMenuConfirmModeIndex =
-            string.Equals(appSettings.RadialMenuConfirmMode, "returnStickToCenter", StringComparison.OrdinalIgnoreCase)
-                ? 0
-                : 1;
-        RadialMenuHudLabelModeIndex = (int)RadialMenuHudLabelModeParser.Parse(appSettings.RadialMenuHudLabelMode);
-        RadialHudScaleSetting = RadialHudLayout.ClampHudScale(appSettings.RadialHudScale);
-        DefaultAnalogActivationThreshold = appSettings.DefaultAnalogActivationThreshold;
-        MouseLookSensitivity = appSettings.MouseLookSensitivity;
-        AnalogChangeEpsilon = appSettings.AnalogChangeEpsilon;
-        KeyboardTapHoldDurationMs = appSettings.KeyboardTapHoldDurationMs;
-        TapInterKeyDelayMs = appSettings.TapInterKeyDelayMs;
-        TextInterCharDelayMs = appSettings.TextInterCharDelayMs;
-        ComboHudPlacementSetting = ParseComboHudPlacement(appSettings.ComboHudPlacement);
-    }
-
-    private void InitializeChildViewModels(float initialLeftDeadzone, float initialRightDeadzone, AppSettings appSettings)
-    {
-        ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
-        NewBindingPanel = new NewBindingPanelViewModel(this);
-        MappingEditorPanel = new MappingEditorViewModel(this);
-        CatalogPanel = new ProfileCatalogPanelViewModel(this);
-        CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
-        GamepadMonitorPanel = new GamepadMonitorViewModel(
-            StopGamepadCommand,
-            StartGamepadCommand,
-            OnHudEnabledChanged,
-            initialLeftThumbstickDeadzone: initialLeftDeadzone,
-            initialRightThumbstickDeadzone: initialRightDeadzone,
-            deadzoneChanged: OnThumbstickDeadzoneChanged,
-            initialLeftTriggerInnerDeadzone: appSettings.LeftTriggerInnerDeadzone,
-            initialLeftTriggerOuterDeadzone: appSettings.LeftTriggerOuterDeadzone,
-            initialRightTriggerInnerDeadzone: appSettings.RightTriggerInnerDeadzone,
-            initialRightTriggerOuterDeadzone: appSettings.RightTriggerOuterDeadzone,
-            triggerDeadzonesChanged: OnTriggerDeadzonesChanged,
-            initialComboHudPanelAlpha: Math.Clamp(appSettings.ComboHudPanelAlpha, 24, 220),
-            initialComboHudShadowOpacity: Math.Clamp(appSettings.ComboHudShadowOpacity, 0.08, 0.60),
-            comboHudChromeChanged: OnComboHudChromeChanged,
-            initialTemplateSwitchHudSeconds: Math.Clamp(appSettings.TemplateSwitchHudSeconds, 0.5, 5.0),
-            templateSwitchHudChanged: OnTemplateSwitchHudSecondsChanged,
-            uiDispatcher: _dispatcher);
-        ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
-        ProfileTemplatePanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
-        NewBindingPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
-        MappingEditorPanel.ConfigurationChanged += OnChildPanelConfigurationChanged;
+        if (!GamepadMonitorPanel.IsHudEnabled) return;
+        _uiOrchestrator.ShowTemplateSwitchHud(profileDisplayName, GamepadMonitorPanel.TemplateSwitchHudSeconds, (byte)GamepadMonitorPanel.ComboHudPanelAlpha, GamepadMonitorPanel.ComboHudShadowOpacity, ComboHudPlacementSetting.ToString(), () => { });
     }
 
     private IMappingEngine CreateMappingEngine()
@@ -999,23 +318,78 @@ public partial class MainViewModel : ObservableObject, IDisposable
             new KeyboardEmulator(),
             new MouseEmulator(),
             () => _appStatusMonitor.CanSendOutput,
-            a => DispatchToUi(a),
-            value => GamepadMonitorPanel.LastMappedOutput = value,
-            value => GamepadMonitorPanel.LastMappingStatus = value,
+            a => _dispatcher.BeginInvoke(a),
+            v => GamepadMonitorPanel.LastMappedOutput = v,
+            v => GamepadMonitorPanel.LastMappingStatus = v,
             OnComboHud,
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
-            requestTemplateSwitchToProfileId: pid => DispatchToUi(() => _profileOrchestrator.RequestTemplateSwitch(pid)),
+            pid => _dispatcher.BeginInvoke(() => _profileOrchestrator.RequestTemplateSwitch(pid)),
             profileService: _profileService,
-            setComboHudGateHint: s => DispatchToUi(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
+            setComboHudGateHint: s => _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
             comboHudGateMessageFactory: _settingsOrchestrator.GetComboHudGateMessageFactory(),
-            isComboHudPresentationSuppressed: () => _presentationOrchestrator.IsTemplateSwitchHudActive,
-            radialMenuHud: new RadialMenuHudPresenter(
-                () => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex,
-                () => Math.Clamp(GamepadMonitorPanel.ComboHudPanelAlpha, 24, 220)),
+            isComboHudPresentationSuppressed: () => false, // Simplified for now
+            radialMenuHud: new RadialMenuHudPresenter(() => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex, () => (int)GamepadMonitorPanel.ComboHudPanelAlpha),
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
-            getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0
-                ? RadialMenuConfirmMode.ReturnStickToCenter
-                : RadialMenuConfirmMode.ReleaseGuideKey);
+            getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0 ? RadialMenuConfirmMode.ReturnStickToCenter : RadialMenuConfirmMode.ReleaseGuideKey);
+    }
+
+    // Helper methods for UI refresh
+    internal void RefreshRightPanelSurface()
+    {
+        var showMapping = ProfileListTabIndex == 0 && (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
+        var showKeyboard = ProfileListTabIndex == 1 && CatalogPanel.SelectedKeyboardAction is not null;
+        var showRadial = ProfileListTabIndex == 2 && CatalogPanel.SelectedRadialMenu is not null;
+
+        RightPanelSurface = showMapping ? ProfileRightPanelSurface.Mapping : showKeyboard ? ProfileRightPanelSurface.KeyboardAction : showRadial ? ProfileRightPanelSurface.RadialMenu : ProfileRightPanelSurface.None;
+    }
+
+    private void UpdateTemplateToggleDisplayNames()
+    {
+        if (Mappings is null) return;
+        foreach (var mapping in Mappings)
+        {
+            if (mapping.TemplateToggle is null) { mapping.TemplateToggleDisplayName = string.Empty; continue; }
+            var targetId = mapping.TemplateToggle.AlternateProfileId?.Trim() ?? string.Empty;
+            if (targetId.Length > 0 && _profileService.TryResolveTemplateLocation(targetId, out var loc))
+                mapping.TemplateToggleDisplayName = AvailableTemplates.FirstOrDefault(t => t.MatchesLocation(loc))?.DisplayName ?? string.Empty;
+        }
+    }
+
+    private static float ResolveStickDeadzone(float specific, float shared) => specific > 0f ? Math.Clamp(specific, 0f, 0.9f) : Math.Clamp(shared, 0f, 0.9f);
+
+    private void InitializeUiSettings(AppSettings appSettings)
+    {
+        FocusGracePeriodMsSetting = appSettings.FocusGracePeriodMs;
+        ModifierGraceMsSetting = appSettings.ModifierGraceMs;
+        LeadKeyReleaseSuppressMsSetting = appSettings.LeadKeyReleaseSuppressMs;
+        GamepadPollingIntervalMs = appSettings.GamepadPollingIntervalMs;
+        RadialMenuConfirmModeIndex = string.Equals(appSettings.RadialMenuConfirmMode, "returnStickToCenter", StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+        RadialMenuHudLabelModeIndex = (int)RadialMenuHudLabelModeParser.Parse(appSettings.RadialMenuHudLabelMode);
+        RadialHudScaleSetting = appSettings.RadialHudScale;
+        DefaultAnalogActivationThreshold = appSettings.DefaultAnalogActivationThreshold;
+        MouseLookSensitivity = appSettings.MouseLookSensitivity;
+        AnalogChangeEpsilon = appSettings.AnalogChangeEpsilon;
+        KeyboardTapHoldDurationMs = appSettings.KeyboardTapHoldDurationMs;
+        TapInterKeyDelayMs = appSettings.TapInterKeyDelayMs;
+        TextInterCharDelayMs = appSettings.TextInterCharDelayMs;
+        ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
+    }
+
+    private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)
+    {
+        ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
+        NewBindingPanel = new NewBindingPanelViewModel(this);
+        MappingEditorPanel = new MappingEditorViewModel(this);
+        CatalogPanel = new ProfileCatalogPanelViewModel(this);
+        CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
+        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
+        ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
+    }
+
+    private void ScheduleInitialToasts()
+    {
+        if (App.LaunchUpdateSuccessArgs is not null)
+            _uiOrchestrator.ShowToast(_settingsOrchestrator.Localize("UpdateSuccessToastTitle"), _settingsOrchestrator.FormatUpdateSuccessMessage(App.LaunchUpdateSuccessArgs.Value.ReleaseTag));
     }
 }

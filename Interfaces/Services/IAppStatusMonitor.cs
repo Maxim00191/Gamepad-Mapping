@@ -1,4 +1,4 @@
-using System;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services;
 

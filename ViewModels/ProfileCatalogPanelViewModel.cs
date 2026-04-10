@@ -144,6 +144,13 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     public bool HasWarnings => ValidationWarnings.Any();
 
+    public void ResetSelection()
+    {
+        SelectedKeyboardAction = null;
+        SelectedRadialMenu = null;
+        SelectedRadialSlot = null;
+    }
+
     public IReadOnlyList<string> JoystickStickOptions { get; } = new[] { "LeftStick", "RightStick" };
 
     [ObservableProperty]

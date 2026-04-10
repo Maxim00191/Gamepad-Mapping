@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Models.State;
 
 namespace Gamepad_Mapping.ViewModels;
 

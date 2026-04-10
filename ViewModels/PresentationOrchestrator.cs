@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Models.State;
 using Gamepad_Mapping.Views;
 
 namespace Gamepad_Mapping.ViewModels;
