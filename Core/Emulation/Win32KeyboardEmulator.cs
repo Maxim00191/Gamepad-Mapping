@@ -8,6 +8,9 @@ using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Services;
 
+using GamepadMapperGUI.Services.Win32;
+using static GamepadMapperGUI.Services.Win32.Win32InputConstants;
+
 namespace GamepadMapperGUI.Core;
 
 /// <summary>Keyboard output via Win32 <c>SendInput</c> (<see cref="ISendInputChannel"/>).</summary>
@@ -19,56 +22,6 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
     private const int DefaultTapHoldMs = 30;
     private const int MinTapHoldMs = 20;
     private const int MaxTapHoldMs = 50;
-
-    private const uint INPUT_KEYBOARD = 1;
-    private const uint KEYEVENTF_KEYUP = 0x0002;
-    private const uint KEYEVENTF_UNICODE = 0x0004;
-    private const uint KEYEVENTF_SCANCODE = 0x0008;
-    private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct INPUT
-    {
-        public uint type;
-        public InputUnion U;
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion
-    {
-        [FieldOffset(0)] public MOUSEINPUT mi;
-        [FieldOffset(0)] public KEYBDINPUT ki;
-        [FieldOffset(0)] public HARDWAREINPUT hi;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MOUSEINPUT
-    {
-        public int dx;
-        public int dy;
-        public uint mouseData;
-        public uint dwFlags;
-        public uint time;
-        public IntPtr dwExtraInfo;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct KEYBDINPUT
-    {
-        public ushort wVk;
-        public ushort wScan;
-        public uint dwFlags;
-        public uint time;
-        public IntPtr dwExtraInfo;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct HARDWAREINPUT
-    {
-        public uint uMsg;
-        public ushort wParamL;
-        public ushort wParamH;
-    }
 
     public Win32KeyboardEmulator(ISendInputChannel? sendChannel = null)
     {
@@ -99,8 +52,22 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
         SendKeyboardKey(vk, keyUp: true);
     }
 
-    public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = DefaultTapHoldMs) =>
-        TapKeyAsync(key, repeatCount, interKeyDelayMs, keyHoldMs, CancellationToken.None).GetAwaiter().GetResult();
+    public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = DefaultTapHoldMs)
+    {
+        if (repeatCount < 1)
+            throw new ArgumentOutOfRangeException(nameof(repeatCount), "repeatCount must be >= 1.");
+
+        var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
+        for (var i = 0; i < repeatCount; i++)
+        {
+            KeyDown(key);
+            if (effectiveHoldMs > 0) Thread.Sleep(effectiveHoldMs);
+            KeyUp(key);
+
+            if (interKeyDelayMs > 0 && i < repeatCount - 1)
+                Thread.Sleep(interKeyDelayMs);
+        }
+    }
 
     public async Task TapKeyAsync(
         Key key,
@@ -124,8 +91,38 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
         }
     }
 
-    public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs) =>
-        TapKeyChordAsync(modifiers, mainKey, keyHoldMs, CancellationToken.None).GetAwaiter().GetResult();
+    public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs)
+    {
+        if (mainKey == Key.None)
+            throw new ArgumentException("Main key cannot be Key.None.", nameof(mainKey));
+        if (modifiers is null) throw new ArgumentNullException(nameof(modifiers));
+
+        var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
+        var modList = new List<Key>();
+        foreach (var k in modifiers)
+        {
+            if (k != Key.None)
+                modList.Add(k);
+        }
+
+        _chordSequenceGate.Wait(CancellationToken.None);
+        try
+        {
+            foreach (var m in modList)
+                KeyDown(m);
+
+            KeyDown(mainKey);
+            if (effectiveHoldMs > 0) Thread.Sleep(effectiveHoldMs);
+            KeyUp(mainKey);
+
+            for (var i = modList.Count - 1; i >= 0; i--)
+                KeyUp(modList[i]);
+        }
+        finally
+        {
+            _chordSequenceGate.Release();
+        }
+    }
 
     public async Task TapKeyChordAsync(
         IReadOnlyList<Key> modifiers,
@@ -249,7 +246,8 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
     {
         lock (_sendLock)
         {
-            var input = new INPUT
+            Span<INPUT> inputs = stackalloc INPUT[1];
+            inputs[0] = new INPUT
             {
                 type = INPUT_KEYBOARD,
                 U = new InputUnion
@@ -265,25 +263,11 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
                 }
             };
 
-            var size = Marshal.SizeOf<INPUT>();
-            var ptr = Marshal.AllocHGlobal(size);
-            try
+            var sent = _sendChannel.SendInput(inputs);
+            if (sent != 1)
             {
-                Marshal.StructureToPtr(input, ptr, false);
-                var sent = _sendChannel.SendInput(1, (nint)ptr, size);
-                if (sent != 1)
-                {
-                    var err = Marshal.GetLastWin32Error();
-                    App.Logger.Warning($"SendInput failed. key={wVk:X4} scan={wScan:X4} flags=0x{flags:X} err={err}");
-                }
-            }
-            catch (Exception ex)
-            {
-                App.Logger.Error("Exception during SendInput", ex);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(ptr);
+                var err = Marshal.GetLastWin32Error();
+                App.Logger.Warning($"SendInput failed. key={wVk:X4} scan={wScan:X4} flags=0x{flags:X} err={err}");
             }
         }
     }

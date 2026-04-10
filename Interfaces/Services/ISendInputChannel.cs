@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using GamepadMapperGUI.Services.Win32;
+
 namespace GamepadMapperGUI.Interfaces.Services;
 
 /// <summary>
@@ -6,7 +10,8 @@ namespace GamepadMapperGUI.Interfaces.Services;
 /// </summary>
 public interface ISendInputChannel
 {
-    uint SendInput(uint nInputs, nint pInputs, int cbSize);
+    /// <summary>Injects a sequence of input events.</summary>
+    uint SendInput(ReadOnlySpan<INPUT> inputs);
 
     /// <summary>MapVirtualKey with MAPVK_VK_TO_VSC for keyboard scan codes.</summary>
     uint MapVirtualKeyToScanCode(uint virtualKey);
