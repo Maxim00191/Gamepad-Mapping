@@ -1,3 +1,163 @@
+## Changelog v2.1.3 - 2026-04-10
+
+### Added
+
+- **Persistent Update Results:** The updater now records a structured result (`update-last-result.json`) upon completion, enabling the application to detect both successful and failed update attempts.
+- **Update Failure Notifications:** Implemented a persistent notification system for update failures. If an update fails after the application shuts down, the user will now see a "Try Again" corner toast on the next manual launch.
+- **Unified Notification Service:** Introduced `IUpdateNotificationService` to centralize the lifecycle of update-related feedback, replacing the previous success-only implementation.
+- **Debug UI Testing:** Added hidden developer flags (`--debug-update-success`, `--debug-update-failed`) available in debug builds to verify corner toast UI without performing a real installation.
+- **Enhanced Command-Line Parsing:** Robustified argument detection for the `--updated` flag to support various shell-escaped formats.
+
+### Changed
+
+- **UI Lifecycle Optimization:** Refactored `UpdateViewModel` to remove active background polling for status files. The application now uses a more efficient check-once-on-startup model for pending toasts.
+
+
+## 更新日志 v2.1.3 - 2026-04-10
+
+### 新增
+
+- **持久化更新结果：** 更新器现在会在完成后记录结构化结果文件 (`update-last-result.json`)，使主程序能够准确识别更新成功或失败的具体状态。
+- **更新失败通知：** 实现了针对更新失败的持久化提醒机制。如果更新在程序关闭后失败，用户在下次手动启动时将看到“请重试”的角标提示。
+- **统一通知服务：** 引入 `IUpdateNotificationService` 统一管理更新相关的反馈生命周期，取代了原有的仅限成功提示的实现。
+- **调试 UI 测试支持：** 在调试版本中增加了隐藏的开发者指令 (`--debug-update-success`, `--debug-update-failed`)，无需真实安装即可验证通知 UI 的显示效果。
+- **增强型命令行解析：** 加固了对 `--updated` 参数检测逻辑，兼容各种 shell 转义格式。
+
+### 更改
+
+- **界面生命周期优化：** 重构了 `UpdateViewModel`，移除了对状态文件的后台主动轮询。主程序现在采用更高效的“启动时单次检查”模式来处理待显示通知。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-alpha...v2.1.3-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-beta...v2.1.3)
+
+## Changelog v2.1.3-beta - 2026-04-10
+
+### Added
+
+- **Digital Signature Verification:** Implemented Authenticode signature validation in the updater using `WinVerifyTrust`. The updater now verifies that the caller process is signed with a trusted certificate and matches the expected thumbprint, providing a strong defense against spoofing.
+- **Process Identity Hardening:** Added **Process StartTime** validation alongside PID and path checks. This creates a unique "fingerprint" for the calling process, effectively preventing PID reuse attacks.
+- **MAX_PATH Safety Check:** Added pre-validation for installation path length (260 chars limit). The updater now detects if the path is too deep to safely accommodate `.staging` and `.backup` operations before starting the update.
+
+### Changed
+
+- **Kernel-Level Handshake:** Upgraded the updater startup handshake from file-based polling to a kernel-level **Named Mutex** (`Global\{App}-Install-{GUID}`). This eliminates race conditions, fixes "Updater exited before startup handshake" errors, and ensures atomic handoff between the app and the relocated updater process.
+- **Automated CI Signing:** Integrated automated executable and DLL signing into the GitHub Actions pipeline using self-signed certificates and modern **RFC 3161 (SHA-256)** timestamping.
+- **UAC De-elevation on Restart:** The updater now explicitly restarts the application with non-elevated privileges after an elevated installation, adhering to the principle of least privilege.
+- **Generic Updater Architecture:** Decoupled hardcoded project identifiers. The updater is now a generic component driven by `AppDisplayName` provided in the execution plan.
+
+### Fixed
+
+- **Local Build Robustness:** Enhanced `publish-release.ps1` with improved `signtool.exe` discovery (supporting custom paths like `D:\Windows Kits`) and local Windows Certificate Store support.
+- **CI Path Quoting:** Fixed potential failures in the CI pipeline when handling filenames or paths containing spaces.
+
+## 更新日志 v2.1.3-beta - 2026-04-10
+
+### 新增
+
+- **数字签名验证：** 在更新器中实现了基于 `WinVerifyTrust` 的 Authenticode 签名校验。更新器现在会验证调用进程是否由受信任证书签名并匹配预期的指纹，彻底杜绝身份冒充风险。
+- **进程身份加固：** 在 PID 和路径校验的基础上新增了 **进程启动时间 (StartTime)** 校验。通过“指纹级”绑定，有效防御 PID 复用攻击。
+- **路径长度预检：** 增加了对安装路径长度（260 字符 MAX_PATH）的预校验。在更新开始前识别过深的目录结构，防止因无法创建 `.staging` 或 `.backup` 目录导致的更新失败。
+
+### 更改
+
+- **内核级握手机制：** 将更新器启动握手从不稳定的文件轮询升级为内核级 **命名互斥体 (Named Mutex)**。消除了竞态条件，修复了“更新器在握手前退出”的报错，确保主程序与重定向后的更新进程实现原子交接。
+- **自动化 CI 签名：** 在 GitHub Actions 流水中集成了自动化的 EXE/DLL 签名流程，采用自签名证书及现代 **RFC 3161 (SHA-256)** 时间戳协议。
+- **重启时自动降权：** 更新器在完成管理员权限安装后，会主动以非提升权限重启主程序，符合“最小权限原则”，防止权限蔓延。
+- **通用更新器架构：** 解耦了硬编码的项目标识符。更新器现在是一个完全由执行计划中的 `AppDisplayName` 驱动的通用组件。
+
+### 修复
+
+- **本地构建鲁棒性：** 增强了 `publish-release.ps1` 脚本，支持自动探测不同位置的 `signtool.exe`（如 `D:\Windows Kits`）并支持从本地 Windows 证书存储中提取证书。
+- **CI 路径引号加固：** 修复了 CI 脚本在处理带空格的文件名或路径时可能导致的构建失败。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-alpha...v2.1.3-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3-alpha...v2.1.3-beta)
+
+
+## Changelog v2.1.3-alpha - 2026-04-09
+
+### Note
+- **Public testing build (alpha):** This release is for update-chain verification and may contain breaking issues. Please avoid downloading/installing unless you are explicitly participating in alpha validation.
+- **Upgrade path validation focus:** Intended to verify real-world migration from `v2.1.2-beta` to signed updater releases (`v2.1.3-alpha` and later), including download, integrity verification, install handoff, and restart flow.
+
+
+## 更新日志 v2.1.3-alpha - 2026-04-09
+
+### 说明
+- **公开测试版（alpha）：** 该版本用于更新链路验证，可能存在稳定性或兼容性问题。若你不是明确参与测试，请尽量不要下载或安装。
+- **升级链路验证优先：** 该版本重点验证从 `v2.1.2-beta` 升级到后续签名版本（`v2.1.3-alpha` 及以后）的全流程，包括下载、完整性校验、安装交接与重启路径。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.3-alpha](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.3-alpha)
+
+
+## Changelog v2.1.2-beta - 2026-04-09
+
+### Changed
+
+- **Updater startup handoff reliability:** Added an explicit startup handshake (`--ack`) between main app and updater. The main app now waits for updater acknowledgment before shutdown, reducing "black window flash then no update" failures.
+- **Release-note extraction in CI:** Updated release-body extraction to capture the full same-version block (English + Chinese), preventing truncation at the Chinese section heading.
+- **Local reinstall ergonomics with signature retention:** Persist verified `SHA256SUMS` and `SHA256SUMS.sig` under `Updates/` so retry installs can reuse local artifacts instead of forcing a full re-download.
+
+### Fixed
+
+- **Installer caller PID timing mismatch:** Relaxed caller-process validation for the expected handoff case where the original process exits before updater validation starts, avoiding silent early exit with no install progress.
+- **Settings initialization race in tests/CI:** Hardened first-run local settings bootstrap against concurrent file creation (`already exists`) during parallel test execution.
+- **Local package reinstall validation path:** Local install now re-verifies checksum signature from cached `SHA256SUMS(.sig)` and resolves expected SHA-256 for the selected ZIP before install handoff.
+
+## 更新日志 v2.1.2-beta - 2026-04-09
+
+### 更改
+
+- **Updater 启动交接可靠性：** 新增主程序与 updater 的启动握手机制（`--ack`）。主程序仅在收到 updater 接管确认后才退出，降低“黑窗一闪后无更新”的失败概率。
+- **CI 发布说明提取：** 调整 release body 提取规则，按同版本范围提取完整中英文段，避免在中文标题处被截断。
+- **本地重装体验优化并保留签名文件：** 在 `Updates/` 下保留已验证通过的 `SHA256SUMS` 与 `SHA256SUMS.sig`，失败重试安装时可复用本地校验资产，减少重复下载。
+
+### 修复
+
+- **安装调用方 PID 时序不匹配：** 兼容“主进程先退出、updater 后校验”的正常交接时序，避免因 PID 已退出导致 updater 过早失败且无安装进展。
+- **测试/CI 设置初始化并发竞态：** 加固首次本地设置初始化流程，规避并行测试场景下 `already exists` 文件竞争导致的偶发失败。
+- **本地安装包重试校验路径：** 本地安装前会基于缓存的 `SHA256SUMS(.sig)` 重新验签并解析目标 ZIP 的期望 SHA-256，再交给安装流程，防止篡改包绕过。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.2-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.2-alpha...v2.1.2-beta)
+
+## Changelog v2.1.2-alpha - 2026-04-09
+
+### Added
+
+- **Updater payload preflight script:** Added `publish/preflight-release.ps1` to validate updater payload manifest integrity and publish output consistency before release packaging.
+- **Single-source updater payload manifest:** Added `publish/updater-required-files.txt` as the canonical required-file list for updater release payload validation.
+
+### Changed
+
+- **Updater module naming cleanup:** Renamed `AtomicInstall*` types/files to `UpdaterInstall*` for clearer module intent without changing install behavior.
+- **Release packaging robustness:** Updated both local publish script and GitHub Actions release flow to explicitly publish/copy/verify updater runtime payload (`Updater.exe/.dll/.deps/.runtimeconfig`) in both `single` and `fx` artifacts.
+- **CI quality gates:** Added a dedicated `quality` job (tests + updater preflight), timeout controls (`20m/20m/30m`), release diagnostics artifact upload on failure, and path-aware preflight execution to reduce unnecessary CI time.
+- **Update-chain localization consistency:** Replaced remaining update-flow hardcoded status texts with resource keys and aligned EN/zh-CN resource entries.
+
+### Fixed
+
+- **Update download button enablement race:** Ensured update commands refresh `CanExecute` when `IsUpdateAvailable` / `IsChecking` changes so the download action becomes clickable immediately after a successful update check.
+- **RID publish path mismatch for updater payload:** Removed release-time gaps where updater files could be missing due to runtime-identifier output path differences.
+
+## 更新日志 v2.1.2-alpha - 2026-04-09
+
+### 新增
+
+- **更新器发布前自检脚本：** 新增 `publish/preflight-release.ps1`，在正式打包前校验 updater 载荷清单与发布产物一致性。
+- **Updater 载荷单一清单源：** 新增 `publish/updater-required-files.txt`，作为 updater 发布必需文件的统一来源。
+
+### 更改
+
+- **Updater 模块命名优化：** 将 `AtomicInstall*` 类型/文件统一重命名为 `UpdaterInstall*`，仅优化语义，不改变安装逻辑。
+- **发布打包链路加固：** 本地发布脚本与 GitHub Actions 发布流程均显式发布/拷贝/校验 updater 运行时载荷（`Updater.exe/.dll/.deps/.runtimeconfig`），覆盖 `single` 与 `fx` 两种产物。
+- **CI 质量门禁增强：** 新增 `quality` 作业（测试 + updater preflight）、超时控制（`20m/20m/30m`）、失败诊断产物上传，以及基于变更路径的 preflight 条件执行以减少不必要耗时。
+- **更新链路本地化一致性：** 将更新流程中剩余硬编码状态文案改为资源键，并补齐/对齐中英文资源项。
+
+### 修复
+
+- **下载按钮可点击状态竞态：** 在 `IsUpdateAvailable` / `IsChecking` 变化时刷新命令可执行状态，修复“检测到新版本后下载按钮不可点击”的问题。
+- **Updater 载荷 RID 路径不一致：** 修复因运行时标识输出目录差异导致的发布阶段 updater 文件缺失风险。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.1...v2.1.2-alpha](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.1...v2.1.2-alpha)
+
 ## Changelog v2.1.1 - 2026-04-08
 
 ### Added
@@ -39,6 +199,8 @@
 
 - **缓存写入保护：** 仅在成功解析 release 时写入最新版本缓存；超时/网络/API 错误不再污染缓存状态。
 - **时间回拨防护：** 配额状态增加单调时间约束，降低通过本地回拨系统时间绕过限制的可能性。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0...v2.1.1](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.0...v2.1.1)
 
 ## Changelog v2.1.0 - 2026-04-07
 

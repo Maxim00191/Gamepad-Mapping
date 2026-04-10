@@ -8,6 +8,7 @@ public sealed record UpdateInstallRequest(
     string AppExecutablePath,
     IReadOnlyList<string> PreserveDirectoryNames,
     int ProcessIdToWaitFor,
+    string? TrustedReleaseTag = null,
     string? ExpectedZipSha256 = null,
     string? InstallLogPath = null,
     bool RemoveOrphanFiles = true);

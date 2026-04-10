@@ -10,13 +10,14 @@ namespace GamepadMapperGUI.Services;
 
 public class GitHubContentService : IGitHubContentService
 {
-    private const string MirrorProxyPrefix = "https://ghfast.top/";
     private readonly HttpClient _httpClient;
     public string BuildMirrorProxyUrl(string originalUrl, string? mirrorBaseUrl = null)
     {
         if (string.IsNullOrWhiteSpace(originalUrl))
             return string.Empty;
         var prefix = NormalizeMirrorPrefix(mirrorBaseUrl);
+        if (string.IsNullOrWhiteSpace(prefix))
+            return originalUrl;
         if (originalUrl.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             return originalUrl;
         return $"{prefix}{originalUrl}";
@@ -111,7 +112,9 @@ public class GitHubContentService : IGitHubContentService
 
     private static string NormalizeMirrorPrefix(string? mirrorBaseUrl)
     {
-        var raw = string.IsNullOrWhiteSpace(mirrorBaseUrl) ? MirrorProxyPrefix : mirrorBaseUrl.Trim();
+        var raw = string.IsNullOrWhiteSpace(mirrorBaseUrl) ? string.Empty : mirrorBaseUrl.Trim();
+        if (raw.Length == 0)
+            return string.Empty;
         return raw.EndsWith("/", StringComparison.Ordinal) ? raw : $"{raw}/";
     }
 }

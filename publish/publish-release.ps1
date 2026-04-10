@@ -27,6 +27,19 @@ if (-not (Test-Path -LiteralPath $csproj)) {
     throw "Project not found: $csproj (keep this script in the publish/ folder at the repo root)."
 }
 
+$updaterManifestPath = Join-Path $publishRoot "updater-required-files.txt"
+if (-not (Test-Path -LiteralPath $updaterManifestPath)) {
+    throw "Updater payload manifest not found: $updaterManifestPath"
+}
+
+$requiredUpdaterFiles = Get-Content -LiteralPath $updaterManifestPath |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -and -not $_.StartsWith('#') }
+
+if (-not $requiredUpdaterFiles -or $requiredUpdaterFiles.Count -eq 0) {
+    throw "Updater payload manifest is empty: $updaterManifestPath"
+}
+
 if ([string]::IsNullOrWhiteSpace($Tag)) {
     Push-Location -LiteralPath $repoRoot
     try {
@@ -48,11 +61,19 @@ if ([string]::IsNullOrWhiteSpace($Tag)) {
 
 $publishSingle = Join-Path $publishRoot "single"
 $publishFx = Join-Path $publishRoot "fx"
+$publishUpdater = Join-Path $publishRoot "updater"
 
-foreach ($dir in @($publishSingle, $publishFx)) {
+foreach ($dir in @($publishSingle, $publishFx, $publishUpdater)) {
     if (Test-Path -LiteralPath $dir) {
         Remove-Item -LiteralPath $dir -Recurse -Force
     }
+}
+
+$localSettingsFile = Join-Path $repoRoot "Assets\Config\local_settings.json"
+$tempLocalSettingsFile = Join-Path $publishRoot "local_settings.json.tmp"
+if (Test-Path -LiteralPath $localSettingsFile) {
+    Write-Host "Temporarily moving local_settings.json..." -ForegroundColor Yellow
+    Move-Item -LiteralPath $localSettingsFile -Destination $tempLocalSettingsFile -Force
 }
 
 Write-Host "dotnet publish: single-file, self-contained win-x64 -> publish\single" -ForegroundColor Cyan
@@ -67,12 +88,82 @@ Write-Host "dotnet publish: framework-dependent win-x64 -> publish\fx" -Foregrou
     -o $publishFx
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+Write-Host "dotnet publish: updater payload (win-x64, framework-dependent) -> publish\\updater" -ForegroundColor Cyan
+& dotnet publish (Join-Path $repoRoot "Updater\Updater.csproj") -c Release -r win-x64 --self-contained false `
+    -o $publishUpdater
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 $docFiles = @('README.md', 'README_zh.md', 'CHANGELOG.md', 'RELEASE_NOTES.md')
 foreach ($outDir in @($publishSingle, $publishFx)) {
     foreach ($rel in $docFiles) {
         $src = Join-Path $repoRoot $rel
         if (Test-Path -LiteralPath $src) {
             Copy-Item -LiteralPath $src -Destination $outDir -Force
+        }
+    }
+}
+
+foreach ($f in $requiredUpdaterFiles) {
+    $src = Join-Path $publishUpdater $f
+    if (-not (Test-Path -LiteralPath $src)) {
+        throw "Updater publish output missing required file: $src"
+    }
+    Copy-Item -LiteralPath $src -Destination $publishSingle -Force
+    Copy-Item -LiteralPath $src -Destination $publishFx -Force
+}
+
+# --- Digital Signature (Local) ---
+# Sign executables using a certificate from the Windows Certificate Store.
+$certThumbprint = "B24744482F4EA296BB1CBD1DE4E7CCAF0607199A"
+
+# Try to find signtool.exe in common Windows SDK locations, or use 'where' as fallback
+$signtool = $null
+$sdkPaths = @(
+    "D:\Windows Kits\10\bin",
+    "C:\Program Files\Windows Kits\10\bin",
+    "C:\Program Files (x86)\Windows Kits\10\bin",
+    "C:\Program Files (x86)\Windows Kits\8.1\bin",
+    "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin"
+)
+
+foreach ($path in $sdkPaths) {
+    if (Test-Path $path) {
+        # Search for signtool.exe in any subfolder (to handle versioned folders like 10.0.22621.0)
+        $found = Get-ChildItem -Path $path -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | 
+                 Where-Object { $_.FullName -match "x64" } | 
+                 Sort-Object LastWriteTime -Descending | 
+                 Select-Object -First 1 -ExpandProperty FullName
+        if ($found) { $signtool = $found; break }
+    }
+}
+
+if (-not $signtool) {
+    # Fallback to system PATH
+    $cmd = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($cmd) { $signtool = $cmd.Source }
+}
+
+if ($signtool) {
+    Write-Host "Using signtool: $signtool" -ForegroundColor Gray
+    Write-Host "Signing executables with thumbprint: $certThumbprint" -ForegroundColor Cyan
+    $filesToSign = Get-ChildItem -Path $publishSingle, $publishFx -Include "*.exe", "*.dll" -Recurse | Select-Object -ExpandProperty FullName
+    foreach ($f in $filesToSign) {
+        Write-Host "  Signing: $f"
+        # /s My: Use "Personal" store in Current User context (default)
+        # /sha1: specify thumbprint
+        # /tr and /td sha256: RFC 3161 timestamping
+        & $signtool sign /s My /sha1 $certThumbprint /tr http://timestamp.digicert.com /td sha256 /fd sha256 /v "$f"
+    }
+}
+else {
+    Write-Warning "signtool.exe not found. Skipping local signing."
+}
+
+foreach ($outDir in @($publishSingle, $publishFx)) {
+    foreach ($f in $requiredUpdaterFiles) {
+        $p = Join-Path $outDir $f
+        if (-not (Test-Path -LiteralPath $p)) {
+            throw "Publish output missing required updater file: $p"
         }
     }
 }

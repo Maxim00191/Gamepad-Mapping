@@ -602,7 +602,7 @@ Install now? The app will close automatically.</value>
 The app will close and apply update. Continue?</value>
   </data>
   <data name="UpdateInstallLaunchFailed" xml:space="preserve">
-    <value>Failed to start installer script: {0}</value>
+    <value>Failed to start updater installer: {0}</value>
   </data>
   <data name="UpdateIncludePrereleases" xml:space="preserve">
     <value>Include Beta/Pre-releases</value>
@@ -643,5 +643,53 @@ Do you want to overwrite it?</value>
   </data>
   <data name="UpdateCheckFailedCachedLatestHint" xml:space="preserve">
     <value>Last successful check: {0} ({1} UTC).</value>
+  </data>
+  <data name="UpdateNoPackageForInstallMode" xml:space="preserve">
+    <value>No downloadable package is available for the current install mode.</value>
+  </data>
+  <data name="UpdateChecksumSignatureValidationFailed" xml:space="preserve">
+    <value>Release package checksum signature validation failed. Download is blocked.</value>
+  </data>
+  <data name="UpdateSecureChecksumMissing" xml:space="preserve">
+    <value>Secure checksum is missing for this package. Re-download from a signed release.</value>
+  </data>
+  <data name="UpdateUnknownError" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="UpdateQuotaCooldownBlocked" xml:space="preserve">
+    <value>Too many requests. Please retry in {0} seconds.</value>
+  </data>
+  <data name="UpdateQuotaActionDownload" xml:space="preserve">
+    <value>download update packages</value>
+  </data>
+  <data name="UpdateQuotaActionCheck" xml:space="preserve">
+    <value>check for updates</value>
+  </data>
+  <data name="UpdateQuotaDailyLimitBlocked" xml:space="preserve">
+    <value>Daily limit reached for {0} ({1} per day). Please try again tomorrow.</value>
+  </data>
+  <data name="UpdateSuccessToastTitle" xml:space="preserve">
+    <value>Update installed</value>
+  </data>
+  <data name="UpdateSuccessToastMessage" xml:space="preserve">
+    <value>You are now running {0}.</value>
+  </data>
+  <data name="UpdateSuccessToastCloseTooltip" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="UpdateFailedToastTitle" xml:space="preserve">
+    <value>Update failed</value>
+  </data>
+  <data name="UpdateFailedToastMessage" xml:space="preserve">
+    <value>Update failed. Please try again.</value>
+  </data>
+  <data name="ToastDismissTooltip" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="WelcomeToastTitle" xml:space="preserve">
+    <value>Welcome to Gamepad Mapping</value>
+  </data>
+  <data name="WelcomeToastMessage" xml:space="preserve">
+    <value>Thanks for trying the app. Pick a template, map your buttons, and you are ready to play. You can change language, updates, and more in Settings whenever you like.</value>
   </data>
 </root>

@@ -1,4 +1,5 @@
 using System;
+using GamepadMapperGUI.Models;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -13,7 +14,7 @@ using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services;
-using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services;
 using Gamepad_Mapping.Utils;
 using Gamepad_Mapping.Views;
@@ -61,8 +62,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
     private readonly IUpdateInstallerService _updateInstallerService;
+    private readonly IUpdateNotificationService _updateNotificationService;
+    private readonly IAppToastService _appToastService;
+    private readonly AppToastViewModel _toastHost;
 
     public UpdateViewModel UpdatePanel { get; }
+
+    public AppToastViewModel ToastHost => _toastHost;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -81,18 +87,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IUpdateQuotaService? updateQuotaService = null,
         ITrustedUtcTimeService? trustedUtcTimeService = null,
         IUpdateVersionCacheService? updateVersionCacheService = null,
-        IUpdateQuotaPolicyProvider? updateQuotaPolicyProvider = null)
+        IUpdateQuotaPolicyProvider? updateQuotaPolicyProvider = null,
+        IUpdateNotificationService? updateNotificationService = null,
+        IAppToastService? appToastService = null)
     {
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-        _profileService = profileService ?? new ProfileService();
         _settingsService = settingsService ?? new SettingsService();
         _appSettings = _settingsService.LoadSettings();
+        _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: _appSettings);
         _localFileService = localFileService ?? new LocalFileService();
         var sharedGitHubContentService = gitHubContentService ?? new GitHubContentService();
         var resolvedUpdateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
         _communityService = communityService ?? new CommunityTemplateService(_profileService, sharedGitHubContentService, _localFileService);
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, _appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
+        _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
+        _appToastService = appToastService ?? new AppToastService();
+        _toastHost = new AppToastViewModel(_appToastService);
         var resolvedTrustedUtcTimeService = trustedUtcTimeService ?? new TrustedUtcTimeService();
         var resolvedUpdateQuotaPolicyProvider = updateQuotaPolicyProvider ?? new StaticUpdateQuotaPolicyProvider();
         var resolvedUpdateQuotaService = updateQuotaService ?? new UpdateQuotaService(resolvedUpdateQuotaPolicyProvider, resolvedTrustedUtcTimeService);
@@ -258,6 +269,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         StartGamepad();
         RefreshRightPanelSurface();
+        _dispatcher.BeginInvoke(ScheduleInitialToasts, DispatcherPriority.Loaded);
     }
 
     partial void OnProfileListTabIndexChanged(int value) => RefreshRightPanelSurface();
@@ -639,11 +651,143 @@ public partial class MainViewModel : ObservableObject, IDisposable
         StopGamepadCommand.NotifyCanExecuteChanged();
     }
 
+    private void ScheduleInitialToasts()
+    {
+#if DEBUG
+        if (TryShowDebugCornerToast())
+            return;
+#endif
+
+        var launchArgs = App.LaunchUpdateSuccessArgs;
+        if (launchArgs is not null)
+        {
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = Localize("UpdateSuccessToastTitle"),
+                Message = FormatUpdateSuccessMessage(launchArgs.Value.ReleaseTag),
+                AutoHideSeconds = null,
+                OnClosed = () => _updateNotificationService.AcknowledgeSuccess(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+                InvokeOnClosedWhenExitingApplication = true
+            });
+            // Clear the argument so it doesn't show again on subsequent launches from e.g. a shortcut
+            App.LaunchUpdateSuccessArgs = null;
+            return;
+        }
+
+        var pendingUpdate = _updateNotificationService.TryGetPendingSuccessToast();
+        if (pendingUpdate is not null)
+        {
+            var p = pendingUpdate.Value;
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = Localize("UpdateSuccessToastTitle"),
+                Message = FormatUpdateSuccessMessage(p.ReleaseTag),
+                AutoHideSeconds = null,
+                OnClosed = () => _updateNotificationService.AcknowledgeSuccess(p.UpdatedAtUnixSeconds),
+                InvokeOnClosedWhenExitingApplication = true
+            });
+            return;
+        }
+
+        var pendingFailure = _updateNotificationService.TryGetPendingFailureToast();
+        if (pendingFailure is not null)
+        {
+            var p = pendingFailure.Value;
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = Localize("UpdateFailedToastTitle"),
+                Message = p.ErrorMessage ?? Localize("UpdateInstallLaunchFailed"),
+                AutoHideSeconds = null,
+                OnClosed = () => _updateNotificationService.AcknowledgeFailure(),
+                InvokeOnClosedWhenExitingApplication = true
+            });
+            return;
+        }
+
+        if (!_appSettings.HasSeenWelcomeToast)
+        {
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = Localize("WelcomeToastTitle"),
+                Message = Localize("WelcomeToastMessage"),
+                AutoHideSeconds = null,
+                OnClosed = () =>
+                {
+                    _appSettings.HasSeenWelcomeToast = true;
+                    _settingsService.SaveSettings(_appSettings);
+                },
+                InvokeOnClosedWhenExitingApplication = false
+            });
+        }
+    }
+
+#if DEBUG
+    private bool TryShowDebugCornerToast()
+    {
+        var args = Environment.GetCommandLineArgs();
+        if (args.Any(a => string.Equals(a, "--debug-toast", StringComparison.OrdinalIgnoreCase)))
+        {
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = "Debug: corner toast",
+                Message = "Launched with --debug-toast. Dismiss or wait for auto-hide; no update or welcome flow runs.",
+                AutoHideSeconds = null,
+                InvokeOnClosedWhenExitingApplication = false
+            });
+            return true;
+        }
+
+        if (args.Any(a => string.Equals(a, "--debug-update-success", StringComparison.OrdinalIgnoreCase)))
+        {
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = Localize("UpdateSuccessToastTitle"),
+                Message = FormatUpdateSuccessMessage("vDebugSuccess"),
+                AutoHideSeconds = null,
+                InvokeOnClosedWhenExitingApplication = false
+            });
+            return true;
+        }
+
+        if (args.Any(a => string.Equals(a, "--debug-update-failed", StringComparison.OrdinalIgnoreCase)))
+        {
+            _appToastService.Show(new AppToastRequest
+            {
+                Title = Localize("UpdateFailedToastTitle"),
+                Message = Localize("UpdateFailedToastMessage"),
+                AutoHideSeconds = null,
+                InvokeOnClosedWhenExitingApplication = false
+            });
+            return true;
+        }
+
+        return false;
+    }
+#endif
+
+    private static string Localize(string key)
+    {
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            return loc[key];
+        return key;
+    }
+
+    private static string FormatUpdateSuccessMessage(string releaseTag)
+    {
+        if (Application.Current?.Resources["Loc"] is not TranslationService loc)
+            return releaseTag;
+
+        return string.Format(loc["UpdateSuccessToastMessage"], releaseTag);
+    }
+
     public void Dispose()
     {
         try
         {
             _gamepadReader.Stop();
+            _appToastService.NotifyApplicationExiting();
+            _toastHost.Dispose();
+
             if (_templateSwitchHudTimer is not null)
             {
                 _templateSwitchHudTimer.Stop();

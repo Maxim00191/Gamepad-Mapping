@@ -191,4 +191,14 @@ public class AppSettings
     /// </summary>
     [JsonProperty("githubMirrorBaseUrl")]
     public string GithubMirrorBaseUrl { get; set; } = "https://ghfast.top/";
+
+    /// <summary>
+    /// Controls how in-app installer preserves user-generated files during update install.
+    /// </summary>
+    [JsonProperty("updateInstallPolicy")]
+    public UpdateInstallPolicySettings UpdateInstallPolicy { get; set; } = new();
+
+    /// <summary>After the welcome corner toast is dismissed, this is set and persisted so it shows only once.</summary>
+    [JsonProperty("hasSeenWelcomeToast")]
+    public bool HasSeenWelcomeToast { get; set; }
 }

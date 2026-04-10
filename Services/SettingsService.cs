@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using GamepadMapperGUI.Interfaces.Services;
 using GamepadMapperGUI.Models;
@@ -37,7 +38,15 @@ public class SettingsService : ISettingsService
         if (!_fileSystem.FileExists(localPath) && _fileSystem.FileExists(defaultPath))
         {
             _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(localPath)!);
-            _fileSystem.CopyFile(defaultPath, localPath, overwrite: false);
+            try
+            {
+                _fileSystem.CopyFile(defaultPath, localPath, overwrite: false);
+            }
+            catch (IOException) when (_fileSystem.FileExists(localPath))
+            {
+                // Another concurrent initialization already created local settings.
+                // Treat as success and continue loading from localPath.
+            }
         }
 
         var pathToLoad = _fileSystem.FileExists(localPath) ? localPath : defaultPath;
@@ -51,6 +60,7 @@ public class SettingsService : ISettingsService
             var json = _fileSystem.ReadAllText(pathToLoad, Encoding.UTF8);
             var settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
             NormalizeTriggerDeadzones(settings);
+            NormalizeUpdateInstallPolicy(settings);
             return settings;
         }
         catch (Exception ex)
@@ -76,6 +86,11 @@ public class SettingsService : ISettingsService
     public static void SaveSettings(AppSettings settings) => new SettingsService().SaveSettingsInternal(settings);
 
     private const float TriggerDeadzoneMinSpan = 0.02f;
+    private static readonly string[] DefaultPreservePaths =
+    [
+        "Assets\\Profiles\\templates",
+        "Assets\\Config\\local_settings.json"
+    ];
 
     public static void NormalizeTriggerDeadzones(AppSettings s)
     {
@@ -97,5 +112,23 @@ public class SettingsService : ISettingsService
         s.LeftTriggerOuterDeadzone = lo;
         s.RightTriggerInnerDeadzone = ri;
         s.RightTriggerOuterDeadzone = ro;
+    }
+
+    private static void NormalizeUpdateInstallPolicy(AppSettings s)
+    {
+        s.UpdateInstallPolicy ??= new UpdateInstallPolicySettings();
+        s.UpdateInstallPolicy.PreservePaths ??= [];
+
+        var normalized = s.UpdateInstallPolicy.PreservePaths
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim().Replace('/', '\\').Trim('\\'))
+            .Where(x => x.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalized.Count == 0)
+            normalized.AddRange(DefaultPreservePaths);
+
+        s.UpdateInstallPolicy.PreservePaths = normalized;
     }
 }

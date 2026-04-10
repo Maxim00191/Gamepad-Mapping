@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>2.1.1</Version>
+    <Version>2.1.3</Version>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <RootNamespace>Gamepad_Mapping</RootNamespace>
@@ -27,9 +27,35 @@
     <Resource Include="Assets\Icons\Gamepad Mapping.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="Updater\Updater.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <!-- Unit tests live under Tests/; default SDK glob would compile them into this executable. -->
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />
+    <Compile Remove="Updater\**\*.cs" />
   </ItemGroup>
+
+  <Target Name="CopyUpdaterExecutable" AfterTargets="Build">
+    <PropertyGroup>
+      <UpdaterBaseOutputDir>$(MSBuildProjectDirectory)\Updater\bin\$(Configuration)\$(TargetFramework)\</UpdaterBaseOutputDir>
+      <UpdaterRidOutputDir>$(UpdaterBaseOutputDir)$(RuntimeIdentifier)\</UpdaterRidOutputDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <UpdaterPayload Include="$(UpdaterRidOutputDir)Updater.exe" Condition="Exists('$(UpdaterRidOutputDir)Updater.exe')" />
+      <UpdaterPayload Include="$(UpdaterRidOutputDir)Updater.dll" Condition="Exists('$(UpdaterRidOutputDir)Updater.dll')" />
+      <UpdaterPayload Include="$(UpdaterRidOutputDir)Updater.deps.json" Condition="Exists('$(UpdaterRidOutputDir)Updater.deps.json')" />
+      <UpdaterPayload Include="$(UpdaterRidOutputDir)Updater.runtimeconfig.json" Condition="Exists('$(UpdaterRidOutputDir)Updater.runtimeconfig.json')" />
+
+      <UpdaterPayload Include="$(UpdaterBaseOutputDir)Updater.exe" Condition="!Exists('$(UpdaterRidOutputDir)Updater.exe') and Exists('$(UpdaterBaseOutputDir)Updater.exe')" />
+      <UpdaterPayload Include="$(UpdaterBaseOutputDir)Updater.dll" Condition="!Exists('$(UpdaterRidOutputDir)Updater.dll') and Exists('$(UpdaterBaseOutputDir)Updater.dll')" />
+      <UpdaterPayload Include="$(UpdaterBaseOutputDir)Updater.deps.json" Condition="!Exists('$(UpdaterRidOutputDir)Updater.deps.json') and Exists('$(UpdaterBaseOutputDir)Updater.deps.json')" />
+      <UpdaterPayload Include="$(UpdaterBaseOutputDir)Updater.runtimeconfig.json" Condition="!Exists('$(UpdaterRidOutputDir)Updater.runtimeconfig.json') and Exists('$(UpdaterBaseOutputDir)Updater.runtimeconfig.json')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(UpdaterPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(UpdaterPayload)' != ''" />
+  </Target>
 
 </Project>

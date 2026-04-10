@@ -1,0 +1,4 @@
+Updater.exe
+Updater.dll
+Updater.deps.json
+Updater.runtimeconfig.json

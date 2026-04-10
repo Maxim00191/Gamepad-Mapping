@@ -9,6 +9,10 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Utils;
+using System.IO;
+using System.Linq;
+using GamepadMapperGUI.Models;
 
 namespace Gamepad_Mapping;
 
@@ -25,25 +29,44 @@ public partial class App : Application
     /// <summary>Fired after application resource brushes are refreshed for light/dark mode.</summary>
     public static event EventHandler? ThemeChanged;
 
+    /// <summary>Singleton corner toast API; safe to call from background threads (marshals to the UI thread).</summary>
+    public static IAppToastService ToastService { get; private set; } = null!;
+    public static UpdateSuccessArgs? LaunchUpdateSuccessArgs { get; set; }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         Logger.Info("Application starting...");
+#if DEBUG
+        try
+        {
+            var debugPath = Path.Combine(AppPaths.ResolveContentRoot(), "__DEBUG_APPPATHS_ROOT.txt");
+            File.WriteAllText(debugPath, $"Content root: {AppPaths.ResolveContentRoot()}\nBase Directory: {AppContext.BaseDirectory}\nProcess Path: {Environment.ProcessPath}\nCurrent Directory: {Directory.GetCurrentDirectory()}");
+            Logger.Info($"Wrote debug app paths to {debugPath}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to write debug app paths: {ex.Message}");
+        }
+#endif
+        LaunchUpdateSuccessArgs = ParseUpdateSuccessArgs(e.Args);
         ApplyLanguage();
         ApplySystemTheme();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         CheckStartupElevationCompatibility();
 
         var gitHubContentService = new GitHubContentService();
-        var profileService = new ProfileService();
         var localFileService = new LocalFileService();
         var updateInstallerService = new UpdateInstallerService();
         var settingsService = new SettingsService();
         var appSettings = settingsService.LoadSettingsInternal();
+        var profileService = new ProfileService(settingsService: settingsService, appSettings: appSettings);
         var updateVersionCacheService = new UpdateVersionCacheService();
         var trustedUtcTimeService = new TrustedUtcTimeService();
         var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
         var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
+        var appToastService = new AppToastService();
+        ToastService = appToastService;
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
@@ -55,7 +78,8 @@ public partial class App : Application
             settingsService: settingsService,
             trustedUtcTimeService: trustedUtcTimeService,
             updateVersionCacheService: updateVersionCacheService,
-            updateQuotaPolicyProvider: updateQuotaPolicyProvider);
+            updateQuotaPolicyProvider: updateQuotaPolicyProvider,
+            appToastService: appToastService);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;
@@ -67,6 +91,23 @@ public partial class App : Application
         Logger.Info($"Application exiting with code {e.ApplicationExitCode}");
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         base.OnExit(e);
+    }
+
+    private static UpdateSuccessArgs? ParseUpdateSuccessArgs(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], "--updated", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+            {
+                return new UpdateSuccessArgs(args[i + 1].Trim());
+            }
+            if (args[i].StartsWith("--updated ", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = args[i].Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2) return new UpdateSuccessArgs(parts[1].Trim());
+            }
+        }
+        return null;
     }
 
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
@@ -104,6 +145,7 @@ public partial class App : Application
             SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(28, 65, 138));
             SetBrush("AppHudTitleBrush", Color.FromRgb(26, 26, 30));
             SetBrush("AppHudDetailBrush", Color.FromRgb(75, 78, 90));
+            SetBrush("AppToastBackgroundBrush", Color.FromArgb(200, 255, 255, 255));
         }
         else
         {
@@ -129,6 +171,7 @@ public partial class App : Application
             SetBrush("AppGridSplitterHoverBrush", Color.FromRgb(50, 100, 198));
             SetBrush("AppHudTitleBrush", Color.FromRgb(245, 246, 250));
             SetBrush("AppHudDetailBrush", Color.FromRgb(205, 210, 220));
+            SetBrush("AppToastBackgroundBrush", Color.FromArgb(210, 42, 42, 48));
         }
 
         ThemeChanged?.Invoke(this, EventArgs.Empty);

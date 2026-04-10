@@ -55,9 +55,10 @@ public class GitHubContentServiceTests
     {
         var service = new GitHubContentService();
         const string origin = "https://api.github.com/repos/foo/bar/releases/latest";
+        const string mirrorPrefix = "https://ghfast.top/";
 
-        var mirrored = service.BuildMirrorProxyUrl(origin);
-        var mirroredAgain = service.BuildMirrorProxyUrl(mirrored);
+        var mirrored = service.BuildMirrorProxyUrl(origin, mirrorPrefix);
+        var mirroredAgain = service.BuildMirrorProxyUrl(mirrored, mirrorPrefix);
 
         Assert.Equal("https://ghfast.top/https://api.github.com/repos/foo/bar/releases/latest", mirrored);
         Assert.Equal(mirrored, mirroredAgain);

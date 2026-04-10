@@ -10,15 +10,22 @@ public static class AppPaths
 {
     public static string ResolveContentRoot()
     {
-        // In dev, current directory is often the project root.
-        // In debug/release builds, BaseDirectory points to bin/<tfm>/... so we need to walk up.
+        // Prefer the running executable's directory over GetCurrentDirectory(). Otherwise a published build
+        // launched with cwd set to a repo/parent folder that also contains Assets/Config resolves the wrong tree,
+        // breaking Updates/* and local_settings (e.g. welcome toast flags).
         var markerFile = Path.Combine("Assets", "Config", "default_settings.json");
 
         var candidates = new List<string>();
 
         try
         {
-            candidates.Add(Directory.GetCurrentDirectory());
+            var processPath = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(processPath))
+            {
+                var exeDir = Path.GetDirectoryName(processPath);
+                if (!string.IsNullOrWhiteSpace(exeDir))
+                    candidates.Add(exeDir);
+            }
         }
         catch
         {
@@ -36,6 +43,15 @@ public static class AppPaths
                 candidates.Add(dir.Parent.FullName);
                 dir = dir.Parent;
             }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            candidates.Add(Directory.GetCurrentDirectory());
         }
         catch
         {
@@ -116,6 +132,24 @@ public static class AppPaths
     {
         var updatesDir = GetUpdateDownloadsDirectory();
         return Path.Combine(updatesDir, "latest-version-cache.json");
+    }
+
+    public static string GetUpdateSecurityStateFilePath()
+    {
+        var updatesDir = GetUpdateDownloadsDirectory();
+        return Path.Combine(updatesDir, "update-security-state.json");
+    }
+
+    public static string GetUpdateSuccessToastAckFilePath()
+    {
+        var updatesDir = GetUpdateDownloadsDirectory();
+        return Path.Combine(updatesDir, "update-success-toast-ack.json");
+    }
+
+    public static string GetUpdateLastResultFilePath()
+    {
+        var updatesDir = GetUpdateDownloadsDirectory();
+        return Path.Combine(updatesDir, "update-last-result.json");
     }
 }
 
