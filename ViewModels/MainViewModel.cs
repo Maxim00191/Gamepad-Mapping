@@ -165,6 +165,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _gamepadReader.OnInputFrame += HandleInputFrame;
 
+        // Forward property changes from orchestrators to notify UI
+        _presentationOrchestrator.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(PresentationOrchestrator.TargetStatusText)) OnPropertyChanged(nameof(TargetStatusText));
+            else if (e.PropertyName == nameof(PresentationOrchestrator.TargetState)) OnPropertyChanged(nameof(TargetState));
+        };
+        _profileOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
+        _settingsOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
+
         _profileOrchestrator.LoadSelectedTemplate();
 
         StartGamepad();
@@ -231,7 +240,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public string TemplateTargetProcessName
     {
         get => _profileOrchestrator.TemplateTargetProcessName;
-        set => _profileOrchestrator.TemplateTargetProcessName = value;
+        set
+        {
+            if (_profileOrchestrator.TemplateTargetProcessName == value) return;
+            _profileOrchestrator.TemplateTargetProcessName = value;
+            ApplyDeclaredProcessTarget();
+            OnPropertyChanged();
+        }
     }
 
     public IReadOnlyList<string>? ComboLeadButtonsPersist => _profileOrchestrator.ComboLeadButtonsPersist;
@@ -356,10 +371,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnFocusGracePeriodMsSettingChanged(int value)
     {
         var clamped = Math.Clamp(value, 0, 5000);
-        if (clamped != value)
-            focusGracePeriodMsSetting = clamped;
-        _settingsOrchestrator.Settings.FocusGracePeriodMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) focusGracePeriodMsSetting = clamped;
+        UpdateAndSaveSettings(s => s.FocusGracePeriodMs = clamped);
         _appStatusMonitor.UpdateGracePeriod(clamped);
     }
 
@@ -369,10 +382,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnModifierGraceMsSettingChanged(int value)
     {
         var clamped = Math.Clamp(value, 50, 10_000);
-        if (clamped != value)
-            modifierGraceMsSetting = clamped;
-        _settingsOrchestrator.Settings.ModifierGraceMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) modifierGraceMsSetting = clamped;
+        UpdateAndSaveSettings(s => s.ModifierGraceMs = clamped);
     }
 
     [ObservableProperty]
@@ -381,10 +392,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnLeadKeyReleaseSuppressMsSettingChanged(int value)
     {
         var clamped = Math.Clamp(value, 50, 10_000);
-        if (clamped != value)
-            leadKeyReleaseSuppressMsSetting = clamped;
-        _settingsOrchestrator.Settings.LeadKeyReleaseSuppressMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) leadKeyReleaseSuppressMsSetting = clamped;
+        UpdateAndSaveSettings(s => s.LeadKeyReleaseSuppressMs = clamped);
     }
 
     [ObservableProperty]
@@ -393,10 +402,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnGamepadPollingIntervalMsChanged(int value)
     {
         var clamped = Math.Clamp(value, 5, 30);
-        if (clamped != value)
-            gamepadPollingIntervalMs = clamped;
-        _settingsOrchestrator.Settings.GamepadPollingIntervalMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) gamepadPollingIntervalMs = clamped;
+        UpdateAndSaveSettings(s => s.GamepadPollingIntervalMs = clamped);
     }
 
     [ObservableProperty]
@@ -404,11 +411,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnRadialMenuConfirmModeIndexChanged(int value)
     {
-        var clamped = value < 0 ? 0 : (value > 1 ? 1 : value);
-        if (clamped != value)
-            radialMenuConfirmModeIndex = clamped;
-        _settingsOrchestrator.Settings.RadialMenuConfirmMode = clamped == 0 ? "returnStickToCenter" : "releaseGuideKey";
-        _settingsOrchestrator.SaveSettings();
+        var clamped = Math.Clamp(value, 0, 1);
+        if (clamped != value) radialMenuConfirmModeIndex = clamped;
+        UpdateAndSaveSettings(s => s.RadialMenuConfirmMode = clamped == 0 ? "returnStickToCenter" : "releaseGuideKey");
     }
 
     [ObservableProperty]
@@ -417,11 +422,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnRadialMenuHudLabelModeIndexChanged(int value)
     {
         var clamped = Math.Clamp(value, 0, 2);
-        if (clamped != value)
-            radialMenuHudLabelModeIndex = clamped;
-        _settingsOrchestrator.Settings.RadialMenuHudLabelMode =
-            RadialMenuHudLabelModeParser.ToSettingString((RadialMenuHudLabelMode)clamped);
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) radialMenuHudLabelModeIndex = clamped;
+        UpdateAndSaveSettings(s => s.RadialMenuHudLabelMode =
+            RadialMenuHudLabelModeParser.ToSettingString((RadialMenuHudLabelMode)clamped));
     }
 
     [ObservableProperty]
@@ -430,11 +433,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnRadialHudScaleSettingChanged(double value)
     {
         var clamped = RadialHudLayout.ClampHudScale(value);
-        if (Math.Abs(clamped - value) > 1e-6)
-            radialHudScaleSetting = clamped;
+        if (Math.Abs(clamped - value) > 1e-6) radialHudScaleSetting = clamped;
         RadialHudLayout.HudScale = clamped;
-        _settingsOrchestrator.Settings.RadialHudScale = clamped;
-        _settingsOrchestrator.SaveSettings();
+        UpdateAndSaveSettings(s => s.RadialHudScale = clamped);
     }
 
     [ObservableProperty]
@@ -443,10 +444,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnDefaultAnalogActivationThresholdChanged(float value)
     {
         var clamped = Math.Clamp(value, 0.01f, 1f);
-        if (Math.Abs(clamped - value) > float.Epsilon)
-            defaultAnalogActivationThreshold = clamped;
-        _settingsOrchestrator.Settings.DefaultAnalogActivationThreshold = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (Math.Abs(clamped - value) > float.Epsilon) defaultAnalogActivationThreshold = clamped;
+        UpdateAndSaveSettings(s => s.DefaultAnalogActivationThreshold = clamped);
     }
 
     [ObservableProperty]
@@ -455,10 +454,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnMouseLookSensitivityChanged(float value)
     {
         var clamped = Math.Clamp(value, 1f, 100f);
-        if (Math.Abs(clamped - value) > float.Epsilon)
-            mouseLookSensitivity = clamped;
-        _settingsOrchestrator.Settings.MouseLookSensitivity = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (Math.Abs(clamped - value) > float.Epsilon) mouseLookSensitivity = clamped;
+        UpdateAndSaveSettings(s => s.MouseLookSensitivity = clamped);
     }
 
     [ObservableProperty]
@@ -467,10 +464,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnAnalogChangeEpsilonChanged(float value)
     {
         var clamped = Math.Clamp(value, 0.001f, 0.1f);
-        if (Math.Abs(clamped - value) > float.Epsilon)
-            analogChangeEpsilon = clamped;
-        _settingsOrchestrator.Settings.AnalogChangeEpsilon = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (Math.Abs(clamped - value) > float.Epsilon) analogChangeEpsilon = clamped;
+        UpdateAndSaveSettings(s => s.AnalogChangeEpsilon = clamped);
     }
 
     [ObservableProperty]
@@ -479,10 +474,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnKeyboardTapHoldDurationMsChanged(int value)
     {
         var clamped = Math.Clamp(value, 20, 50);
-        if (clamped != value)
-            keyboardTapHoldDurationMs = clamped;
-        _settingsOrchestrator.Settings.KeyboardTapHoldDurationMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) keyboardTapHoldDurationMs = clamped;
+        UpdateAndSaveSettings(s => s.KeyboardTapHoldDurationMs = clamped);
     }
 
     [ObservableProperty]
@@ -491,10 +484,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnTapInterKeyDelayMsChanged(int value)
     {
         var clamped = Math.Clamp(value, 0, 1000);
-        if (clamped != value)
-            tapInterKeyDelayMs = clamped;
-        _settingsOrchestrator.Settings.TapInterKeyDelayMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) tapInterKeyDelayMs = clamped;
+        UpdateAndSaveSettings(s => s.TapInterKeyDelayMs = clamped);
     }
 
     [ObservableProperty]
@@ -503,10 +494,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnTextInterCharDelayMsChanged(int value)
     {
         var clamped = Math.Clamp(value, 0, 1000);
-        if (clamped != value)
-            textInterCharDelayMs = clamped;
-        _settingsOrchestrator.Settings.TextInterCharDelayMs = clamped;
-        _settingsOrchestrator.SaveSettings();
+        if (clamped != value) textInterCharDelayMs = clamped;
+        UpdateAndSaveSettings(s => s.TextInterCharDelayMs = clamped);
     }
 
     [ObservableProperty]
@@ -514,8 +503,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value)
     {
-        _settingsOrchestrator.Settings.ComboHudPlacement = value.ToString();
-        _settingsOrchestrator.SaveSettings();
+        UpdateAndSaveSettings(s => s.ComboHudPlacement = value.ToString());
     }
 
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
@@ -873,7 +861,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void OnThumbstickDeadzoneChanged(float left, float right)
     {
-        UpdateGamepadSettings(s =>
+        UpdateAndSaveSettings(s =>
         {
             s.LeftThumbstickDeadzone = left;
             s.RightThumbstickDeadzone = right;
@@ -888,7 +876,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void OnTriggerDeadzonesChanged(float leftInner, float leftOuter, float rightInner, float rightOuter)
     {
-        UpdateGamepadSettings(s =>
+        UpdateAndSaveSettings(s =>
         {
             s.LeftTriggerInnerDeadzone = leftInner;
             s.LeftTriggerOuterDeadzone = leftOuter;
@@ -905,7 +893,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void UpdateGamepadSettings(Action<AppSettings> action)
+    private void UpdateAndSaveSettings(Action<AppSettings> action)
     {
         action(_settingsOrchestrator.Settings);
         _settingsOrchestrator.SaveSettings();
