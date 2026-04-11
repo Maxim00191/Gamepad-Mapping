@@ -28,7 +28,7 @@ x64/
 x86/
 [Ww][Ii][Nn]32/
 # Win32 build folder pattern must not exclude Win32 interop sources
-!Services/Win32/
+!Services/Win32
 !Services/Win32/**
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
