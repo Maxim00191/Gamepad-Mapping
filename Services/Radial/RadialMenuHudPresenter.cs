@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
@@ -76,18 +77,21 @@ public sealed class RadialMenuHudPresenter : IRadialMenuHud
         if (_window is not { } w)
             return;
 
-        _window = null;
-        _windowHudScale = double.NaN;
         try
         {
             if (Application.Current?.Dispatcher.CheckAccess() == true)
                 w.Close();
             else
-                Application.Current?.Dispatcher.Invoke(() => w.Close(), DispatcherPriority.Normal);
+                Application.Current?.Dispatcher.Invoke(() => w.Close(), DispatcherPriority.Send);
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort shutdown.
+            Debug.WriteLine($"RadialMenuHudPresenter.Dispose: {ex}");
+        }
+        finally
+        {
+            _window = null;
+            _windowHudScale = double.NaN;
         }
     }
 }

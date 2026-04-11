@@ -1,4 +1,5 @@
 using System.Numerics;
+using GamepadMapping.Tests.Support;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
@@ -37,7 +38,7 @@ public class RadialMenuControllerTests
 
         _controller = new RadialMenuController(
             radialMenuHud: _mockRadialMenuHud.Object,
-            runOnUi: action => action(), // Execute UI actions synchronously for tests
+            ui: ImmediateUiSynchronization.Instance,
             setMappedOutput: s => _mappedOutputCalls.Add(s),
             setMappingStatus: s => _mappingStatusCalls.Add(s),
             enqueueOutput: (btn, trig, output, label, token) => _enqueuedOutputs.Add(output),

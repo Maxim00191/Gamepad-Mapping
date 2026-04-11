@@ -26,6 +26,8 @@ namespace GamepadMapperGUI.Core;
 
 public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 {
+    private static readonly TimeSpan OutputQueueDrainBeforeDispatcherDispose = TimeSpan.FromSeconds(2);
+
     private readonly IProfileService _profileService;
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
@@ -69,8 +71,9 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private readonly ButtonMappingProcessor _buttonMappingProcessor;
     private readonly IRadialMenuController _radialMenuController;
     private readonly ITimeProvider _timeProvider;
-    private readonly Action<Action> _runOnUi;
+    private readonly IUiSynchronization _ui;
     private readonly IRadialMenuHud _radialMenuHud;
+    private readonly bool _ownsRadialMenuHud;
     private readonly Func<float> _getRadialMenuStickEngagementThreshold;
     private readonly Func<RadialMenuConfirmMode> _getRadialMenuConfirmMode;
 
@@ -78,7 +81,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         IKeyboardEmulator keyboardEmulator,
         IMouseEmulator mouseEmulator,
         Func<bool> canDispatchOutputLive,
-        Action<Action> runOnUi,
+        IUiSynchronization ui,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus,
         Action<ComboHudContent?>? setComboHud = null,
@@ -93,10 +96,12 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         Func<float>? getRadialMenuStickEngagementThreshold = null,
         Func<RadialMenuConfirmMode>? getRadialMenuConfirmMode = null,
         ITimeProvider? timeProvider = null,
-        IInputDispatcher? inputDispatcher = null) // Added optional parameter
+        IInputDispatcher? inputDispatcher = null,
+        bool ownsRadialMenuHud = true)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
-        _runOnUi = runOnUi;
+        _ui = ui;
+        _ownsRadialMenuHud = ownsRadialMenuHud;
         _radialMenuHud = radialMenuHud ?? NullRadialMenuHud.Instance;
         _getRadialMenuStickEngagementThreshold =
             getRadialMenuStickEngagementThreshold ?? (() => 0.35f);
@@ -116,16 +121,16 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         _inputDispatcher = inputDispatcher ?? new InputDispatcher(
             DispatchMappedOutputAsync,
             (modifiers, mainKey, ct) => _keyboardEmulator.TapKeyChordAsync(modifiers, mainKey, cancellationToken: ct),
-            runOnUi,
+            a => _ui.Post(a),
             setMappedOutput,
             setMappingStatus);
 
         _enqueueItemCycleTap = EnqueueItemCycleTap;
         _enqueueChordTap = (source, trigger, mods, key, label, token) => _inputDispatcher.EnqueueChordTap(source, trigger, mods, key, label, token);
 
-        _radialMenuController = new RadialMenuController(
+        _radialMenuController = RadialMenuControllerFactory.Create(
             _radialMenuHud,
-            _runOnUi,
+            _ui,
             _setMappedOutput,
             _setMappingStatus,
             QueueOutputDispatch,
@@ -133,7 +138,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             action => _activeActionTracker.Register(action),
             id => _activeActionTracker.Unregister(id),
             _requestTemplateSwitchToProfileId,
-            null); // Catalog will be set when profile is loaded
+            null);
 
         _radialMenuController.SetActionExecutor(this);
 
@@ -173,7 +178,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
                 _comboHudDelayMs,
                 setComboHudGateHint,
                 comboHudGateMessageFactory,
-                isComboHudPresentationSuppressed);
+                isComboHudPresentationSuppressed ?? (() => _radialMenuController.ActiveRadial is not null));
         }
 
         _buttonMappingProcessor = new ButtonMappingProcessor(
@@ -304,7 +309,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
     private void ProcessInputFrameTerminal(InputFrameContext context)
     {
-        TrySyncComboHud(context);
+        TrySyncComboHud();
     }
 
     /// <summary>
@@ -390,17 +395,12 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         return true;
     }
 
-    private void TrySyncComboHud(InputFrameContext context)
+    private void TrySyncComboHud()
     {
         if (_comboHudManager is null)
             return;
 
-        var frameHasButtonEdges = context.IsFirstFrame ||
-            context.PressedButtons.Length > 0 ||
-            context.ReleasedButtons.Length > 0;
-
-        if (frameHasButtonEdges || _comboHudManager.AwaitingComboHudDelay)
-            _comboHudManager.Sync();
+        _comboHudManager.Sync();
     }
 
     private void HandleButtonMappingsInternal(
@@ -469,14 +469,41 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         try
         {
             _comboHudManager?.Dispose();
+            _radialMenuController.ForceReset();
             ForceReleaseAllOutputs();
             ForceReleaseAnalogOutputs();
+            TryDrainOutputQueueBeforeDispatcherDispose();
             _inputDispatcher.Dispose();
-            _radialMenuHud.Dispose();
         }
         catch
         {
             // Best-effort shutdown.
+        }
+        finally
+        {
+            if (_ownsRadialMenuHud)
+            {
+                try
+                {
+                    _radialMenuHud.Dispose();
+                }
+                catch
+                {
+                    // Best-effort shutdown.
+                }
+            }
+        }
+    }
+
+    private void TryDrainOutputQueueBeforeDispatcherDispose()
+    {
+        try
+        {
+            WaitForIdleAsync().Wait(OutputQueueDrainBeforeDispatcherDispose);
+        }
+        catch (Exception)
+        {
+            // Best-effort: Dispose must not hang if the queue cannot finish.
         }
     }
 

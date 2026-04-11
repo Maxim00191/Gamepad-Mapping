@@ -1,4 +1,5 @@
 using System.Reflection;
+using GamepadMapping.Tests.Support;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services.Input;
@@ -24,7 +25,7 @@ public class MappingEngineSendPointerActionTests
             _mockKeyboardEmulator.Object,
             _mockMouseEmulator.Object,
             () => true,
-            action => action(),
+            ImmediateUiSynchronization.Instance,
             _ => { },
             _ => { },
             null,

@@ -241,6 +241,7 @@ public class MappingEntry : ObservableObject
     [JsonIgnore]
     public bool RequiresDeferralOnPress => ActionType != MappingActionType.Keyboard;
 
+    /// <summary>Resolved action for non–button-mapped flows; bound to the active mapping engine and cleared when the engine is replaced.</summary>
     [JsonIgnore]
     internal IExecutableAction? ExecutableAction { get; set; }
 

@@ -32,7 +32,7 @@ public class MappingEngineTests
             keyboard,
             mouse,
             canDispatchOutput ?? (() => true),
-            runOnUi: action => action(),
+            ui: ImmediateUiSynchronization.Instance,
             setMappedOutput: _ => { },
             setMappingStatus: _ => { },
             setComboHud: null,

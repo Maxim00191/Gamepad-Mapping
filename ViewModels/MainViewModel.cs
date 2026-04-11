@@ -34,6 +34,7 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly Dispatcher _dispatcher;
+    private readonly IUiSynchronization _uiSync;
     private readonly IProfileService _profileService;
     private readonly IGamepadService _gamepadService;
     private readonly IMappingManager _mappingManager;
@@ -46,6 +47,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsOrchestrator _settingsOrchestrator;
     private readonly ProfileOrchestrator _profileOrchestrator;
     private readonly IInputEmulationStackFactory _inputEmulationStackFactory;
+    private readonly IRadialMenuHud _radialMenuHud;
     private readonly Debouncer _processNameDebouncer;
 
     private readonly ICommunityTemplateService _communityService;
@@ -85,7 +87,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IMouseEmulator? mouseEmulator = null,
         IXInput? xinput = null,
         IGamepadSource? gamepadSource = null,
-        IInputEmulationStackFactory? inputEmulationStackFactory = null)
+        IInputEmulationStackFactory? inputEmulationStackFactory = null,
+        IRadialMenuHud? radialMenuHud = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
@@ -93,6 +96,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _keyboardEmulatorOverride = keyboardEmulator;
         _mouseEmulatorOverride = mouseEmulator;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        _uiSync = new DispatcherUiSynchronization(_dispatcher);
+        _radialMenuHud = radialMenuHud
+            ?? (mappingEngine is null
+                ? new RadialMenuHudPresenter(
+                    () => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex,
+                    () => (int)GamepadMonitorPanel.ComboHudPanelAlpha)
+                : NullRadialMenuHud.Instance);
         _settingsService = settingsService ?? new SettingsService();
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
         _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory();
@@ -116,8 +126,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appToastService = appToastService ?? new AppToastService();
         _toastHost = new AppToastViewModel(_appToastService);
         
-        var presentation = new PresentationOrchestrator(_dispatcher);
-        _uiOrchestrator = new UiOrchestrator(presentation, _appToastService, _dispatcher);
+        _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
 
         UpdatePanel = new UpdateViewModel(
             _updateService,
@@ -295,7 +304,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ComboHudPlacement> ComboHudPlacements { get; } = new(Enum.GetValues<ComboHudPlacement>());
 
-    public record InputApiOption(string Id, string DisplayName);
     public ObservableCollection<InputApiOption> AvailableInputApis { get; } = new();
     public ObservableCollection<InputApiOption> AvailableGamepadApis { get; } = new();
 
@@ -409,11 +417,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _uiOrchestrator.Dispose();
         _gamepadService.Dispose();
         _mappingManager.Dispose();
+        _radialMenuHud.Dispose();
         _appStatusMonitor.Dispose();
         _toastHost.Dispose();
     }
 
-    // ... (rest of the properties and helper methods from ProfileOrchestrator and SettingsOrchestrator)
     public ObservableCollection<TemplateOption> AvailableTemplates => _profileOrchestrator.AvailableTemplates;
     public TemplateOption? SelectedTemplate { get => _profileOrchestrator.SelectedTemplate; set => _profileOrchestrator.SelectedTemplate = value; }
     public string CurrentTemplateDisplayName { get => _profileOrchestrator.CurrentTemplateDisplayName; set => _profileOrchestrator.CurrentTemplateDisplayName = value; }
@@ -432,12 +440,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
     public UiLanguageOption? SelectedUiLanguage { get => _settingsOrchestrator.SelectedUiLanguage; set => _settingsOrchestrator.SelectedUiLanguage = value; }
 
-    private void HandleInputFrame(InputFrame frame) => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.EvaluateNow());
-
     private void OnComboHud(ComboHudContent? content)
     {
-        if (!GamepadMonitorPanel.IsHudEnabled) { _uiOrchestrator.HideAllHuds(); return; }
-        _uiOrchestrator.ShowComboHud(content, (byte)GamepadMonitorPanel.ComboHudPanelAlpha, GamepadMonitorPanel.ComboHudShadowOpacity, ComboHudPlacementSetting.ToString());
+        void Apply()
+        {
+            if (!GamepadMonitorPanel.IsHudEnabled)
+            {
+                _uiOrchestrator.HideAllHuds();
+                return;
+            }
+
+            _uiOrchestrator.ShowComboHud(content, (byte)GamepadMonitorPanel.ComboHudPanelAlpha, GamepadMonitorPanel.ComboHudShadowOpacity, ComboHudPlacementSetting.ToString());
+        }
+
+        if (_dispatcher.CheckAccess())
+            Apply();
+        else
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Normal);
     }
 
     private void ShowTemplateSwitchHud(string profileDisplayName)
@@ -465,7 +484,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             keyboard,
             mouse,
             () => _appStatusMonitor.CanSendOutput,
-            a => _dispatcher.BeginInvoke(a),
+            _uiSync,
             v => GamepadMonitorPanel.LastMappedOutput = v,
             v => GamepadMonitorPanel.LastMappingStatus = v,
             OnComboHud,
@@ -475,10 +494,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
             profileService: _profileService,
             setComboHudGateHint: s => _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
             comboHudGateMessageFactory: _settingsOrchestrator.GetComboHudGateMessageFactory(),
-            isComboHudPresentationSuppressed: () => false, // Simplified for now
-            radialMenuHud: new RadialMenuHudPresenter(() => (RadialMenuHudLabelMode)RadialMenuHudLabelModeIndex, () => (int)GamepadMonitorPanel.ComboHudPanelAlpha),
+            radialMenuHud: _radialMenuHud,
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
-            getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0 ? RadialMenuConfirmMode.ReturnStickToCenter : RadialMenuConfirmMode.ReleaseGuideKey);
+            getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0 ? RadialMenuConfirmMode.ReturnStickToCenter : RadialMenuConfirmMode.ReleaseGuideKey,
+            ownsRadialMenuHud: false);
 
     private void RecreateMappingEngineForCurrentInputApi()
     {

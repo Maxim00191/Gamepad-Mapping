@@ -23,6 +23,8 @@ namespace GamepadMapperGUI.Services.Input;
 /// </summary>
 public partial class MappingManager : ObservableObject, IMappingManager
 {
+    private static readonly TimeSpan OutputQueueDrainBeforeEngineDispose = TimeSpan.FromSeconds(2);
+
     private IMappingEngine _engine;
     private readonly IProfileService _profileService;
     private IReadOnlyList<MappingEntry> _mappingsSnapshot = Array.Empty<MappingEntry>();
@@ -96,10 +98,25 @@ public partial class MappingManager : ObservableObject, IMappingManager
     {
         ArgumentNullException.ThrowIfNull(newEngine);
         ForceReleaseOutputs();
+        TryWaitForEngineOutputQueueIdle(_engine);
         _engine.Dispose();
         _engine = newEngine;
         _engine.SetComboLeadButtonsFromTemplate(comboLeadButtons);
+        foreach (var m in Mappings)
+            m.ExecutableAction = null;
         RefreshEngineDefinitions();
+    }
+
+    private static void TryWaitForEngineOutputQueueIdle(IMappingEngine engine)
+    {
+        try
+        {
+            engine.WaitForIdleAsync().Wait(OutputQueueDrainBeforeEngineDispose);
+        }
+        catch (Exception)
+        {
+            // Best-effort: teardown must not hang the UI if a worker is stuck.
+        }
     }
 
     public void Dispose()

@@ -80,7 +80,7 @@ public sealed class MappingEngineRadialMenuTests
             keyboard,
             mouse,
             canDispatchOutputLive: () => true,
-            runOnUi: action => action(),
+            ui: ImmediateUiSynchronization.Instance,
             setMappedOutput: _ => { },
             setMappingStatus: _ => { },
             setComboHud: null,
