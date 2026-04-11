@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Windows.Input;
@@ -46,6 +47,8 @@ public class MappingEngineRaceConditionTests
         public List<MockTimer> Timers { get; } = new();
 
         public long GetTickCount64() => Ticks;
+
+        public long GetPerformanceTimestamp() => (Ticks * Stopwatch.Frequency) / 1000;
 
         public ITimer CreateTimer(TimeSpan interval, Action onTick)
         {

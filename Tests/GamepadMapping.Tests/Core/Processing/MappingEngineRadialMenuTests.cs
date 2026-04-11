@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -28,6 +29,8 @@ public sealed class MappingEngineRadialMenuTests
         public List<MockTimer> Timers { get; } = new();
 
         public long GetTickCount64() => Ticks;
+
+        public long GetPerformanceTimestamp() => (Ticks * Stopwatch.Frequency) / 1000;
 
         public ITimer CreateTimer(TimeSpan interval, Action onTick)
         {

@@ -9,7 +9,7 @@ using GamepadMapperGUI.Models;
 namespace GamepadMapperGUI.Services.Input;
 
 /// <summary>
-/// Default stack factory: backend from <see cref="InputEmulationServices"/> wrapped in human-noise decorators.
+/// Default stack factory: backend from <see cref="InputEmulationServices"/> with human-noise on mouse only.
 /// <see cref="HumanInputNoiseParameters.Enabled"/> is read at runtime via <paramref name="getNoiseParameters"/> so toggling noise does not require rebuilding the mapping stack.
 /// </summary>
 public sealed class InputEmulationStackFactory : IInputEmulationStackFactory
@@ -32,7 +32,7 @@ public sealed class InputEmulationStackFactory : IInputEmulationStackFactory
         INoiseGenerator noiseGen = new NoiseGenerator(_noiseSeed());
         var controller = new HumanInputNoiseController(noiseGen, getNoiseParameters, _timeProvider);
         return (
-            new HumanizingKeyboardEmulator(keyboard, controller),
+            keyboard,
             new HumanizingMouseEmulator(mouse, controller));
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using GamepadMapperGUI.Interfaces.Core;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
@@ -8,6 +9,8 @@ namespace GamepadMapperGUI.Core;
 public sealed class RealTimeProvider : ITimeProvider
 {
     public long GetTickCount64() => Environment.TickCount64;
+
+    public long GetPerformanceTimestamp() => Stopwatch.GetTimestamp();
 
     /// <summary>
     /// Input runs on a dedicated polling thread without a WPF message pump; <see cref="System.Windows.Threading.DispatcherTimer"/> never fires there.

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +44,8 @@ public class MappingEngineTests
         public List<MockTimer> Timers { get; } = new();
 
         public long GetTickCount64() => Ticks;
+
+        public long GetPerformanceTimestamp() => (Ticks * Stopwatch.Frequency) / 1000;
 
         public ITimer CreateTimer(TimeSpan interval, Action onTick)
         {
@@ -624,6 +627,7 @@ public class MappingEngineTests
 
         mockKeyboard.Verify(k => k.KeyUp(Key.C), Times.Once);
         mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        mockMouse.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -645,6 +649,7 @@ public class MappingEngineTests
         // Should have 2 KeyDowns and 1 KeyUp
         mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Exactly(2));
         mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        mockMouse.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -681,6 +686,7 @@ public class MappingEngineTests
         // Both should be triggered because both chords are satisfied
         mockKeyboard.Verify(k => k.KeyDown(Key.Q), Times.Once);
         mockKeyboard.Verify(k => k.KeyDown(Key.E), Times.Once);
+        mockMouse.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -719,6 +725,7 @@ public class MappingEngineTests
         // Since LB+A is already a chord (specificity 2), it's not a "solo lead" that gets deferred.
         mockKeyboard.Verify(k => k.KeyDown(Key.Q), Times.Once);
         mockKeyboard.Verify(k => k.KeyDown(Key.E), Times.Once);
+        mockMouse.VerifyNoOtherCalls();
     }
 }
 

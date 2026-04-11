@@ -224,15 +224,15 @@ public class AppSettings
     [JsonProperty("humanNoiseEnabled")]
     public bool HumanNoiseEnabled { get; set; }
 
-    /// <summary>Relative strength of human-like noise (normalized, typically 0–1). Clamped when applied.</summary>
+    /// <summary>Resting-hand tremor strength (normalized 0–1): small intentional-looking variance, not a large wobble.</summary>
     [JsonProperty("humanNoiseAmplitude")]
     public float HumanNoiseAmplitude { get; set; } = 0.3f;
 
-    /// <summary>How often the noise pattern varies (normalized, typically 0–1). Clamped when applied.</summary>
+    /// <summary>How quickly timing/jitter varies (normalized 0–1): mid values approximate resting-hand fluctuation vs. very slow drift.</summary>
     [JsonProperty("humanNoiseFrequency")]
-    public float HumanNoiseFrequency { get; set; } = 0.1f;
+    public float HumanNoiseFrequency { get; set; } = 0.4f;
 
-    /// <summary>How gradually noise blends (normalized, typically 0–1). Clamped when applied.</summary>
+    /// <summary>Low-pass on noise (normalized 0–1): higher ≈ smoother neuromuscular filtering, fewer sharp timing spikes.</summary>
     [JsonProperty("humanNoiseSmoothness")]
-    public float HumanNoiseSmoothness { get; set; } = 0.8f;
+    public float HumanNoiseSmoothness { get; set; } = 0.3f;
 }

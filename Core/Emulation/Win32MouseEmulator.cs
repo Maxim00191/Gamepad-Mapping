@@ -116,7 +116,7 @@ public sealed class Win32MouseEmulator : IMouseEmulator
 
     public void WheelUp() => SendMouseInput(MOUSEEVENTF_WHEEL, unchecked((uint)WheelDelta));
     public void WheelDown() => SendMouseInput(MOUSEEVENTF_WHEEL, unchecked((uint)-WheelDelta));
-    public void MoveBy(int deltaX, int deltaY) => SendMouseInput(MOUSEEVENTF_MOVE, 0, deltaX, deltaY);
+    public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f) => SendMouseInput(MOUSEEVENTF_MOVE, 0, deltaX, deltaY);
 
     private void SendMouseInput(uint flags, uint mouseData = 0, int dx = 0, int dy = 0)
     {

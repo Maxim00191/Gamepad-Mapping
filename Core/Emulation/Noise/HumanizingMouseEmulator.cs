@@ -7,6 +7,7 @@ namespace GamepadMapperGUI.Core.Emulation.Noise;
 
 /// <summary>
 /// Decorates <see cref="IMouseEmulator"/> with human-noise on <see cref="LeftClickAsync"/> (and other <c>*Async</c> full clicks) and on <see cref="MoveBy"/>.
+/// Large relative <see cref="MoveBy"/> calls are split into smaller relative steps so Win32/injected backends do not emit a single giant <c>SendInput</c> move.
 /// Synchronous <c>*Click</c> methods forward to the inner emulator so hold timing is not duplicated here; prefer <c>*Async</c> from dispatch paths so delays use <see cref="Task.Delay"/> instead of blocking the caller thread.
 /// </summary>
 public sealed class HumanizingMouseEmulator : IMouseEmulator
@@ -15,6 +16,15 @@ public sealed class HumanizingMouseEmulator : IMouseEmulator
     private readonly IHumanInputNoiseController _noise;
 
     private const int ClickHoldMs = 30;
+
+    /// <summary>Below this Chebyshev span, emit a single relative move (tiny steps are already fine-grained).</summary>
+    private const int MinPixelSpanToSubdivide = 4;
+
+    /// <summary>Upper bound on sub-moves per call to keep the input thread responsive.</summary>
+    private const int MaxSmoothSubSteps = 48;
+
+    /// <summary>Target max Chebyshev norm per sub-move when subdividing (smaller = smoother, more events).</summary>
+    private const int MaxChebyshevPixelsPerSubMove = 2;
 
     public HumanizingMouseEmulator(IMouseEmulator inner, IHumanInputNoiseController noise)
     {
@@ -65,10 +75,47 @@ public sealed class HumanizingMouseEmulator : IMouseEmulator
     public void WheelUp() => _inner.WheelUp();
     public void WheelDown() => _inner.WheelDown();
 
-    public void MoveBy(int deltaX, int deltaY)
+    public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f)
     {
-        var (dx, dy) = _noise.AdjustMouseMove(deltaX, deltaY);
-        _inner.MoveBy(dx, dy);
+        // 1. Get noise-only jitter from the controller.
+        // This is decoupled from the mechanical move delta but scaled by stick magnitude.
+        var (jx, jy) = _noise.AdjustMouseMove(0, 0, stickMagnitude);
+
+        int tx = deltaX + jx;
+        int ty = deltaY + jy;
+
+        if (tx == 0 && ty == 0)
+            return;
+
+        int span = Math.Max(Math.Abs(tx), Math.Abs(ty));
+        if (span < MinPixelSpanToSubdivide)
+        {
+            _inner.MoveBy(tx, ty, stickMagnitude);
+            return;
+        }
+
+        int nSteps = Math.Min(
+            MaxSmoothSubSteps,
+            Math.Max(1, (span + MaxChebyshevPixelsPerSubMove - 1) / MaxChebyshevPixelsPerSubMove));
+
+        MoveByDistributed(tx, ty, nSteps);
+    }
+
+    private void MoveByDistributed(int totalX, int totalY, int nSteps)
+    {
+        int accX = 0;
+        int accY = 0;
+        for (int i = 1; i <= nSteps; i++)
+        {
+            int nextX = (int)((long)totalX * i / nSteps);
+            int nextY = (int)((long)totalY * i / nSteps);
+            int sx = nextX - accX;
+            int sy = nextY - accY;
+            accX = nextX;
+            accY = nextY;
+            if (sx != 0 || sy != 0)
+                _inner.MoveBy(sx, sy, 1.0f);
+        }
     }
 
     private async Task ClickAsync(Action down, Action up, CancellationToken cancellationToken)

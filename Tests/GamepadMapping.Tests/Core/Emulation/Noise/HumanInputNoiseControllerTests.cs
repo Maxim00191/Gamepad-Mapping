@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Core.Emulation.Noise;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Core.Emulation;
 using GamepadMapperGUI.Models;
 using Xunit;
 
@@ -13,6 +15,8 @@ public sealed class HumanInputNoiseControllerTests
         public long Ticks;
 
         public long GetTickCount64() => Ticks;
+
+        public long GetPerformanceTimestamp() => (Ticks * Stopwatch.Frequency) / 1000;
 
         public global::GamepadMapperGUI.Interfaces.Core.ITimer CreateTimer(TimeSpan interval, Action onTick) =>
             throw new NotSupportedException();
@@ -53,17 +57,20 @@ public sealed class HumanInputNoiseControllerTests
     {
         var noise = new NoiseGenerator(99);
         var time = new SteppingTimeProvider { Ticks = 10_000 };
-        var p = new HumanInputNoiseParameters(true, 0.01f, 1f, 0f);
+        var p = new HumanInputNoiseParameters(true, 1.0f, 1f, 0f); // Max amplitude
         var c = new HumanInputNoiseController(noise, () => p, time);
 
         var sumX = 0;
-        for (var i = 0; i < 400; i++)
+        for (var i = 0; i < 1000; i++) // More iterations
         {
             time.Ticks += 16;
             var (dx, _) = c.AdjustMouseMove(5, 0);
             sumX += dx - 5;
         }
 
+        // With the fix, sumX is the total displacement.
+        // If the noise at the end is different from the noise at the beginning, sumX should be non-zero.
+        // Given Perlin noise and 1000 steps, it's extremely likely to be non-zero at some point.
         Assert.NotEqual(0, sumX);
     }
 
@@ -135,5 +142,42 @@ public sealed class HumanInputNoiseControllerTests
             prevJx = jx;
             prevJy = jy;
         }
+    }
+
+    [Fact]
+    public void MouseMove_LongTermDrift_IsZero_OnStaticNoise()
+    {
+        // If noise is static (e.g. frequency 0 or we don't advance time), 
+        // the cursor should reach a fixed offset and stay there (delta jitter = 0).
+        // The old code would have integrated that offset forever, causing infinite drift.
+        
+        var noise = new MockNoiseGenerator(0.5f); // Constant 0.5
+        var time = new SteppingTimeProvider { Ticks = 50_000 };
+        var p = new HumanInputNoiseParameters(true, 1.0f, 0.0f, 0.0f); // Enabled, Amp 1, Freq 0
+        var c = new HumanInputNoiseController(noise, () => p, time);
+
+        // First call to establish initial position
+        time.Ticks += 16;
+        c.AdjustMouseMove(0, 0);
+
+        // Subsequent calls should eventually result in 0 jitter
+        var totalJitterAfterSettling = 0;
+        for (var i = 0; i < 100; i++)
+        {
+            time.Ticks += 16;
+            var (dx, _) = c.AdjustMouseMove(0, 0);
+            if (i > 50) // Allow some frames for smoothing to settle
+            {
+                totalJitterAfterSettling += Math.Abs(dx);
+            }
+        }
+
+        Assert.Equal(0, totalJitterAfterSettling);
+    }
+
+    private sealed class MockNoiseGenerator(float constantValue) : INoiseGenerator
+    {
+        public float Sample1D(float x, float y = 0f) => constantValue;
+        public float Sample2D(float x, float y) => constantValue;
     }
 }

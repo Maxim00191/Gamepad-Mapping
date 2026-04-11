@@ -33,6 +33,6 @@ public interface IMouseEmulator
     Task X2ClickAsync(CancellationToken cancellationToken = default);
     void WheelUp();
     void WheelDown();
-    void MoveBy(int deltaX, int deltaY);
+    void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f);
 }
 

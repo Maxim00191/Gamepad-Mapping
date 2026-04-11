@@ -10,5 +10,5 @@ public interface IHumanInputNoiseController
 {
     int AdjustDelayMs(int baseDelayMs);
 
-    (int Dx, int Dy) AdjustMouseMove(int deltaX, int deltaY);
+    (int Dx, int Dy) AdjustMouseMove(int deltaX, int deltaY, float stickMagnitude = 1.0f);
 }

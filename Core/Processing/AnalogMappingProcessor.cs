@@ -50,6 +50,7 @@ internal sealed class AnalogMappingProcessor
             return;
         }
 
+        var stickMagnitude = stickValue.Length();
         var mouseDeltaX = 0f;
         var mouseDeltaY = 0f;
 
@@ -86,8 +87,16 @@ internal sealed class AnalogMappingProcessor
             HandleAnalogKeyboardOutput(mapping, source, stickValue, key);
         }
 
-        if (MathF.Abs(mouseDeltaX) > 0f || MathF.Abs(mouseDeltaY) > 0f)
-            SendMouseLookDelta(sourceType, mouseDeltaX, mouseDeltaY);
+        bool hasMouseMovement = MathF.Abs(mouseDeltaX) > 0f || MathF.Abs(mouseDeltaY) > 0f;
+
+        if (hasMouseMovement)
+        {
+            SendMouseLookDelta(sourceType, mouseDeltaX, mouseDeltaY, stickMagnitude); 
+        }
+        else if (stickMagnitude > 0.01f)
+        {
+            _mouseEmulator.MoveBy(0, 0, stickMagnitude);
+        }
     }
 
     public void ProcessTrigger(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot, Action<PointerAction, TriggerMoment> sendPointerAction)
@@ -198,11 +207,10 @@ internal sealed class AnalogMappingProcessor
         }
     }
 
-    private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY)
+    private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY, float stickMagnitude)
     {
         var delta = _analogProcessor.AccumulateMouseLookDelta(thumbstickSource, deltaX, deltaY);
-        if (delta.PixelDx != 0 || delta.PixelDy != 0)
-            _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy);
+        _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy, stickMagnitude);
     }
 }
 

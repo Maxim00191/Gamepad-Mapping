@@ -8,8 +8,8 @@ public readonly record struct HumanInputNoiseParameters(
     float Smoothness)
 {
     public static HumanInputNoiseParameters From(AppSettings settings) => new(
-        settings.HumanNoiseEnabled,
-        settings.HumanNoiseAmplitude,
-        settings.HumanNoiseFrequency,
-        settings.HumanNoiseSmoothness);
+        Enabled: settings.HumanNoiseEnabled,
+        Amplitude: settings.HumanNoiseAmplitude,
+        Frequency: settings.HumanNoiseFrequency,
+        Smoothness: settings.HumanNoiseSmoothness);
 }
