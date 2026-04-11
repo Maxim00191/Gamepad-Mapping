@@ -1,3 +1,5 @@
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -77,10 +79,10 @@ public class ProfileServicePathTests
         Assert.Equal($"{expectedBaseId}-3", profileId3);
     }
 
-    private class MockSettingsService : GamepadMapperGUI.Interfaces.Services.ISettingsService
+    private class MockSettingsService : ISettingsService
     {
-        public GamepadMapperGUI.Models.AppSettings LoadSettings() => new();
-        public void SaveSettings(GamepadMapperGUI.Models.AppSettings settings) { }
+        public AppSettings LoadSettings() => new();
+        public void SaveSettings(AppSettings settings) { }
     }
 }
 

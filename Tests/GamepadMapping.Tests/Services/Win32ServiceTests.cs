@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -25,7 +26,7 @@ public class Win32ServiceTests
         string expectedName = Process.GetCurrentProcess().ProcessName;
 
         // Act
-        string actualName = ((GamepadMapperGUI.Interfaces.Services.IWin32Service)_service).GetProcessName(pid);
+        string actualName = ((IWin32Service)_service).GetProcessName(pid);
 
         // Assert
         Assert.Equal(expectedName, actualName);
@@ -35,7 +36,7 @@ public class Win32ServiceTests
     public void GetProcessName_InvalidPid_ReturnsEmptyString()
     {
         // Act
-        string actualName = ((GamepadMapperGUI.Interfaces.Services.IWin32Service)_service).GetProcessName(-1);
+        string actualName = ((IWin32Service)_service).GetProcessName(-1);
 
         // Assert
         Assert.Equal(string.Empty, actualName);
