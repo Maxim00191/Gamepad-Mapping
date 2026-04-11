@@ -17,6 +17,7 @@ public interface IGamepadService : IDisposable
     void Stop();
     
     void SetThumbstickDeadzones(float left, float right);
+    void SetThumbstickDeadzoneShape(ThumbstickDeadzoneShape shape);
     void SetTriggerDeadzones(float leftInner, float leftOuter, float rightInner, float rightOuter);
 
     /// <summary>

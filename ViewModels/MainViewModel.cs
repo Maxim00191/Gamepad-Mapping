@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using GamepadMapperGUI.Models;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,7 +27,6 @@ using GamepadMapperGUI.Services.Update;
 using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
-using Gamepad_Mapping.Views;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -49,6 +49,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IInputEmulationStackFactory _inputEmulationStackFactory;
     private readonly IRadialMenuHud _radialMenuHud;
     private readonly Debouncer _processNameDebouncer;
+    private bool _suppressGamepadMonitorSettingsPersistence;
 
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
@@ -140,6 +141,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var initialLeftDeadzone = ResolveStickDeadzone(appSettings.LeftThumbstickDeadzone, appSettings.ThumbstickDeadzone);
         var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, appSettings.ThumbstickDeadzone);
 
+        var dzShape = ThumbstickDeadzoneShapeParser.Parse(appSettings.ThumbstickDeadzoneShape);
         var reader = gamepadReader ?? new GamepadReader(
             gamepadSource ?? new XInputSource(xinput ?? new XInputService()),
             initialLeftDeadzone,
@@ -147,7 +149,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             appSettings.LeftTriggerInnerDeadzone,
             appSettings.LeftTriggerOuterDeadzone,
             appSettings.RightTriggerInnerDeadzone,
-            appSettings.RightTriggerOuterDeadzone);
+            appSettings.RightTriggerOuterDeadzone,
+            dzShape);
         _gamepadService = new GamepadService(reader);
         
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
@@ -277,6 +280,33 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private float mouseLookSensitivity;
     partial void OnMouseLookSensitivityChanged(float value) => UpdateSetting(s => s.MouseLookSensitivity = Math.Clamp(value, 1f, 100f));
 
+    [ObservableProperty] private float mouseLookSmoothing;
+    partial void OnMouseLookSmoothingChanged(float value) => UpdateSetting(s => s.MouseLookSmoothing = Math.Clamp(value, 0f, 1f));
+
+    [ObservableProperty] private float mouseLookSettleMagnitude;
+    partial void OnMouseLookSettleMagnitudeChanged(float value) => UpdateSetting(s => s.MouseLookSettleMagnitude = Math.Clamp(value, 0.001f, 0.25f));
+
+    [ObservableProperty] private float mouseLookReboundSuppression;
+    partial void OnMouseLookReboundSuppressionChanged(float value) => UpdateSetting(s => s.MouseLookReboundSuppression = Math.Clamp(value, 0f, 1f));
+
+    [ObservableProperty] private float defaultAnalogHysteresisPressExtra;
+    partial void OnDefaultAnalogHysteresisPressExtraChanged(float value) =>
+        UpdateSetting(s => s.DefaultAnalogHysteresisPressExtra = Math.Clamp(value, 0f, 0.2f));
+
+    [ObservableProperty] private float defaultAnalogHysteresisReleaseExtra;
+    partial void OnDefaultAnalogHysteresisReleaseExtraChanged(float value) =>
+        UpdateSetting(s => s.DefaultAnalogHysteresisReleaseExtra = Math.Clamp(value, 0f, 0.3f));
+
+    [ObservableProperty] private int thumbstickDeadzoneShapeIndex;
+    partial void OnThumbstickDeadzoneShapeIndexChanged(int value)
+    {
+        var shape = (ThumbstickDeadzoneShape)Math.Clamp(value, 0, 1);
+        var setting = ThumbstickDeadzoneShapeParser.ToSettingString(shape);
+        if (!string.Equals(setting, _settingsOrchestrator.Settings.ThumbstickDeadzoneShape, StringComparison.OrdinalIgnoreCase))
+            UpdateSetting(s => s.ThumbstickDeadzoneShape = setting);
+        _gamepadService.SetThumbstickDeadzoneShape(shape);
+    }
+
     [ObservableProperty] private float analogChangeEpsilon;
     partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(s => s.AnalogChangeEpsilon = Math.Clamp(value, 0.001f, 0.1f));
 
@@ -373,6 +403,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _ => new XInputSource(new XInputService())
         };
 
+        var dzShape = ThumbstickDeadzoneShapeParser.Parse(_settingsOrchestrator.Settings.ThumbstickDeadzoneShape);
         var reader = new GamepadReader(
             source,
             GamepadMonitorPanel.LeftThumbstickDeadzone,
@@ -380,7 +411,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             GamepadMonitorPanel.LeftTriggerInnerDeadzone,
             GamepadMonitorPanel.LeftTriggerOuterDeadzone,
             GamepadMonitorPanel.RightTriggerInnerDeadzone,
-            GamepadMonitorPanel.RightTriggerOuterDeadzone);
+            GamepadMonitorPanel.RightTriggerOuterDeadzone,
+            dzShape);
 
         _gamepadService.ReplaceReader(reader);
         OnPropertyChanged(nameof(IsGamepadRunning));
@@ -414,6 +446,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        GamepadMonitorPanel.PropertyChanged -= OnGamepadMonitorPanelSettingsChanged;
+        GamepadMonitorPanel.Dispose();
         _uiOrchestrator.Dispose();
         _gamepadService.Dispose();
         _mappingManager.Dispose();
@@ -497,7 +531,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
             radialMenuHud: _radialMenuHud,
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
             getRadialMenuConfirmMode: () => RadialMenuConfirmModeIndex == 0 ? RadialMenuConfirmMode.ReturnStickToCenter : RadialMenuConfirmMode.ReleaseGuideKey,
-            ownsRadialMenuHud: false);
+            ownsRadialMenuHud: false,
+            getMouseLookSensitivity: () => _settingsOrchestrator.Settings.MouseLookSensitivity,
+            getMouseLookSmoothing: () => _settingsOrchestrator.Settings.MouseLookSmoothing,
+            getMouseLookSettleMagnitude: () => _settingsOrchestrator.Settings.MouseLookSettleMagnitude,
+            getMouseLookReboundSuppression: () => _settingsOrchestrator.Settings.MouseLookReboundSuppression,
+            getGamepadPollingIntervalMs: () => _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
+            getAnalogChangeEpsilon: () => _settingsOrchestrator.Settings.AnalogChangeEpsilon,
+            getAnalogHysteresisPressExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisPressExtra,
+            getAnalogHysteresisReleaseExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisReleaseExtra);
 
     private void RecreateMappingEngineForCurrentInputApi()
     {
@@ -549,6 +591,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         RadialHudScaleSetting = appSettings.RadialHudScale;
         DefaultAnalogActivationThreshold = appSettings.DefaultAnalogActivationThreshold;
         MouseLookSensitivity = appSettings.MouseLookSensitivity;
+        MouseLookSmoothing = appSettings.MouseLookSmoothing;
+        MouseLookSettleMagnitude = appSettings.MouseLookSettleMagnitude;
+        MouseLookReboundSuppression = appSettings.MouseLookReboundSuppression;
+        DefaultAnalogHysteresisPressExtra = appSettings.DefaultAnalogHysteresisPressExtra;
+        DefaultAnalogHysteresisReleaseExtra = appSettings.DefaultAnalogHysteresisReleaseExtra;
+        ThumbstickDeadzoneShapeIndex = ThumbstickDeadzoneShapeParser.Parse(appSettings.ThumbstickDeadzoneShape) == ThumbstickDeadzoneShape.Radial ? 1 : 0;
         AnalogChangeEpsilon = appSettings.AnalogChangeEpsilon;
         KeyboardTapHoldDurationMs = appSettings.KeyboardTapHoldDurationMs;
         TapInterKeyDelayMs = appSettings.TapInterKeyDelayMs;
@@ -579,7 +627,32 @@ public partial class MainViewModel : ObservableObject, IDisposable
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
         CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
+        ApplyGamepadMonitorInitialUiState(s);
+        GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
+    }
+
+    private void ApplyGamepadMonitorInitialUiState(AppSettings s)
+    {
+        _suppressGamepadMonitorSettingsPersistence = true;
+        try
+        {
+            GamepadMonitorPanel.MonitorPanelWidth = GamepadMonitorViewModel.ClampMonitorWidth(s.GamepadMonitorPanelWidth);
+            GamepadMonitorPanel.IsMonitorExpanderExpanded = s.GamepadMonitorVisible;
+        }
+        finally
+        {
+            _suppressGamepadMonitorSettingsPersistence = false;
+        }
+    }
+
+    private void OnGamepadMonitorPanelSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_suppressGamepadMonitorSettingsPersistence) return;
+        if (e.PropertyName == nameof(GamepadMonitorViewModel.MonitorPanelWidth))
+            UpdateSetting(s => s.GamepadMonitorPanelWidth = GamepadMonitorViewModel.ClampMonitorWidth(GamepadMonitorPanel.MonitorPanelWidth));
+        else if (e.PropertyName == nameof(GamepadMonitorViewModel.IsMonitorExpanderExpanded))
+            UpdateSetting(s => s.GamepadMonitorVisible = GamepadMonitorPanel.IsMonitorExpanderExpanded);
     }
 
     private void ScheduleInitialToasts()

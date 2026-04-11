@@ -14,12 +14,33 @@ namespace GamepadMapperGUI.Core;
 
 internal sealed class AnalogMappingProcessor
 {
+    private struct MouseLookPipeline
+    {
+        public float FilterX;
+        public float FilterY;
+        public float LastRawX;
+        public float LastRawY;
+        public bool WasAboveSettle;
+        public sbyte PreReleaseSignX;
+        public sbyte PreReleaseSignY;
+        public int ReboundFramesRemaining;
+    }
+
+    private MouseLookPipeline _mouseLookLeft;
+    private MouseLookPipeline _mouseLookRight;
+
     private readonly AnalogProcessor _analogProcessor;
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
     private readonly Func<bool> _canDispatchOutput;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
+    private readonly Func<float> _getMouseLookSensitivity;
+    private readonly Func<float> _getMouseLookSmoothing;
+    private readonly Func<float> _getMouseLookSettleMagnitude;
+    private readonly Func<float> _getMouseLookReboundSuppression;
+    private readonly Func<int> _getGamepadPollingIntervalMs;
+    private readonly Func<float> _getAnalogChangeEpsilon;
 
     public AnalogMappingProcessor(
         AnalogProcessor analogProcessor,
@@ -27,7 +48,13 @@ internal sealed class AnalogMappingProcessor
         IMouseEmulator mouseEmulator,
         Func<bool> canDispatchOutput,
         Action<string> setMappedOutput,
-        Action<string> setMappingStatus)
+        Action<string> setMappingStatus,
+        Func<float>? getMouseLookSensitivity = null,
+        Func<float>? getMouseLookSmoothing = null,
+        Func<float>? getMouseLookSettleMagnitude = null,
+        Func<float>? getMouseLookReboundSuppression = null,
+        Func<int>? getGamepadPollingIntervalMs = null,
+        Func<float>? getAnalogChangeEpsilon = null)
     {
         _analogProcessor = analogProcessor;
         _keyboardEmulator = keyboardEmulator;
@@ -35,6 +62,12 @@ internal sealed class AnalogMappingProcessor
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
+        _getMouseLookSensitivity = getMouseLookSensitivity ?? (() => AnalogProcessor.LegacyDefaultMouseLookSensitivity);
+        _getMouseLookSmoothing = getMouseLookSmoothing ?? (() => 0f);
+        _getMouseLookSettleMagnitude = getMouseLookSettleMagnitude ?? (() => 0.02f);
+        _getMouseLookReboundSuppression = getMouseLookReboundSuppression ?? (() => 0f);
+        _getGamepadPollingIntervalMs = getGamepadPollingIntervalMs ?? (() => 10);
+        _getAnalogChangeEpsilon = getAnalogChangeEpsilon ?? (() => 0.01f);
     }
 
     public void ProcessThumbstick(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot, bool isConsumed = false)
@@ -52,8 +85,38 @@ internal sealed class AnalogMappingProcessor
         }
 
         var stickMagnitude = stickValue.Length();
+        var settleMag = MathF.Max(_getAnalogChangeEpsilon(), _getMouseLookSettleMagnitude());
+        var inSettle = stickMagnitude <= settleMag;
+
+        ref var pipe = ref GetMouseLookPipelineRef(sourceType);
+
+        if (inSettle)
+        {
+            if (pipe.WasAboveSettle)
+            {
+                var rebound = Math.Clamp(_getMouseLookReboundSuppression(), 0f, 1f);
+                if (rebound > 0f)
+                {
+                    pipe.PreReleaseSignX = ToSign(pipe.LastRawX);
+                    pipe.PreReleaseSignY = ToSign(pipe.LastRawY);
+                    var pollMs = Math.Clamp(_getGamepadPollingIntervalMs(), 5, 30);
+                    var frames = (int)MathF.Ceiling(65f / pollMs);
+                    pipe.ReboundFramesRemaining = Math.Max(2, frames);
+                }
+            }
+
+            pipe.FilterX = 0f;
+            pipe.FilterY = 0f;
+            pipe.LastRawX = 0f;
+            pipe.LastRawY = 0f;
+            pipe.WasAboveSettle = false;
+            _analogProcessor.ClearMouseLookResidual(sourceType);
+        }
+
         var mouseDeltaX = 0f;
         var mouseDeltaY = 0f;
+        var epsilon = _getAnalogChangeEpsilon();
+        var sensitivity = _getMouseLookSensitivity();
 
         foreach (var mapping in mappingsSnapshot)
         {
@@ -70,10 +133,10 @@ internal sealed class AnalogMappingProcessor
             if (AnalogProcessor.TryResolveMouseLookOutput(outputToken, out var isVerticalLook))
             {
                 var axisValue = AnalogProcessor.ResolveStickAxisValue(stickValue, source);
-                if (MathF.Abs(axisValue) < 0.01f)
+                if (MathF.Abs(axisValue) < epsilon)
                     continue;
 
-                var delta = axisValue * AnalogProcessor.DefaultLookSensitivity;
+                var delta = axisValue * sensitivity;
                 if (isVerticalLook)
                     mouseDeltaY += -delta;
                 else
@@ -87,17 +150,71 @@ internal sealed class AnalogMappingProcessor
             HandleAnalogOutput(mapping, source, stickValue, output, baseLabel);
         }
 
-        bool hasMouseMovement = MathF.Abs(mouseDeltaX) > 0f || MathF.Abs(mouseDeltaY) > 0f;
-
-        if (hasMouseMovement)
+        if (!inSettle)
         {
-            SendMouseLookDelta(sourceType, mouseDeltaX, mouseDeltaY, stickMagnitude); 
+            pipe.WasAboveSettle = true;
+            pipe.LastRawX = mouseDeltaX;
+            pipe.LastRawY = mouseDeltaY;
+
+            var rebound = Math.Clamp(_getMouseLookReboundSuppression(), 0f, 1f);
+            if (rebound > 0f && pipe.ReboundFramesRemaining > 0)
+            {
+                ApplyReboundAttenuation(ref mouseDeltaX, ref mouseDeltaY, pipe.PreReleaseSignX, pipe.PreReleaseSignY, rebound);
+                pipe.ReboundFramesRemaining--;
+            }
+
+            var smoothing = Math.Clamp(_getMouseLookSmoothing(), 0f, 1f);
+            float sendX;
+            float sendY;
+            if (smoothing <= 0f)
+            {
+                sendX = mouseDeltaX;
+                sendY = mouseDeltaY;
+            }
+            else
+            {
+                var pollMs = Math.Clamp(_getGamepadPollingIntervalMs(), 5, 30);
+                var dtSec = pollMs / 1000f;
+                var sm = smoothing * smoothing;
+                var tauSec = 0.004f + (0.10f - 0.004f) * sm;
+                var alpha = tauSec > 1e-6f ? 1f - MathF.Exp(-dtSec / tauSec) : 1f;
+                pipe.FilterX += alpha * (mouseDeltaX - pipe.FilterX);
+                pipe.FilterY += alpha * (mouseDeltaY - pipe.FilterY);
+                sendX = pipe.FilterX;
+                sendY = pipe.FilterY;
+            }
+
+            if (MathF.Abs(sendX) > 0f || MathF.Abs(sendY) > 0f)
+                SendMouseLookDelta(sourceType, sendX, sendY, stickMagnitude);
+            else if (stickMagnitude > epsilon)
+                _mouseEmulator.MoveBy(0, 0, stickMagnitude);
         }
-        else if (stickMagnitude > 0.01f)
+        else if (stickMagnitude > epsilon)
         {
             _mouseEmulator.MoveBy(0, 0, stickMagnitude);
         }
     }
+
+    private static sbyte ToSign(float v)
+    {
+        if (v > 1e-6f) return 1;
+        if (v < -1e-6f) return -1;
+        return 0;
+    }
+
+    private static void ApplyReboundAttenuation(ref float dx, ref float dy, sbyte preX, sbyte preY, float rebound)
+    {
+        var sx = ToSign(dx);
+        var sy = ToSign(dy);
+        var factor = 1f - rebound;
+        if (preX != 0 && sx != 0 && sx != preX)
+            dx *= factor;
+        if (preY != 0 && sy != 0 && sy != preY)
+            dy *= factor;
+    }
+
+    private ref MouseLookPipeline GetMouseLookPipelineRef(GamepadBindingType sourceType) =>
+        ref sourceType == GamepadBindingType.LeftThumbstick ? ref _mouseLookLeft : ref _mouseLookRight;
 
     public void ProcessTrigger(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot, Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch)
     {
@@ -143,8 +260,6 @@ internal sealed class AnalogMappingProcessor
                     }
                     else
                     {
-                        // For pointer actions on triggers, we still use the dispatcher callback
-                        // to ensure they are queued and don't block the input loop.
                         var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
                         if (mapping.Trigger == TriggerMoment.Tap) moment = TriggerMoment.Tap;
                         else if (mapping.Trigger == TriggerMoment.Released && !transition.IsActive) moment = TriggerMoment.Tap;
@@ -176,6 +291,8 @@ internal sealed class AnalogMappingProcessor
             _keyboardEmulator.KeyUp(active.Key);
         }
         _analogProcessor.Reset();
+        _mouseLookLeft = default;
+        _mouseLookRight = default;
     }
 
     private void ReleaseAnalogOutputsForSourceThumbstick(GamepadBindingType sourceType)
@@ -184,6 +301,8 @@ internal sealed class AnalogMappingProcessor
             _keyboardEmulator.KeyUp(key);
 
         _analogProcessor.RemoveAnalogKeyboardStateForBinding(sourceType);
+        ref var pipe = ref GetMouseLookPipelineRef(sourceType);
+        pipe = default;
     }
 
     private void HandleAnalogOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, DispatchedOutput output, string baseLabel)
@@ -252,4 +371,3 @@ internal sealed class AnalogMappingProcessor
         _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy, stickMagnitude);
     }
 }
-

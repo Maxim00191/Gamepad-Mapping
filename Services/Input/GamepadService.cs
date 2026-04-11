@@ -55,6 +55,9 @@ public class GamepadService : IGamepadService
         _reader.RightThumbstickDeadzone = right;
     }
 
+    public void SetThumbstickDeadzoneShape(ThumbstickDeadzoneShape shape) =>
+        _reader.ThumbstickDeadzoneShape = shape;
+
     public void SetTriggerDeadzones(float leftInner, float leftOuter, float rightInner, float rightOuter)
     {
         _reader.LeftTriggerInnerDeadzone = leftInner;

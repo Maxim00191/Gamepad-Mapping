@@ -21,6 +21,7 @@ namespace GamepadMapperGUI.Core
 
         private float _leftThumbstickDeadzone;
         private float _rightThumbstickDeadzone;
+        private ThumbstickDeadzoneShape _thumbstickDeadzoneShape;
 
         private float _leftTriggerInnerDeadzone;
         private float _leftTriggerOuterDeadzone = 1f;
@@ -39,9 +40,11 @@ namespace GamepadMapperGUI.Core
             float? leftTriggerInnerDeadzone = null,
             float? leftTriggerOuterDeadzone = null,
             float? rightTriggerInnerDeadzone = null,
-            float? rightTriggerOuterDeadzone = null)
+            float? rightTriggerOuterDeadzone = null,
+            ThumbstickDeadzoneShape thumbstickDeadzoneShape = ThumbstickDeadzoneShape.Axial)
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
+            _thumbstickDeadzoneShape = thumbstickDeadzoneShape;
             if (leftThumbstickDeadzone is { } left)
                 LeftThumbstickDeadzone = left;
             if (rightThumbstickDeadzone is { } right)
@@ -54,6 +57,12 @@ namespace GamepadMapperGUI.Core
                 RightTriggerInnerDeadzone = rti;
             if (rightTriggerOuterDeadzone is { } rto)
                 RightTriggerOuterDeadzone = rto;
+        }
+
+        public ThumbstickDeadzoneShape ThumbstickDeadzoneShape
+        {
+            get => _thumbstickDeadzoneShape;
+            set => _thumbstickDeadzoneShape = value;
         }
 
         public float LeftThumbstickDeadzone
@@ -170,6 +179,7 @@ namespace GamepadMapperGUI.Core
                     {
                         var currentState = ProcessFrame(rawFrame);
 
+                        // Right stick: emit when the vector moved past epsilon or stays outside epsilon (continuous look without per-frame delta).
                         var shouldEmit =
                             _isFirstFrameEmission ||
                             (_hasPreviousState && currentState.Buttons != _previousFrame.Buttons) ||
@@ -218,8 +228,8 @@ namespace GamepadMapperGUI.Core
 
             return frame with
             {
-                LeftThumbstick = ApplyDeadzoneToStick(frame.LeftThumbstick, _leftThumbstickDeadzone),
-                RightThumbstick = ApplyDeadzoneToStick(frame.RightThumbstick, _rightThumbstickDeadzone),
+                LeftThumbstick = ApplyThumbstickDeadzone(frame.LeftThumbstick, _leftThumbstickDeadzone, _thumbstickDeadzoneShape),
+                RightThumbstick = ApplyThumbstickDeadzone(frame.RightThumbstick, _rightThumbstickDeadzone, _thumbstickDeadzoneShape),
                 LeftTrigger = NormalizeTrigger(frame.LeftTrigger, _leftTriggerInnerDeadzone, _leftTriggerOuterDeadzone),
                 RightTrigger = NormalizeTrigger(frame.RightTrigger, _rightTriggerInnerDeadzone, _rightTriggerOuterDeadzone)
             };
@@ -232,12 +242,26 @@ namespace GamepadMapperGUI.Core
             return (raw - inner) / (outer - inner);
         }
 
+        private static Vector2 ApplyThumbstickDeadzone(Vector2 stick, float deadzone, ThumbstickDeadzoneShape shape) =>
+            shape == ThumbstickDeadzoneShape.Radial
+                ? ApplyRadialDeadzoneToStick(stick, deadzone)
+                : ApplyDeadzoneToStick(stick, deadzone);
+
         private static Vector2 ApplyDeadzoneToStick(Vector2 stick, float deadzone)
         {
             return new Vector2(
                 ApplyDeadzone(stick.X, deadzone),
                 ApplyDeadzone(stick.Y, deadzone)
             );
+        }
+
+        private static Vector2 ApplyRadialDeadzoneToStick(Vector2 stick, float deadzone)
+        {
+            var len = stick.Length();
+            if (len < 1e-8f || len < deadzone)
+                return Vector2.Zero;
+            var scaledLen = (len - deadzone) / (1f - deadzone);
+            return stick * (scaledLen / len);
         }
 
         private static float ApplyDeadzone(float v, float deadzone)

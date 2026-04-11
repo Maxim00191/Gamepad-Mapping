@@ -90,6 +90,27 @@
   <data name="LiveGamepadMonitor" xml:space="preserve">
     <value>Live Gamepad Monitor</value>
   </data>
+  <data name="GamepadMonitorShow" xml:space="preserve">
+    <value>Show monitor</value>
+  </data>
+  <data name="GamepadMonitorHide" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
+    <value>Show or hide the live monitor window. Resize the window to change width; it is saved in app settings.</value>
+  </data>
+  <data name="GamepadMonitorReaderOn" xml:space="preserve">
+    <value>Reader on</value>
+  </data>
+  <data name="GamepadMonitorReaderOff" xml:space="preserve">
+    <value>Reader off</value>
+  </data>
+  <data name="GamepadMonitorAnalogMetersHeader" xml:space="preserve">
+    <value>Sticks &amp; triggers</value>
+  </data>
+  <data name="GamepadMonitorActivityExpander" xml:space="preserve">
+    <value>Buttons &amp; output</value>
+  </data>
   <data name="ShowHud" xml:space="preserve">
     <value>Enable HUD for combo key tips</value>
   </data>
@@ -247,7 +268,22 @@
     <value>Application settings</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>Timing, input API, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
+    <value>Language, updates, input/output, gamepad, mapping, and radial/HUD options. Values are saved to your local config file (not in the profile JSON).</value>
+  </data>
+  <data name="AppSettingsTabGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="AppSettingsTabInputOutput" xml:space="preserve">
+    <value>Input / output</value>
+  </data>
+  <data name="AppSettingsTabGamepad" xml:space="preserve">
+    <value>Gamepad</value>
+  </data>
+  <data name="AppSettingsTabMapping" xml:space="preserve">
+    <value>Mapping</value>
+  </data>
+  <data name="AppSettingsTabRadialHud" xml:space="preserve">
+    <value>Radial / HUD</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>Language Options</value>
@@ -298,7 +334,7 @@
     <value>Timing &amp; keyboard</value>
   </data>
   <data name="AppSettingsAnalogSection" xml:space="preserve">
-    <value>Analog &amp; polling</value>
+    <value>Analog &amp; mouse look</value>
   </data>
   <data name="ModifierGraceLabel" xml:space="preserve">
     <value>Modifier grace / combo HUD delay (ms)</value>
@@ -318,8 +354,32 @@
   <data name="DefaultAnalogThresholdLabel" xml:space="preserve">
     <value>Default analog threshold (0–1)</value>
   </data>
+  <data name="ThumbstickDeadzoneShapeLabel" xml:space="preserve">
+    <value>Thumbstick deadzone shape</value>
+  </data>
+  <data name="ThumbstickDeadzoneShapeAxial" xml:space="preserve">
+    <value>Axial (per axis)</value>
+  </data>
+  <data name="ThumbstickDeadzoneShapeRadial" xml:space="preserve">
+    <value>Radial (circular)</value>
+  </data>
+  <data name="AnalogHysteresisPressExtraLabel" xml:space="preserve">
+    <value>Analog press extra (0–0.2)</value>
+  </data>
+  <data name="AnalogHysteresisReleaseExtraLabel" xml:space="preserve">
+    <value>Analog release margin (0–0.3)</value>
+  </data>
   <data name="MouseLookSensitivityLabel" xml:space="preserve">
     <value>Mouse-look sensitivity</value>
+  </data>
+  <data name="MouseLookSmoothingLabel" xml:space="preserve">
+    <value>Mouse-look smoothing (0–1)</value>
+  </data>
+  <data name="MouseLookSettleMagnitudeLabel" xml:space="preserve">
+    <value>Mouse-look settle band (0–1)</value>
+  </data>
+  <data name="MouseLookReboundSuppressionLabel" xml:space="preserve">
+    <value>Mouse-look rebound suppression (0–1)</value>
   </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>Analog change epsilon</value>

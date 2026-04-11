@@ -128,6 +128,24 @@ public class MappingEntry : ObservableObject
         set => SetProperty(ref _analogThreshold, value);
     }
 
+    private float? _analogHysteresisPressExtra;
+
+    [JsonProperty("analogHysteresisPressExtra", NullValueHandling = NullValueHandling.Ignore)]
+    public float? AnalogHysteresisPressExtra
+    {
+        get => _analogHysteresisPressExtra;
+        set => SetProperty(ref _analogHysteresisPressExtra, value);
+    }
+
+    private float? _analogHysteresisReleaseExtra;
+
+    [JsonProperty("analogHysteresisReleaseExtra", NullValueHandling = NullValueHandling.Ignore)]
+    public float? AnalogHysteresisReleaseExtra
+    {
+        get => _analogHysteresisReleaseExtra;
+        set => SetProperty(ref _analogHysteresisReleaseExtra, value);
+    }
+
     /// <summary>
     /// When set with <see cref="HoldThresholdMs"/> and <see cref="Trigger"/> is <see cref="TriggerMoment.Tap"/>,
     /// a short press/release before the threshold sends <see cref="KeyboardKey"/> once; holding at least that long

@@ -13,12 +13,15 @@
              Focusable="True"
              Background="{DynamicResource AppBackgroundBrush}"
              Foreground="{DynamicResource AppTextBrush}">
+   <UserControl.Resources>
+       <BooleanToVisibilityConverter x:Key="BoolToVis" />
+       <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+   </UserControl.Resources>
    <Grid>
        <Grid Margin="12"
              Background="{DynamicResource AppBackgroundBrush}">
        <Grid.ColumnDefinitions>
-           <ColumnDefinition Width="*" />
-           <ColumnDefinition Width="Auto" />
+           <ColumnDefinition Width="*" MinWidth="240" />
        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -27,6 +30,7 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
+                Grid.Column="0"
                 Style="{StaticResource SectionCardBorder}"
                 Padding="12,10">
                 <Grid>
@@ -153,414 +157,10 @@
                                        StaysOpen="False"
                                        IsOpen="{Binding IsChecked, ElementName=AppSettingsButton, Mode=TwoWay}">
                                     <Border Style="{StaticResource SectionCardBorder}"
-                                            MinWidth="340"
-                                            MaxWidth="420">
-                                        <StackPanel>
-                                            <StackPanel.Resources>
-                                                <Style x:Key="FlatSectionToggleStyle" TargetType="ToggleButton">
-                                                    <Setter Property="Background" Value="Transparent" />
-                                                    <Setter Property="BorderThickness" Value="0" />
-                                                    <Setter Property="Padding" Value="0" />
-                                                    <Setter Property="Margin" Value="0,0,0,4" />
-                                                    <Setter Property="HorizontalContentAlignment" Value="Left" />
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="ToggleButton">
-                                                                <Grid Background="Transparent">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="14" />
-                                                                        <ColumnDefinition Width="*" />
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <Path x:Name="Arrow"
-                                                                          Grid.Column="0"
-                                                                          Width="7"
-                                                                          Height="7"
-                                                                          Margin="0,0,6,0"
-                                                                          VerticalAlignment="Center"
-                                                                          Fill="{DynamicResource AppSecondaryTextBrush}"
-                                                                          Data="M 0 0 L 7 3.5 L 0 7 Z" />
-                                                                    <ContentPresenter Grid.Column="1"
-                                                                                      VerticalAlignment="Center"
-                                                                                      RecognizesAccessKey="True" />
-                                                                </Grid>
-                                                                <ControlTemplate.Triggers>
-                                                                    <Trigger Property="IsChecked" Value="True">
-                                                                        <Setter TargetName="Arrow" Property="RenderTransform">
-                                                                            <Setter.Value>
-                                                                                <RotateTransform Angle="90" CenterX="3.5" CenterY="3.5" />
-                                                                            </Setter.Value>
-                                                                        </Setter>
-                                                                        <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AppTextBrush}" />
-                                                                    </Trigger>
-                                                                </ControlTemplate.Triggers>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </StackPanel.Resources>
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsHeader]}"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="14"
-                                                       Margin="0,0,0,8" />
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsLanguageSection]}"
-                                                       FontWeight="SemiBold"
-                                                       Margin="0,0,0,6" />
-                                            <UniformGrid Columns="2" Margin="0,0,0,6">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppLanguageLabel]}"
-                                                           Margin="0,0,8,0"
-                                                           TextWrapping="Wrap" />
-                                                <ComboBox Width="140"
-                                                          HorizontalAlignment="Left"
-                                                          ItemsSource="{Binding AvailableUiLanguages}"
-                                                          SelectedItem="{Binding SelectedUiLanguage, Mode=TwoWay}"
-                                                          DisplayMemberPath="DisplayName" />
-                                            </UniformGrid>
-
-                                            <Separator Margin="0,6,0,8" />
-
-                                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[UpdateCheckForUpdates], Mode=OneWay}"
-                                                       FontWeight="SemiBold"
-                                                       Margin="0,0,0,6" />
-                                            <Grid DataContext="{Binding UpdatePanel}">
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                
-                                                <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
-                                                    <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[UpdateIncludePrereleases], Mode=OneWay}"
-                                                              IsChecked="{Binding IncludePrereleases, Mode=TwoWay}"
-                                                              Margin="0,0,0,4"
-                                                              FontSize="11" />
-                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateCurrentVersion], Mode=OneWay}" />
-                                                        <Run Text=": " />
-                                                        <Run Text="{Binding CurrentVersion, Mode=OneWay}" />
-                                                    </TextBlock>
-                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateLatestVersion], Mode=OneWay}" />
-                                                        <Run Text=": " />
-                                                        <Run Text="{Binding LatestVersion, Mode=OneWay, TargetNullValue='Unknown'}" />
-                                                    </TextBlock>
-                                                    <TextBlock FontSize="11" Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateInstallMode], Mode=OneWay}" />
-                                                        <Run Text=": " />
-                                                        <Run Text="{Binding InstallModeText, Mode=OneWay}" />
-                                                    </TextBlock>
-                                                    <TextBlock Text="{Binding StatusMessage}" 
-                                                               FontSize="11" 
-                                                               FontWeight="SemiBold"
-                                                               Margin="0,2,0,0"
-                                                               TextWrapping="Wrap">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsUpdateAvailable}" Value="True">
-                                                                        <Setter Property="Foreground" Value="{DynamicResource AppAccentTextBrush}" />
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding IsForbidden}" Value="True">
-                                                                        <Setter Property="Foreground" Value="#EB5757" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </StackPanel>
-
-                                                <StackPanel Grid.Row="0"
-                                                            Grid.Column="1"
-                                                            VerticalAlignment="Center">
-                                                    <Button Content="{Binding Source={StaticResource Loc}, Path=[UpdateCheckButton], Mode=OneWay}"
-                                                            Padding="12,4"
-                                                            VerticalAlignment="Center"
-                                                            Command="{Binding CheckUpdateCommand}"
-                                                            IsEnabled="{Binding IsChecking, Converter={StaticResource InverseBooleanConverter}}" />
-                                                    <Button Content="{Binding Source={StaticResource Loc}, Path=[UpdateInstallButton], Mode=OneWay}"
-                                                            Margin="0,6,0,0"
-                                                            Padding="12,4"
-                                                            VerticalAlignment="Center"
-                                                            Command="{Binding InstallUpdateCommand}" />
-                                                </StackPanel>
-
-                                                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                                                      Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Button Grid.Column="0"
-                                                            Content="{Binding DownloadPrimaryActionText}"
-                                                            Padding="0,6"
-                                                            Style="{StaticResource AppAccentButtonStyle}"
-                                                            Command="{Binding DownloadOrStopCommand}" />
-                                                    <Border Grid.Column="1" />
-                                                </Grid>
-
-                                                <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                                                      Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto" />
-                                                        <RowDefinition Height="Auto" />
-                                                    </Grid.RowDefinitions>
-                                                    <ProgressBar Grid.Row="0"
-                                                                 Height="8"
-                                                                 Minimum="0"
-                                                                 Maximum="100"
-                                                                 Value="{Binding DownloadProgressPercent}" />
-                                                    <TextBlock Grid.Row="1"
-                                                               Margin="0,4,0,0"
-                                                               FontSize="10"
-                                                               Foreground="{DynamicResource AppSecondaryTextBrush}">
-                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateDownloadSpeedLabel], Mode=OneWay}" />
-                                                        <Run Text=": " />
-                                                        <Run Text="{Binding DownloadSpeedText}" />
-                                                        <Run Text="  |  " />
-                                                        <Run Text="{Binding Source={StaticResource Loc}, Path=[UpdateDownloadTimeLeftLabel], Mode=OneWay}" />
-                                                        <Run Text=": " />
-                                                        <Run Text="{Binding DownloadEtaText}" />
-                                                    </TextBlock>
-                                                </Grid>
-
-                                                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                                        Content="{Binding Source={StaticResource Loc}, Path=[UpdateOpenGitHubReleases], Mode=OneWay}"
-                                                        Margin="0,8,0,0"
-                                                        Padding="0,6"
-                                                        Command="{Binding OpenManualUrlCommand}"
-                                                        Visibility="{Binding IsForbidden, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                            </Grid>
-
-                                            <Separator Margin="0,6,0,8" />
-
-                                            <ToggleButton x:Name="InputEmulationSettingsToggle"
-                                                          Style="{StaticResource FlatSectionToggleStyle}">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsInputEmulationSection]}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="12" />
-                                            </ToggleButton>
-                                            <StackPanel Margin="0,2,0,0"
-                                                        Visibility="{Binding IsChecked, ElementName=InputEmulationSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <ComboBox Margin="0,0,0,4"
-                                                          ItemsSource="{Binding AvailableInputApis}"
-                                                          SelectedItem="{Binding SelectedInputApi, Mode=TwoWay}"
-                                                          DisplayMemberPath="DisplayName"
-                                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Hint]}" />
-                                                <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[HumanNoiseEnableLabel]}"
-                                                          IsChecked="{Binding HumanNoiseEnabled, Mode=TwoWay}"
-                                                          Margin="0,4,0,6" />
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseAmplitudeLabel]}"
-                                                           Margin="0,0,0,2" />
-                                                <StackPanel Orientation="Horizontal"
-                                                            VerticalAlignment="Center"
-                                                            Margin="0,0,0,4">
-                                                    <Slider Width="168"
-                                                            Minimum="0"
-                                                            Maximum="1"
-                                                            SmallChange="0.02"
-                                                            LargeChange="0.1"
-                                                            TickFrequency="0.05"
-                                                            IsSnapToTickEnabled="False"
-                                                            VerticalAlignment="Center"
-                                                            IsEnabled="{Binding HumanNoiseEnabled}"
-                                                            Value="{Binding HumanNoiseAmplitude, Mode=TwoWay}" />
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               Margin="10,0,0,0"
-                                                               MinWidth="40"
-                                                               IsEnabled="{Binding HumanNoiseEnabled}"
-                                                               Text="{Binding HumanNoiseAmplitude, StringFormat={}{0:0.##}}" />
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseFrequencyLabel]}"
-                                                           Margin="0,4,0,2" />
-                                                <StackPanel Orientation="Horizontal"
-                                                            VerticalAlignment="Center"
-                                                            Margin="0,0,0,4">
-                                                    <Slider Width="168"
-                                                            Minimum="0"
-                                                            Maximum="1"
-                                                            SmallChange="0.02"
-                                                            LargeChange="0.1"
-                                                            TickFrequency="0.05"
-                                                            IsSnapToTickEnabled="False"
-                                                            VerticalAlignment="Center"
-                                                            IsEnabled="{Binding HumanNoiseEnabled}"
-                                                            Value="{Binding HumanNoiseFrequency, Mode=TwoWay}" />
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               Margin="10,0,0,0"
-                                                               MinWidth="40"
-                                                               IsEnabled="{Binding HumanNoiseEnabled}"
-                                                               Text="{Binding HumanNoiseFrequency, StringFormat={}{0:0.##}}" />
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseSmoothnessLabel]}"
-                                                           Margin="0,4,0,2" />
-                                                <StackPanel Orientation="Horizontal"
-                                                            VerticalAlignment="Center"
-                                                            Margin="0,0,0,4">
-                                                    <Slider Width="168"
-                                                            Minimum="0"
-                                                            Maximum="1"
-                                                            SmallChange="0.02"
-                                                            LargeChange="0.1"
-                                                            TickFrequency="0.05"
-                                                            IsSnapToTickEnabled="False"
-                                                            VerticalAlignment="Center"
-                                                            IsEnabled="{Binding HumanNoiseEnabled}"
-                                                            Value="{Binding HumanNoiseSmoothness, Mode=TwoWay}" />
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               Margin="10,0,0,0"
-                                                               MinWidth="40"
-                                                               IsEnabled="{Binding HumanNoiseEnabled}"
-                                                               Text="{Binding HumanNoiseSmoothness, StringFormat={}{0:0.##}}" />
-                                                </StackPanel>
-                                            </StackPanel>
-
-                                            <Separator Margin="0,6,0,8" />
-
-                                            <ToggleButton x:Name="GamepadSourceSettingsToggle"
-                                                          Style="{StaticResource FlatSectionToggleStyle}">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsGamepadSourceSection]}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="12" />
-                                            </ToggleButton>
-                                            <StackPanel Margin="0,2,0,0"
-                                                        Visibility="{Binding IsChecked, ElementName=GamepadSourceSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <ComboBox Margin="0,0,0,4"
-                                                          ItemsSource="{Binding AvailableGamepadApis}"
-                                                          SelectedItem="{Binding SelectedGamepadApi, Mode=TwoWay}"
-                                                          DisplayMemberPath="DisplayName" />
-                                            </StackPanel>
-
-                                            <Separator Margin="0,6,0,8" />
-
-                                            <ToggleButton x:Name="TimingSettingsToggle"
-                                                          Style="{StaticResource FlatSectionToggleStyle}">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsTimingSection]}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="12" />
-                                            </ToggleButton>
-                                            <UniformGrid Columns="2"
-                                                         Margin="0,2,0,0"
-                                                         Visibility="{Binding IsChecked, ElementName=TimingSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ModifierGraceLabel]}"
-                                                               Margin="0,0,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding ModifierGraceMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,0,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[LeadSuppressLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding LeadKeyReleaseSuppressMsSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapHoldLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding KeyboardTapHoldDurationMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TapInterKeyDelayLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding TapInterKeyDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TextInterCharDelayLabel]}"
-                                                               Margin="0,4,8,0"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding TextInterCharDelayMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,0" />
-                                            </UniformGrid>
-
-                                            <ToggleButton x:Name="AnalogSettingsToggle"
-                                                          Style="{StaticResource FlatSectionToggleStyle}">
-                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsAnalogSection]}"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="12" />
-                                            </ToggleButton>
-                                            <UniformGrid Columns="2"
-                                                         Margin="0,2,0,0"
-                                                         Visibility="{Binding IsChecked, ElementName=AnalogSettingsToggle, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[DefaultAnalogThresholdLabel]}"
-                                                               Margin="0,0,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding DefaultAnalogActivationThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.00}}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,0,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[MouseLookSensitivityLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding MouseLookSensitivity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AnalogEpsilonLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding AnalogChangeEpsilon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.000}}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[PollingIntervalLabel]}"
-                                                               Margin="0,4,8,0"
-                                                               TextWrapping="Wrap" />
-                                                    <TextBox Text="{Binding GamepadPollingIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                             Width="88"
-                                                             HorizontalAlignment="Left"
-                                                             Margin="0,4,0,4" />
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <ComboBox SelectedIndex="{Binding RadialMenuConfirmModeIndex, Mode=TwoWay}"
-                                                              HorizontalAlignment="Stretch"
-                                                              Margin="0,4,0,0">
-                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReturnCenter]}" />
-                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuConfirmModeReleaseGuide]}" />
-                                                    </ComboBox>
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeLabel]}"
-                                                               Margin="0,4,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <ComboBox SelectedIndex="{Binding RadialMenuHudLabelModeIndex, Mode=TwoWay}"
-                                                              HorizontalAlignment="Stretch"
-                                                              Margin="0,4,0,0">
-                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeBoth]}" />
-                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeDescriptionOnly]}" />
-                                                        <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[RadialMenuHudLabelModeKeyboardKeyOnly]}" />
-                                                    </ComboBox>
-                                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[RadialHudScaleLabel]}"
-                                                               Margin="0,8,8,4"
-                                                               TextWrapping="Wrap" />
-                                                    <StackPanel Orientation="Horizontal"
-                                                                Margin="0,8,0,0"
-                                                                VerticalAlignment="Center">
-                                                        <Slider Width="168"
-                                                                Minimum="{x:Static utils:RadialHudLayout.MinHudScale}"
-                                                                Maximum="{x:Static utils:RadialHudLayout.MaxHudScale}"
-                                                                SmallChange="0.05"
-                                                                LargeChange="0.25"
-                                                                TickFrequency="0.25"
-                                                                IsSnapToTickEnabled="False"
-                                                                VerticalAlignment="Center"
-                                                                Value="{Binding RadialHudScaleSetting, Mode=TwoWay}" />
-                                                        <TextBlock VerticalAlignment="Center"
-                                                                   Margin="10,0,0,0"
-                                                                   MinWidth="40"
-                                                                   Text="{Binding RadialHudScaleSetting, StringFormat={}{0:0.##}}" />
-                                                    </StackPanel>
-                                            </UniformGrid>
-                                        </StackPanel>
+                                            MinWidth="400"
+                                            MaxWidth="480"
+                                            DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=local:MainView}}">
+                                        <local:AppSettingsView />
                                     </Border>
                                 </Popup>
                             </Grid>
@@ -568,20 +168,13 @@
                                           Margin="10,0,0,0"
                                           MinHeight="32"
                                           VerticalAlignment="Center"
-                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[LiveGamepadMonitor]}"
+                                          ToolTip="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorToolbarTooltip]}"
                                           IsChecked="{Binding GamepadMonitorPanel.IsMonitorExpanderExpanded, Mode=TwoWay}">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton"
                                            BasedOn="{StaticResource ToolbarToggleButtonStyle}">
                                         <Setter Property="Padding" Value="8,0,12,0" />
                                         <Setter Property="HorizontalContentAlignment" Value="Left" />
-                                        <Setter Property="Visibility" Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding GamepadMonitorPanel.IsMonitorExpanderExpanded}"
-                                                         Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </ToggleButton.Style>
                                 <StackPanel Orientation="Horizontal">
@@ -592,9 +185,16 @@
                                         <Path Data="M2,2 L10,6 L2,10 Z"
                                               Fill="{DynamicResource AppTextBrush}" />
                                     </Viewbox>
-                                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[LiveGamepadMonitor]}"
-                                               VerticalAlignment="Center"
-                                               FontWeight="SemiBold" />
+                                    <Grid VerticalAlignment="Center">
+                                        <TextBlock FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorShow]}"
+                                                   Visibility="{Binding GamepadMonitorPanel.IsMonitorExpanderExpanded, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}" />
+                                        <TextBlock FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorHide]}"
+                                                   Visibility="{Binding GamepadMonitorPanel.IsMonitorExpanderExpanded, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
                                 </StackPanel>
                             </ToggleButton>
                         </StackPanel>
@@ -776,61 +376,10 @@
                 </Grid>
         </Border>
 
-        <!-- Monitor panel occupies a dedicated column when expanded. -->
-        <Border Grid.Row="0"
-                Grid.Column="1"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Stretch"
-                Margin="12,0,0,0"
-                Width="320"
-                Panel.ZIndex="1">
-            <Border.Style>
-                <Style TargetType="Border"
-                       BasedOn="{StaticResource SectionCardBorder}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding GamepadMonitorPanel.IsMonitorExpanderExpanded}"
-                                     Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <Grid>
-                <DockPanel LastChildFill="True">
-                    <Grid DockPanel.Dock="Top"
-                          Margin="8,6,8,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[LiveGamepadMonitor]}"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <Button Grid.Column="1"
-                                Width="28"
-                                Height="28"
-                                Padding="0"
-                                VerticalAlignment="Center"
-                                Command="{Binding GamepadMonitorPanel.CollapseMonitorCommand}">
-                            <Viewbox Width="10" Height="10">
-                                <Path Data="M2,2 L10,10 M10,2 L2,10"
-                                      Stroke="{DynamicResource AppTextBrush}"
-                                      StrokeThickness="1.6"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round" />
-                            </Viewbox>
-                        </Button>
-                    </Grid>
-                    <sections:GamepadMonitorView DataContext="{Binding GamepadMonitorPanel}"
-                                                 Margin="8,0,8,8" />
-                </DockPanel>
-            </Grid>
-        </Border>
+        <!-- Live monitor: separate tool window (GamepadMonitorWindow), opened from the toolbar toggle. -->
 
         <Grid Grid.Row="2"
-              Grid.ColumnSpan="2">
+              Grid.Column="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />

@@ -39,7 +39,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private readonly Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> _enqueueItemCycleTap;
     private readonly Action<string, TriggerMoment, Key[], Key, string, string> _enqueueChordTap;
     private readonly OutputStateTracker _outputStateTracker = new();
-    private readonly AnalogProcessor _analogProcessor = new();
+    private readonly AnalogProcessor _analogProcessor;
     private readonly IInputDispatcher _inputDispatcher;
     private readonly Action<ComboHudContent?>? _setComboHud;
     private readonly object _inputFrameSync = new();
@@ -76,6 +76,14 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private readonly bool _ownsRadialMenuHud;
     private readonly Func<float> _getRadialMenuStickEngagementThreshold;
     private readonly Func<RadialMenuConfirmMode> _getRadialMenuConfirmMode;
+    private readonly Func<float> _getMouseLookSensitivity;
+    private readonly Func<float> _getMouseLookSmoothing;
+    private readonly Func<float> _getMouseLookSettleMagnitude;
+    private readonly Func<float> _getMouseLookReboundSuppression;
+    private readonly Func<int> _getGamepadPollingIntervalMs;
+    private readonly Func<float> _getAnalogChangeEpsilon;
+    private readonly Func<float> _getAnalogHysteresisPressExtra;
+    private readonly Func<float> _getAnalogHysteresisReleaseExtra;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
@@ -97,7 +105,15 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         Func<RadialMenuConfirmMode>? getRadialMenuConfirmMode = null,
         ITimeProvider? timeProvider = null,
         IInputDispatcher? inputDispatcher = null,
-        bool ownsRadialMenuHud = true)
+        bool ownsRadialMenuHud = true,
+        Func<float>? getMouseLookSensitivity = null,
+        Func<float>? getMouseLookSmoothing = null,
+        Func<float>? getMouseLookSettleMagnitude = null,
+        Func<float>? getMouseLookReboundSuppression = null,
+        Func<int>? getGamepadPollingIntervalMs = null,
+        Func<float>? getAnalogChangeEpsilon = null,
+        Func<float>? getAnalogHysteresisPressExtra = null,
+        Func<float>? getAnalogHysteresisReleaseExtra = null)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
         _ui = ui;
@@ -107,6 +123,15 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             getRadialMenuStickEngagementThreshold ?? (() => 0.35f);
         _getRadialMenuConfirmMode =
             getRadialMenuConfirmMode ?? (() => RadialMenuConfirmMode.ReturnStickToCenter);
+        _getMouseLookSensitivity = getMouseLookSensitivity ?? (() => AnalogProcessor.LegacyDefaultMouseLookSensitivity);
+        _getMouseLookSmoothing = getMouseLookSmoothing ?? (() => 0f);
+        _getMouseLookSettleMagnitude = getMouseLookSettleMagnitude ?? (() => 0.02f);
+        _getMouseLookReboundSuppression = getMouseLookReboundSuppression ?? (() => 0f);
+        _getGamepadPollingIntervalMs = getGamepadPollingIntervalMs ?? (() => 10);
+        _getAnalogChangeEpsilon = getAnalogChangeEpsilon ?? (() => 0.01f);
+        _getAnalogHysteresisPressExtra = getAnalogHysteresisPressExtra ?? (() => 0f);
+        _getAnalogHysteresisReleaseExtra = getAnalogHysteresisReleaseExtra ?? (() => 0.01f);
+        _analogProcessor = new AnalogProcessor(_getAnalogHysteresisPressExtra, _getAnalogHysteresisReleaseExtra);
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
@@ -164,7 +189,13 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             _mouseEmulator,
             () => CanDispatchOutputMerged(),
             _setMappedOutput,
-            _setMappingStatus);
+            _setMappingStatus,
+            _getMouseLookSensitivity,
+            _getMouseLookSmoothing,
+            _getMouseLookSettleMagnitude,
+            _getMouseLookReboundSuppression,
+            _getGamepadPollingIntervalMs,
+            _getAnalogChangeEpsilon);
 
         if (_setComboHud != null)
         {
@@ -687,14 +718,6 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
         errorStatus = null;
         return false;
-    }
-
-    private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY, float stickMagnitude)
-    {
-        var delta = _analogProcessor.AccumulateMouseLookDelta(thumbstickSource, deltaX, deltaY);
-        // Mouse movement is currently direct because it's high-frequency (every frame) 
-        // and doesn't have a "hold duration" that would block the input loop.
-        _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy, stickMagnitude);
     }
 
     public bool Execute(KeyboardActionDefinition action, string sourceToken, out string? errorStatus)

@@ -10,6 +10,12 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
 {
+    public const double MonitorPanelWidthMin = 180;
+    public const double MonitorPanelWidthMax = 520;
+
+    public static double ClampMonitorWidth(double pixels) =>
+        Math.Clamp(pixels, MonitorPanelWidthMin, MonitorPanelWidthMax);
+
     private const float TriggerDeadzoneMinSpan = 0.02f;
     private const double UiRefreshHz = 60.0;
 
@@ -185,6 +191,9 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool isMonitorExpanderExpanded;
+
+    [ObservableProperty]
+    private double monitorPanelWidth = 220;
 
     [ObservableProperty]
     private float leftThumbstickDeadzone;

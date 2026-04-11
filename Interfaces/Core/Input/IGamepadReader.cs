@@ -10,6 +10,8 @@ public interface IGamepadReader : IDisposable
     void Start();
     void Stop();
 
+    ThumbstickDeadzoneShape ThumbstickDeadzoneShape { get; set; }
+
     float LeftThumbstickDeadzone { get; set; }
     float RightThumbstickDeadzone { get; set; }
     float LeftTriggerInnerDeadzone { get; set; }

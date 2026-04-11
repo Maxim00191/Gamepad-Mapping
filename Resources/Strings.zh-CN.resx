@@ -90,6 +90,27 @@
   <data name="LiveGamepadMonitor" xml:space="preserve">
     <value>手柄实时监视器</value>
   </data>
+  <data name="GamepadMonitorShow" xml:space="preserve">
+    <value>显示监视器</value>
+  </data>
+  <data name="GamepadMonitorHide" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
+    <value>显示或隐藏实时监视器窗口。拖动窗口边缘调整宽度；宽度保存在应用设置中。</value>
+  </data>
+  <data name="GamepadMonitorReaderOn" xml:space="preserve">
+    <value>读取中</value>
+  </data>
+  <data name="GamepadMonitorReaderOff" xml:space="preserve">
+    <value>已停止</value>
+  </data>
+  <data name="GamepadMonitorAnalogMetersHeader" xml:space="preserve">
+    <value>摇杆与扳机</value>
+  </data>
+  <data name="GamepadMonitorActivityExpander" xml:space="preserve">
+    <value>按键与输出</value>
+  </data>
   <data name="ShowHud" xml:space="preserve">
     <value>启用组合键提示（屏幕 HUD）</value>
   </data>
@@ -247,7 +268,22 @@
     <value>应用程序设置</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>调整全局时间、键鼠输出 API、手柄轮询间隔、模拟触发阈值与键鼠模拟等。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+    <value>语言、更新、输入/输出、手柄、映射与径向菜单/HUD 等全局选项。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+  </data>
+  <data name="AppSettingsTabGeneral" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="AppSettingsTabInputOutput" xml:space="preserve">
+    <value>输入 / 输出</value>
+  </data>
+  <data name="AppSettingsTabGamepad" xml:space="preserve">
+    <value>手柄</value>
+  </data>
+  <data name="AppSettingsTabMapping" xml:space="preserve">
+    <value>映射</value>
+  </data>
+  <data name="AppSettingsTabRadialHud" xml:space="preserve">
+    <value>径向菜单 / HUD</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>选择语言</value>
@@ -298,7 +334,7 @@
     <value>时间与键盘</value>
   </data>
   <data name="AppSettingsAnalogSection" xml:space="preserve">
-    <value>摇杆与轮询</value>
+    <value>模拟量与视角移动</value>
   </data>
   <data name="ModifierGraceLabel" xml:space="preserve">
     <value>修饰键容限 / 组合 HUD 延迟（毫秒）</value>
@@ -318,8 +354,32 @@
   <data name="DefaultAnalogThresholdLabel" xml:space="preserve">
     <value>默认模拟触发阈值（0–1）</value>
   </data>
+  <data name="ThumbstickDeadzoneShapeLabel" xml:space="preserve">
+    <value>摇杆死区形状</value>
+  </data>
+  <data name="ThumbstickDeadzoneShapeAxial" xml:space="preserve">
+    <value>轴向（分轴）</value>
+  </data>
+  <data name="ThumbstickDeadzoneShapeRadial" xml:space="preserve">
+    <value>径向（圆形）</value>
+  </data>
+  <data name="AnalogHysteresisPressExtraLabel" xml:space="preserve">
+    <value>模拟按下额外阈值（0–0.2）</value>
+  </data>
+  <data name="AnalogHysteresisReleaseExtraLabel" xml:space="preserve">
+    <value>模拟释放回差（0–0.3）</value>
+  </data>
   <data name="MouseLookSensitivityLabel" xml:space="preserve">
     <value>鼠标视角灵敏度</value>
+  </data>
+  <data name="MouseLookSmoothingLabel" xml:space="preserve">
+    <value>鼠标视角平滑（0–1）</value>
+  </data>
+  <data name="MouseLookSettleMagnitudeLabel" xml:space="preserve">
+    <value>鼠标视角回中阈值（0–1）</value>
+  </data>
+  <data name="MouseLookReboundSuppressionLabel" xml:space="preserve">
+    <value>鼠标视角回弹抑制（0–1）</value>
   </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>摇杆变化灵敏度（ε）</value>

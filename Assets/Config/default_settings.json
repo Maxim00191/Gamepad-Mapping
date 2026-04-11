@@ -9,5 +9,7 @@
       "Assets/Config/local_settings.json"
     ],
     "removeOrphanFiles": true
-  }
+  },
+  "gamepadMonitorPanelWidth": 220,
+  "gamepadMonitorVisible": false
 }
