@@ -226,7 +226,7 @@ public class AppSettings
 
     /// <summary>Relative strength of human-like noise (normalized, typically 0–1). Clamped when applied.</summary>
     [JsonProperty("humanNoiseAmplitude")]
-    public float HumanNoiseAmplitude { get; set; } = 0.1f;
+    public float HumanNoiseAmplitude { get; set; } = 0.3f;
 
     /// <summary>How often the noise pattern varies (normalized, typically 0–1). Clamped when applied.</summary>
     [JsonProperty("humanNoiseFrequency")]

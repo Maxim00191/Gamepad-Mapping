@@ -264,6 +264,9 @@
   <data name="InputApiWin32Hint" xml:space="preserve">
     <value>使用 Windows SendInput 注入按键与鼠标。后续可加入更多后端。</value>
   </data>
+  <data name="InputApiInputInjectionLabel" xml:space="preserve">
+    <value>Input Injection (Windows 10+)</value>
+  </data>
   <data name="HumanNoiseEnableLabel" xml:space="preserve">
     <value>类人化时间抖动</value>
   </data>

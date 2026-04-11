@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GamepadMapperGUI.Core;
+using GamepadMapperGUI.Core.Emulation;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -25,12 +26,19 @@ public static class InputEmulationServices
     {
         // Register default Win32 backend
         Register(InputEmulationApiIds.Win32, () => CreateWin32());
+        Register(InputEmulationApiIds.InputInjection, () => CreateInputInjection());
     }
 
     /// <summary>Registers a new emulation backend.</summary>
     public static void Register(string apiId, Func<(IKeyboardEmulator Keyboard, IMouseEmulator Mouse)> factory)
     {
         _registry[apiId] = factory;
+    }
+
+    /// <summary>Creates paired emulators using Windows.UI.Input.Preview.Injection.</summary>
+    public static (IKeyboardEmulator Keyboard, IMouseEmulator Mouse) CreateInputInjection()
+    {
+        return (new InjectedKeyboardSimulator(), new InjectedMouseSimulator());
     }
 
     /// <summary>Creates paired emulators sharing one <see cref="ISendInputChannel"/> (one Win32 hook-up point).</summary>

@@ -542,6 +542,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         AvailableInputApis.Clear();
         AvailableInputApis.Add(new InputApiOption(InputEmulationApiIds.Win32, _settingsOrchestrator.Localize("InputApiWin32Label")));
+        AvailableInputApis.Add(new InputApiOption(InputEmulationApiIds.InputInjection, _settingsOrchestrator.Localize("InputApiInputInjectionLabel")));
 
         AvailableGamepadApis.Clear();
         AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.XInput, _settingsOrchestrator.Localize("GamepadSourceXInputLabel")));

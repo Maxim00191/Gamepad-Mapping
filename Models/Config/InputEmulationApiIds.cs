@@ -4,4 +4,5 @@ namespace GamepadMapperGUI.Models;
 public static class InputEmulationApiIds
 {
     public const string Win32 = "Win32";
+    public const string InputInjection = "InputInjection";
 }
