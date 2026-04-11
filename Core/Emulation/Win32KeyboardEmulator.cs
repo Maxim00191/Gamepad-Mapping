@@ -10,6 +10,7 @@ using GamepadMapperGUI.Interfaces.Services.Storage;
 using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -36,34 +37,59 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
         _sendChannel = sendChannel ?? new Win32SendInputChannel();
     }
 
+    public void Execute(OutputCommand command)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.KeyPress: KeyDown(command.Key); break;
+            case OutputCommandType.KeyRelease: KeyUp(command.Key); break;
+            case OutputCommandType.KeyTap: TapKey(command.Key, keyHoldMs: command.Metadata > 0 ? command.Metadata : DefaultTapHoldMs); break;
+            case OutputCommandType.Text: SendText(command.Text ?? string.Empty); break;
+        }
+    }
+
+    public async Task ExecuteAsync(OutputCommand command, CancellationToken cancellationToken = default)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.KeyPress: KeyDown(command.Key); break;
+            case OutputCommandType.KeyRelease: KeyUp(command.Key); break;
+            case OutputCommandType.KeyTap: await TapKeyAsync(command.Key, keyHoldMs: command.Metadata > 0 ? command.Metadata : DefaultTapHoldMs, cancellationToken: cancellationToken).ConfigureAwait(false); break;
+            case OutputCommandType.Text: SendText(command.Text ?? string.Empty); break;
+        }
+    }
+
     public void KeyDown(Key key)
     {
-        if (key == Key.None)
-            throw new ArgumentException("Key cannot be Key.None.", nameof(key));
+        if (key == Key.None) return;
 
         var vk = (ushort)KeyInterop.VirtualKeyFromKey(key);
         if (vk == 0)
-            throw new ArgumentException($"Unsupported key for Win32 virtual-key mapping: {key}", nameof(key));
+        {
+            App.Logger.Warning($"Unsupported key for Win32 virtual-key mapping: {key}");
+            return;
+        }
 
         SendKeyboardKey(vk, keyUp: false);
     }
 
     public void KeyUp(Key key)
     {
-        if (key == Key.None)
-            throw new ArgumentException("Key cannot be Key.None.", nameof(key));
+        if (key == Key.None) return;
 
         var vk = (ushort)KeyInterop.VirtualKeyFromKey(key);
         if (vk == 0)
-            throw new ArgumentException($"Unsupported key for Win32 virtual-key mapping: {key}", nameof(key));
+        {
+            App.Logger.Warning($"Unsupported key for Win32 virtual-key mapping: {key}");
+            return;
+        }
 
         SendKeyboardKey(vk, keyUp: true);
     }
 
     public void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = DefaultTapHoldMs)
     {
-        if (repeatCount < 1)
-            throw new ArgumentOutOfRangeException(nameof(repeatCount), "repeatCount must be >= 1.");
+        if (key == Key.None || repeatCount < 1) return;
 
         var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
         for (var i = 0; i < repeatCount; i++)
@@ -84,8 +110,7 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
         int keyHoldMs = DefaultTapHoldMs,
         CancellationToken cancellationToken = default)
     {
-        if (repeatCount < 1)
-            throw new ArgumentOutOfRangeException(nameof(repeatCount), "repeatCount must be >= 1.");
+        if (key == Key.None || repeatCount < 1) return;
 
         var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
         for (var i = 0; i < repeatCount; i++)
@@ -101,9 +126,7 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
 
     public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs)
     {
-        if (mainKey == Key.None)
-            throw new ArgumentException("Main key cannot be Key.None.", nameof(mainKey));
-        if (modifiers is null) throw new ArgumentNullException(nameof(modifiers));
+        if (mainKey == Key.None || modifiers is null) return;
 
         var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
         var modList = new List<Key>();
@@ -138,9 +161,7 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
         int keyHoldMs = DefaultTapHoldMs,
         CancellationToken cancellationToken = default)
     {
-        if (mainKey == Key.None)
-            throw new ArgumentException("Main key cannot be Key.None.", nameof(mainKey));
-        if (modifiers is null) throw new ArgumentNullException(nameof(modifiers));
+        if (mainKey == Key.None || modifiers is null) return;
 
         var effectiveHoldMs = Math.Clamp(keyHoldMs, MinTapHoldMs, MaxTapHoldMs);
         var modList = new List<Key>();
@@ -171,7 +192,7 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
 
     public void SendText(string text, int interCharDelayMs = 0)
     {
-        if (text is null) throw new ArgumentNullException(nameof(text));
+        if (string.IsNullOrEmpty(text)) return;
 
         lock (_sendLock)
         {
@@ -189,7 +210,7 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
 
     public void TapKeys(IEnumerable<Key> keys)
     {
-        if (keys is null) throw new ArgumentNullException(nameof(keys));
+        if (keys is null) return;
 
         lock (_sendLock)
         {

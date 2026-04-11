@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core.Emulation.Noise;
 
@@ -30,6 +31,55 @@ public sealed class HumanizingMouseEmulator : IMouseEmulator
     {
         _inner = inner;
         _noise = noise;
+    }
+
+    public void Execute(OutputCommand command)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.PointerDown:
+            case OutputCommandType.PointerUp:
+            case OutputCommandType.PointerClick:
+            case OutputCommandType.PointerWheel:
+                _inner.Execute(command);
+                break;
+        }
+    }
+
+    public async Task ExecuteAsync(OutputCommand command, CancellationToken cancellationToken = default)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.PointerDown:
+            case OutputCommandType.PointerUp:
+            case OutputCommandType.PointerWheel:
+                await _inner.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+                break;
+            case OutputCommandType.PointerClick:
+                Action? down = command.PointerAction switch
+                {
+                    PointerAction.LeftClick => _inner.LeftDown,
+                    PointerAction.RightClick => _inner.RightDown,
+                    PointerAction.MiddleClick => _inner.MiddleDown,
+                    PointerAction.X1Click => _inner.X1Down,
+                    PointerAction.X2Click => _inner.X2Down,
+                    _ => null
+                };
+                Action? up = command.PointerAction switch
+                {
+                    PointerAction.LeftClick => _inner.LeftUp,
+                    PointerAction.RightClick => _inner.RightUp,
+                    PointerAction.MiddleClick => _inner.MiddleUp,
+                    PointerAction.X1Click => _inner.X1Up,
+                    PointerAction.X2Click => _inner.X2Up,
+                    _ => null
+                };
+                if (down != null && up != null)
+                {
+                    await ClickAsync(down, up, cancellationToken).ConfigureAwait(false);
+                }
+                break;
+        }
     }
 
     public void LeftDown() => _inner.LeftDown();

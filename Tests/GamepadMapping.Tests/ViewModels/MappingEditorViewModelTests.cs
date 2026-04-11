@@ -84,7 +84,7 @@ public class MappingEditorViewModelTests
 
         vm.RecordKeyboardKeyCommand.Execute(null);
 
-        _keyboardCaptureServiceMock.Verify(k => k.BeginCapture(It.IsAny<string>(), It.IsAny<Action<Key>>()), Times.Once);
+        _keyboardCaptureServiceMock.Verify(k => k.BeginCapture(It.IsAny<string>(), It.IsAny<Action<Key>>()), Times.Once());
     }
 
     [Fact]

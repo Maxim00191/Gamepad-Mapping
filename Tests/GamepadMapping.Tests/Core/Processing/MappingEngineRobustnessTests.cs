@@ -12,6 +12,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapping.Tests.Support;
 using Moq;
 
 using Xunit;
@@ -138,7 +139,7 @@ public class MappingEngineRobustnessTests
 
         // Current behavior: Tap triggers on Pressed event.
         // So even a 1ms glitch will trigger a Tap.
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Space, Times.Once());
     }
 
     [Fact]
@@ -161,8 +162,8 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
 
         // 25 presses, 25 releases
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Exactly(25));
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Exactly(25));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Exactly(25));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Exactly(25));
     }
 
     [Fact]
@@ -184,8 +185,8 @@ public class MappingEngineRobustnessTests
 
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Exactly(50));
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Exactly(50));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Exactly(50));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Exactly(50));
     }
 
     [Fact]
@@ -208,7 +209,7 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
 
         // Each press (50 times) should trigger a Tap
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(50));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Space, Times.Exactly(50));
     }
 
     [Fact]
@@ -244,9 +245,9 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
 
         // Should have 50 Taps of 'T'
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(50));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Exactly(50));
         // Should have 0 Taps of 'H' (Hold)
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Never());
     }
 
     [Fact]
@@ -280,14 +281,14 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.A | GamepadButtons.B), mappings);
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
 
         // Disconnect!
         engine.ProcessInputFrame(InputFrame.Disconnected(3), mappings);
         
         await engine.WaitForIdleAsync();
         // Should release Space
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
     }
 
     [Fact]
@@ -334,7 +335,7 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A), profile1);
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
 
         // Switch to Profile 2 while A is still held.
         // In real app, the engine is NOT disposed, just the mappingsSnapshot changes.
@@ -346,7 +347,7 @@ public class MappingEngineRobustnessTests
         engine.ForceReleaseAllOutputs();
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
         
         // Now continue with profile 2
         engine.ProcessInputFrame(Frame(2, GamepadButtons.A), profile2);
@@ -354,7 +355,7 @@ public class MappingEngineRobustnessTests
         // Since A was already active in the engine's state, it might not trigger a new Pressed event 
         // unless the frame transition middleware sees it as a new press.
         // In this case, A is still held, so transition middleware won't see it as Pressed.
-        mockKeyboard.Verify(k => k.KeyDown(Key.Enter), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Enter, Times.Never());
     }
 
     [Fact]
@@ -390,14 +391,14 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(stickUp, mappings);
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.W), Times.Once);
+        mockKeyboard.Verify(k => k.KeyDown(Key.W), Times.Once());
 
         // Disconnect!
         engine.ProcessInputFrame(InputFrame.Disconnected(2), mappings);
         
         await engine.WaitForIdleAsync();
         // Should release W
-        mockKeyboard.Verify(k => k.KeyUp(Key.W), Times.Once);
+        mockKeyboard.Verify(k => k.KeyUp(Key.W), Times.Once());
     }
 
     [Fact]
@@ -429,14 +430,14 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A | GamepadButtons.B), mappings);
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
 
         // Release B but keep A
         engine.ProcessInputFrame(Frame(2, GamepadButtons.A), mappings);
         
         await engine.WaitForIdleAsync();
         // Space should be released because the chord A+B is no longer satisfied
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
     }
 
     [Fact]
@@ -484,18 +485,20 @@ public class MappingEngineRobustnessTests
         // 1. Press A (Lead) -> Nothing yet (deferred because A is a lead for A+B)
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(It.IsAny<Key>()), Times.Never);
+        mockKeyboard.Verify(
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress), It.IsAny<CancellationToken>()),
+            Times.Never());
 
         // 2. Press B -> Space Down (Chord satisfied)
         engine.ProcessInputFrame(Frame(2, GamepadButtons.A | GamepadButtons.B), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.Enter), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Enter, Times.Never());
 
         // 3. Release B (Keep A) -> Space Up
         engine.ProcessInputFrame(Frame(3, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
         
         // 4. Finally release A -> Should NOT trigger Enter (Solo) 
         // because A was part of a chord that already fired.
@@ -505,7 +508,7 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
         
         // After fix, this should now be correctly suppressed.
-        mockKeyboard.Verify(k => k.KeyDown(Key.Enter), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Enter, Times.Never());
         // The engine might still call KeyUp for Enter if it was tracking it as a potential output,
         // but it should not have called KeyDown.
     }
@@ -539,14 +542,14 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A | GamepadButtons.B), mappings);
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
 
         // Release A (Lead) but keep B (Action)
         engine.ProcessInputFrame(Frame(2, GamepadButtons.B), mappings);
         
         await engine.WaitForIdleAsync();
         // Space should be released because the chord A+B is no longer satisfied
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
     }
 
     [Fact]
@@ -557,7 +560,12 @@ public class MappingEngineRobustnessTests
         
         // Block the emulator to simulate slow system/heavy load
         var tcs = new TaskCompletionSource();
-        mockKeyboard.Setup(k => k.KeyDown(It.IsAny<Key>())).Callback(() => tcs.Task.Wait());
+        mockKeyboard.Setup(k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                tcs.Task.Wait();
+                return Task.CompletedTask;
+            });
 
         using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
         var mappings = SpacePressReleaseOnA();
@@ -576,8 +584,8 @@ public class MappingEngineRobustnessTests
         await engine.WaitForIdleAsync();
 
         // Should have processed all 1000 presses and releases
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Exactly(1000));
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Exactly(1000));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Exactly(1000));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Exactly(1000));
     }
 
     [Fact]
@@ -614,7 +622,7 @@ public class MappingEngineRobustnessTests
         // Use AtLeast once because concurrent frames might be dropped if they arrive out of order or too fast
         // but we want to ensure no crashes and some processing happens.
         // Actually, for this test to be robust, we just want to ensure it doesn't crash.
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.AtLeastOnce());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.AtLeastOnce());
     }
 
     [Fact]
@@ -624,8 +632,12 @@ public class MappingEngineRobustnessTests
         var mockMouse = new Mock<IMouseEmulator>();
         var sequence = new List<string>();
         
-        mockKeyboard.Setup(k => k.KeyDown(Key.A)).Callback(() => sequence.Add("A"));
-        mockKeyboard.Setup(k => k.KeyDown(Key.B)).Callback(() => sequence.Add("B"));
+        mockKeyboard.Setup(k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress && c.Key == Key.A), It.IsAny<CancellationToken>()))
+            .Callback(() => sequence.Add("A"))
+            .Returns(Task.CompletedTask);
+        mockKeyboard.Setup(k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress && c.Key == Key.B), It.IsAny<CancellationToken>()))
+            .Callback(() => sequence.Add("B"))
+            .Returns(Task.CompletedTask);
 
         using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
         
@@ -664,8 +676,12 @@ public class MappingEngineRobustnessTests
         var mockMouse = new Mock<IMouseEmulator>();
         var sequence = new List<string>();
         
-        mockKeyboard.Setup(k => k.KeyDown(Key.Q)).Callback(() => sequence.Add("Q"));
-        mockKeyboard.Setup(k => k.KeyDown(Key.E)).Callback(() => sequence.Add("E"));
+        mockKeyboard.Setup(k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress && c.Key == Key.Q), It.IsAny<CancellationToken>()))
+            .Callback(() => sequence.Add("Q"))
+            .Returns(Task.CompletedTask);
+        mockKeyboard.Setup(k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress && c.Key == Key.E), It.IsAny<CancellationToken>()))
+            .Callback(() => sequence.Add("E"))
+            .Returns(Task.CompletedTask);
 
         using var engine = CreateEngine(mockKeyboard.Object, mockMouse.Object);
         
@@ -729,14 +745,19 @@ public class MappingEngineRobustnessTests
         // 1. Press RB (Modifier) -> Nothing
         engine.ProcessInputFrame(Frame(1, GamepadButtons.RightShoulder), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(It.IsAny<Key>()), Times.Never);
+        mockKeyboard.Verify(
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress), It.IsAny<CancellationToken>()),
+            Times.Never());
 
         // 2. Press A while RB is held -> Should trigger P, NOT Space
         engine.ProcessInputFrame(Frame(2, GamepadButtons.RightShoulder | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.KeyDown(Key.P), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Never, "A should be deferred because RB is a lead button for RB+A");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.P, Times.Once());
+        mockKeyboard.Verify(
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress && c.Key == Key.Space), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "A should be deferred because RB is a lead button for RB+A");
     }
 
     [Fact]
@@ -775,7 +796,7 @@ public class MappingEngineRobustnessTests
         // 1. Press A first -> Should trigger Space (A is not a lead)
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
         
         // 2. Release A
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
@@ -789,8 +810,8 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(4, GamepadButtons.RightShoulder | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.KeyDown(Key.P), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once, "Space should not have been triggered a second time");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.P, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once(), "Space should not have been triggered a second time");
     }
 
     [Fact]
@@ -828,8 +849,8 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.RightShoulder | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.KeyDown(Key.P), Times.Once);
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never, "A (Tap) should be suppressed when RB is held");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.P, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Space, Times.Never(), "A (Tap) should be suppressed when RB is held");
     }
 
     [Fact]
@@ -863,13 +884,13 @@ public class MappingEngineRobustnessTests
         // 1. Press B
         engine.ProcessInputFrame(Frame(1, GamepadButtons.B), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Enter), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Enter, Times.Once());
 
         // 2. Press A while B is held -> Should trigger Space (Tap) because B is not a lead
         engine.ProcessInputFrame(Frame(2, GamepadButtons.B | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once, "A (Tap) should NOT be suppressed when a non-lead button is held");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Space, Times.Once(), "A (Tap) should NOT be suppressed when a non-lead button is held");
     }
 
     [Fact]
@@ -907,8 +928,8 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.RightShoulder | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.KeyDown(Key.P), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Never, "A (Pressed) should be suppressed when RB is held");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.P, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Never(), "A (Pressed) should be suppressed when RB is held");
     }
 
     [Fact]
@@ -949,21 +970,21 @@ public class MappingEngineRobustnessTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.RightShoulder | GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
         
-        mockKeyboard.Verify(k => k.KeyDown(Key.P), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.P, Times.Once());
         
         // 3. Advance time past A's hold threshold
         mockTime.Advance(400);
         await engine.WaitForIdleAsync();
         
         // Should NOT trigger LeftClick (Hold)
-        mockMouse.Verify(m => m.LeftDown(), Times.Never);
+        mockMouse.Verify(m => m.LeftDown(), Times.Never());
 
         // 4. Release A
         engine.ProcessInputFrame(Frame(500, GamepadButtons.RightShoulder), mappings);
         await engine.WaitForIdleAsync();
         
         // Should NOT trigger Space (Tap)
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Space, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Space, Times.Never());
     }
 }
 

@@ -8,6 +8,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Core.Input;
 
 namespace GamepadMapperGUI.Core;
 
@@ -80,11 +81,10 @@ internal sealed class AnalogMappingProcessor
                 continue;
             }
 
-            var key = InputTokenResolver.ParseKey(outputToken);
-            if (key == Key.None)
+            if (!InputTokenResolver.TryResolveMappedOutput(outputToken, out var output, out var baseLabel))
                 continue;
 
-            HandleAnalogKeyboardOutput(mapping, source, stickValue, key);
+            HandleAnalogOutput(mapping, source, stickValue, output, baseLabel);
         }
 
         bool hasMouseMovement = MathF.Abs(mouseDeltaX) > 0f || MathF.Abs(mouseDeltaY) > 0f;
@@ -99,7 +99,7 @@ internal sealed class AnalogMappingProcessor
         }
     }
 
-    public void ProcessTrigger(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot, Action<PointerAction, TriggerMoment> sendPointerAction)
+    public void ProcessTrigger(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot, Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch)
     {
         if (!_canDispatchOutput())
         {
@@ -115,51 +115,52 @@ internal sealed class AnalogMappingProcessor
             if (!InputTokenResolver.TryResolveMappedOutput(mapping.KeyboardKey, out var output, out var baseLabel))
                 continue;
 
-            var stateKey = $"Trigger|{mapping.From.Type}|{mapping.From.Value}|{InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty)}|{mapping.Trigger}";
-            var transition = _analogProcessor.EvaluateTriggerTransition(mapping, triggerValue, stateKey);
+            var transition = _analogProcessor.EvaluateTriggerTransition(mapping, triggerValue);
             if (!transition.HasChanged)
                 continue;
 
             try
             {
-                if (output.KeyboardKey is Key key && key != Key.None)
+                var command = TranslateToCommand(output, transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released);
+                if (command.Type != OutputCommandType.None)
                 {
-                    if (transition.IsActive)
+                    if (command.Type is OutputCommandType.KeyPress or OutputCommandType.KeyRelease or OutputCommandType.KeyTap)
                     {
-                        if (mapping.Trigger == TriggerMoment.Tap)
-                            _keyboardEmulator.TapKey(key);
-                        else if (mapping.Trigger != TriggerMoment.Released)
-                            _keyboardEmulator.KeyDown(key);
+                        if (transition.IsActive)
+                        {
+                            if (mapping.Trigger == TriggerMoment.Tap)
+                                _keyboardEmulator.TapKey(command.Key);
+                            else if (mapping.Trigger != TriggerMoment.Released)
+                                _keyboardEmulator.KeyDown(command.Key);
+                        }
+                        else
+                        {
+                            if (mapping.Trigger == TriggerMoment.Released)
+                                _keyboardEmulator.TapKey(command.Key);
+                            else if (mapping.Trigger != TriggerMoment.Tap)
+                                _keyboardEmulator.KeyUp(command.Key);
+                        }
                     }
                     else
                     {
-                        if (mapping.Trigger == TriggerMoment.Released)
-                            _keyboardEmulator.TapKey(key);
-                        else if (mapping.Trigger != TriggerMoment.Tap)
-                            _keyboardEmulator.KeyUp(key);
-                    }
-                }
-                else if (output.PointerAction is PointerAction pointerAction)
-                {
-                    if (transition.IsActive)
-                    {
-                        if (mapping.Trigger == TriggerMoment.Tap)
-                            sendPointerAction(pointerAction, TriggerMoment.Tap);
-                        else if (mapping.Trigger != TriggerMoment.Released)
-                            sendPointerAction(pointerAction, TriggerMoment.Pressed);
-                    }
-                    else
-                    {
-                        if (mapping.Trigger == TriggerMoment.Released)
-                            sendPointerAction(pointerAction, TriggerMoment.Tap);
-                        else if (mapping.Trigger != TriggerMoment.Tap)
-                            sendPointerAction(pointerAction, TriggerMoment.Released);
+                        // For pointer actions on triggers, we still use the dispatcher callback
+                        // to ensure they are queued and don't block the input loop.
+                        var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
+                        if (mapping.Trigger == TriggerMoment.Tap) moment = TriggerMoment.Tap;
+                        else if (mapping.Trigger == TriggerMoment.Released && !transition.IsActive) moment = TriggerMoment.Tap;
+
+                        queueOutputDispatch(
+                            triggerBindingType.ToString(),
+                            moment,
+                            output,
+                            $"{baseLabel} ({moment})",
+                            mapping.KeyboardKey ?? "trigger-input");
                     }
                 }
 
-                var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
-                _setMappedOutput($"{baseLabel} ({moment})");
-                _setMappingStatus($"Trigger {mapping.From.Type}: {baseLabel} ({moment})");
+                var finalMoment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
+                _setMappedOutput($"{baseLabel} ({finalMoment})");
+                _setMappingStatus($"Trigger {mapping.From.Type}: {baseLabel} ({finalMoment})");
             }
             catch (Exception ex)
             {
@@ -185,26 +186,64 @@ internal sealed class AnalogMappingProcessor
         _analogProcessor.RemoveAnalogKeyboardStateForBinding(sourceType);
     }
 
-    private void HandleAnalogKeyboardOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, Key key)
+    private void HandleAnalogOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, DispatchedOutput output, string baseLabel)
     {
-        var transition = _analogProcessor.EvaluateKeyboardTransition(mapping, source, stickValue, key);
+        var transition = _analogProcessor.EvaluateKeyboardTransition(mapping, source, stickValue, output.KeyboardKey ?? Key.None);
         if (!transition.HasChanged)
             return;
 
-        if (transition.IsActive)
+        var moment = transition.IsActive ? TriggerMoment.Pressed : TriggerMoment.Released;
+        var command = TranslateToCommand(output, moment);
+        if (command.Type == OutputCommandType.None) return;
+
+        if (command.Type is OutputCommandType.KeyPress or OutputCommandType.KeyRelease or OutputCommandType.KeyTap)
         {
-            if (mapping.Trigger == TriggerMoment.Tap)
-                _keyboardEmulator.TapKey(key);
-            else if (mapping.Trigger != TriggerMoment.Released)
-                _keyboardEmulator.KeyDown(key);
+            if (transition.IsActive)
+            {
+                if (mapping.Trigger == TriggerMoment.Tap)
+                    _keyboardEmulator.TapKey(command.Key);
+                else if (mapping.Trigger != TriggerMoment.Released)
+                    _keyboardEmulator.KeyDown(command.Key);
+            }
+            else
+            {
+                if (mapping.Trigger == TriggerMoment.Released)
+                    _keyboardEmulator.TapKey(command.Key);
+                else if (mapping.Trigger != TriggerMoment.Tap)
+                    _keyboardEmulator.KeyUp(command.Key);
+            }
         }
-        else
+    }
+
+    private static OutputCommand TranslateToCommand(DispatchedOutput output, TriggerMoment trigger)
+    {
+        if (output.KeyboardKey is { } key && key != Key.None)
         {
-            if (mapping.Trigger == TriggerMoment.Released)
-                _keyboardEmulator.TapKey(key);
-            else if (mapping.Trigger != TriggerMoment.Tap)
-                _keyboardEmulator.KeyUp(key);
+            var type = trigger switch
+            {
+                TriggerMoment.Pressed => OutputCommandType.KeyPress,
+                TriggerMoment.Released => OutputCommandType.KeyRelease,
+                _ => OutputCommandType.KeyTap
+            };
+            return new OutputCommand(type, Key: key);
         }
+
+        if (output.PointerAction is { } action && action != PointerAction.None)
+        {
+            var type = action switch
+            {
+                PointerAction.WheelUp or PointerAction.WheelDown => OutputCommandType.PointerWheel,
+                _ => trigger switch
+                {
+                    TriggerMoment.Pressed => OutputCommandType.PointerDown,
+                    TriggerMoment.Released => OutputCommandType.PointerUp,
+                    _ => OutputCommandType.PointerClick
+                }
+            };
+            return new OutputCommand(type, PointerAction: action);
+        }
+
+        return default;
     }
 
     private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY, float stickMagnitude)

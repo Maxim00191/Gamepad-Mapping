@@ -19,6 +19,8 @@ using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
 using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
+using GamepadMapperGUI.Core.Input;
+using GamepadMapperGUI.Core.Processing;
 
 namespace GamepadMapperGUI.Core;
 
@@ -212,7 +214,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
         var analogTransitionMiddleware = new AnalogTransitionMiddleware(
             _analogMappingProcessor,
-            SendPointerAction,
+            QueueOutputDispatch,
             ProcessNativeTriggerExecutableActions,
             () => _lastButtonMappingsSnapshot);
 
@@ -365,8 +367,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             MappingActionType.ItemCycle => new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _enqueueItemCycleTap),
             MappingActionType.TemplateToggle => new Actions.TemplateToggleAction(mapping, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _requestTemplateSwitchToProfileId),
             MappingActionType.Keyboard when mapping.From.Type != GamepadBindingType.Button =>
-                new Actions.KeyboardAction(mapping.KeyboardKey, TryDispatchLegacyKeyboard),
-            MappingActionType.Keyboard => null,
+                new Actions.KeyboardAction(mapping.KeyboardKey ?? string.Empty, TryDispatchLegacyKeyboard),
+            MappingActionType.Keyboard => new Actions.KeyboardAction(mapping.KeyboardKey ?? string.Empty, TryDispatchLegacyKeyboard),
             _ => null,
         };
     }
@@ -516,19 +518,48 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
     private async Task DispatchMappedOutputAsync(DispatchedOutput output, TriggerMoment trigger, CancellationToken cancellationToken)
     {
-        if (output.KeyboardKey is Key key && key != Key.None)
+        var command = TranslateToCommand(output, trigger);
+        if (command.Type == OutputCommandType.None) return;
+
+        if (command.Type is OutputCommandType.KeyPress or OutputCommandType.KeyRelease or OutputCommandType.KeyTap or OutputCommandType.Text)
         {
-            if (trigger == TriggerMoment.Pressed)
-                _keyboardEmulator.KeyDown(key);
-            else if (trigger == TriggerMoment.Released)
-                _keyboardEmulator.KeyUp(key);
-            else
-                await _keyboardEmulator.TapKeyAsync(key, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return;
+            await _keyboardEmulator.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await _mouseEmulator.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static OutputCommand TranslateToCommand(DispatchedOutput output, TriggerMoment trigger)
+    {
+        if (output.KeyboardKey is { } key && key != Key.None)
+        {
+            var type = trigger switch
+            {
+                TriggerMoment.Pressed => OutputCommandType.KeyPress,
+                TriggerMoment.Released => OutputCommandType.KeyRelease,
+                _ => OutputCommandType.KeyTap
+            };
+            return new OutputCommand(type, Key: key);
         }
 
-        if (output.PointerAction is PointerAction pointerAction)
-            await SendPointerActionAsync(pointerAction, trigger, cancellationToken).ConfigureAwait(false);
+        if (output.PointerAction is { } action && action != PointerAction.None)
+        {
+            var type = action switch
+            {
+                PointerAction.WheelUp or PointerAction.WheelDown => OutputCommandType.PointerWheel,
+                _ => trigger switch
+                {
+                    TriggerMoment.Pressed => OutputCommandType.PointerDown,
+                    TriggerMoment.Released => OutputCommandType.PointerUp,
+                    _ => OutputCommandType.PointerClick
+                }
+            };
+            return new OutputCommand(type, PointerAction: action);
+        }
+
+        return default;
     }
 
     private void ForceReleaseHeldOutputsForButton(GamepadButtons button, IReadOnlySet<DispatchedOutput>? outputsHandledByReleasedMappings = null)
@@ -538,15 +569,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
     private void ForceReleaseOutput(DispatchedOutput output)
     {
+        // Use the dispatcher to ensure consistent ordering even for forced releases
         QueueOutputDispatch("ForceRelease", TriggerMoment.Released, output, "Forced release", "forced-release");
-    }
-
-    private void SendPointerAction(PointerAction action, TriggerMoment trigger)
-    {
-        // Enqueue into the dispatcher's worker thread to avoid blocking the input loop 
-        // with the 30ms hold-duration of simulated clicks.
-        var output = new DispatchedOutput(null, action);
-        _inputDispatcher.Enqueue("AnalogSource", trigger, output, action.ToString(), "analog-input");
     }
 
     private async Task SendPointerActionAsync(PointerAction action, TriggerMoment trigger, CancellationToken cancellationToken)
@@ -636,6 +660,14 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
         errorStatus = null;
         return false;
+    }
+
+    private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY, float stickMagnitude)
+    {
+        var delta = _analogProcessor.AccumulateMouseLookDelta(thumbstickSource, deltaX, deltaY);
+        // Mouse movement is currently direct because it's high-frequency (every frame) 
+        // and doesn't have a "hold duration" that would block the input loop.
+        _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy, stickMagnitude);
     }
 
     public bool Execute(KeyboardActionDefinition action, string sourceToken, out string? errorStatus)

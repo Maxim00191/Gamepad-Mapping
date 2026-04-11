@@ -7,18 +7,18 @@ namespace GamepadMapperGUI.Core;
 internal sealed class AnalogTransitionMiddleware : IInputFrameMiddleware
 {
     private readonly AnalogMappingProcessor _analogMappingProcessor;
-    private readonly Action<PointerAction, TriggerMoment> _sendPointerAction;
+    private readonly Action<string, TriggerMoment, DispatchedOutput, string, string> _queueOutputDispatch;
     private readonly Action<float, GamepadBindingType> _processNativeTriggerActions;
     private readonly Func<IReadOnlyList<MappingEntry>> _getMappingsSnapshot;
 
     public AnalogTransitionMiddleware(
         AnalogMappingProcessor analogMappingProcessor,
-        Action<PointerAction, TriggerMoment> sendPointerAction,
+        Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch,
         Action<float, GamepadBindingType> processNativeTriggerActions,
         Func<IReadOnlyList<MappingEntry>> getMappingsSnapshot)
     {
         _analogMappingProcessor = analogMappingProcessor;
-        _sendPointerAction = sendPointerAction;
+        _queueOutputDispatch = queueOutputDispatch;
         _processNativeTriggerActions = processNativeTriggerActions;
         _getMappingsSnapshot = getMappingsSnapshot;
     }
@@ -46,13 +46,13 @@ internal sealed class AnalogTransitionMiddleware : IInputFrameMiddleware
             GamepadBindingType.LeftTrigger, 
             frame.LeftTrigger, 
             mappings, 
-            _sendPointerAction);
+            _queueOutputDispatch);
 
         _analogMappingProcessor.ProcessTrigger(
             GamepadBindingType.RightTrigger, 
             frame.RightTrigger, 
             mappings, 
-            _sendPointerAction);
+            _queueOutputDispatch);
 
         // 3. Native Trigger Actions (Radial Menu, Toggle, etc.)
         _processNativeTriggerActions(frame.LeftTrigger, GamepadBindingType.LeftTrigger);

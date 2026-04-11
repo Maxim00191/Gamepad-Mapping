@@ -11,6 +11,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapping.Tests.Support;
 using Moq;
 
 using Xunit;
@@ -171,14 +172,14 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
         
         // Hold should fire
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
         
         // Release A
         engine.ProcessInputFrame(Frame(201, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
         // Tap should NOT fire because Hold already fired
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Never());
     }
 
     /// <summary>
@@ -223,7 +224,7 @@ public class MappingEngineRaceConditionTests
         mockTime.Advance(200);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
 
         // T=202ms: B pressed while A's hold is active
         mockTime.Advance(1);
@@ -236,7 +237,7 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // B's hold should fire
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.I, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.I, Times.Once());
     }
 
     /// <summary>
@@ -262,7 +263,7 @@ public class MappingEngineRaceConditionTests
         mockTime.Advance(200);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
 
         // T=202ms: Gamepad disconnects (all buttons released)
         mockTime.Advance(1);
@@ -270,7 +271,7 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // No additional key presses should occur
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Never());
         // Engine should not have crashed
     }
 
@@ -297,9 +298,9 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // Tap should fire because we released before threshold
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Once());
         // Hold should NOT fire
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Never());
     }
 
     /// <summary>
@@ -326,7 +327,7 @@ public class MappingEngineRaceConditionTests
         mockTime.Advance(200);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
 
         // T=202ms: B pressed while A is held (forming A+B chord)
         mockTime.Advance(1);
@@ -334,15 +335,15 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // Chord should trigger, but this shouldn't affect the already-fired hold
-        mockKeyboard.Verify(k => k.KeyDown(Key.C), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.C, Times.Once());
 
         // Release both
         engine.ProcessInputFrame(Frame(203, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyUp(Key.C), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.C, Times.Once());
         // Tap should not fire because Hold already fired
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Never());
     }
 
     /// <summary>
@@ -378,15 +379,15 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // Should have: Tap from first press (released before threshold) + Hold from second press
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
 
         // Release
         engine.ProcessInputFrame(Frame(398, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
         // No additional taps (Hold already fired)
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Once());
     }
 
     /// <summary>
@@ -435,11 +436,11 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // Both should tap, not hold (released before threshold)
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Q, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Q, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.E, Times.Once());
         // No holds should fire
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.W, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.R, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.W, Times.Never());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.R, Times.Never());
     }
 
     /// <summary>
@@ -501,14 +502,14 @@ public class MappingEngineRaceConditionTests
         await engine.WaitForIdleAsync();
 
         // Hold should fire exactly once
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
 
         // T=201ms: Advance again by 0 (no new ticks)
         mockTime.Advance(0);
         await engine.WaitForIdleAsync();
 
         // Should still be only once
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
     }
 }
 

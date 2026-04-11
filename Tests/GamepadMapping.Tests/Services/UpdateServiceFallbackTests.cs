@@ -79,7 +79,7 @@ public class UpdateServiceFallbackTests
         contentMock.Verify(x => x.GetGitHubApiStringAsync(
             originUrl,
             "application/vnd.github.v3+json",
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>()), Times.Once());
         contentMock.Verify(x => x.GetGitHubApiStringAsync(
             mirrorUrl,
             "application/vnd.github.v3+json",
@@ -114,7 +114,7 @@ public class UpdateServiceFallbackTests
         contentMock.Verify(x => x.GetGitHubApiStringAsync(
             unsafeMirrorUrl,
             "application/vnd.github.v3+json",
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>()), Times.Never());
     }
 
     [Fact]

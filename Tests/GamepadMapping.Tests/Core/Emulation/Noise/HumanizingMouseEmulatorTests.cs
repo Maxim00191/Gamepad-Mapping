@@ -46,7 +46,7 @@ public sealed class HumanizingMouseEmulatorTests
         var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
         emu.MoveBy(2, 2);
 
-        inner.Verify(m => m.MoveBy(2, 2, 1.0f), Times.Once);
+        inner.Verify(m => m.MoveBy(2, 2, 1.0f), Times.Once());
     }
 
     [Fact]
@@ -59,6 +59,6 @@ public sealed class HumanizingMouseEmulatorTests
         var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
         emu.MoveBy(0, 0);
 
-        inner.Verify(m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()), Times.Never);
+        inner.Verify(m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()), Times.Never());
     }
 }

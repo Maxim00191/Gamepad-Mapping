@@ -135,8 +135,8 @@ public class ProcessTargetServiceTests
 
         // Assert
         Assert.True(result);
-        _win32Mock.Verify(x => x.CloseHandle(tokenHandle), Times.Once);
-        _win32Mock.Verify(x => x.CloseHandle(processHandle), Times.Once);
+        _win32Mock.Verify(x => x.CloseHandle(tokenHandle), Times.Once());
+        _win32Mock.Verify(x => x.CloseHandle(processHandle), Times.Once());
     }
 
     private delegate bool OpenProcessTokenDelegate(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);

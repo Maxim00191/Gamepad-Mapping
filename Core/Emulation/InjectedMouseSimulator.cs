@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI.Input.Preview.Injection;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Models;
 using Gamepad_Mapping;
 
 namespace GamepadMapperGUI.Core.Emulation;
@@ -30,6 +31,94 @@ public sealed class InjectedMouseSimulator : IMouseEmulator
         {
             App.Logger.Error($"Failed to initialize InputInjector: {ex.Message}");
             _injector = null;
+        }
+    }
+
+    public void Execute(OutputCommand command)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.PointerDown:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.LeftClick: LeftDown(); break;
+                    case PointerAction.RightClick: RightDown(); break;
+                    case PointerAction.MiddleClick: MiddleDown(); break;
+                    case PointerAction.X1Click: X1Down(); break;
+                    case PointerAction.X2Click: X2Down(); break;
+                }
+                break;
+            case OutputCommandType.PointerUp:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.LeftClick: LeftUp(); break;
+                    case PointerAction.RightClick: RightUp(); break;
+                    case PointerAction.MiddleClick: MiddleUp(); break;
+                    case PointerAction.X1Click: X1Up(); break;
+                    case PointerAction.X2Click: X2Up(); break;
+                }
+                break;
+            case OutputCommandType.PointerClick:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.LeftClick: LeftClick(); break;
+                    case PointerAction.RightClick: RightClick(); break;
+                    case PointerAction.MiddleClick: MiddleClick(); break;
+                    case PointerAction.X1Click: X1Click(); break;
+                    case PointerAction.X2Click: X2Click(); break;
+                }
+                break;
+            case OutputCommandType.PointerWheel:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.WheelUp: WheelUp(); break;
+                    case PointerAction.WheelDown: WheelDown(); break;
+                }
+                break;
+        }
+    }
+
+    public async Task ExecuteAsync(OutputCommand command, CancellationToken cancellationToken = default)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.PointerDown:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.LeftClick: LeftDown(); break;
+                    case PointerAction.RightClick: RightDown(); break;
+                    case PointerAction.MiddleClick: MiddleDown(); break;
+                    case PointerAction.X1Click: X1Down(); break;
+                    case PointerAction.X2Click: X2Down(); break;
+                }
+                break;
+            case OutputCommandType.PointerUp:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.LeftClick: LeftUp(); break;
+                    case PointerAction.RightClick: RightUp(); break;
+                    case PointerAction.MiddleClick: MiddleUp(); break;
+                    case PointerAction.X1Click: X1Up(); break;
+                    case PointerAction.X2Click: X2Up(); break;
+                }
+                break;
+            case OutputCommandType.PointerClick:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.LeftClick: await LeftClickAsync(cancellationToken).ConfigureAwait(false); break;
+                    case PointerAction.RightClick: await RightClickAsync(cancellationToken).ConfigureAwait(false); break;
+                    case PointerAction.MiddleClick: await MiddleClickAsync(cancellationToken).ConfigureAwait(false); break;
+                    case PointerAction.X1Click: await X1ClickAsync(cancellationToken).ConfigureAwait(false); break;
+                    case PointerAction.X2Click: await X2ClickAsync(cancellationToken).ConfigureAwait(false); break;
+                }
+                break;
+            case OutputCommandType.PointerWheel:
+                switch (command.PointerAction)
+                {
+                    case PointerAction.WheelUp: WheelUp(); break;
+                    case PointerAction.WheelDown: WheelDown(); break;
+                }
+                break;
         }
     }
 

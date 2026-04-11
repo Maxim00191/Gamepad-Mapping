@@ -60,7 +60,7 @@ public class MainViewModelTests
         var vm = CreateViewModel();
         vm.StartGamepadCommand.Execute(null);
 
-        _gamepadReaderMock.Verify(r => r.Start(), Times.Once);
+        _gamepadReaderMock.Verify(r => r.Start(), Times.Once());
         Assert.True(vm.IsGamepadRunning);
     }
 
@@ -71,8 +71,8 @@ public class MainViewModelTests
         vm.StartGamepadCommand.Execute(null); // Ensure it's running
         vm.StopGamepadCommand.Execute(null);
 
-        _gamepadReaderMock.Verify(r => r.Stop(), Times.Once);
-        _mappingEngineMock.Verify(e => e.ForceReleaseAllOutputs(), Times.Once);
+        _gamepadReaderMock.Verify(r => r.Stop(), Times.Once());
+        _mappingEngineMock.Verify(e => e.ForceReleaseAllOutputs(), Times.Once());
         Assert.False(vm.IsGamepadRunning);
     }
 
@@ -86,7 +86,7 @@ public class MainViewModelTests
         var vm = CreateViewModel();
         vm.SelectedTemplate = template;
 
-        _profileServiceMock.Verify(p => p.LoadSelectedTemplate(template), Times.AtLeastOnce);
+        _profileServiceMock.Verify(p => p.LoadSelectedTemplate(template), Times.AtLeastOnce());
         Assert.Equal("Test Display", vm.CurrentTemplateDisplayName);
     }
 

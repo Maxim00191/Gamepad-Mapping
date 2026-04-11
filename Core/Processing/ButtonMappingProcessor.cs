@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Input;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Core.Input;
 
 namespace GamepadMapperGUI.Core;
 
@@ -222,6 +223,8 @@ internal sealed class ButtonMappingProcessor
 
                 try
                 {
+                    // All mapping types (Keyboard, Radial, ItemCycle, Toggle) now use the ExecutableAction path.
+                    // This ensures consistent handling of status updates and dispatching.
                     if (_tryDispatchAction(
                             candidate.Mapping,
                             context.Trigger,
@@ -230,9 +233,12 @@ internal sealed class ButtonMappingProcessor
                     {
                         if (actionErr is not null)
                             _setMappingStatus(actionErr);
+                        else if (InputTokenResolver.TryResolveMappedOutput(candidate.Mapping.KeyboardKey, out var trackedOutput, out _))
+                            _outputStateTracker.TrackOutputHoldState(candidate.SourceToken, candidate.ChordButtons, trackedOutput, context.Trigger);
                         continue;
                     }
 
+                    // Fallback for any mapping that doesn't have an executable action (should be rare now)
                     if (InputTokenResolver.TryParseChord(candidate.Mapping.KeyboardKey, out var modifiers, out var mainKey))
                     {
                         var chordLabel = $"{candidate.Mapping.KeyboardKey} ({context.Trigger})";
@@ -495,7 +501,7 @@ internal sealed class ButtonMappingProcessor
                         }
                     }
 
-                    // 3. Fallback to standard Tap dispatch for standard keyboard keys
+                    // 3. Fallback to standard Tap dispatch if no executable action handled it
                     if (pressed is not null &&
                         ChordResolver.TryParseButtonChord(pressed.From!.Value, out _, out _, out _, out var soloToken))
                     {

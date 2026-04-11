@@ -1,14 +1,9 @@
+using System.Reflection;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services.Infrastructure;
-using GamepadMapperGUI.Interfaces.Services.Storage;
-using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
-using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
-using System.Reflection;
 
 namespace GamepadMapping.Tests.Core.Processing;
 
@@ -28,72 +23,77 @@ public class MappingEngineSendPointerActionTests
         _engine = new MappingEngine(
             _mockKeyboardEmulator.Object,
             _mockMouseEmulator.Object,
-            () => true, // canDispatchOutputLive
-            action => action(), // runOnUi
-            s => { }, // setMappedOutput
-            s => { }, // setMappingStatus
-            null, // setComboHud
-            50, // modifierGraceMs
-            500, // leadKeyReleaseSuppressMs
-            null, // requestTemplateSwitchToProfileId
-            null, // profileService
-            null, // setComboHudGateHint
-            null, // comboHudGateMessageFactory
-            null, // isComboHudPresentationSuppressed
-            null, // radialMenuHud
-            null, // getRadialMenuStickEngagementThreshold
-            null, // getRadialMenuConfirmMode
-            null, // timeProvider
-            _mockInputDispatcher.Object // Properly injected now!
-        );
+            () => true,
+            action => action(),
+            _ => { },
+            _ => { },
+            null,
+            50,
+            500,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            _mockInputDispatcher.Object);
     }
 
     [Fact]
-    public void SendPointerAction_EnqueuesToDispatcher()
+    public void QueueOutputDispatch_EnqueuesToDispatcher()
     {
-        // Arrange
         var action = PointerAction.LeftClick;
         var trigger = TriggerMoment.Pressed;
+        var output = new DispatchedOutput(null, action);
 
-        // Act
-        // Access private method via reflection for testing
-        var method = typeof(MappingEngine).GetMethod("SendPointerAction", BindingFlags.NonPublic | BindingFlags.Instance);
-        method?.Invoke(_engine, new object[] { action, trigger });
+        var method = typeof(MappingEngine).GetMethod(
+            "QueueOutputDispatch",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(
+            _engine,
+            ["AnalogSource", trigger, output, action.ToString(), "analog-input"]);
 
-        // Assert
-        _mockInputDispatcher.Verify(d => d.Enqueue(
-            "AnalogSource",
-            trigger,
-            It.Is<DispatchedOutput>(o => o.PointerAction == action),
-            action.ToString(),
-            "analog-input"
-        ), Times.Once);
+        _mockInputDispatcher.Verify(
+            d => d.Enqueue(
+                "AnalogSource",
+                trigger,
+                output,
+                action.ToString(),
+                "analog-input"),
+            Times.Once());
     }
 
     [Fact]
-    public void SendPointerAction_IsNonBlocking()
+    public void QueueOutputDispatch_IsNonBlocking()
     {
-        // Arrange
         var action = PointerAction.RightClick;
         var trigger = TriggerMoment.Tap;
-        
-        // Setup dispatcher to simulate a slight delay (though it shouldn't matter if it's called synchronously)
-        _mockInputDispatcher.Setup(d => d.Enqueue(It.IsAny<string>(), It.IsAny<TriggerMoment>(), It.IsAny<DispatchedOutput>(), It.IsAny<string>(), It.IsAny<string>()))
+        var output = new DispatchedOutput(null, action);
+
+        _mockInputDispatcher
+            .Setup(d => d.Enqueue(
+                It.IsAny<string>(),
+                It.IsAny<TriggerMoment>(),
+                It.IsAny<DispatchedOutput>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
             .Callback(() => Thread.Sleep(10));
 
-        // Act
+        var method = typeof(MappingEngine).GetMethod(
+            "QueueOutputDispatch",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
         var startTime = DateTime.Now;
-        var method = typeof(MappingEngine).GetMethod("SendPointerAction", BindingFlags.NonPublic | BindingFlags.Instance);
-        method?.Invoke(_engine, new object[] { action, trigger });
+        method!.Invoke(
+            _engine,
+            ["AnalogSource", trigger, output, action.ToString(), "analog-input"]);
         var duration = DateTime.Now - startTime;
 
-        // Assert
-        // The call should be near-instant since it just enqueues, 
-        // even if the mock callback has a sleep (because the callback runs on the same thread in this simple setup, 
-        // but we're verifying the logic of the engine itself just enqueuing).
-        // If it was blocking on the actual simulation (which we moved to the worker thread), it would take 30ms+.
-        Assert.True(duration.TotalMilliseconds < 50); 
+        Assert.True(duration.TotalMilliseconds < 50);
     }
 }
-
-

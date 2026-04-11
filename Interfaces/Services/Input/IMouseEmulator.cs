@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Interfaces.Services.Input;
 
@@ -11,6 +12,9 @@ namespace GamepadMapperGUI.Interfaces.Services.Input;
 /// </remarks>
 public interface IMouseEmulator
 {
+    void Execute(OutputCommand command);
+    Task ExecuteAsync(OutputCommand command, CancellationToken cancellationToken = default);
+
     void LeftDown();
     void LeftUp();
     void LeftClick();

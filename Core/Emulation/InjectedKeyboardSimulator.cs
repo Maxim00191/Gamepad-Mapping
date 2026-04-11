@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Windows.UI.Input.Preview.Injection;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Models;
 using Gamepad_Mapping;
 
 namespace GamepadMapperGUI.Core.Emulation;
@@ -31,6 +32,28 @@ public sealed class InjectedKeyboardSimulator : IKeyboardEmulator
         {
             App.Logger.Error($"Failed to initialize InputInjector: {ex.Message}");
             _injector = null;
+        }
+    }
+
+    public void Execute(OutputCommand command)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.KeyPress: KeyDown(command.Key); break;
+            case OutputCommandType.KeyRelease: KeyUp(command.Key); break;
+            case OutputCommandType.KeyTap: TapKey(command.Key, keyHoldMs: command.Metadata > 0 ? command.Metadata : DefaultTapHoldMs); break;
+            case OutputCommandType.Text: SendText(command.Text ?? string.Empty); break;
+        }
+    }
+
+    public async Task ExecuteAsync(OutputCommand command, CancellationToken cancellationToken = default)
+    {
+        switch (command.Type)
+        {
+            case OutputCommandType.KeyPress: KeyDown(command.Key); break;
+            case OutputCommandType.KeyRelease: KeyUp(command.Key); break;
+            case OutputCommandType.KeyTap: await TapKeyAsync(command.Key, keyHoldMs: command.Metadata > 0 ? command.Metadata : DefaultTapHoldMs, cancellationToken: cancellationToken).ConfigureAwait(false); break;
+            case OutputCommandType.Text: SendText(command.Text ?? string.Empty); break;
         }
     }
 
@@ -80,43 +103,63 @@ public sealed class InjectedKeyboardSimulator : IKeyboardEmulator
 
     public void TapKeyChord(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs)
     {
-        if (mainKey == Key.None) return;
+        if (mainKey == Key.None || modifiers is null) return;
 
-        foreach (var mod in modifiers) KeyDown(mod);
+        foreach (var mod in modifiers)
+        {
+            if (mod != Key.None) KeyDown(mod);
+        }
+
         KeyDown(mainKey);
         if (keyHoldMs > 0) Thread.Sleep(keyHoldMs);
         KeyUp(mainKey);
-        for (int i = modifiers.Count - 1; i >= 0; i--) KeyUp(modifiers[i]);
+
+        for (int i = modifiers.Count - 1; i >= 0; i--)
+        {
+            if (modifiers[i] != Key.None) KeyUp(modifiers[i]);
+        }
     }
 
     public async Task TapKeyChordAsync(IReadOnlyList<Key> modifiers, Key mainKey, int keyHoldMs = DefaultTapHoldMs, CancellationToken cancellationToken = default)
     {
-        if (mainKey == Key.None) return;
+        if (mainKey == Key.None || modifiers is null) return;
 
-        foreach (var mod in modifiers) KeyDown(mod);
+        foreach (var mod in modifiers)
+        {
+            if (mod != Key.None) KeyDown(mod);
+        }
+
         KeyDown(mainKey);
         await Task.Delay(keyHoldMs, cancellationToken).ConfigureAwait(false);
         KeyUp(mainKey);
-        for (int i = modifiers.Count - 1; i >= 0; i--) KeyUp(modifiers[i]);
+
+        for (int i = modifiers.Count - 1; i >= 0; i--)
+        {
+            if (modifiers[i] != Key.None) KeyUp(modifiers[i]);
+        }
     }
 
     public void SendText(string text, int interCharDelayMs = 0)
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        foreach (var ch in text)
-        {
-            // InputInjector doesn't have a direct "SendUnicode" like Win32 SendInput with KEYEVENTF_UNICODE.
-            // We would need to map chars to keys or use a different approach if full unicode is needed.
-            // For now, we'll skip or implement basic mapping if required.
-        }
+        // InputInjector doesn't have a direct "SendUnicode" like Win32 SendInput with KEYEVENTF_UNICODE.
+        // We would need to map chars to keys or use a different approach if full unicode is needed.
+        // For now, we'll skip or implement basic mapping if required.
     }
 
     public void TapKeys(IEnumerable<Key> keys)
     {
+        if (keys is null) return;
         var keyList = new List<Key>(keys);
-        foreach (var key in keyList) KeyDown(key);
-        foreach (var key in keyList) KeyUp(key);
+        foreach (var key in keyList)
+        {
+            if (key != Key.None) KeyDown(key);
+        }
+        foreach (var key in keyList)
+        {
+            if (key != Key.None) KeyUp(key);
+        }
     }
 
     private static InjectedInputKeyboardInfo CreateKeyInfo(Key key, bool isUp)

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Interfaces.Services.Input;
 
@@ -10,6 +11,9 @@ namespace GamepadMapperGUI.Interfaces.Services.Input;
 /// </summary>
 public interface IKeyboardEmulator
 {
+    void Execute(OutputCommand command);
+    Task ExecuteAsync(OutputCommand command, CancellationToken cancellationToken = default);
+
     void KeyDown(Key key);
     void KeyUp(Key key);
     void TapKey(Key key, int repeatCount = 1, int interKeyDelayMs = 0, int keyHoldMs = 30);
