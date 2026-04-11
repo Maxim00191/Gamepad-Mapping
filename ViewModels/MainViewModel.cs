@@ -46,6 +46,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsOrchestrator _settingsOrchestrator;
     private readonly ProfileOrchestrator _profileOrchestrator;
     private readonly IInputEmulationStackFactory _inputEmulationStackFactory;
+    private readonly Debouncer _processNameDebouncer;
 
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
@@ -96,6 +97,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
         _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory();
         var appSettings = _settingsOrchestrator.Settings;
+
+        _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
@@ -414,7 +417,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<TemplateOption> AvailableTemplates => _profileOrchestrator.AvailableTemplates;
     public TemplateOption? SelectedTemplate { get => _profileOrchestrator.SelectedTemplate; set => _profileOrchestrator.SelectedTemplate = value; }
     public string CurrentTemplateDisplayName { get => _profileOrchestrator.CurrentTemplateDisplayName; set => _profileOrchestrator.CurrentTemplateDisplayName = value; }
-    public string TemplateTargetProcessName { get => _profileOrchestrator.TemplateTargetProcessName; set { _profileOrchestrator.TemplateTargetProcessName = value; ApplyDeclaredProcessTarget(); OnPropertyChanged(); } }
+    public string TemplateTargetProcessName
+    {
+        get => _profileOrchestrator.TemplateTargetProcessName;
+        set
+        {
+            if (_profileOrchestrator.TemplateTargetProcessName == value) return;
+            _profileOrchestrator.TemplateTargetProcessName = value;
+            _processNameDebouncer.Debounce(ApplyDeclaredProcessTarget);
+            OnPropertyChanged();
+        }
+    }
     
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
     public UiLanguageOption? SelectedUiLanguage { get => _settingsOrchestrator.SelectedUiLanguage; set => _settingsOrchestrator.SelectedUiLanguage = value; }
