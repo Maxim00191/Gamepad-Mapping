@@ -164,6 +164,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(MappingCount));
             OnPropertyChanged(nameof(Mappings));
         };
+        if (_mappingManager is INotifyPropertyChanged mappingNotify)
+            mappingNotify.PropertyChanged += OnMappingManagerPropertyChanged;
         _mappingManager.OnInputProcessed += (frame, result) => GamepadMonitorPanel.RecordInputFrameSnapshot(frame, result, 
             reader is GamepadReader gr1 ? gr1.LeftThumbstickDeadzone : 0, 
             reader is GamepadReader gr2 ? gr2.RightThumbstickDeadzone : 0);
@@ -223,6 +225,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public string TargetStatusText => _uiOrchestrator.TargetStatusText;
     public AppTargetingState TargetState => _uiOrchestrator.TargetState;
+
+    private void OnMappingManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SelectedMapping))
+            OnPropertyChanged(nameof(SelectedMapping));
+    }
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
     {
@@ -446,6 +454,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        if (_mappingManager is INotifyPropertyChanged mappingNotify)
+            mappingNotify.PropertyChanged -= OnMappingManagerPropertyChanged;
         GamepadMonitorPanel.PropertyChanged -= OnGamepadMonitorPanelSettingsChanged;
         GamepadMonitorPanel.Dispose();
         _uiOrchestrator.Dispose();

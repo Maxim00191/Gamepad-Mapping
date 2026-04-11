@@ -43,6 +43,32 @@ public class MappingEditorViewModelTests
     }
 
     [Fact]
+    public void ChangingMainViewModelSelectedMapping_UpdatesEditorWithoutManualSync()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var a = new MappingEntry
+        {
+            Description = "RowA",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        var b = new MappingEntry
+        {
+            Description = "RowB",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        };
+        _mainViewModel.Mappings.Add(a);
+        _mainViewModel.Mappings.Add(b);
+
+        _mainViewModel.SelectedMapping = a;
+        Assert.Equal("RowA", vm.EditBindingDescription);
+        Assert.Equal("A", vm.InputTrigger.EditBindingFromButton);
+
+        _mainViewModel.SelectedMapping = b;
+        Assert.Equal("RowB", vm.EditBindingDescription);
+        Assert.Equal("B", vm.InputTrigger.EditBindingFromButton);
+    }
+
+    [Fact]
     public void SyncFromSelection_PopulatesProperties()
     {
         var vm = _mainViewModel.MappingEditorPanel;

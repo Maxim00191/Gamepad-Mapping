@@ -7,6 +7,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <utils:GamepadBindingTypeToLocalizationConverter x:Key="GamepadBindingTypeToLoc" />
         <utils:MappingActionTypeToLocalizationConverter x:Key="ActionTypeToLoc" />
         <utils:ItemCycleDirectionToLocalizationConverter x:Key="ItemCycleDirToLoc" />
         <utils:TriggerMomentToLocalizationConverter x:Key="TriggerMomentToLoc" />
@@ -244,48 +245,86 @@
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Source]}" Margin="0,0,0,4" />
 
-                    <CheckBox Margin="0,0,0,4"
-                              Content="{Binding Source={StaticResource Loc}, Path=[SourceIsCombination]}"
-                              IsChecked="{Binding InputTrigger.EditSourceIsCombination, Mode=TwoWay}" />
-
-                    <Grid Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}">
-                        <ComboBox ItemsSource="{Binding InputTrigger.AvailableGamepadButtons}"
-                                  IsEditable="True"
-                                  SelectedItem="{Binding InputTrigger.EditBindingFromButton, Mode=TwoWay}" />
-                    </Grid>
-
-                    <Grid Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <ComboBox Grid.Column="0"
-                                  ItemsSource="{Binding InputTrigger.AvailableGamepadButtons}"
-                                  SelectedItem="{Binding InputTrigger.EditBindingComboButton1, Mode=TwoWay}" />
-                        <TextBlock Grid.Column="1" Text="+" VerticalAlignment="Center" Margin="8,0" />
-                        <ComboBox Grid.Column="2"
-                                  ItemsSource="{Binding InputTrigger.AvailableGamepadButtons}"
-                                  SelectedItem="{Binding InputTrigger.EditBindingComboButton2, Mode=TwoWay}" />
-                    </Grid>
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[SourceInputKind]}"
+                               Margin="0,0,0,4" />
+                    <ComboBox Margin="0,0,0,6"
+                              ItemsSource="{Binding AvailableGamepadBindingTypes}"
+                              SelectedItem="{Binding InputTrigger.EditSourceKind, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:GamepadBindingType}">
+                                <TextBlock Text="{Binding Converter={StaticResource GamepadBindingTypeToLoc}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <TextBlock TextWrapping="Wrap"
                                Foreground="{DynamicResource AppSecondaryTextBrush}"
                                FontSize="12"
-                               Margin="0,2,0,4"
-                               Text="{Binding Source={StaticResource Loc}, Path=[SourceCombinationHint]}"
-                               Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}}" />
+                               Margin="0,0,0,8"
+                               Text="{Binding Source={StaticResource Loc}, Path=[SourceKindSwitchHint]}"
+                               Visibility="{Binding InputTrigger.ShowSourceKindChangedHint, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <StackPanel Visibility="{Binding InputTrigger.ShowButtonSourceEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <CheckBox Margin="0,0,0,4"
+                                  Content="{Binding Source={StaticResource Loc}, Path=[SourceIsCombination]}"
+                                  IsChecked="{Binding InputTrigger.EditSourceIsCombination, Mode=TwoWay}" />
+
+                        <Grid Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}">
+                            <ComboBox ItemsSource="{Binding InputTrigger.AvailableGamepadButtons}"
+                                      IsEditable="True"
+                                      SelectedItem="{Binding InputTrigger.EditBindingFromButton, Mode=TwoWay}" />
+                        </Grid>
+
+                        <Grid Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0"
+                                      ItemsSource="{Binding InputTrigger.AvailableGamepadButtons}"
+                                      SelectedItem="{Binding InputTrigger.EditBindingComboButton1, Mode=TwoWay}" />
+                            <TextBlock Grid.Column="1" Text="+" VerticalAlignment="Center" Margin="8,0" />
+                            <ComboBox Grid.Column="2"
+                                      ItemsSource="{Binding InputTrigger.AvailableGamepadButtons}"
+                                      SelectedItem="{Binding InputTrigger.EditBindingComboButton2, Mode=TwoWay}" />
+                        </Grid>
+
+                        <TextBlock TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                   FontSize="12"
+                                   Margin="0,2,0,4"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[SourceCombinationHint]}"
+                                   Visibility="{Binding InputTrigger.EditSourceIsCombination, Converter={StaticResource InverseBoolToVis}}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,4"
+                                Visibility="{Binding InputTrigger.ShowThumbstickSourceEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ThumbstickFromValueLabel]}"
+                                   Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding InputTrigger.AvailableThumbstickFromValues}"
+                                  SelectedItem="{Binding InputTrigger.EditThumbstickFromValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="True" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,4"
+                                Visibility="{Binding InputTrigger.ShowNativeTriggerSourceEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[NativeTriggerSourceLabel]}"
+                                   Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding InputTrigger.AvailableNativeTriggerLabels}"
+                                  SelectedItem="{Binding InputTrigger.EditBindingFromButton, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
 
                     <StackPanel Margin="0,6,0,0"
-                                Visibility="{Binding InputTrigger.SourceInvolvesTrigger, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TriggerChordMatchThresholdLabel]}"
+                                Visibility="{Binding InputTrigger.ShowDetailsAnalogThreshold, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding InputTrigger.AnalogThresholdPrimaryCaption}"
                                    Margin="0,0,0,4" />
                         <TextBox Text="{Binding EditAnalogThresholdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock TextWrapping="Wrap"
                                    Foreground="{DynamicResource AppSecondaryTextBrush}"
                                    FontSize="12"
                                    Margin="0,4,0,0"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[TriggerChordMatchThresholdHint]}" />
+                                   Text="{Binding InputTrigger.AnalogThresholdSecondaryHint}" />
                     </StackPanel>
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Margin="0,8,0,4" />

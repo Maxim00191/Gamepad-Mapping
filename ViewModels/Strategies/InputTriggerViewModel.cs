@@ -1,31 +1,47 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels.Strategies;
 
-/// <summary>
-/// ViewModel for managing the input trigger (the 'From' part of a mapping).
-/// </summary>
 public partial class InputTriggerViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
+    private bool _syncingFromMapping;
 
     public InputTriggerViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
         AvailableGamepadButtons = _mainViewModel.AvailableGamepadButtons;
+        foreach (var v in GamepadThumbstickFromValueCatalog.PickList)
+            AvailableThumbstickFromValues.Add(v);
 
-        // Initialize defaults
         EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
+        EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
     }
 
     public ObservableCollection<string> AvailableGamepadButtons { get; }
+
+    public ObservableCollection<string> AvailableThumbstickFromValues { get; } = [];
+
+    public ObservableCollection<string> AvailableNativeTriggerLabels { get; } =
+    [
+        nameof(GamepadBindingType.LeftTrigger),
+        nameof(GamepadBindingType.RightTrigger)
+    ];
+
+    [ObservableProperty]
+    private GamepadBindingType _editSourceKind = GamepadBindingType.Button;
+
+    [ObservableProperty]
+    private string _editThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
 
     [ObservableProperty]
     private string _editBindingFromButton = "A";
@@ -39,72 +55,154 @@ public partial class InputTriggerViewModel : ObservableObject
     [ObservableProperty]
     private string _editBindingComboButton2 = "B";
 
-    /// <summary>True when the trigger-match threshold editor should be visible (includes incomplete LT/RT selections).</summary>
+    [ObservableProperty]
+    private bool _showSourceKindChangedHint;
+
+    public bool ShowButtonSourceEditor => EditSourceKind == GamepadBindingType.Button;
+
+    public bool ShowThumbstickSourceEditor =>
+        EditSourceKind is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick;
+
+    public bool ShowNativeTriggerSourceEditor =>
+        EditSourceKind is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger;
+
     public bool SourceInvolvesTrigger => GamepadChordInput.ShouldShowTriggerMatchThresholdEditor(BuildPreviewExpression());
+
+    public bool ShowDetailsAnalogThreshold =>
+        EditSourceKind is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick
+        || EditSourceKind is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger
+        || (EditSourceKind == GamepadBindingType.Button && SourceInvolvesTrigger);
+
+    public string AnalogThresholdPrimaryCaption =>
+        EditSourceKind is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick
+            ? T("MappingDetailsAnalogThresholdStickLabel")
+            : T("TriggerChordMatchThresholdLabel");
+
+    public string AnalogThresholdSecondaryHint =>
+        EditSourceKind is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick
+            ? T("MappingDetailsAnalogThresholdStickHint")
+            : T("TriggerChordMatchThresholdHint");
 
     public void SyncFrom(MappingEntry mapping)
     {
+        _syncingFromMapping = true;
         try
         {
+            ShowSourceKindChangedHint = false;
             EditSourceIsCombination = false;
             EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
             EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
 
-            if (mapping.From is not null &&
-                mapping.From.Type is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger)
+            if (mapping.From is null)
             {
-                EditSourceIsCombination = false;
-                EditBindingFromButton = mapping.From.Type == GamepadBindingType.LeftTrigger
-                    ? nameof(GamepadBindingType.LeftTrigger)
-                    : nameof(GamepadBindingType.RightTrigger);
+                EditSourceKind = GamepadBindingType.Button;
+                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+                EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
                 return;
             }
 
-            if (mapping.From is not null && mapping.From.Type == GamepadBindingType.Button)
+            EditSourceKind = mapping.From.Type;
+
+            switch (mapping.From.Type)
             {
-                var raw = mapping.From.Value ?? string.Empty;
-                if (GamepadChordInput.TryNormalizeButtonExpression(raw, out var normalized))
-                {
-                    var parts = GamepadChordInput.SplitNormalizedParts(normalized);
-                    if (parts.Length >= 3)
+                case GamepadBindingType.LeftTrigger:
+                case GamepadBindingType.RightTrigger:
+                    EditSourceIsCombination = false;
+                    EditBindingFromButton = mapping.From.Type == GamepadBindingType.LeftTrigger
+                        ? nameof(GamepadBindingType.LeftTrigger)
+                        : nameof(GamepadBindingType.RightTrigger);
+                    break;
+
+                case GamepadBindingType.LeftThumbstick:
+                case GamepadBindingType.RightThumbstick:
+                    EditSourceIsCombination = false;
+                    EditThumbstickFromValue =
+                        GamepadThumbstickFromValueCatalog.CanonicalizeForEditor(mapping.From.Value);
+                    break;
+
+                case GamepadBindingType.Button:
+                    var raw = mapping.From.Value ?? string.Empty;
+                    if (GamepadChordInput.TryNormalizeButtonExpression(raw, out var normalized))
                     {
-                        EditSourceIsCombination = false;
-                        EditBindingFromButton = normalized;
-                        return;
+                        var parts = GamepadChordInput.SplitNormalizedParts(normalized);
+                        if (parts.Length >= 3)
+                        {
+                            EditSourceIsCombination = false;
+                            EditBindingFromButton = normalized;
+                            break;
+                        }
+
+                        if (parts.Length == 2)
+                        {
+                            EditSourceIsCombination = true;
+                            EditBindingComboButton1 = MatchAvailable(parts[0]);
+                            EditBindingComboButton2 = MatchAvailable(parts[1]);
+                            break;
+                        }
+
+                        if (parts.Length == 1)
+                        {
+                            EditSourceIsCombination = false;
+                            EditBindingFromButton = MatchAvailable(parts[0]);
+                            break;
+                        }
                     }
 
-                    if (parts.Length == 2)
-                    {
-                        EditSourceIsCombination = true;
-                        EditBindingComboButton1 = MatchAvailable(parts[0]);
-                        EditBindingComboButton2 = MatchAvailable(parts[1]);
-                        return;
-                    }
-
-                    if (parts.Length == 1)
-                    {
-                        EditSourceIsCombination = false;
-                        EditBindingFromButton = MatchAvailable(parts[0]);
-                        return;
-                    }
-                }
-
-                EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault(
-                        b => string.Equals(b, raw, StringComparison.OrdinalIgnoreCase))
-                    ?? raw;
-            }
-            else
-            {
-                EditBindingFromButton = mapping.From?.Value ?? string.Empty;
+                    EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault(
+                            b => string.Equals(b, raw, StringComparison.OrdinalIgnoreCase))
+                        ?? raw;
+                    break;
             }
         }
         finally
         {
-            OnPropertyChanged(nameof(SourceInvolvesTrigger));
+            _syncingFromMapping = false;
+            RefreshDerivedTriggerProperties();
         }
     }
 
     public bool ApplyTo(MappingEntry mapping)
+    {
+        switch (EditSourceKind)
+        {
+            case GamepadBindingType.Button:
+                return ApplyButtonBinding(mapping);
+            case GamepadBindingType.LeftThumbstick:
+            case GamepadBindingType.RightThumbstick:
+                var stickVal = (EditThumbstickFromValue ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(stickVal))
+                    return false;
+                mapping.From = new GamepadBinding
+                {
+                    Type = EditSourceKind,
+                    Value = GamepadThumbstickFromValueCatalog.CanonicalizeForEditor(stickVal)
+                };
+                return true;
+            case GamepadBindingType.LeftTrigger:
+            case GamepadBindingType.RightTrigger:
+                var single = (EditBindingFromButton ?? string.Empty).Trim();
+                if (!GamepadChordInput.TryCreateNativeTriggerOnlyBinding(single, out var nativeBinding))
+                    return false;
+                mapping.From = nativeBinding;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public void Clear()
+    {
+        EditSourceKind = GamepadBindingType.Button;
+        EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        EditSourceIsCombination = false;
+        EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+        EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
+        EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
+        ShowSourceKindChangedHint = false;
+        RefreshDerivedTriggerProperties();
+    }
+
+    private bool ApplyButtonBinding(MappingEntry mapping)
     {
         if (EditSourceIsCombination)
         {
@@ -138,14 +236,6 @@ public partial class InputTriggerViewModel : ObservableObject
         return true;
     }
 
-    public void Clear()
-    {
-        EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
-        EditSourceIsCombination = false;
-        EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
-        EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
-    }
-
     private string MatchAvailable(string segment)
     {
         var hit = AvailableGamepadButtons.FirstOrDefault(
@@ -160,11 +250,63 @@ public partial class InputTriggerViewModel : ObservableObject
         return EditBindingFromButton ?? string.Empty;
     }
 
-    partial void OnEditSourceIsCombinationChanged(bool value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+    partial void OnEditSourceKindChanged(GamepadBindingType value)
+    {
+        if (!_syncingFromMapping)
+        {
+            ShowSourceKindChangedHint = true;
+            switch (value)
+            {
+                case GamepadBindingType.Button:
+                    EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
+                    EditSourceIsCombination = false;
+                    break;
+                case GamepadBindingType.LeftThumbstick:
+                case GamepadBindingType.RightThumbstick:
+                    EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
+                    EditSourceIsCombination = false;
+                    break;
+                case GamepadBindingType.LeftTrigger:
+                    EditBindingFromButton = nameof(GamepadBindingType.LeftTrigger);
+                    EditSourceIsCombination = false;
+                    break;
+                case GamepadBindingType.RightTrigger:
+                    EditBindingFromButton = nameof(GamepadBindingType.RightTrigger);
+                    EditSourceIsCombination = false;
+                    break;
+            }
+        }
 
-    partial void OnEditBindingFromButtonChanged(string value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+        OnPropertyChanged(nameof(ShowButtonSourceEditor));
+        OnPropertyChanged(nameof(ShowThumbstickSourceEditor));
+        OnPropertyChanged(nameof(ShowNativeTriggerSourceEditor));
+        OnPropertyChanged(nameof(AnalogThresholdPrimaryCaption));
+        OnPropertyChanged(nameof(AnalogThresholdSecondaryHint));
+        RefreshDerivedTriggerProperties();
+    }
 
-    partial void OnEditBindingComboButton1Changed(string value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+    partial void OnEditThumbstickFromValueChanged(string value) => RefreshDerivedTriggerProperties();
 
-    partial void OnEditBindingComboButton2Changed(string value) => OnPropertyChanged(nameof(SourceInvolvesTrigger));
+    partial void OnEditSourceIsCombinationChanged(bool value) => RefreshDerivedTriggerProperties();
+
+    partial void OnEditBindingFromButtonChanged(string value) => RefreshDerivedTriggerProperties();
+
+    partial void OnEditBindingComboButton1Changed(string value) => RefreshDerivedTriggerProperties();
+
+    partial void OnEditBindingComboButton2Changed(string value) => RefreshDerivedTriggerProperties();
+
+    private void RefreshDerivedTriggerProperties()
+    {
+        OnPropertyChanged(nameof(SourceInvolvesTrigger));
+        OnPropertyChanged(nameof(ShowDetailsAnalogThreshold));
+        OnPropertyChanged(nameof(AnalogThresholdPrimaryCaption));
+        OnPropertyChanged(nameof(AnalogThresholdSecondaryHint));
+    }
+
+    private static string T(string key)
+    {
+        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+            return loc[key];
+        return key;
+    }
 }

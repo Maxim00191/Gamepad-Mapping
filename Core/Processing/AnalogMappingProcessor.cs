@@ -117,6 +117,8 @@ internal sealed class AnalogMappingProcessor
         var mouseDeltaY = 0f;
         var epsilon = _getAnalogChangeEpsilon();
         var sensitivity = _getMouseLookSensitivity();
+        // Tremor-only MoveBy uses stick magnitude only when this thumbstick maps mouse look (each stick scored separately).
+        var noiseMagnitude = ThumbstickHasMouseLookMapping(sourceType, mappingsSnapshot) ? stickMagnitude : 0f;
 
         foreach (var mapping in mappingsSnapshot)
         {
@@ -186,13 +188,34 @@ internal sealed class AnalogMappingProcessor
 
             if (MathF.Abs(sendX) > 0f || MathF.Abs(sendY) > 0f)
                 SendMouseLookDelta(sourceType, sendX, sendY, stickMagnitude);
-            else if (stickMagnitude > epsilon)
-                _mouseEmulator.MoveBy(0, 0, stickMagnitude);
+            else if (noiseMagnitude > epsilon)
+                _mouseEmulator.MoveBy(0, 0, noiseMagnitude);
         }
-        else if (stickMagnitude > epsilon)
+        else if (noiseMagnitude > epsilon)
         {
-            _mouseEmulator.MoveBy(0, 0, stickMagnitude);
+            _mouseEmulator.MoveBy(0, 0, noiseMagnitude);
         }
+    }
+
+    private static bool ThumbstickHasMouseLookMapping(GamepadBindingType sourceType, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    {
+        foreach (var mapping in mappingsSnapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != sourceType)
+                continue;
+
+            if (!AnalogProcessor.TryParseAnalogSource(mapping.From.Value, out _))
+                continue;
+
+            var outputToken = InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(outputToken))
+                continue;
+
+            if (AnalogProcessor.TryResolveMouseLookOutput(outputToken, out _))
+                return true;
+        }
+
+        return false;
     }
 
     private static sbyte ToSign(float v)

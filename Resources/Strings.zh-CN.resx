@@ -381,6 +381,9 @@
   <data name="MouseLookReboundSuppressionLabel" xml:space="preserve">
     <value>鼠标视角回弹抑制（0–1）</value>
   </data>
+  <data name="MouseLookStickLayoutHint" xml:space="preserve">
+    <value>在同一支摇杆上同时映射视角与移动时，二者会共用该摇杆。若可以，建议一支摇杆负责视角、另一支负责移动，操作更直观。</value>
+  </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>摇杆变化灵敏度（ε）</value>
   </data>
@@ -563,6 +566,39 @@
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
     <value>选择两个输入（实体键或 LeftTrigger / RightTrigger）组成组合键。三个及以上片段请使用下方可编辑的单行输入框。</value>
+  </data>
+  <data name="SourceInputKind" xml:space="preserve">
+    <value>输入类型</value>
+  </data>
+  <data name="SourceKindSwitchHint" xml:space="preserve">
+    <value>已更改来源类型 — 先前值已替换为与新类型兼容的默认值。请点击“更新所选绑定”保存。</value>
+  </data>
+  <data name="ThumbstickFromValueLabel" xml:space="preserve">
+    <value>摇杆方向 / 轴</value>
+  </data>
+  <data name="NativeTriggerSourceLabel" xml:space="preserve">
+    <value>扳机</value>
+  </data>
+  <data name="MappingDetailsAnalogThresholdStickLabel" xml:space="preserve">
+    <value>轴按下阈值</value>
+  </data>
+  <data name="MappingDetailsAnalogThresholdStickHint" xml:space="preserve">
+    <value>摇杆映射可选。留空则使用内置默认值（通常为 0.35）。否则填写 0～1 之间的数。</value>
+  </data>
+  <data name="GamepadBindingType_Button" xml:space="preserve">
+    <value>按键（组合）</value>
+  </data>
+  <data name="GamepadBindingType_LeftTrigger" xml:space="preserve">
+    <value>左扳机（模拟）</value>
+  </data>
+  <data name="GamepadBindingType_RightTrigger" xml:space="preserve">
+    <value>右扳机（模拟）</value>
+  </data>
+  <data name="GamepadBindingType_LeftThumbstick" xml:space="preserve">
+    <value>左摇杆</value>
+  </data>
+  <data name="GamepadBindingType_RightThumbstick" xml:space="preserve">
+    <value>右摇杆</value>
   </data>
   <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
     <value>扳机匹配阈值</value>

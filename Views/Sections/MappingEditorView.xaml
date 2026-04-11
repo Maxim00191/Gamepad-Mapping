@@ -1,8 +1,14 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.MappingEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:GamepadMapperGUI.Models"
+             xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              MinHeight="0"
              VerticalAlignment="Stretch">
+    <UserControl.Resources>
+        <utils:GamepadBindingTypeToLocalizationConverter x:Key="GamepadBindingTypeToLoc" />
+        <utils:MappingFromValueItemsSourceConverter x:Key="FromValueItems" />
+    </UserControl.Resources>
     <Grid VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -21,19 +27,93 @@
                   VerticalScrollBarVisibility="Auto">
             <!-- ... existing columns ... -->
             <DataGrid.Columns>
-                <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[FromType]}"
-                                    Binding="{Binding From.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Width="1.1*" />
-                <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[FromValue]}" Width="1.2*">
+                <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[FromType]}"
+                                        Width="1.1*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding From.Value}" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding From.Type, Converter={StaticResource GamepadBindingTypeToLoc}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <ComboBox ItemsSource="{Binding DataContext.AvailableGamepadButtons, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      SelectedItem="{Binding From.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <ComboBox ItemsSource="{Binding DataContext.AvailableGamepadBindingTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      SelectedItem="{Binding From.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:GamepadBindingType}">
+                                        <TextBlock Text="{Binding Converter={StaticResource GamepadBindingTypeToLoc}}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[FromValue]}" Width="1.2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock VerticalAlignment="Center" Text="{Binding From.Value}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <TextBlock VerticalAlignment="Center"
+                                           Text="{Binding From.Value}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding From.Type}" Value="{x:Static models:GamepadBindingType.LeftTrigger}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding From.Type}" Value="{x:Static models:GamepadBindingType.RightTrigger}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ComboBox IsEditable="True"
+                                          Text="{Binding From.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                    <ComboBox.Style>
+                                        <Style TargetType="ComboBox">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding From.Type}" Value="{x:Static models:GamepadBindingType.Button}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ComboBox.Style>
+                                    <ComboBox.ItemsSource>
+                                        <MultiBinding Converter="{StaticResource FromValueItems}">
+                                            <Binding Path="From.Type" />
+                                            <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                        </MultiBinding>
+                                    </ComboBox.ItemsSource>
+                                </ComboBox>
+                                <ComboBox SelectedItem="{Binding From.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                    <ComboBox.Style>
+                                        <Style TargetType="ComboBox">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding From.Type}" Value="{x:Static models:GamepadBindingType.LeftThumbstick}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding From.Type}" Value="{x:Static models:GamepadBindingType.RightThumbstick}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ComboBox.Style>
+                                    <ComboBox.ItemsSource>
+                                        <MultiBinding Converter="{StaticResource FromValueItems}">
+                                            <Binding Path="From.Type" />
+                                            <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                        </MultiBinding>
+                                    </ComboBox.ItemsSource>
+                                </ComboBox>
+                            </Grid>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>

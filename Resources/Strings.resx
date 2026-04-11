@@ -381,6 +381,9 @@
   <data name="MouseLookReboundSuppressionLabel" xml:space="preserve">
     <value>Mouse-look rebound suppression (0–1)</value>
   </data>
+  <data name="MouseLookStickLayoutHint" xml:space="preserve">
+    <value>Camera rotation and movement on the same stick share that stick. When possible, map look to one stick and movement to the other for clearer control.</value>
+  </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>Analog change epsilon</value>
   </data>
@@ -563,6 +566,39 @@
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
     <value>Pick two inputs (buttons or LeftTrigger / RightTrigger) for a chord. For three or more segments, use the single-field box (editable).</value>
+  </data>
+  <data name="SourceInputKind" xml:space="preserve">
+    <value>Input kind</value>
+  </data>
+  <data name="SourceKindSwitchHint" xml:space="preserve">
+    <value>Source kind changed — the previous value was replaced with a default compatible with the new kind. Use Update to save.</value>
+  </data>
+  <data name="ThumbstickFromValueLabel" xml:space="preserve">
+    <value>Stick direction / axis</value>
+  </data>
+  <data name="NativeTriggerSourceLabel" xml:space="preserve">
+    <value>Trigger</value>
+  </data>
+  <data name="MappingDetailsAnalogThresholdStickLabel" xml:space="preserve">
+    <value>Axis press threshold</value>
+  </data>
+  <data name="MappingDetailsAnalogThresholdStickHint" xml:space="preserve">
+    <value>Optional for thumbstick mappings. Empty uses the built-in default (typically 0.35). Otherwise use a value between 0 and 1.</value>
+  </data>
+  <data name="GamepadBindingType_Button" xml:space="preserve">
+    <value>Button (chord)</value>
+  </data>
+  <data name="GamepadBindingType_LeftTrigger" xml:space="preserve">
+    <value>Left trigger (analog)</value>
+  </data>
+  <data name="GamepadBindingType_RightTrigger" xml:space="preserve">
+    <value>Right trigger (analog)</value>
+  </data>
+  <data name="GamepadBindingType_LeftThumbstick" xml:space="preserve">
+    <value>Left thumbstick</value>
+  </data>
+  <data name="GamepadBindingType_RightThumbstick" xml:space="preserve">
+    <value>Right thumbstick</value>
   </data>
   <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
     <value>Trigger match threshold</value>
