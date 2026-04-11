@@ -6,42 +6,77 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <Style x:Key="MonitorInsetPanel" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource AppControlSurfaceAltBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppSeparatorBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
                   VerticalAlignment="Stretch"
                   PanningMode="VerticalOnly">
         <StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <Ellipse Width="6"
-                         Height="6"
-                         VerticalAlignment="Center"
-                         Margin="0,0,6,0">
-                    <Ellipse.Style>
-                        <Style TargetType="Ellipse">
-                            <Setter Property="Fill" Value="{DynamicResource AppAccentTextBrush}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        CornerRadius="10"
+                        Padding="10,6"
+                        BorderThickness="1"
+                        SnapsToDevicePixels="True">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{DynamicResource AppControlSurfaceAltBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource AppSeparatorBrush}" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsGamepadRunning}" Value="False">
-                                    <Setter Property="Fill" Value="{DynamicResource AppSecondaryTextBrush}" />
+                                <DataTrigger Binding="{Binding IsGamepadRunning}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </Ellipse.Style>
-                </Ellipse>
-                <TextBlock FontSize="11"
-                           VerticalAlignment="Center"
-                           Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorReaderOn]}"
-                           Visibility="{Binding IsGamepadRunning, Converter={StaticResource BoolToVis}}" />
-                <TextBlock FontSize="11"
-                           VerticalAlignment="Center"
-                           Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorReaderOff]}"
-                           Visibility="{Binding IsGamepadRunning, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}" />
-            </StackPanel>
-
-            <Grid Margin="0,6,0,0" HorizontalAlignment="Left">
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8"
+                                 Height="8"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,8,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource AppAccentTextBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsGamepadRunning}" Value="False">
+                                            <Setter Property="Fill" Value="{DynamicResource AppSecondaryTextBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock FontSize="12"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorReaderOn]}"
+                                   Visibility="{Binding IsGamepadRunning, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock FontSize="12"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorReaderOff]}"
+                                   Visibility="{Binding IsGamepadRunning, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}" />
+                    </StackPanel>
+                </Border>
                 <ToggleButton x:Name="AnalogSettingsButton"
+                              Grid.Column="1"
                               Style="{StaticResource AppSettingsToolbarToggleStyle}"
-                              HorizontalAlignment="Left"
+                              VerticalAlignment="Center"
                               MinWidth="0"
                               ToolTip="{Binding Source={StaticResource Loc}, Path=[AnalogSettings]}">
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AnalogSettings]}"
@@ -175,88 +210,95 @@
                 </Popup>
             </Grid>
 
-            <TextBlock Margin="0,8,0,4"
-                       FontSize="11"
-                       FontWeight="SemiBold"
+            <Separator Margin="0,14,0,12" />
+
+            <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
                        Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorAnalogMetersHeader]}" />
 
-            <Grid TextElement.FontSize="11">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0"
-                           Grid.Column="0"
-                           Text="{Binding LeftThumbX, StringFormat=LX {0:0.00}}" />
-                <TextBlock Grid.Row="0"
-                           Grid.Column="1"
-                           Text="{Binding RightThumbX, StringFormat=RX {0:0.00}}" />
-                <TextBlock Grid.Row="1"
-                           Grid.Column="0"
-                           Margin="0,2,0,0"
-                           Text="{Binding LeftThumbY, StringFormat=LY {0:0.00}}" />
-                <TextBlock Grid.Row="1"
-                           Grid.Column="1"
-                           Margin="0,2,0,0"
-                           Text="{Binding RightThumbY, StringFormat=RY {0:0.00}}" />
-                <TextBlock Grid.Row="2"
-                           Grid.Column="0"
-                           Margin="0,4,0,0"
-                           Text="{Binding LeftTrigger, StringFormat=LT {0:0.00}}" />
-                <TextBlock Grid.Row="2"
-                           Grid.Column="1"
-                           Margin="0,4,0,0"
-                           Text="{Binding RightTrigger, StringFormat=RT {0:0.00}}" />
-            </Grid>
+            <Border Style="{StaticResource MonitorInsetPanel}">
+                <Grid TextElement.FontFamily="Consolas"
+                      TextElement.FontSize="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="0"
+                               Text="{Binding LeftThumbX, StringFormat=LX {0:0.00}}" />
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="1"
+                               Text="{Binding RightThumbX, StringFormat=RX {0:0.00}}" />
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="0"
+                               Margin="0,4,0,0"
+                               Text="{Binding LeftThumbY, StringFormat=LY {0:0.00}}" />
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="1"
+                               Margin="0,4,0,0"
+                               Text="{Binding RightThumbY, StringFormat=RY {0:0.00}}" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="0"
+                               Margin="0,6,0,0"
+                               Text="{Binding LeftTrigger, StringFormat=LT {0:0.00}}" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="1"
+                               Margin="0,6,0,0"
+                               Text="{Binding RightTrigger, StringFormat=RT {0:0.00}}" />
+                </Grid>
+            </Border>
 
-            <TextBlock Margin="0,10,0,4"
-                       FontSize="11"
-                       FontWeight="SemiBold"
+            <Separator Margin="0,14,0,12" />
+
+            <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
                        Text="{Binding Source={StaticResource Loc}, Path=[GamepadMonitorActivityExpander]}" />
 
-            <TextBlock FontSize="11"
-                       Text="{Binding LastButtonPressed, StringFormat=Pressed: {0}}"
-                       TextWrapping="Wrap" />
-            <TextBlock FontSize="11"
-                       Text="{Binding LastButtonReleased, StringFormat=Released: {0}}"
-                       Margin="0,2,0,0"
-                       TextWrapping="Wrap" />
-            <TextBlock FontSize="11"
-                       Text="{Binding LastMappedOutput, StringFormat=Mapped: {0}}"
-                       Margin="0,2,0,0"
-                       TextWrapping="Wrap" />
-            <TextBlock FontSize="11"
-                       Text="{Binding LastMappingStatus, StringFormat=Status: {0}}"
-                       Margin="0,2,0,0"
-                       TextWrapping="Wrap" />
-            <TextBlock FontSize="11"
-                       Text="{Binding ComboHudGateHint}"
-                       Margin="0,4,0,0"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppAccentTextBrush}" />
+            <Border Style="{StaticResource MonitorInsetPanel}">
+                <StackPanel>
+                    <TextBlock FontSize="12"
+                               Text="{Binding LastButtonPressed, StringFormat=Pressed: {0}}"
+                               TextWrapping="Wrap" />
+                    <TextBlock FontSize="12"
+                               Text="{Binding LastButtonReleased, StringFormat=Released: {0}}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap" />
+                    <TextBlock FontSize="12"
+                               Text="{Binding LastMappedOutput, StringFormat=Mapped: {0}}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap" />
+                    <TextBlock FontSize="12"
+                               Text="{Binding LastMappingStatus, StringFormat=Status: {0}}"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap" />
+                    <TextBlock FontSize="12"
+                               Text="{Binding ComboHudGateHint}"
+                               Margin="0,8,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppAccentTextBrush}"
+                               Visibility="{Binding ComboHudGateHint, Converter={StaticResource StringHasContentToVisibilityConverter}}" />
+                </StackPanel>
+            </Border>
 
-            <StackPanel Margin="0,10,0,0"
+            <StackPanel Margin="0,18,0,0"
                         Orientation="Horizontal"
-                        HorizontalAlignment="Left">
+                        HorizontalAlignment="Right">
                 <Button Content="{Binding Source={StaticResource Loc}, Path=[StopReader]}"
                         Command="{Binding StopGamepadCommand}"
-                        MinWidth="68"
-                        Padding="8,0"
-                        Height="28"
-                        FontSize="11"
+                        MinWidth="88"
+                        Height="32"
+                        FontSize="12"
                         VerticalContentAlignment="Center" />
                 <Button Content="{Binding Source={StaticResource Loc}, Path=[StartReader]}"
                         Command="{Binding StartGamepadCommand}"
-                        MinWidth="68"
-                        Padding="8,0"
-                        Height="28"
-                        Margin="6,0,0,0"
-                        FontSize="11"
+                        Style="{StaticResource AppAccentButtonStyle}"
+                        MinWidth="88"
+                        Height="32"
+                        Margin="8,0,0,0"
+                        FontSize="12"
                         VerticalContentAlignment="Center" />
             </StackPanel>
         </StackPanel>

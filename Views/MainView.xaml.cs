@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Gamepad_Mapping.ViewModels;
 
 namespace Gamepad_Mapping.Views;
@@ -11,6 +12,7 @@ public partial class MainView : UserControl
     private GamepadMonitorWindow? _monitorWindow;
     private GamepadMonitorViewModel? _hookedMonitor;
     private bool _syncingMonitorWindowClosed;
+    private bool _ensureMonitorWindowScheduled;
 
     public MainView()
     {
@@ -76,6 +78,19 @@ public partial class MainView : UserControl
         }
 
         var owner = Window.GetWindow(this);
+        if (owner is not null && !owner.IsVisible)
+        {
+            if (_ensureMonitorWindowScheduled) return;
+            _ensureMonitorWindowScheduled = true;
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                _ensureMonitorWindowScheduled = false;
+                if (_hookedMonitor?.IsMonitorExpanderExpanded != true) return;
+                EnsureMonitorWindow();
+            }, DispatcherPriority.ApplicationIdle);
+            return;
+        }
+
         _monitorWindow = new GamepadMonitorWindow
         {
             Owner = owner,

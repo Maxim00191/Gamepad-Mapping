@@ -3,16 +3,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections"
         Title="{Binding Source={StaticResource Loc}, Path=[LiveGamepadMonitor]}"
-        MinWidth="180"
+        MinWidth="350"
         MaxWidth="520"
-        MinHeight="280"
-        Height="560"
+        MinHeight="200"
+        Height="500"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
         Background="{DynamicResource AppBackgroundBrush}"
         Foreground="{DynamicResource AppTextBrush}">
-    <Grid Margin="12">
-        <Border Style="{StaticResource SectionCardBorder}" Padding="0">
+    <Grid Margin="10">
+        <Border Style="{StaticResource SectionCardBorder}">
             <sections:GamepadMonitorView />
         </Border>
     </Grid>
