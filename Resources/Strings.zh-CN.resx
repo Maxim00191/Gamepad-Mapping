@@ -264,6 +264,18 @@
   <data name="InputApiWin32Hint" xml:space="preserve">
     <value>使用 Windows SendInput 注入按键与鼠标。后续可加入更多后端。</value>
   </data>
+  <data name="HumanNoiseEnableLabel" xml:space="preserve">
+    <value>类人化时间抖动</value>
+  </data>
+  <data name="HumanNoiseAmplitudeLabel" xml:space="preserve">
+    <value>抖动强度</value>
+  </data>
+  <data name="HumanNoiseFrequencyLabel" xml:space="preserve">
+    <value>频率</value>
+  </data>
+  <data name="HumanNoiseSmoothnessLabel" xml:space="preserve">
+    <value>平滑度</value>
+  </data>
   <data name="AppSettingsGamepadSourceSection" xml:space="preserve">
     <value>手柄输入源</value>
   </data>

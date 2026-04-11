@@ -45,6 +45,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly ISettingsService _settingsService;
     private readonly SettingsOrchestrator _settingsOrchestrator;
     private readonly ProfileOrchestrator _profileOrchestrator;
+    private readonly IInputEmulationStackFactory _inputEmulationStackFactory;
 
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
@@ -82,7 +83,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IKeyboardEmulator? keyboardEmulator = null,
         IMouseEmulator? mouseEmulator = null,
         IXInput? xinput = null,
-        IGamepadSource? gamepadSource = null)
+        IGamepadSource? gamepadSource = null,
+        IInputEmulationStackFactory? inputEmulationStackFactory = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
@@ -92,6 +94,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         _settingsService = settingsService ?? new SettingsService();
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
+        _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory();
         var appSettings = _settingsOrchestrator.Settings;
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
@@ -151,6 +154,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             reader is GamepadReader gr2 ? gr2.RightThumbstickDeadzone : 0);
 
         InitializeUiSettings(appSettings);
+
         InitializeChildViewModels(initialLeftDeadzone, initialRightDeadzone, appSettings);
 
         _profileService.ProfilesLoaded += (_, _) => OnPropertyChanged(nameof(AvailableTemplates));
@@ -272,6 +276,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private int textInterCharDelayMs;
     partial void OnTextInterCharDelayMsChanged(int value) => UpdateSetting(s => s.TextInterCharDelayMs = Math.Clamp(value, 0, 1000));
+
+    [ObservableProperty] private bool humanNoiseEnabled;
+    partial void OnHumanNoiseEnabledChanged(bool value) =>
+        UpdateSetting(s => s.HumanNoiseEnabled = value);
+
+    [ObservableProperty] private float humanNoiseAmplitude;
+    partial void OnHumanNoiseAmplitudeChanged(float value) => UpdateSetting(s => s.HumanNoiseAmplitude = Math.Clamp(value, 0f, 1f));
+
+    [ObservableProperty] private float humanNoiseFrequency;
+    partial void OnHumanNoiseFrequencyChanged(float value) => UpdateSetting(s => s.HumanNoiseFrequency = Math.Clamp(value, 0f, 1f));
+
+    [ObservableProperty] private float humanNoiseSmoothness;
+    partial void OnHumanNoiseSmoothnessChanged(float value) => UpdateSetting(s => s.HumanNoiseSmoothness = Math.Clamp(value, 0f, 1f));
 
     public ObservableCollection<ComboHudPlacement> ComboHudPlacements { get; } = new(Enum.GetValues<ComboHudPlacement>());
 
@@ -418,12 +435,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private IMappingEngine CreateMappingEngine()
     {
-        var (keyboard, mouse) = _keyboardEmulatorOverride is { } kbd && _mouseEmulatorOverride is { } ms
-            ? (kbd, ms)
-            : InputEmulationServices.CreatePair(_settingsOrchestrator.Settings.InputEmulationApi);
+        if (_keyboardEmulatorOverride is { } kbdOverride && _mouseEmulatorOverride is { } msOverride)
+            return NewMappingEngine(kbdOverride, msOverride);
 
-        return NewMappingEngine(keyboard, mouse);
+        var (kbd, mouse) = CreateEmulatorPair();
+        return NewMappingEngine(kbd, mouse);
     }
+
+    private (IKeyboardEmulator Keyboard, IMouseEmulator Mouse) CreateEmulatorPair() =>
+        _inputEmulationStackFactory.CreatePair(
+            _settingsOrchestrator.Settings.InputEmulationApi,
+            () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings));
 
     private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse) =>
         new MappingEngine(
@@ -450,7 +472,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (_keyboardEmulatorOverride is not null && _mouseEmulatorOverride is not null)
             return;
 
-        var (kbd, mouse) = InputEmulationServices.CreatePair(_settingsOrchestrator.Settings.InputEmulationApi);
+        var (kbd, mouse) = CreateEmulatorPair();
         _mappingManager.ReplaceEngine(NewMappingEngine(kbd, mouse), ComboLeadButtonsPersist);
     }
 
@@ -499,6 +521,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         KeyboardTapHoldDurationMs = appSettings.KeyboardTapHoldDurationMs;
         TapInterKeyDelayMs = appSettings.TapInterKeyDelayMs;
         TextInterCharDelayMs = appSettings.TextInterCharDelayMs;
+        HumanNoiseEnabled = appSettings.HumanNoiseEnabled;
+        HumanNoiseAmplitude = appSettings.HumanNoiseAmplitude;
+        HumanNoiseFrequency = appSettings.HumanNoiseFrequency;
+        HumanNoiseSmoothness = appSettings.HumanNoiseSmoothness;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
 
         AvailableInputApis.Clear();

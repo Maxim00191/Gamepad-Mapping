@@ -6,6 +6,9 @@ namespace GamepadMapperGUI.Interfaces.Services.Input;
 /// <summary>
 /// Injected mouse button/wheel/move simulation (implementation may use Win32, etc.).
 /// </summary>
+/// <remarks>
+/// Synchronous <c>*Click</c> methods block for the emulated button-hold interval. Call them only from a worker or dedicated emulation thread, not from the UI thread. Prefer <c>*Async</c> when integrating with async dispatch (e.g. output queue workers).
+/// </remarks>
 public interface IMouseEmulator
 {
     void LeftDown();

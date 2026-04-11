@@ -264,6 +264,18 @@
   <data name="InputApiWin32Hint" xml:space="preserve">
     <value>Uses Windows SendInput for simulated keys and mouse. More backends can be added later.</value>
   </data>
+  <data name="HumanNoiseEnableLabel" xml:space="preserve">
+    <value>Human-like timing noise</value>
+  </data>
+  <data name="HumanNoiseAmplitudeLabel" xml:space="preserve">
+    <value>Noise amount</value>
+  </data>
+  <data name="HumanNoiseFrequencyLabel" xml:space="preserve">
+    <value>Frequency</value>
+  </data>
+  <data name="HumanNoiseSmoothnessLabel" xml:space="preserve">
+    <value>Smoothness</value>
+  </data>
   <data name="AppSettingsGamepadSourceSection" xml:space="preserve">
     <value>Gamepad input source</value>
   </data>

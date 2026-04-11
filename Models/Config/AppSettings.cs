@@ -219,4 +219,20 @@ public class AppSettings
     /// </summary>
     [JsonProperty("gamepadSourceApi")]
     public string GamepadSourceApi { get; set; } = GamepadSourceApiIds.XInput;
+
+    /// <summary>When true, simulated keyboard/mouse timing may be jittered for a more human-like feel. Clamped when applied.</summary>
+    [JsonProperty("humanNoiseEnabled")]
+    public bool HumanNoiseEnabled { get; set; }
+
+    /// <summary>Relative strength of human-like noise (normalized, typically 0–1). Clamped when applied.</summary>
+    [JsonProperty("humanNoiseAmplitude")]
+    public float HumanNoiseAmplitude { get; set; } = 0.1f;
+
+    /// <summary>How often the noise pattern varies (normalized, typically 0–1). Clamped when applied.</summary>
+    [JsonProperty("humanNoiseFrequency")]
+    public float HumanNoiseFrequency { get; set; } = 0.1f;
+
+    /// <summary>How gradually noise blends (normalized, typically 0–1). Clamped when applied.</summary>
+    [JsonProperty("humanNoiseSmoothness")]
+    public float HumanNoiseSmoothness { get; set; } = 0.8f;
 }

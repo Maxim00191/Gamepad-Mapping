@@ -351,6 +351,72 @@
                                                           SelectedItem="{Binding SelectedInputApi, Mode=TwoWay}"
                                                           DisplayMemberPath="DisplayName"
                                                           ToolTip="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Hint]}" />
+                                                <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[HumanNoiseEnableLabel]}"
+                                                          IsChecked="{Binding HumanNoiseEnabled, Mode=TwoWay}"
+                                                          Margin="0,4,0,6" />
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseAmplitudeLabel]}"
+                                                           Margin="0,0,0,2" />
+                                                <StackPanel Orientation="Horizontal"
+                                                            VerticalAlignment="Center"
+                                                            Margin="0,0,0,4">
+                                                    <Slider Width="168"
+                                                            Minimum="0"
+                                                            Maximum="1"
+                                                            SmallChange="0.02"
+                                                            LargeChange="0.1"
+                                                            TickFrequency="0.05"
+                                                            IsSnapToTickEnabled="False"
+                                                            VerticalAlignment="Center"
+                                                            IsEnabled="{Binding HumanNoiseEnabled}"
+                                                            Value="{Binding HumanNoiseAmplitude, Mode=TwoWay}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Margin="10,0,0,0"
+                                                               MinWidth="40"
+                                                               IsEnabled="{Binding HumanNoiseEnabled}"
+                                                               Text="{Binding HumanNoiseAmplitude, StringFormat={}{0:0.##}}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseFrequencyLabel]}"
+                                                           Margin="0,4,0,2" />
+                                                <StackPanel Orientation="Horizontal"
+                                                            VerticalAlignment="Center"
+                                                            Margin="0,0,0,4">
+                                                    <Slider Width="168"
+                                                            Minimum="0"
+                                                            Maximum="1"
+                                                            SmallChange="0.02"
+                                                            LargeChange="0.1"
+                                                            TickFrequency="0.05"
+                                                            IsSnapToTickEnabled="False"
+                                                            VerticalAlignment="Center"
+                                                            IsEnabled="{Binding HumanNoiseEnabled}"
+                                                            Value="{Binding HumanNoiseFrequency, Mode=TwoWay}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Margin="10,0,0,0"
+                                                               MinWidth="40"
+                                                               IsEnabled="{Binding HumanNoiseEnabled}"
+                                                               Text="{Binding HumanNoiseFrequency, StringFormat={}{0:0.##}}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseSmoothnessLabel]}"
+                                                           Margin="0,4,0,2" />
+                                                <StackPanel Orientation="Horizontal"
+                                                            VerticalAlignment="Center"
+                                                            Margin="0,0,0,4">
+                                                    <Slider Width="168"
+                                                            Minimum="0"
+                                                            Maximum="1"
+                                                            SmallChange="0.02"
+                                                            LargeChange="0.1"
+                                                            TickFrequency="0.05"
+                                                            IsSnapToTickEnabled="False"
+                                                            VerticalAlignment="Center"
+                                                            IsEnabled="{Binding HumanNoiseEnabled}"
+                                                            Value="{Binding HumanNoiseSmoothness, Mode=TwoWay}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               Margin="10,0,0,0"
+                                                               MinWidth="40"
+                                                               IsEnabled="{Binding HumanNoiseEnabled}"
+                                                               Text="{Binding HumanNoiseSmoothness, StringFormat={}{0:0.##}}" />
+                                                </StackPanel>
                                             </StackPanel>
 
                                             <Separator Margin="0,6,0,8" />
