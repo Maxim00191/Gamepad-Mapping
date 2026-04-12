@@ -2,9 +2,14 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Update;
 using Moq;
 
 namespace GamepadMapping.Tests.Services;
@@ -74,7 +79,7 @@ public class UpdateServiceFallbackTests
         contentMock.Verify(x => x.GetGitHubApiStringAsync(
             originUrl,
             "application/vnd.github.v3+json",
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>()), Times.Once());
         contentMock.Verify(x => x.GetGitHubApiStringAsync(
             mirrorUrl,
             "application/vnd.github.v3+json",
@@ -109,7 +114,7 @@ public class UpdateServiceFallbackTests
         contentMock.Verify(x => x.GetGitHubApiStringAsync(
             unsafeMirrorUrl,
             "application/vnd.github.v3+json",
-            It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<CancellationToken>()), Times.Never());
     }
 
     [Fact]
@@ -122,3 +127,4 @@ public class UpdateServiceFallbackTests
         Assert.Contains("non-HTTPS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
+

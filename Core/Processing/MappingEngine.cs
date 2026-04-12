@@ -8,15 +8,26 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
-using Vortice.XInput;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
+using GamepadMapperGUI.Core.Input;
+using GamepadMapperGUI.Core.Processing;
 
 namespace GamepadMapperGUI.Core;
 
 public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 {
+    private static readonly TimeSpan OutputQueueDrainBeforeDispatcherDispose = TimeSpan.FromSeconds(2);
+
     private readonly IProfileService _profileService;
     private readonly IKeyboardEmulator _keyboardEmulator;
     private readonly IMouseEmulator _mouseEmulator;
@@ -25,9 +36,11 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private bool _frameDispatchAllowed;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
+    private readonly Action<string, TriggerMoment, Key[], string, DispatchedOutput?, Key> _enqueueItemCycleTap;
+    private readonly Action<string, TriggerMoment, Key[], Key, string, string> _enqueueChordTap;
     private readonly OutputStateTracker _outputStateTracker = new();
-    private readonly AnalogProcessor _analogProcessor = new();
-    private readonly InputDispatcher _inputDispatcher;
+    private readonly AnalogProcessor _analogProcessor;
+    private readonly IInputDispatcher _inputDispatcher;
     private readonly Action<ComboHudContent?>? _setComboHud;
     private readonly object _inputFrameSync = new();
     private readonly HoldSessionManager _holdSessionManager;
@@ -38,9 +51,6 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
     private readonly int _comboHudDelayMs;
     private readonly int _leadKeyReleaseSuppressMs;
-
-    private readonly TriggerMoment _buttonPressedTrigger = TriggerMoment.Pressed;
-    private readonly TriggerMoment _buttonTapTrigger = TriggerMoment.Tap;
 
     private readonly Action<string>? _requestTemplateSwitchToProfileId;
 
@@ -61,16 +71,25 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private readonly ButtonMappingProcessor _buttonMappingProcessor;
     private readonly IRadialMenuController _radialMenuController;
     private readonly ITimeProvider _timeProvider;
-    private readonly Action<Action> _runOnUi;
+    private readonly IUiSynchronization _ui;
     private readonly IRadialMenuHud _radialMenuHud;
+    private readonly bool _ownsRadialMenuHud;
     private readonly Func<float> _getRadialMenuStickEngagementThreshold;
     private readonly Func<RadialMenuConfirmMode> _getRadialMenuConfirmMode;
+    private readonly Func<float> _getMouseLookSensitivity;
+    private readonly Func<float> _getMouseLookSmoothing;
+    private readonly Func<float> _getMouseLookSettleMagnitude;
+    private readonly Func<float> _getMouseLookReboundSuppression;
+    private readonly Func<int> _getGamepadPollingIntervalMs;
+    private readonly Func<float> _getAnalogChangeEpsilon;
+    private readonly Func<float> _getAnalogHysteresisPressExtra;
+    private readonly Func<float> _getAnalogHysteresisReleaseExtra;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
         IMouseEmulator mouseEmulator,
         Func<bool> canDispatchOutputLive,
-        Action<Action> runOnUi,
+        IUiSynchronization ui,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus,
         Action<ComboHudContent?>? setComboHud = null,
@@ -84,15 +103,35 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         IRadialMenuHud? radialMenuHud = null,
         Func<float>? getRadialMenuStickEngagementThreshold = null,
         Func<RadialMenuConfirmMode>? getRadialMenuConfirmMode = null,
-        ITimeProvider? timeProvider = null)
+        ITimeProvider? timeProvider = null,
+        IInputDispatcher? inputDispatcher = null,
+        bool ownsRadialMenuHud = true,
+        Func<float>? getMouseLookSensitivity = null,
+        Func<float>? getMouseLookSmoothing = null,
+        Func<float>? getMouseLookSettleMagnitude = null,
+        Func<float>? getMouseLookReboundSuppression = null,
+        Func<int>? getGamepadPollingIntervalMs = null,
+        Func<float>? getAnalogChangeEpsilon = null,
+        Func<float>? getAnalogHysteresisPressExtra = null,
+        Func<float>? getAnalogHysteresisReleaseExtra = null)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
-        _runOnUi = runOnUi;
+        _ui = ui;
+        _ownsRadialMenuHud = ownsRadialMenuHud;
         _radialMenuHud = radialMenuHud ?? NullRadialMenuHud.Instance;
         _getRadialMenuStickEngagementThreshold =
             getRadialMenuStickEngagementThreshold ?? (() => 0.35f);
         _getRadialMenuConfirmMode =
             getRadialMenuConfirmMode ?? (() => RadialMenuConfirmMode.ReturnStickToCenter);
+        _getMouseLookSensitivity = getMouseLookSensitivity ?? (() => AnalogProcessor.LegacyDefaultMouseLookSensitivity);
+        _getMouseLookSmoothing = getMouseLookSmoothing ?? (() => 0f);
+        _getMouseLookSettleMagnitude = getMouseLookSettleMagnitude ?? (() => 0.02f);
+        _getMouseLookReboundSuppression = getMouseLookReboundSuppression ?? (() => 0f);
+        _getGamepadPollingIntervalMs = getGamepadPollingIntervalMs ?? (() => 10);
+        _getAnalogChangeEpsilon = getAnalogChangeEpsilon ?? (() => 0.01f);
+        _getAnalogHysteresisPressExtra = getAnalogHysteresisPressExtra ?? (() => 0f);
+        _getAnalogHysteresisReleaseExtra = getAnalogHysteresisReleaseExtra ?? (() => 0.01f);
+        _analogProcessor = new AnalogProcessor(_getAnalogHysteresisPressExtra, _getAnalogHysteresisReleaseExtra);
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
         _requestTemplateSwitchToProfileId = requestTemplateSwitchToProfileId;
@@ -103,16 +142,20 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
         _setComboHud = setComboHud;
-        _inputDispatcher = new InputDispatcher(
+        
+        _inputDispatcher = inputDispatcher ?? new InputDispatcher(
             DispatchMappedOutputAsync,
             (modifiers, mainKey, ct) => _keyboardEmulator.TapKeyChordAsync(modifiers, mainKey, cancellationToken: ct),
-            runOnUi,
+            a => _ui.Post(a),
             setMappedOutput,
             setMappingStatus);
 
-        _radialMenuController = new RadialMenuController(
+        _enqueueItemCycleTap = EnqueueItemCycleTap;
+        _enqueueChordTap = (source, trigger, mods, key, label, token) => _inputDispatcher.EnqueueChordTap(source, trigger, mods, key, label, token);
+
+        _radialMenuController = RadialMenuControllerFactory.Create(
             _radialMenuHud,
-            _runOnUi,
+            _ui,
             _setMappedOutput,
             _setMappingStatus,
             QueueOutputDispatch,
@@ -120,7 +163,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             action => _activeActionTracker.Register(action),
             id => _activeActionTracker.Unregister(id),
             _requestTemplateSwitchToProfileId,
-            null); // Catalog will be set when profile is loaded
+            null);
 
         _radialMenuController.SetActionExecutor(this);
 
@@ -146,7 +189,13 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             _mouseEmulator,
             () => CanDispatchOutputMerged(),
             _setMappedOutput,
-            _setMappingStatus);
+            _setMappingStatus,
+            _getMouseLookSensitivity,
+            _getMouseLookSmoothing,
+            _getMouseLookSettleMagnitude,
+            _getMouseLookReboundSuppression,
+            _getGamepadPollingIntervalMs,
+            _getAnalogChangeEpsilon);
 
         if (_setComboHud != null)
         {
@@ -160,7 +209,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
                 _comboHudDelayMs,
                 setComboHudGateHint,
                 comboHudGateMessageFactory,
-                isComboHudPresentationSuppressed);
+                isComboHudPresentationSuppressed ?? (() => _radialMenuController.ActiveRadial is not null));
         }
 
         _buttonMappingProcessor = new ButtonMappingProcessor(
@@ -171,7 +220,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         _setMappedOutput,
         _setMappingStatus,
         QueueOutputDispatch,
-        EnqueueItemCycleTap,
+        _enqueueItemCycleTap,
+        _enqueueChordTap,
         TryDispatchAction,
         mappings => ResolveComboLeads(mappings),
         _leadKeyReleaseSuppressMs,
@@ -179,13 +229,33 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         _deferredSoloLeadButtonsLock,
         activeActionTracker: _activeActionTracker);
 
+        var inputStateSyncMiddleware = new InputStateSyncMiddleware(
+            (activeButtons, leftTrigger, rightTrigger) =>
+            {
+                _latestActiveButtons = activeButtons;
+                _latestLeftTrigger = leftTrigger;
+                _latestRightTrigger = rightTrigger;
+                _holdSessionManager.UpdateLatestInputState(activeButtons, leftTrigger, rightTrigger);
+            });
+
         var radialMiddleware = new RadialMenuMiddleware(
             _radialMenuController,
             _getRadialMenuStickEngagementThreshold,
             _getRadialMenuConfirmMode);
 
+        var buttonTransitionMiddleware = new ButtonTransitionMiddleware(
+            handleButtonEvent: HandleButtonMappingsInternal,
+            getMappingsSnapshot: () => _lastButtonMappingsSnapshot,
+            onButtonReleased: _activeActionTracker.ProcessButtonReleased);
+
+        var analogTransitionMiddleware = new AnalogTransitionMiddleware(
+            _analogMappingProcessor,
+            QueueOutputDispatch,
+            ProcessNativeTriggerExecutableActions,
+            () => _lastButtonMappingsSnapshot);
+
         _inputFramePipeline = new InputFramePipeline(
-            middlewares: [new InputFrameTransitionMiddleware(), radialMiddleware],
+            middlewares: [new InputFrameTransitionMiddleware(), inputStateSyncMiddleware, radialMiddleware, buttonTransitionMiddleware, analogTransitionMiddleware],
             terminal: ProcessInputFrameTerminal);
 
         _buttonEventPipeline = new ButtonEventPipeline(
@@ -244,6 +314,12 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             {
                 _lastButtonMappingsSnapshot = mappingsSnapshot;
 
+                // Resolve executable actions for the current snapshot if not already done
+                foreach (var mapping in _lastButtonMappingsSnapshot)
+                {
+                    mapping.ExecutableAction ??= ResolveExecutableAction(mapping);
+                }
+
                 var context = new InputFrameContext
                 {
                     Frame = frame
@@ -252,8 +328,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
                 _inputFramePipeline.Invoke(context);
 
                 return new InputFrameProcessingResult(
-                    context.PressedButtons.ToArray(),
-                    context.ReleasedButtons.ToArray());
+                    context.PressedButtons,
+                    context.ReleasedButtons);
             }
             finally
             {
@@ -264,79 +340,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
     private void ProcessInputFrameTerminal(InputFrameContext context)
     {
-        var frame = context.Frame;
-
-        _latestLeftTrigger = frame.LeftTrigger;
-        _latestRightTrigger = frame.RightTrigger;
-
-        var activeButtonsNow = ToActiveButtonsSet(frame.Buttons);
-        _latestActiveButtons = activeButtonsNow;
-        _holdSessionManager.UpdateLatestInputState(_latestActiveButtons, frame.LeftTrigger, frame.RightTrigger);
-
-        // Resolve executable actions for the current snapshot if not already done
-        foreach (var mapping in _lastButtonMappingsSnapshot)
-        {
-            if (mapping.ExecutableAction is null)
-            {
-                mapping.ExecutableAction = ResolveExecutableAction(mapping);
-            }
-        }
-
-        // ConsumedInputs is populated by middleware before this terminal runs; do not clear it here.
-
-        // The first frame is treated as an initialization frame; button transitions are ignored.
-        if (!context.IsFirstFrame)
-        {
-            var workingActiveButtons = ToActiveButtonsSet(context.PreviousButtonsMask);
-
-            foreach (var pressedButton in context.PressedButtons)
-            {
-                workingActiveButtons.Add(pressedButton);
-
-                // Keep the legacy ordering: Pressed mappings first, then Tap mappings.
-                HandleButtonMappingsInternal(
-                    pressedButton,
-                    _buttonPressedTrigger,
-                    workingActiveButtons,
-                    _lastButtonMappingsSnapshot,
-                    frame.LeftTrigger,
-                    frame.RightTrigger);
-
-                HandleButtonMappingsInternal(
-                    pressedButton,
-                    _buttonTapTrigger,
-                    workingActiveButtons,
-                    _lastButtonMappingsSnapshot,
-                    frame.LeftTrigger,
-                    frame.RightTrigger);
-            }
-
-            foreach (var releasedButton in context.ReleasedButtons)
-            {
-                HandleButtonMappingsInternal(
-                    releasedButton,
-                    TriggerMoment.Released,
-                    workingActiveButtons,
-                    _lastButtonMappingsSnapshot,
-                    frame.LeftTrigger,
-                    frame.RightTrigger);
-
-                _activeActionTracker.ProcessButtonReleased((Vortice.XInput.GamepadButtons)releasedButton);
-
-                workingActiveButtons.Remove(releasedButton);
-            }
-        }
-
-        // Continuous analog evaluation
-        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.LeftThumbstick, frame.LeftThumbstick, _lastButtonMappingsSnapshot, context.ConsumedInputs.Contains(GamepadBindingType.LeftThumbstick));
-        _analogMappingProcessor.ProcessThumbstick(GamepadBindingType.RightThumbstick, frame.RightThumbstick, _lastButtonMappingsSnapshot, context.ConsumedInputs.Contains(GamepadBindingType.RightThumbstick));
-        _analogMappingProcessor.ProcessTrigger(GamepadBindingType.LeftTrigger, frame.LeftTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
-        _analogMappingProcessor.ProcessTrigger(GamepadBindingType.RightTrigger, frame.RightTrigger, _lastButtonMappingsSnapshot, SendPointerAction);
-
-        ProcessNativeTriggerExecutableActions(frame.LeftTrigger, GamepadBindingType.LeftTrigger);
-        ProcessNativeTriggerExecutableActions(frame.RightTrigger, GamepadBindingType.RightTrigger);
-
-        TrySyncComboHud(context);
+        TrySyncComboHud();
     }
 
     /// <summary>
@@ -381,67 +385,53 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         return mapping.Trigger == moment;
     }
 
-    private static string BuildNativeTriggerActionStateId(MappingEntry mapping, GamepadBindingType side)
+    private static Processing.AnalogStateId BuildNativeTriggerActionStateId(MappingEntry mapping, GamepadBindingType side)
     {
         if (mapping.RadialMenu is { } rm)
-            return $"{side}|Radial|{rm.RadialMenuId}";
+            return new Processing.AnalogStateId(side, mapping.ActionType, rm.RadialMenuId);
         if (mapping.TemplateToggle is { } tt)
-            return $"{side}|Toggle|{tt.AlternateProfileId}";
-        return $"{side}|{mapping.ActionType}|{mapping.KeyboardKey}|{mapping.Description}";
+            return new Processing.AnalogStateId(side, mapping.ActionType, tt.AlternateProfileId);
+        
+        return new Processing.AnalogStateId(side, mapping.ActionType, mapping.KeyboardKey, mapping.Description);
     }
 
-    private IExecutableAction ResolveExecutableAction(MappingEntry mapping)
+    private IExecutableAction? ResolveExecutableAction(MappingEntry mapping)
     {
         return mapping.ActionType switch
         {
             MappingActionType.RadialMenu => new Actions.RadialMenuAction(mapping, _radialMenuController),
-            MappingActionType.ItemCycle => new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap),
+            MappingActionType.ItemCycle => new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _enqueueItemCycleTap),
             MappingActionType.TemplateToggle => new Actions.TemplateToggleAction(mapping, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _requestTemplateSwitchToProfileId),
-            _ => new Actions.KeyboardAction(mapping.KeyboardKey, TryDispatchLegacyKeyboard)
+            MappingActionType.Keyboard when mapping.From.Type != GamepadBindingType.Button =>
+                new Actions.KeyboardAction(mapping.KeyboardKey ?? string.Empty, TryDispatchLegacyKeyboard),
+            MappingActionType.Keyboard => new Actions.KeyboardAction(mapping.KeyboardKey ?? string.Empty, TryDispatchLegacyKeyboard),
+            _ => null,
         };
     }
 
+    /// <summary>
+    /// Keyboard dispatch for non-button sources (triggers, thumbsticks) where <see cref="ButtonMappingProcessor"/> does not run.
+    /// Button mappings use <c>null</c> <see cref="MappingEntry.ExecutableAction"/> and the processor's unified path with <see cref="OutputStateTracker"/>.
+    /// </summary>
     private bool TryDispatchLegacyKeyboard(string keyboardKey, TriggerMoment trigger, out string? errorStatus)
     {
         errorStatus = null;
         if (!InputTokenResolver.TryResolveMappedOutput(keyboardKey, out var output, out var baseLabel))
             return false;
 
-        // Note: sourceToken and chordButtons are handled by ButtonMappingProcessor
-        // This legacy path is only for the Execute call within TryDispatchAction
-        return false; // ButtonMappingProcessor handles the actual dispatch for KeyboardAction
+        var outputLabel = $"{baseLabel} ({trigger})";
+        _setMappedOutput(outputLabel);
+        _setMappingStatus($"{keyboardKey} ({trigger}) -> {outputLabel}");
+        QueueOutputDispatch("LegacySource", trigger, output, outputLabel, keyboardKey);
+        return true;
     }
 
-    private void TrySyncComboHud(InputFrameContext context)
+    private void TrySyncComboHud()
     {
         if (_comboHudManager is null)
             return;
 
-        var frameHasButtonEdges = context.IsFirstFrame ||
-            context.PressedButtons.Length > 0 ||
-            context.ReleasedButtons.Length > 0;
-
-        if (frameHasButtonEdges || _comboHudManager.AwaitingComboHudDelay)
-            _comboHudManager.Sync();
-    }
-
-    private static HashSet<GamepadButtons> ToActiveButtonsSet(GamepadButtons buttons)
-    {
-        var result = new HashSet<GamepadButtons>();
-        var mask = (uint)buttons;
-        if (mask == 0) return result;
-
-        for (var bitIndex = 0; bitIndex < 32; bitIndex++)
-        {
-            var bit = 1u << bitIndex;
-            if ((mask & bit) == 0) continue;
-
-            var flag = (GamepadButtons)bit;
-            if (Enum.IsDefined(typeof(GamepadButtons), flag))
-                result.Add(flag);
-        }
-
-        return result;
+        _comboHudManager.Sync();
     }
 
     private void HandleButtonMappingsInternal(
@@ -510,14 +500,41 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         try
         {
             _comboHudManager?.Dispose();
+            _radialMenuController.ForceReset();
             ForceReleaseAllOutputs();
             ForceReleaseAnalogOutputs();
+            TryDrainOutputQueueBeforeDispatcherDispose();
             _inputDispatcher.Dispose();
-            _radialMenuHud.Dispose();
         }
         catch
         {
             // Best-effort shutdown.
+        }
+        finally
+        {
+            if (_ownsRadialMenuHud)
+            {
+                try
+                {
+                    _radialMenuHud.Dispose();
+                }
+                catch
+                {
+                    // Best-effort shutdown.
+                }
+            }
+        }
+    }
+
+    private void TryDrainOutputQueueBeforeDispatcherDispose()
+    {
+        try
+        {
+            WaitForIdleAsync().Wait(OutputQueueDrainBeforeDispatcherDispose);
+        }
+        catch (Exception)
+        {
+            // Best-effort: Dispose must not hang if the queue cannot finish.
         }
     }
 
@@ -559,33 +576,60 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
     private async Task DispatchMappedOutputAsync(DispatchedOutput output, TriggerMoment trigger, CancellationToken cancellationToken)
     {
-        if (output.KeyboardKey is Key key && key != Key.None)
+        var command = TranslateToCommand(output, trigger);
+        if (command.Type == OutputCommandType.None) return;
+
+        if (command.Type is OutputCommandType.KeyPress or OutputCommandType.KeyRelease or OutputCommandType.KeyTap or OutputCommandType.Text)
         {
-            if (trigger == TriggerMoment.Pressed)
-                _keyboardEmulator.KeyDown(key);
-            else if (trigger == TriggerMoment.Released)
-                _keyboardEmulator.KeyUp(key);
-            else
-                await _keyboardEmulator.TapKeyAsync(key, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return;
+            await _keyboardEmulator.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await _mouseEmulator.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static OutputCommand TranslateToCommand(DispatchedOutput output, TriggerMoment trigger)
+    {
+        if (output.KeyboardKey is { } key && key != Key.None)
+        {
+            var type = trigger switch
+            {
+                TriggerMoment.Pressed => OutputCommandType.KeyPress,
+                TriggerMoment.Released => OutputCommandType.KeyRelease,
+                _ => OutputCommandType.KeyTap
+            };
+            return new OutputCommand(type, Key: key);
         }
 
-        if (output.PointerAction is PointerAction pointerAction)
-            await SendPointerActionAsync(pointerAction, trigger, cancellationToken).ConfigureAwait(false);
+        if (output.PointerAction is { } action && action != PointerAction.None)
+        {
+            var type = action switch
+            {
+                PointerAction.WheelUp or PointerAction.WheelDown => OutputCommandType.PointerWheel,
+                _ => trigger switch
+                {
+                    TriggerMoment.Pressed => OutputCommandType.PointerDown,
+                    TriggerMoment.Released => OutputCommandType.PointerUp,
+                    _ => OutputCommandType.PointerClick
+                }
+            };
+            return new OutputCommand(type, PointerAction: action);
+        }
+
+        return default;
     }
 
     private void ForceReleaseHeldOutputsForButton(GamepadButtons button, IReadOnlySet<DispatchedOutput>? outputsHandledByReleasedMappings = null)
     {
-        _outputStateTracker.ForceReleaseHeldOutputsForButton((Vortice.XInput.GamepadButtons)button, ForceReleaseOutput, outputsHandledByReleasedMappings);
+        _outputStateTracker.ForceReleaseHeldOutputsForButton(button, ForceReleaseOutput, outputsHandledByReleasedMappings);
     }
 
     private void ForceReleaseOutput(DispatchedOutput output)
     {
+        // Use the dispatcher to ensure consistent ordering even for forced releases
         QueueOutputDispatch("ForceRelease", TriggerMoment.Released, output, "Forced release", "forced-release");
     }
-
-    private void SendPointerAction(PointerAction action, TriggerMoment trigger) =>
-        SendPointerActionAsync(action, trigger, CancellationToken.None).GetAwaiter().GetResult();
 
     private async Task SendPointerActionAsync(PointerAction action, TriggerMoment trigger, CancellationToken cancellationToken)
     {
@@ -702,7 +746,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         if (action.ItemCycle is { } ic)
         {
             var mapping = new MappingEntry { ItemCycle = ic };
-            var executable = new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, EnqueueItemCycleTap);
+            var executable = new Actions.ItemCycleAction(mapping, _itemCycleProcessor, () => CanDispatchOutputMerged(), _setMappedOutput, _setMappingStatus, _enqueueItemCycleTap);
             return executable.Execute(TriggerMoment.Tap, sourceToken, out errorStatus);
         }
 
@@ -718,15 +762,6 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
 
         return false;
     }
-
-    private void ClearRadialSessionState()
-    {
-        // State is now managed by _radialMenuController
-    }
-
-    private void AbandonRadialMenuSessionForForceReset()
-    {
-        _runOnUi(() => _radialMenuHud.HideMenu());
-        ClearRadialSessionState();
-    }
 }
+
+

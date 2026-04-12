@@ -90,6 +90,27 @@
   <data name="LiveGamepadMonitor" xml:space="preserve">
     <value>Live Gamepad Monitor</value>
   </data>
+  <data name="GamepadMonitorShow" xml:space="preserve">
+    <value>Show monitor</value>
+  </data>
+  <data name="GamepadMonitorHide" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
+    <value>Show or hide the live monitor window. Resize the window to change width; it is saved in app settings.</value>
+  </data>
+  <data name="GamepadMonitorReaderOn" xml:space="preserve">
+    <value>Reader on</value>
+  </data>
+  <data name="GamepadMonitorReaderOff" xml:space="preserve">
+    <value>Reader off</value>
+  </data>
+  <data name="GamepadMonitorAnalogMetersHeader" xml:space="preserve">
+    <value>Sticks &amp; triggers</value>
+  </data>
+  <data name="GamepadMonitorActivityExpander" xml:space="preserve">
+    <value>Buttons &amp; output</value>
+  </data>
   <data name="ShowHud" xml:space="preserve">
     <value>Enable HUD for combo key tips</value>
   </data>
@@ -247,7 +268,22 @@
     <value>Application settings</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>Timing, gamepad polling, analog thresholds, and key emulation. Values are saved to your local config file (not in the profile JSON).</value>
+    <value>Language, updates, input/output, gamepad, mapping, and radial/HUD options. Values are saved to your local config file (not in the profile JSON).</value>
+  </data>
+  <data name="AppSettingsTabGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="AppSettingsTabInputOutput" xml:space="preserve">
+    <value>Input / output</value>
+  </data>
+  <data name="AppSettingsTabGamepad" xml:space="preserve">
+    <value>Gamepad</value>
+  </data>
+  <data name="AppSettingsTabMapping" xml:space="preserve">
+    <value>Mapping</value>
+  </data>
+  <data name="AppSettingsTabRadialHud" xml:space="preserve">
+    <value>Radial / HUD</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>Language Options</value>
@@ -255,11 +291,50 @@
   <data name="AppLanguageLabel" xml:space="preserve">
     <value>Language</value>
   </data>
+  <data name="AppSettingsInputEmulationSection" xml:space="preserve">
+    <value>Keyboard &amp; mouse output</value>
+  </data>
+  <data name="InputApiWin32Label" xml:space="preserve">
+    <value>Win32 (SendInput — user32)</value>
+  </data>
+  <data name="InputApiWin32Hint" xml:space="preserve">
+    <value>Uses Windows SendInput for simulated keys and mouse. More backends can be added later.</value>
+  </data>
+  <data name="InputApiInputInjectionLabel" xml:space="preserve">
+    <value>Input Injection (Windows 10+)</value>
+  </data>
+  <data name="HumanNoiseEnableLabel" xml:space="preserve">
+    <value>Human-like timing noise</value>
+  </data>
+  <data name="HumanNoiseAmplitudeLabel" xml:space="preserve">
+    <value>Noise amount</value>
+  </data>
+  <data name="HumanNoiseFrequencyLabel" xml:space="preserve">
+    <value>Frequency</value>
+  </data>
+  <data name="HumanNoiseSmoothnessLabel" xml:space="preserve">
+    <value>Smoothness</value>
+  </data>
+  <data name="AppSettingsGamepadSourceSection" xml:space="preserve">
+    <value>Gamepad input source</value>
+  </data>
+  <data name="GamepadSourceXInputLabel" xml:space="preserve">
+    <value>XInput (Xbox controllers)</value>
+  </data>
+  <data name="GamepadSourceXInputHint" xml:space="preserve">
+    <value>Standard Windows API for Xbox and compatible controllers.</value>
+  </data>
+  <data name="GamepadSourceDualSenseLabel" xml:space="preserve">
+    <value>DualSense (PlayStation 5)</value>
+  </data>
+  <data name="GamepadSourceDualSenseHint" xml:space="preserve">
+    <value>Native support for DualSense features (adaptive triggers, etc). Not yet implemented.</value>
+  </data>
   <data name="AppSettingsTimingSection" xml:space="preserve">
     <value>Timing &amp; keyboard</value>
   </data>
   <data name="AppSettingsAnalogSection" xml:space="preserve">
-    <value>Analog &amp; polling</value>
+    <value>Analog &amp; mouse look</value>
   </data>
   <data name="ModifierGraceLabel" xml:space="preserve">
     <value>Modifier grace / combo HUD delay (ms)</value>
@@ -279,8 +354,35 @@
   <data name="DefaultAnalogThresholdLabel" xml:space="preserve">
     <value>Default analog threshold (0–1)</value>
   </data>
+  <data name="ThumbstickDeadzoneShapeLabel" xml:space="preserve">
+    <value>Thumbstick deadzone shape</value>
+  </data>
+  <data name="ThumbstickDeadzoneShapeAxial" xml:space="preserve">
+    <value>Axial (per axis)</value>
+  </data>
+  <data name="ThumbstickDeadzoneShapeRadial" xml:space="preserve">
+    <value>Radial (circular)</value>
+  </data>
+  <data name="AnalogHysteresisPressExtraLabel" xml:space="preserve">
+    <value>Analog press extra (0–0.2)</value>
+  </data>
+  <data name="AnalogHysteresisReleaseExtraLabel" xml:space="preserve">
+    <value>Analog release margin (0–0.3)</value>
+  </data>
   <data name="MouseLookSensitivityLabel" xml:space="preserve">
     <value>Mouse-look sensitivity</value>
+  </data>
+  <data name="MouseLookSmoothingLabel" xml:space="preserve">
+    <value>Mouse-look smoothing (0–1)</value>
+  </data>
+  <data name="MouseLookSettleMagnitudeLabel" xml:space="preserve">
+    <value>Mouse-look settle band (0–1)</value>
+  </data>
+  <data name="MouseLookReboundSuppressionLabel" xml:space="preserve">
+    <value>Mouse-look rebound suppression (0–1)</value>
+  </data>
+  <data name="MouseLookStickLayoutHint" xml:space="preserve">
+    <value>Camera rotation and movement on the same stick share that stick. When possible, map look to one stick and movement to the other for clearer control.</value>
   </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>Analog change epsilon</value>
@@ -464,6 +566,39 @@
   </data>
   <data name="SourceCombinationHint" xml:space="preserve">
     <value>Pick two inputs (buttons or LeftTrigger / RightTrigger) for a chord. For three or more segments, use the single-field box (editable).</value>
+  </data>
+  <data name="SourceInputKind" xml:space="preserve">
+    <value>Input kind</value>
+  </data>
+  <data name="SourceKindSwitchHint" xml:space="preserve">
+    <value>Source kind changed — the previous value was replaced with a default compatible with the new kind. Use Update to save.</value>
+  </data>
+  <data name="ThumbstickFromValueLabel" xml:space="preserve">
+    <value>Stick direction / axis</value>
+  </data>
+  <data name="NativeTriggerSourceLabel" xml:space="preserve">
+    <value>Trigger</value>
+  </data>
+  <data name="MappingDetailsAnalogThresholdStickLabel" xml:space="preserve">
+    <value>Axis press threshold</value>
+  </data>
+  <data name="MappingDetailsAnalogThresholdStickHint" xml:space="preserve">
+    <value>Optional for thumbstick mappings. Empty uses the built-in default (typically 0.35). Otherwise use a value between 0 and 1.</value>
+  </data>
+  <data name="GamepadBindingType_Button" xml:space="preserve">
+    <value>Button (chord)</value>
+  </data>
+  <data name="GamepadBindingType_LeftTrigger" xml:space="preserve">
+    <value>Left trigger (analog)</value>
+  </data>
+  <data name="GamepadBindingType_RightTrigger" xml:space="preserve">
+    <value>Right trigger (analog)</value>
+  </data>
+  <data name="GamepadBindingType_LeftThumbstick" xml:space="preserve">
+    <value>Left thumbstick</value>
+  </data>
+  <data name="GamepadBindingType_RightThumbstick" xml:space="preserve">
+    <value>Right thumbstick</value>
   </data>
   <data name="TriggerChordMatchThresholdLabel" xml:space="preserve">
     <value>Trigger match threshold</value>

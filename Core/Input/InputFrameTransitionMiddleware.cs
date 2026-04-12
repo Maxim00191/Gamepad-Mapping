@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Vortice.XInput;
+using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core;
 

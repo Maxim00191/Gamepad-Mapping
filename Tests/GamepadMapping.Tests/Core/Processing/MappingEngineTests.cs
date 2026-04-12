@@ -1,13 +1,20 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapping.Tests.Support;
 using Moq;
-using Vortice.XInput;
+
 using Xunit;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
@@ -25,7 +32,7 @@ public class MappingEngineTests
             keyboard,
             mouse,
             canDispatchOutput ?? (() => true),
-            runOnUi: action => action(),
+            ui: ImmediateUiSynchronization.Instance,
             setMappedOutput: _ => { },
             setMappingStatus: _ => { },
             setComboHud: null,
@@ -38,6 +45,8 @@ public class MappingEngineTests
         public List<MockTimer> Timers { get; } = new();
 
         public long GetTickCount64() => Ticks;
+
+        public long GetPerformanceTimestamp() => (Ticks * Stopwatch.Frequency) / 1000;
 
         public ITimer CreateTimer(TimeSpan interval, Action onTick)
         {
@@ -182,8 +191,8 @@ public class MappingEngineTests
 
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once, "按下手柄 A 时应触发一次 Space 按下");
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once, "松开手柄 A 时应触发一次 Space 松开");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -204,12 +213,12 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
 
         engine.ProcessInputFrame(InputFrame.Disconnected(2), mappings);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once, "断开连接时应释放仍按着的映射键，避免卡键");
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -246,11 +255,11 @@ public class MappingEngineTests
 
         engine.ProcessInputFrame(Frame(2, GamepadButtons.A | GamepadButtons.B), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.R), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.R, Times.Once());
 
         engine.ProcessInputFrame(Frame(3, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyUp(Key.R), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.R, Times.Once());
 
         engine.ProcessInputFrame(Frame(4, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
@@ -272,11 +281,13 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.E, Times.Once());
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(It.IsAny<Key>()), Times.Never);
-        mockKeyboard.Verify(k => k.KeyUp(It.IsAny<Key>()), Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyPress), It.IsAny<CancellationToken>()),
+            Times.Never());
+        mockKeyboard.Verify(
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyRelease), It.IsAny<CancellationToken>()),
+            Times.Never());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -308,13 +319,13 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(0, GamepadButtons.None), mappings);
         engine.ProcessInputFrame(Frame(1, GamepadButtons.A), mappings);
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
 
         engine.ForceReleaseAllOutputs();
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.AtLeastOnce);
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.AtLeastOnce());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Once());
     }
 
     [Fact]
@@ -341,7 +352,7 @@ public class MappingEngineTests
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D1,
                 It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Once());
 
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
         engine.ProcessInputFrame(Frame(3, GamepadButtons.A), mappings);
@@ -351,7 +362,7 @@ public class MappingEngineTests
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D2,
                 It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Once());
 
         engine.ProcessInputFrame(Frame(4, GamepadButtons.None), mappings);
         engine.ProcessInputFrame(Frame(5, GamepadButtons.A), mappings);
@@ -361,7 +372,7 @@ public class MappingEngineTests
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D3,
                 It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Once());
 
         mockKeyboard.Verify(
             k => k.TapKeyChordAsync(It.IsAny<IReadOnlyList<Key>>(), It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
@@ -400,7 +411,7 @@ public class MappingEngineTests
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 1 && l[0] == Key.LeftAlt),
                 Key.D1,
                 It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -432,7 +443,7 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.Q, 1, 0, It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.Q, Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -475,7 +486,7 @@ public class MappingEngineTests
                 It.Is<IReadOnlyList<Key>>(l => l.Count == 0),
                 Key.D1,
                 It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -558,8 +569,8 @@ public class MappingEngineTests
 
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Never());
     }
 
     [Fact]
@@ -578,14 +589,14 @@ public class MappingEngineTests
         mockTime.Advance(250);
 
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Once());
 
         // Release after hold fired
         engine.ProcessInputFrame(Frame(400, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
         // Should NOT trigger Tap on release if Hold already fired
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Never());
     }
 
     [Fact]
@@ -604,21 +615,22 @@ public class MappingEngineTests
         engine.ProcessInputFrame(Frame(50, GamepadButtons.A | GamepadButtons.B), mappings);
         
         await engine.WaitForIdleAsync();
-        mockKeyboard.Verify(k => k.KeyDown(Key.C), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.C, Times.Once());
 
         // Advance time past original hold threshold
         mockTime.Advance(250);
         await engine.WaitForIdleAsync();
 
         // Hold should have been cancelled by the more specific chord
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.H, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.H, Times.Never());
 
         // Release both
         engine.ProcessInputFrame(Frame(400, GamepadButtons.None), mappings);
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyUp(Key.C), Times.Once);
-        mockKeyboard.Verify(k => k.TapKeyAsync(Key.T, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.C, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.T, Times.Never());
+        mockMouse.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -638,8 +650,9 @@ public class MappingEngineTests
         await engine.WaitForIdleAsync();
 
         // Should have 2 KeyDowns and 1 KeyUp
-        mockKeyboard.Verify(k => k.KeyDown(Key.Space), Times.Exactly(2));
-        mockKeyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Space, Times.Exactly(2));
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyRelease(mockKeyboard, Key.Space, Times.Once());
+        mockMouse.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -674,8 +687,9 @@ public class MappingEngineTests
         await engine.WaitForIdleAsync();
 
         // Both should be triggered because both chords are satisfied
-        mockKeyboard.Verify(k => k.KeyDown(Key.Q), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.E), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Q, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.E, Times.Once());
+        mockMouse.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -712,7 +726,11 @@ public class MappingEngineTests
         // Both should be triggered. Specificity is used to suppress *less specific* chords
         // ONLY IF they are marked as "Combo Leads" (deferred solo leads).
         // Since LB+A is already a chord (specificity 2), it's not a "solo lead" that gets deferred.
-        mockKeyboard.Verify(k => k.KeyDown(Key.Q), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.E), Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.Q, Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyPress(mockKeyboard, Key.E, Times.Once());
+        mockMouse.VerifyNoOtherCalls();
     }
 }
+
+
+

@@ -1,7 +1,16 @@
 using System;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Models.State;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Moq;
 using Xunit;
 
@@ -90,4 +99,53 @@ public class AppStatusMonitorTests
         // Assert
         Assert.True(eventFired);
     }
+
+    [Fact]
+    public void EvaluateNow_FocusLostWithinGracePeriod_MaintainsConnectedState()
+    {
+        // Arrange
+        var target = new ProcessInfo { ProcessId = 123, ProcessName = "Game" };
+        _elevationHandlerMock.Setup(x => x.IsBlockedByUipi(It.IsAny<ProcessInfo>())).Returns(false);
+        
+        // Initial state: foreground
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(true);
+        _monitor.UpdateTarget(target, true);
+        Assert.Equal(AppTargetingState.Connected, _monitor.CurrentState);
+
+        // Act: Focus lost
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(false);
+        _monitor.EvaluateNow();
+
+        // Assert: Should still be connected because of grace period (default 500ms)
+        Assert.Equal(AppTargetingState.Connected, _monitor.CurrentState);
+        Assert.Contains("Grace Period", _monitor.CurrentStatusText);
+    }
+
+    [Fact]
+    public async Task EvaluateNow_FocusLostBeyondGracePeriod_SetsWaitingForForegroundState()
+    {
+        // Arrange
+        var target = new ProcessInfo { ProcessId = 123, ProcessName = "Game" };
+        _elevationHandlerMock.Setup(x => x.IsBlockedByUipi(It.IsAny<ProcessInfo>())).Returns(false);
+        
+        // Use a very short grace period for testing
+        _monitor.UpdateGracePeriod(50); 
+        
+        // Initial state: foreground
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(true);
+        _monitor.UpdateTarget(target, true);
+        Assert.Equal(AppTargetingState.Connected, _monitor.CurrentState);
+
+        // Wait beyond grace period
+        await Task.Delay(100);
+
+        // Act: Focus lost
+        _processTargetMock.Setup(x => x.IsForeground(target)).Returns(false);
+        _monitor.EvaluateNow();
+
+        // Assert: Should now be waiting for foreground
+        Assert.Equal(AppTargetingState.WaitingForForeground, _monitor.CurrentState);
+    }
 }
+
+

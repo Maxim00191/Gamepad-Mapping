@@ -1,6 +1,10 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 
 namespace Gamepad_Mapping.ViewModels.Strategies;
@@ -52,3 +56,4 @@ public partial class TemplateToggleActionEditorViewModel : ActionEditorViewModel
         AlternateProfileId = string.Empty;
     }
 }
+

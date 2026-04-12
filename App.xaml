@@ -5,7 +5,7 @@
              xmlns:local="clr-namespace:Gamepad_Mapping"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:ui="clr-namespace:Gamepad_Mapping.Behaviors"
-             xmlns:services="clr-namespace:GamepadMapperGUI.Services"
+             xmlns:services="clr-namespace:GamepadMapperGUI.Services.Infrastructure"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <services:TranslationService x:Key="Loc" />
@@ -40,6 +40,47 @@
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="12" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <Style x:Key="FlatSectionToggleStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path x:Name="Arrow"
+                                  Grid.Column="0"
+                                  Width="7"
+                                  Height="7"
+                                  Margin="0,0,6,0"
+                                  VerticalAlignment="Center"
+                                  Fill="{DynamicResource AppSecondaryTextBrush}"
+                                  Data="M 0 0 L 7 3.5 L 0 7 Z" />
+                            <ContentPresenter Grid.Column="1"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="90" CenterX="3.5" CenterY="3.5" />
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AppTextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="WorkspaceSectionTitleStyle" TargetType="{x:Type TextBlock}">

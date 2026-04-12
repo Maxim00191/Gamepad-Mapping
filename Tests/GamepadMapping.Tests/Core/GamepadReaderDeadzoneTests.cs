@@ -1,17 +1,22 @@
 using GamepadMapperGUI.Core;
+using GamepadMapperGUI.Core.Input;
+using GamepadMapperGUI.Interfaces.Core;
+using Moq;
 using Xunit;
 
 namespace GamepadMapping.Tests.Core;
 
 public class GamepadReaderDeadzoneTests
 {
+    private readonly Mock<IXInput> _mockXInput = new Mock<IXInput>();
+
     [Theory]
     [InlineData(0.1f, 0.1f)]   // Normal
     [InlineData(-0.1f, 0.0f)]  // Too low
     [InlineData(0.95f, 0.9f)]  // Too high
     public void LeftThumbstickDeadzone_ClampsValue(float input, float expected)
     {
-        var reader = new GamepadReader();
+        var reader = new GamepadReader(new XInputSource(_mockXInput.Object));
         reader.LeftThumbstickDeadzone = input;
         Assert.Equal(expected, reader.LeftThumbstickDeadzone);
     }
@@ -23,7 +28,7 @@ public class GamepadReaderDeadzoneTests
     [InlineData(0.1f, 0.05f, 0.1f, 0.12f)] // Outer < inner + span
     public void TriggerDeadzone_EnforcesSpan(float inner, float outer, float expectedInner, float expectedOuter)
     {
-        var reader = new GamepadReader();
+        var reader = new GamepadReader(new XInputSource(_mockXInput.Object));
         
         // Test setting inner then outer
         reader.LeftTriggerInnerDeadzone = inner;
@@ -43,7 +48,7 @@ public class GamepadReaderDeadzoneTests
     [Fact]
     public void LeftTriggerInnerDeadzone_IncreasesOuterIfNecessary()
     {
-        var reader = new GamepadReader();
+        var reader = new GamepadReader(new XInputSource(_mockXInput.Object));
         reader.LeftTriggerOuterDeadzone = 0.5f;
         reader.LeftTriggerInnerDeadzone = 0.6f; // This should push outer to 0.62
         

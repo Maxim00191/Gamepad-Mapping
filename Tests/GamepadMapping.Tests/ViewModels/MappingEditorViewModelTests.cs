@@ -1,6 +1,10 @@
 using Gamepad_Mapping.ViewModels;
 using Gamepad_Mapping.ViewModels.Strategies;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using Moq;
 using System.Collections.ObjectModel;
@@ -36,6 +40,32 @@ public class MappingEditorViewModelTests
             mappingEngine: new Mock<IMappingEngine>().Object,
             settingsService: _settingsServiceMock.Object
         );
+    }
+
+    [Fact]
+    public void ChangingMainViewModelSelectedMapping_UpdatesEditorWithoutManualSync()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var a = new MappingEntry
+        {
+            Description = "RowA",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        var b = new MappingEntry
+        {
+            Description = "RowB",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        };
+        _mainViewModel.Mappings.Add(a);
+        _mainViewModel.Mappings.Add(b);
+
+        _mainViewModel.SelectedMapping = a;
+        Assert.Equal("RowA", vm.EditBindingDescription);
+        Assert.Equal("A", vm.InputTrigger.EditBindingFromButton);
+
+        _mainViewModel.SelectedMapping = b;
+        Assert.Equal("RowB", vm.EditBindingDescription);
+        Assert.Equal("B", vm.InputTrigger.EditBindingFromButton);
     }
 
     [Fact]
@@ -80,7 +110,7 @@ public class MappingEditorViewModelTests
 
         vm.RecordKeyboardKeyCommand.Execute(null);
 
-        _keyboardCaptureServiceMock.Verify(k => k.BeginCapture(It.IsAny<string>(), It.IsAny<Action<Key>>()), Times.Once);
+        _keyboardCaptureServiceMock.Verify(k => k.BeginCapture(It.IsAny<string>(), It.IsAny<Action<Key>>()), Times.Once());
     }
 
     [Fact]
@@ -111,3 +141,4 @@ public class MappingEditorViewModelTests
         Assert.False(vm.EditKeyboardAndHoldSectionsEnabled);
     }
 }
+

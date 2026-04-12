@@ -3,7 +3,11 @@ using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 namespace Gamepad_Mapping.ViewModels;
 
@@ -93,3 +97,4 @@ public partial class AppToastViewModel : ObservableObject, IDisposable
         _appToastService.CurrentToastChanged -= OnCurrentToastChanged;
     }
 }
+

@@ -4,11 +4,12 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core;
 
-internal sealed class InputDispatcher : IDisposable
+internal sealed class InputDispatcher : IInputDispatcher, IDisposable
 {
     private static readonly TimeSpan MappedOutputUiThrottle = TimeSpan.FromMilliseconds(50);
 
@@ -60,8 +61,12 @@ internal sealed class InputDispatcher : IDisposable
                 _outputQueue.Dequeue();
             }
 
-            if (_outputQueue.Count == 0 && _idleTcs.Task.IsCompleted)
+            if (_outputQueue.Count == 0)
             {
+                if (!_idleTcs.Task.IsCompleted)
+                {
+                    _idleTcs.TrySetResult();
+                }
                 _idleTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
@@ -93,8 +98,12 @@ internal sealed class InputDispatcher : IDisposable
                 _outputQueue.Dequeue();
             }
 
-            if (_outputQueue.Count == 0 && _idleTcs.Task.IsCompleted)
+            if (_outputQueue.Count == 0)
             {
+                if (!_idleTcs.Task.IsCompleted)
+                {
+                    _idleTcs.TrySetResult();
+                }
                 _idleTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
@@ -121,11 +130,30 @@ internal sealed class InputDispatcher : IDisposable
 
     public void Dispose()
     {
-        _outputQueueCts.Cancel();
+        CancellationTokenSource? ctsToCancel = null;
+        Task? taskToWait = null;
+
+        lock (_outputQueueLock)
+        {
+            if (_outputQueueCts.IsCancellationRequested) return;
+            ctsToCancel = _outputQueueCts;
+            taskToWait = _outputQueueWorkerTask;
+            _outputQueueCts.Cancel();
+        }
+        
         _outputQueueSignal.Release();
-        _outputQueueWorkerTask.Wait(500);
-        _outputQueueSignal.Dispose();
-        _outputQueueCts.Dispose();
+        
+        try
+        {
+            // Wait for worker to finish, but with a timeout to prevent hanging the UI thread
+            taskToWait?.Wait(TimeSpan.FromMilliseconds(500));
+        }
+        catch (AggregateException) { } // Expected
+        finally
+        {
+            ctsToCancel?.Dispose();
+            _outputQueueSignal.Dispose();
+        }
     }
 
     private async Task ProcessOutputQueueAsync()

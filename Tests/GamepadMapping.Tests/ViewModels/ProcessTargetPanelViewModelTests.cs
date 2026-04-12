@@ -1,8 +1,12 @@
 using Gamepad_Mapping.ViewModels;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Models.State;
 using Moq;
 using System.Collections.ObjectModel;
 
@@ -12,12 +16,14 @@ public class ProcessTargetPanelViewModelTests
 {
     private readonly Mock<IProfileService> _profileServiceMock;
     private readonly Mock<ISettingsService> _settingsServiceMock;
+    private readonly Mock<IAppStatusMonitor> _appStatusMonitorMock;
     private readonly MainViewModel _mainViewModel;
 
     public ProcessTargetPanelViewModelTests()
     {
         _profileServiceMock = new Mock<IProfileService>();
         _settingsServiceMock = new Mock<ISettingsService>();
+        _appStatusMonitorMock = new Mock<IAppStatusMonitor>();
         _profileServiceMock.Setup(p => p.AvailableTemplates).Returns(new ObservableCollection<TemplateOption>());
         _settingsServiceMock.Setup(s => s.LoadSettings()).Returns(new AppSettings());
 
@@ -27,7 +33,7 @@ public class ProcessTargetPanelViewModelTests
             processTargetService: new Mock<IProcessTargetService>().Object,
             keyboardCaptureService: new Mock<IKeyboardCaptureService>().Object,
             elevationHandler: new Mock<IElevationHandler>().Object,
-            appStatusMonitor: new Mock<IAppStatusMonitor>().Object,
+            appStatusMonitor: _appStatusMonitorMock.Object,
             mappingEngine: new Mock<IMappingEngine>().Object,
             settingsService: _settingsServiceMock.Object
         );
@@ -47,9 +53,12 @@ public class ProcessTargetPanelViewModelTests
     public void TargetStatusText_UpdatesWhenMainViewModelChanges()
     {
         var vm = _mainViewModel.ProcessTargetPanel;
-        
-        _mainViewModel.TargetStatusText = "Running";
-        
+
+        _appStatusMonitorMock.Raise(
+            m => m.StatusChanged += null,
+            _appStatusMonitorMock.Object,
+            new AppStatusChangedEventArgs(AppTargetingState.NoTargetSelected, "Running"));
+
         Assert.Equal("Running", vm.TargetStatusText);
     }
 
@@ -57,9 +66,13 @@ public class ProcessTargetPanelViewModelTests
     public void TargetState_UpdatesWhenMainViewModelChanges()
     {
         var vm = _mainViewModel.ProcessTargetPanel;
-        
-        _mainViewModel.TargetState = AppTargetingState.Connected;
-        
+
+        _appStatusMonitorMock.Raise(
+            m => m.StatusChanged += null,
+            _appStatusMonitorMock.Object,
+            new AppStatusChangedEventArgs(AppTargetingState.Connected, "status"));
+
         Assert.Equal(AppTargetingState.Connected, vm.TargetState);
     }
 }
+

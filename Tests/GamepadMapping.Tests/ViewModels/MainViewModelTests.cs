@@ -1,6 +1,10 @@
 using Gamepad_Mapping.ViewModels;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using Moq;
 using System.Collections.ObjectModel;
@@ -56,7 +60,7 @@ public class MainViewModelTests
         var vm = CreateViewModel();
         vm.StartGamepadCommand.Execute(null);
 
-        _gamepadReaderMock.Verify(r => r.Start(), Times.Once);
+        _gamepadReaderMock.Verify(r => r.Start(), Times.Once());
         Assert.True(vm.IsGamepadRunning);
     }
 
@@ -67,8 +71,8 @@ public class MainViewModelTests
         vm.StartGamepadCommand.Execute(null); // Ensure it's running
         vm.StopGamepadCommand.Execute(null);
 
-        _gamepadReaderMock.Verify(r => r.Stop(), Times.Once);
-        _mappingEngineMock.Verify(e => e.ForceReleaseAllOutputs(), Times.Once);
+        _gamepadReaderMock.Verify(r => r.Stop(), Times.Once());
+        _mappingEngineMock.Verify(e => e.ForceReleaseAllOutputs(), Times.Once());
         Assert.False(vm.IsGamepadRunning);
     }
 
@@ -82,7 +86,7 @@ public class MainViewModelTests
         var vm = CreateViewModel();
         vm.SelectedTemplate = template;
 
-        _profileServiceMock.Verify(p => p.LoadSelectedTemplate(template), Times.AtLeastOnce);
+        _profileServiceMock.Verify(p => p.LoadSelectedTemplate(template), Times.AtLeastOnce());
         Assert.Equal("Test Display", vm.CurrentTemplateDisplayName);
     }
 
@@ -97,7 +101,7 @@ public class MainViewModelTests
                 mappingEditorNotified = true;
         };
 
-        vm.Mappings = new ObservableCollection<MappingEntry>();
+        vm.Mappings.Add(new MappingEntry());
 
         Assert.True(mappingEditorNotified);
     }
@@ -115,3 +119,4 @@ public class MainViewModelTests
             _settingsServiceMock.Object);
     }
 }
+

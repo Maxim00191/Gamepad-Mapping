@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
 namespace GamepadMapperGUI.Core;

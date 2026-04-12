@@ -4,9 +4,17 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -97,3 +105,5 @@ public class CommunityTemplateServiceTests
         Assert.Contains("raw.githubusercontent.com", result[0].DownloadUrl);
     }
 }
+
+

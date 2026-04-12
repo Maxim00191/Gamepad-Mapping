@@ -34,6 +34,7 @@ public class MappingEngineParseKeyTests
     [InlineData("Spacebar", "Space")]
     [InlineData("Ctrl", "LeftCtrl")]
     [InlineData("Esc", "Escape")]
+    [InlineData("   ", "Space")]
     public void NormalizeKeyboardKeyToken_ReplacesAliases(string input, string expectedNormalized)
     {
         Assert.Equal(expectedNormalized, MappingEngine.NormalizeKeyboardKeyToken(input));

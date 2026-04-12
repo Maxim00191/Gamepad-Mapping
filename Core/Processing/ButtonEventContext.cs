@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -30,3 +29,4 @@ internal sealed class ButtonEventContext
 
     public string ButtonName => Button.ToString();
 }
+

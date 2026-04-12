@@ -58,6 +58,12 @@ public class AppSettings
     [JsonProperty("rightThumbstickDeadzone")]
     public float RightThumbstickDeadzone { get; set; }
 
+    /// <summary>
+    /// <see cref="ThumbstickDeadzoneShape.Axial"/> applies X/Y independently; <see cref="ThumbstickDeadzoneShape.Radial"/> uses a circular deadzone on the stick vector.
+    /// </summary>
+    [JsonProperty("thumbstickDeadzoneShape")]
+    public string ThumbstickDeadzoneShape { get; set; } = "axial";
+
     /// <summary>Left trigger inner deadzone: raw values at or below this normalized level map to 0.</summary>
     [JsonProperty("leftTriggerInnerDeadzone")]
     public float LeftTriggerInnerDeadzone { get; set; }
@@ -86,11 +92,37 @@ public class AppSettings
     [JsonProperty("defaultAnalogActivationThreshold")]
     public float DefaultAnalogActivationThreshold { get; set; } = 0.35f;
 
+    /// <summary>Extra margin (0–1) added to the activation threshold when the output is off (harder to turn on).</summary>
+    [JsonProperty("defaultAnalogHysteresisPressExtra")]
+    public float DefaultAnalogHysteresisPressExtra { get; set; }
+
+    /// <summary>Margin (0–1) subtracted from the threshold while the output is on (lower release point, reduces chatter).</summary>
+    [JsonProperty("defaultAnalogHysteresisReleaseExtra")]
+    public float DefaultAnalogHysteresisReleaseExtra { get; set; } = 0.01f;
+
     /// <summary>
     /// Sensitivity factor for mouse-look mappings (pixels per unit of stick input) when a mapping does not override it.
     /// </summary>
     [JsonProperty("mouseLookSensitivity")]
     public float MouseLookSensitivity { get; set; } = 18f;
+
+    /// <summary>
+    /// Low-pass strength for mouse-look stick deltas (0 = off, 1 = heavy). Reduces snap-back spikes when the stick returns to center.
+    /// </summary>
+    [JsonProperty("mouseLookSmoothing")]
+    public float MouseLookSmoothing { get; set; }
+
+    /// <summary>
+    /// Normalized stick magnitude at or below this value snaps mouse-look smoothing and sub-pixel residuals (settle band).
+    /// </summary>
+    [JsonProperty("mouseLookSettleMagnitude")]
+    public float MouseLookSettleMagnitude { get; set; } = 0.02f;
+
+    /// <summary>
+    /// After the stick returns inside the settle band, attenuates motion opposite the last direction (0 = off, 1 = full suppression for a few frames).
+    /// </summary>
+    [JsonProperty("mouseLookReboundSuppression")]
+    public float MouseLookReboundSuppression { get; set; }
 
     /// <summary>
     /// Minimum analog change magnitude required before emitting a new input frame (epsilon). Smaller values are more sensitive.
@@ -135,6 +167,14 @@ public class AppSettings
     /// <summary>Display duration in seconds for the template-switch HUD. Clamped when applied.</summary>
     [JsonProperty("templateSwitchHudSeconds")]
     public double TemplateSwitchHudSeconds { get; set; } = 3.0;
+
+    /// <summary>Docked live monitor column width in pixels (main window, right of the profile toolbar).</summary>
+    [JsonProperty("gamepadMonitorPanelWidth")]
+    public double GamepadMonitorPanelWidth { get; set; } = 220;
+
+    /// <summary>Whether the docked live monitor strip is shown.</summary>
+    [JsonProperty("gamepadMonitorVisible")]
+    public bool GamepadMonitorVisible { get; set; }
 
     /// <summary>
     /// Radial menu commit: <c>returnStickToCenter</c> (default) or <c>releaseGuideKey</c>.
@@ -201,4 +241,38 @@ public class AppSettings
     /// <summary>After the welcome corner toast is dismissed, this is set and persisted so it shows only once.</summary>
     [JsonProperty("hasSeenWelcomeToast")]
     public bool HasSeenWelcomeToast { get; set; }
+
+    /// <summary>
+    /// Grace period (ms) for app focus loss before suppressing output. Helps with transient overlays.
+    /// </summary>
+    [JsonProperty("focusGracePeriodMs")]
+    public int FocusGracePeriodMs { get; set; } = 500;
+
+    /// <summary>
+    /// Keyboard/mouse simulation backend (<see cref="InputEmulationApiIds.Win32"/> = SendInput). Extensible for other drivers.
+    /// </summary>
+    [JsonProperty("inputEmulationApi")]
+    public string InputEmulationApi { get; set; } = InputEmulationApiIds.Win32;
+
+    /// <summary>
+    /// Gamepad input source backend (<see cref="GamepadSourceApiIds.XInput"/> = XInput).
+    /// </summary>
+    [JsonProperty("gamepadSourceApi")]
+    public string GamepadSourceApi { get; set; } = GamepadSourceApiIds.XInput;
+
+    /// <summary>When true, simulated keyboard/mouse timing may be jittered for a more human-like feel. Clamped when applied.</summary>
+    [JsonProperty("humanNoiseEnabled")]
+    public bool HumanNoiseEnabled { get; set; }
+
+    /// <summary>Resting-hand tremor strength (normalized 0–1): small intentional-looking variance, not a large wobble.</summary>
+    [JsonProperty("humanNoiseAmplitude")]
+    public float HumanNoiseAmplitude { get; set; } = 0.3f;
+
+    /// <summary>How quickly timing/jitter varies (normalized 0–1): mid values approximate resting-hand fluctuation vs. very slow drift.</summary>
+    [JsonProperty("humanNoiseFrequency")]
+    public float HumanNoiseFrequency { get; set; } = 0.4f;
+
+    /// <summary>Low-pass on noise (normalized 0–1): higher ≈ smoother neuromuscular filtering, fewer sharp timing spikes.</summary>
+    [JsonProperty("humanNoiseSmoothness")]
+    public float HumanNoiseSmoothness { get; set; } = 0.3f;
 }

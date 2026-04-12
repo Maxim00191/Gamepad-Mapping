@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -109,3 +108,4 @@ internal sealed class ButtonEventPreparationMiddleware : IButtonEventMiddleware
         next(context);
     }
 }
+

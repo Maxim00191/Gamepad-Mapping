@@ -1,18 +1,26 @@
-using Gamepad_Mapping.Interfaces.Services;
-using Gamepad_Mapping.Services;
 using Gamepad_Mapping.ViewModels;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using Microsoft.Win32;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using GamepadMapperGUI.Utils;
 using System.IO;
 using System.Linq;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Core.Input;
+using GamepadMapperGUI.Core;
 
 namespace Gamepad_Mapping;
 
@@ -67,6 +75,8 @@ public partial class App : Application
         var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
         var appToastService = new AppToastService();
         ToastService = appToastService;
+        var xinputService = new XInputService();
+        var gamepadSource = new XInputSource(xinputService);
         var mainViewModel = new MainViewModel(
             profileService: profileService,
             gitHubContentService: gitHubContentService,
@@ -79,7 +89,9 @@ public partial class App : Application
             trustedUtcTimeService: trustedUtcTimeService,
             updateVersionCacheService: updateVersionCacheService,
             updateQuotaPolicyProvider: updateQuotaPolicyProvider,
-            appToastService: appToastService);
+            appToastService: appToastService,
+            xinput: xinputService,
+            gamepadSource: gamepadSource);
 
         var mainWindow = new MainWindow(mainViewModel);
         MainWindow = mainWindow;
@@ -264,4 +276,5 @@ public partial class App : Application
         }
     }
 }
+
 

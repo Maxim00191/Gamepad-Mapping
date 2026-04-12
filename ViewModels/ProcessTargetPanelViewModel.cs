@@ -1,6 +1,11 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
+using GamepadMapperGUI.Models.State;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -45,3 +50,4 @@ public class ProcessTargetPanelViewModel : ObservableObject
         }
     }
 }
+

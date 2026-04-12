@@ -1,7 +1,7 @@
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 using Moq;
-using Vortice.XInput;
+
 
 namespace GamepadMapping.Tests.Core.Input;
 
@@ -58,8 +58,8 @@ public class InputFramePipelineTests
 
         pipeline.Invoke(context);
 
-        middleware1.Verify(m => m.Invoke(It.IsAny<InputFrameContext>(), It.IsAny<Action<InputFrameContext>>()), Times.Once);
-        middleware2.Verify(m => m.Invoke(It.IsAny<InputFrameContext>(), It.IsAny<Action<InputFrameContext>>()), Times.Never);
+        middleware1.Verify(m => m.Invoke(It.IsAny<InputFrameContext>(), It.IsAny<Action<InputFrameContext>>()), Times.Once());
+        middleware2.Verify(m => m.Invoke(It.IsAny<InputFrameContext>(), It.IsAny<Action<InputFrameContext>>()), Times.Never());
         Assert.False(terminalCalled);
     }
 
@@ -82,3 +82,5 @@ public class InputFramePipelineTests
         Assert.True(context.IsFirstFrame);
     }
 }
+
+

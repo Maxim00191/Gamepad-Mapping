@@ -12,9 +12,17 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.ViewModels.Strategies;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -162,6 +170,11 @@ public partial class MappingEditorViewModel : ObservableObject
     }
 
     public ObservableCollection<string> AvailableGamepadButtons => _mainViewModel.AvailableGamepadButtons;
+
+    public ObservableCollection<string> AvailableThumbstickFromValues => InputTrigger.AvailableThumbstickFromValues;
+
+    public IReadOnlyList<GamepadBindingType> AvailableGamepadBindingTypes { get; } =
+        Enum.GetValues<GamepadBindingType>().ToArray();
 
     public ObservableCollection<TriggerMoment> AvailableTriggerModes => _mainViewModel.AvailableTriggerModes;
 
@@ -437,6 +450,7 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel.Mappings.Add(entry);
         _mainViewModel.SelectedMapping = entry;
         IsCreatingNewMapping = false;
+        InputTrigger.ShowSourceKindChangedHint = false;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -477,7 +491,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private bool TryApplyAnalogThreshold(MappingEntry entry)
     {
-        if (entry.From?.Type is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger)
+        var fromType = entry.From?.Type;
+
+        if (fromType is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger)
         {
             if (!GamepadChordInput.TryParseTriggerMatchThreshold(EditAnalogThresholdText, out var nativeTh))
                 return false;
@@ -485,14 +501,33 @@ public partial class MappingEditorViewModel : ObservableObject
             return true;
         }
 
-        if (entry.From?.Type != GamepadBindingType.Button)
+        if (fromType is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick)
+        {
+            var raw = (EditAnalogThresholdText ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                entry.AnalogThreshold = null;
+                return true;
+            }
+
+            if (!float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var f) ||
+                !float.IsFinite(f) ||
+                f <= 0f ||
+                f > 1f)
+                return false;
+
+            entry.AnalogThreshold = f;
+            return true;
+        }
+
+        if (fromType != GamepadBindingType.Button)
         {
             entry.AnalogThreshold = null;
             return true;
         }
 
-        var raw = entry.From.Value ?? string.Empty;
-        if (!GamepadChordInput.ExpressionInvolvesTrigger(raw))
+        var chord = entry.From!.Value ?? string.Empty;
+        if (!GamepadChordInput.ExpressionInvolvesTrigger(chord))
         {
             entry.AnalogThreshold = null;
             return true;
@@ -536,6 +571,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (CurrentActionEditor?.ApplyTo(SelectedMapping) != true)
             return;
 
+        InputTrigger.ShowSourceKindChangedHint = false;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -568,6 +604,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
+                SyncFromSelection(SelectedMapping);
                 break;
             case nameof(MainViewModel.AvailableGamepadButtons):
                 OnPropertyChanged(nameof(AvailableGamepadButtons));
@@ -585,3 +622,5 @@ public partial class MappingEditorViewModel : ObservableObject
         }
     }
 }
+
+

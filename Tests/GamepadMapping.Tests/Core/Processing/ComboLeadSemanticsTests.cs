@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
+
 using Xunit;
 
 namespace GamepadMapping.Tests.Core.Processing;
@@ -90,3 +90,5 @@ public class ComboLeadSemanticsTests
         Assert.Contains(GamepadButtons.RightShoulder, leads);
     }
 }
+
+

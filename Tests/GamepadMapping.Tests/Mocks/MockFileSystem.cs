@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 
 namespace GamepadMapping.Tests.Mocks;
 
@@ -112,3 +116,4 @@ public class MockPathProvider : IPathProvider
     public string ContentRoot { get; set; } = @"C:\MockRoot";
     public string GetContentRoot() => ContentRoot;
 }
+

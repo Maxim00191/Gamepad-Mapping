@@ -1,6 +1,10 @@
 using System;
 using System.Text;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 
 namespace GamepadMapping.Tests.Mocks;
 
@@ -15,6 +19,7 @@ public class MockWin32Service : IWin32Service
     public Func<IntPtr, bool> CloseHandleFunc { get; set; } = (h) => true;
     public Func<uint, IntPtr, int, uint> SendInputFunc { get; set; } = (n, p, size) => 0;
     public Func<uint, uint, uint> MapVirtualKeyFunc { get; set; } = (code, type) => 0;
+    public Func<int, string> GetProcessNameFunc { get; set; } = (pid) => string.Empty;
 
     public IntPtr GetForegroundWindow() => GetForegroundWindowFunc();
     public uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId)
@@ -37,4 +42,6 @@ public class MockWin32Service : IWin32Service
     public bool CloseHandle(IntPtr hObject) => CloseHandleFunc(hObject);
     public uint SendInput(uint nInputs, IntPtr pInputs, int cbSize) => SendInputFunc(nInputs, pInputs, cbSize);
     public uint MapVirtualKey(uint uCode, uint uMapType) => MapVirtualKeyFunc(uCode, uMapType);
+    public string GetProcessName(int processId) => GetProcessNameFunc(processId);
 }
+

@@ -3,16 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
 internal sealed class RadialMenuController : IRadialMenuController
 {
     private readonly IRadialMenuHud _radialMenuHud;
-    private readonly Action<Action> _runOnUi;
+    private readonly IUiSynchronization _ui;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
     private readonly Action<string, TriggerMoment, DispatchedOutput, string, string> _enqueueOutput;
@@ -34,20 +37,56 @@ internal sealed class RadialMenuController : IRadialMenuController
     private bool _stickEverEngagedWhileOpen;
     private int _lastSectorWhileEngaged = -1;
 
-    public string Id => _activeRadial?.Id ?? string.Empty;
+    private readonly object _stateLock = new();
 
-    public IReadOnlySet<GamepadButtons> ActiveChord => _activeChord;
+    public string Id
+    {
+        get
+        {
+            lock (_stateLock)
+                return _activeRadial?.Id ?? string.Empty;
+        }
+    }
 
-    public RadialMenuDefinition? ActiveRadial => _activeRadial;
+    public IReadOnlySet<GamepadButtons> ActiveChord
+    {
+        get
+        {
+            lock (_stateLock)
+                return _activeChord;
+        }
+    }
+
+    public RadialMenuDefinition? ActiveRadial
+    {
+        get
+        {
+            lock (_stateLock)
+                return _activeRadial;
+        }
+    }
+
     public int CurrentSelectedIndex
     {
-        get => _selectedIndex;
+        get
+        {
+            lock (_stateLock)
+                return _selectedIndex;
+        }
         set
         {
-            if (_selectedIndex != value)
+            bool changed = false;
+            lock (_stateLock)
             {
-                _selectedIndex = value;
-                _runOnUi(() => _radialMenuHud.UpdateSelection(value));
+                if (_selectedIndex != value)
+                {
+                    _selectedIndex = value;
+                    changed = true;
+                }
+            }
+            if (changed)
+            {
+                _ui.Post(() => _radialMenuHud.UpdateSelection(value));
             }
         }
     }
@@ -57,7 +96,7 @@ internal sealed class RadialMenuController : IRadialMenuController
 
     public RadialMenuController(
         IRadialMenuHud radialMenuHud,
-        Action<Action> runOnUi,
+        IUiSynchronization ui,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus,
         Action<string, TriggerMoment, DispatchedOutput, string, string> enqueueOutput,
@@ -68,7 +107,7 @@ internal sealed class RadialMenuController : IRadialMenuController
         IKeyboardActionCatalog? catalog = null)
     {
         _radialMenuHud = radialMenuHud;
-        _runOnUi = runOnUi;
+        _ui = ui;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
         _enqueueOutput = enqueueOutput;
@@ -81,151 +120,187 @@ internal sealed class RadialMenuController : IRadialMenuController
 
     public void UpdateSelection(Vector2 stick, float engagementThreshold, RadialMenuConfirmMode confirmMode)
     {
-        if (_activeRadial == null) return;
+        int? indexToNotify = null;
+        bool shouldClose = false;
+        bool confirmOnClose = false;
 
-        var minMag = Math.Clamp(engagementThreshold, 0.01f, 1f);
-        var engaged = stick.Length() >= minMag;
-
-        if (engaged)
+        lock (_stateLock)
         {
-            _stickEverEngagedWhileOpen = true;
-            var itemCount = _activeRadial.Items.Count;
-            if (itemCount > 0)
+            if (_activeRadial == null) return;
+
+            var minMag = Math.Clamp(engagementThreshold, 0.01f, 1f);
+            var engaged = stick.Length() >= minMag;
+
+            if (engaged)
             {
-                var angleRad = Math.Atan2(stick.X, stick.Y);
-                var angleDeg = angleRad * (180.0 / Math.PI);
-                if (angleDeg < 0) angleDeg += 360;
+                _stickEverEngagedWhileOpen = true;
+                var itemCount = _activeRadial.Items.Count;
+                if (itemCount > 0)
+                {
+                    var angleRad = Math.Atan2(stick.X, stick.Y);
+                    var angleDeg = angleRad * (180.0 / Math.PI);
+                    if (angleDeg < 0) angleDeg += 360;
 
-                var sectorSize = 360.0 / itemCount;
-                var index = (int)((angleDeg + (sectorSize / 2)) / sectorSize) % itemCount;
+                    var sectorSize = 360.0 / itemCount;
+                    var index = (int)((angleDeg + (sectorSize / 2)) / sectorSize) % itemCount;
 
-                _lastSectorWhileEngaged = index;
-                CurrentSelectedIndex = index;
+                    _selectedIndex = index;
+                    _lastSectorWhileEngaged = index;
+                    indexToNotify = index;
+                }
             }
+            else
+            {
+                if (confirmMode == RadialMenuConfirmMode.ReturnStickToCenter &&
+                    _prevStickEngaged &&
+                    _stickEverEngagedWhileOpen &&
+                    _lastSectorWhileEngaged >= 0)
+                {
+                    _selectedIndex = _lastSectorWhileEngaged;
+                    shouldClose = true;
+                    confirmOnClose = true;
+                }
+                else if (_selectedIndex != -1)
+                {
+                    _selectedIndex = -1;
+                    indexToNotify = -1;
+                }
+            }
+
+            _prevStickEngaged = engaged;
         }
-        else
+
+        if (shouldClose)
         {
-            if (confirmMode == RadialMenuConfirmMode.ReturnStickToCenter &&
-                _prevStickEngaged &&
-                _stickEverEngagedWhileOpen &&
-                _lastSectorWhileEngaged >= 0)
-            {
-                CurrentSelectedIndex = _lastSectorWhileEngaged;
-                TryClose(_activeRadial.Id, string.Empty, true);
-                _prevStickEngaged = false;
-                return;
-            }
-
-            if (CurrentSelectedIndex != -1)
-            {
-                CurrentSelectedIndex = -1;
-            }
+            CloseInternal(confirmOnClose, confirmOnClose);
+            return;
         }
 
-        _prevStickEngaged = engaged;
+        if (indexToNotify.HasValue)
+        {
+            _ui.Post(() => _radialMenuHud.UpdateSelection(indexToNotify.Value));
+        }
     }
 
     public void HandleButtonReleased(GamepadButtons releasedButton)
     {
-        if (_activeRadial is null || _openMapping is null)
-            return;
+        bool shouldClose = false;
+        bool confirmOnRelease = false;
 
-        if (_activeChord.Contains(releasedButton))
+        lock (_stateLock)
         {
-            var confirmOnRelease = _getConfirmMode() != RadialMenuConfirmMode.ReturnStickToCenter;
+            if (_activeRadial is null || _openMapping is null)
+                return;
+
+            if (_activeChord.Contains(releasedButton))
+            {
+                confirmOnRelease = _getConfirmMode() != RadialMenuConfirmMode.ReturnStickToCenter;
+                shouldClose = true;
+            }
+        }
+
+        if (shouldClose)
             CloseInternal(confirmOnRelease, confirmOnRelease);
-        }
-        else if (_activeChord.Count == 0 && _activeRadial != null)
-        {
-            // FALLBACK: If we have an active radial but no chord (e.g. opened via a non-button trigger),
-            // still allow standard release logic if applicable.
-        }
     }
 
-    public void ForceCancel()
-    {
-        ForceReset();
-    }
+    public void ForceCancel() => ForceReset();
 
     public void SetDefinitions(List<RadialMenuDefinition>? radialMenus, List<KeyboardActionDefinition>? keyboardActions, IKeyboardActionCatalog? catalog = null)
     {
-        _radialMenus = radialMenus;
-        _keyboardActions = keyboardActions;
-        _catalog = catalog;
+        lock (_stateLock)
+        {
+            _radialMenus = radialMenus;
+            _keyboardActions = keyboardActions;
+            _catalog = catalog;
+        }
     }
 
     public void SetActionExecutor(IKeyboardActionExecutor executor)
     {
-        _actionExecutor = executor;
+        lock (_stateLock)
+        {
+            _actionExecutor = executor;
+        }
     }
 
     public bool TryOpen(MappingEntry mapping, string sourceToken, out string? errorStatus)
     {
-        errorStatus = null;
-        if (mapping.RadialMenu is not { } rm)
-            return false;
+        string displayName;
+        List<RadialMenuHudItem> items;
 
-        var definition = _radialMenus?.FirstOrDefault(d => d.Id == rm.RadialMenuId);
-        if (definition == null)
+        lock (_stateLock)
         {
-            errorStatus = "Radial menu: unknown id.";
-            return true;
-        }
+            errorStatus = null;
+            if (mapping.RadialMenu is not { } rm)
+                return false;
 
-        _openMapping = mapping;
-        _sourceToken = sourceToken;
-        _activeRadial = definition;
-        _selectedIndex = -1;
-        
-        if (mapping.From is { } from && from.Type == GamepadBindingType.Button &&
-            ChordResolver.TryParseButtonChord(from.Value, out var chordButtons, out _, out _, out _))
-        {
-            _activeChord = new HashSet<GamepadButtons>(chordButtons);
-        }
-        else
-        {
-            _activeChord = [];
-        }
-
-        _prevStickEngaged = false;
-        _stickEverEngagedWhileOpen = false;
-        _lastSectorWhileEngaged = -1;
-
-        var items = definition.Items.Select(item =>
-        {
-            var action = _catalog?.GetAction(item.ActionId)
-                         ?? _keyboardActions?.FirstOrDefault(a =>
-                             string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
-            var hudLine = (item.Label ?? string.Empty).Trim();
-            if (string.IsNullOrEmpty(hudLine))
+            var definition = _radialMenus?.FirstOrDefault(d => d.Id == rm.RadialMenuId);
+            if (definition == null)
             {
-                hudLine = (action?.Description ?? string.Empty).Trim();
-                if (string.IsNullOrEmpty(hudLine))
-                    hudLine = item.ActionId;
+                errorStatus = "Radial menu: unknown id.";
+                return true;
             }
 
-            var keyLabel = (action?.KeyboardKey ?? string.Empty).Trim();
-            return new RadialMenuHudItem
-            {
-                ActionId = item.ActionId,
-                DisplayName = hudLine,
-                KeyboardKeyLabel = keyLabel,
-                Icon = item.Icon
-            };
-        }).ToList();
+            _openMapping = mapping;
+            _sourceToken = sourceToken;
+            _activeRadial = definition;
+            _selectedIndex = -1;
 
-        _runOnUi(() => _radialMenuHud.ShowMenu(definition.DisplayName, items));
-        _registerActiveAction(this);
+            if (mapping.From is { } from && from.Type == GamepadBindingType.Button &&
+                ChordResolver.TryParseButtonChord(from.Value, out var chordButtons, out _, out _, out _))
+            {
+                _activeChord = new HashSet<GamepadButtons>(chordButtons);
+            }
+            else
+            {
+                _activeChord = [];
+            }
+
+            _prevStickEngaged = false;
+            _stickEverEngagedWhileOpen = false;
+            _lastSectorWhileEngaged = -1;
+
+            items = definition.Items.Select(item =>
+            {
+                var action = _catalog?.GetAction(item.ActionId)
+                             ?? _keyboardActions?.FirstOrDefault(a =>
+                                 string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
+                var hudLine = (item.Label ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(hudLine))
+                {
+                    hudLine = (action?.Description ?? string.Empty).Trim();
+                    if (string.IsNullOrEmpty(hudLine))
+                        hudLine = item.ActionId;
+                }
+
+                var keyLabel = (action?.KeyboardKey ?? string.Empty).Trim();
+                return new RadialMenuHudItem
+                {
+                    ActionId = item.ActionId,
+                    DisplayName = hudLine,
+                    KeyboardKeyLabel = keyLabel,
+                    Icon = item.Icon
+                };
+            }).ToList();
+
+            displayName = definition.DisplayName;
+            _registerActiveAction(this);
+        }
+
+        _ui.Post(() => _radialMenuHud.ShowMenu(displayName, items));
         return true;
     }
 
     public bool TryClose(string radialMenuId, string sourceToken, bool dispatchSelection, bool suppressChord = false)
     {
-        if (_activeRadial is null)
-            return false;
+        lock (_stateLock)
+        {
+            if (_activeRadial is null)
+                return false;
 
-        if (!string.Equals(radialMenuId, _activeRadial.Id, StringComparison.Ordinal))
-            return false;
+            if (!string.Equals(radialMenuId, _activeRadial.Id, StringComparison.Ordinal))
+                return false;
+        }
 
         CloseInternal(dispatchSelection, suppressChord);
         return true;
@@ -233,50 +308,85 @@ internal sealed class RadialMenuController : IRadialMenuController
 
     public void ForceReset()
     {
-        _activeChord.Clear();
-        if (_activeRadial is null)
-            return;
+        lock (_stateLock)
+        {
+            _activeChord.Clear();
+            if (_activeRadial is null)
+                return;
 
-        _runOnUi(() => _radialMenuHud.HideMenu());
-        var id = _activeRadial.Id;
-        ClearState();
-        _unregisterActiveAction(id);
+            var id = _activeRadial.Id;
+            ClearState();
+            if (id.Length > 0)
+                _unregisterActiveAction(id);
+        }
+
+        _ui.Send(() => _radialMenuHud.HideMenu());
+    }
+
+    private readonly struct RadialCloseSnapshot
+    {
+        public required string RadialId { get; init; }
+        public required string SourceToken { get; init; }
+        public required bool DispatchSelection { get; init; }
+        public required bool SuppressChord { get; init; }
+        public KeyboardActionDefinition? Action { get; init; }
+        public IKeyboardActionExecutor? Executor { get; init; }
     }
 
     private void CloseInternal(bool dispatchSelection, bool suppressChord)
     {
-        if (_activeRadial is null) return;
+        RadialCloseSnapshot snap;
 
-        var selectedIndex = _selectedIndex;
-        var definition = _activeRadial;
-        var sourceToken = string.IsNullOrEmpty(_sourceToken) ? "RadialMenu" : _sourceToken;
-        var openMapping = _openMapping;
-        var id = definition.Id;
-
-        _runOnUi(() => _radialMenuHud.HideMenu());
-
-        if (dispatchSelection && selectedIndex >= 0 && selectedIndex < definition.Items.Count)
+        lock (_stateLock)
         {
-            var item = definition.Items[selectedIndex];
-            var action = _catalog?.GetAction(item.ActionId)
+            if (_activeRadial is null) return;
+
+            var definition = _activeRadial;
+            var radialId = definition.Id;
+            var sourceToken = string.IsNullOrEmpty(_sourceToken) ? "RadialMenu" : _sourceToken;
+            var selectedIndex = _selectedIndex;
+            var executor = _actionExecutor;
+
+            KeyboardActionDefinition? action = null;
+            if (dispatchSelection && selectedIndex >= 0 && selectedIndex < definition.Items.Count)
+            {
+                var item = definition.Items[selectedIndex];
+                action = _catalog?.GetAction(item.ActionId)
                          ?? _keyboardActions?.FirstOrDefault(a =>
                              string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
-
-            if (action != null && _actionExecutor != null)
-            {
-                _actionExecutor.Execute(action, sourceToken, out var err);
-                if (!string.IsNullOrEmpty(err))
-                    _setMappingStatus(err);
             }
+
+            snap = new RadialCloseSnapshot
+            {
+                RadialId = radialId,
+                SourceToken = sourceToken,
+                DispatchSelection = dispatchSelection,
+                SuppressChord = suppressChord,
+                Action = action,
+                Executor = executor
+            };
         }
 
-        if (!suppressChord)
+        _ui.Send(() => _radialMenuHud.HideMenu());
+
+        if (snap.DispatchSelection && snap.Action is { } a && snap.Executor is { } ex)
         {
-            _activeChord.Clear();
+            ex.Execute(a, snap.SourceToken, out var err);
+            if (!string.IsNullOrEmpty(err))
+                _setMappingStatus(err);
         }
 
-        _unregisterActiveAction(id);
-        ClearState();
+        lock (_stateLock)
+        {
+            if (_activeRadial is null || !string.Equals(_activeRadial.Id, snap.RadialId, StringComparison.Ordinal))
+                return;
+
+            if (!snap.SuppressChord)
+                _activeChord.Clear();
+
+            _unregisterActiveAction(snap.RadialId);
+            ClearState();
+        }
     }
 
     private void ClearState()

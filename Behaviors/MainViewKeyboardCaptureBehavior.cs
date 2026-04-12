@@ -3,7 +3,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using Gamepad_Mapping.ViewModels;
 
 namespace Gamepad_Mapping.Behaviors;
@@ -156,3 +160,4 @@ public static class MainViewKeyboardCaptureBehavior
         }
     }
 }
+

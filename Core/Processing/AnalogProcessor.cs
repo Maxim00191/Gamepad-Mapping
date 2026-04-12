@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Input;
+using GamepadMapperGUI.Core.Processing;
 using GamepadMapperGUI.Models;
 
 namespace GamepadMapperGUI.Core;
@@ -15,17 +16,33 @@ internal sealed class AnalogProcessor
 {
     private readonly record struct StateKey(GamepadBindingType Type, string Value, Key Key, TriggerMoment Trigger);
     private readonly Dictionary<StateKey, bool> _analogOutputStates = new();
-    private readonly Dictionary<string, bool> _nativeTriggerEdgeByStateId = new(StringComparer.Ordinal);
+    private readonly Dictionary<AnalogStateId, bool> _nativeTriggerEdgeByStateId = new();
     private readonly HashSet<StateKey> _activeStates = new();
     private readonly Dictionary<string, Key> _keyEnumCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Func<float> _defaultAnalogHysteresisPressExtra;
+    private readonly Func<float> _defaultAnalogHysteresisReleaseExtra;
     private float _mouseLookResidualLeftX;
     private float _mouseLookResidualLeftY;
     private float _mouseLookResidualRightX;
     private float _mouseLookResidualRightY;
 
     private const float DefaultAnalogThreshold = 0.35f;
-    private const float DefaultMouseLookSensitivity = 18f;
-    private const float JitterHysteresis = 0.01f;
+    public const float LegacyDefaultMouseLookSensitivity = 18f;
+    private const float DefaultMouseLookSensitivity = LegacyDefaultMouseLookSensitivity;
+
+    public AnalogProcessor(Func<float>? defaultAnalogHysteresisPressExtra = null, Func<float>? defaultAnalogHysteresisReleaseExtra = null)
+    {
+        _defaultAnalogHysteresisPressExtra = defaultAnalogHysteresisPressExtra ?? (() => 0f);
+        _defaultAnalogHysteresisReleaseExtra = defaultAnalogHysteresisReleaseExtra ?? (() => 0.01f);
+    }
+
+    private static float ClampHysteresisMargin(float v) => Math.Clamp(v, 0f, 0.45f);
+
+    private float ResolvePressExtra(MappingEntry mapping) =>
+        mapping.AnalogHysteresisPressExtra is { } p ? ClampHysteresisMargin(p) : _defaultAnalogHysteresisPressExtra();
+
+    private float ResolveReleaseExtra(MappingEntry mapping) =>
+        mapping.AnalogHysteresisReleaseExtra is { } r ? ClampHysteresisMargin(r) : _defaultAnalogHysteresisReleaseExtra();
 
     public static bool TryParseAnalogSource(string token, out AnalogSourceDefinition source)
     {
@@ -116,8 +133,9 @@ internal sealed class AnalogProcessor
         var stateKey = new StateKey(mapping.From.Type, mapping.From.Value ?? string.Empty, key, mapping.Trigger);
         _analogOutputStates.TryGetValue(stateKey, out var currentState);
 
-        // Apply hysteresis to prevent jitter
-        var effectiveThreshold = currentState ? (threshold - JitterHysteresis) : threshold;
+        var pressExtra = ResolvePressExtra(mapping);
+        var releaseExtra = ResolveReleaseExtra(mapping);
+        var effectiveThreshold = currentState ? threshold - releaseExtra : threshold + pressExtra;
         var isActive = axisValue >= effectiveThreshold;
 
         if (currentState == isActive)
@@ -148,9 +166,10 @@ internal sealed class AnalogProcessor
 
         var stateKey = new StateKey(mapping.From.Type, mapping.From.Value ?? string.Empty, k, mapping.Trigger);
         _analogOutputStates.TryGetValue(stateKey, out var currentState);
-        
-        // Apply hysteresis to prevent jitter
-        var effectiveThreshold = currentState ? (threshold - JitterHysteresis) : threshold;
+
+        var pressExtra = ResolvePressExtra(mapping);
+        var releaseExtra = ResolveReleaseExtra(mapping);
+        var effectiveThreshold = currentState ? threshold - releaseExtra : threshold + pressExtra;
         var isActive = triggerValue >= effectiveThreshold;
 
         if (currentState == isActive)
@@ -166,11 +185,13 @@ internal sealed class AnalogProcessor
     /// <summary>
     /// Threshold crossing for native LT/RT bindings that are not keyed by <see cref="Key"/> (e.g. radial menu on analog trigger).
     /// </summary>
-    public AnalogOutputTransition EvaluateTriggerEdge(string stateIdentity, MappingEntry mapping, float triggerValue)
+    public AnalogOutputTransition EvaluateTriggerEdge(AnalogStateId stateIdentity, MappingEntry mapping, float triggerValue)
     {
         var threshold = mapping.AnalogThreshold is > 0 and <= 1 ? mapping.AnalogThreshold.Value : DefaultAnalogThreshold;
         _nativeTriggerEdgeByStateId.TryGetValue(stateIdentity, out var currentState);
-        var effectiveThreshold = currentState ? threshold - JitterHysteresis : threshold;
+        var pressExtra = ResolvePressExtra(mapping);
+        var releaseExtra = ResolveReleaseExtra(mapping);
+        var effectiveThreshold = currentState ? threshold - releaseExtra : threshold + pressExtra;
         var isActive = triggerValue >= effectiveThreshold;
 
         if (currentState == isActive)
@@ -192,6 +213,8 @@ internal sealed class AnalogProcessor
         ry -= pixelDy;
         return new MouseLookDelta(pixelDx, pixelDy);
     }
+
+    public void ClearMouseLookResidual(GamepadBindingType thumbstickSource) => ClearMouseLookResidualForThumbstick(thumbstickSource);
 
     public void RemoveAnalogKeyboardStateForBinding(GamepadBindingType bindingType)
     {

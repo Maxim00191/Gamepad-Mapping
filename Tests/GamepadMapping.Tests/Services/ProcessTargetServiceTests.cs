@@ -1,8 +1,16 @@
 using System;
 using System.Text;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Storage;
+using GamepadMapperGUI.Services.Update;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Radial;
 using Moq;
 using Xunit;
 
@@ -127,10 +135,12 @@ public class ProcessTargetServiceTests
 
         // Assert
         Assert.True(result);
-        _win32Mock.Verify(x => x.CloseHandle(tokenHandle), Times.Once);
-        _win32Mock.Verify(x => x.CloseHandle(processHandle), Times.Once);
+        _win32Mock.Verify(x => x.CloseHandle(tokenHandle), Times.Once());
+        _win32Mock.Verify(x => x.CloseHandle(processHandle), Times.Once());
     }
 
     private delegate bool OpenProcessTokenDelegate(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
     private delegate bool GetTokenInformationDelegate(IntPtr tokenHandle, int tokenInformationClass, IntPtr tokenInformation, int tokenInformationLength, out int returnLength);
 }
+
+

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using GamepadMapperGUI.Models;
-using Vortice.XInput;
 
 namespace GamepadMapperGUI.Core;
 
@@ -178,7 +177,11 @@ internal sealed class ComboHudManager : IDisposable
     private void PresentComboHudForCurrentSignature(string signature)
     {
         if (_isComboHudPresentationSuppressed?.Invoke() == true)
+        {
+            _lastPresentedSignature = null;
+            _setComboHud(null);
             return;
+        }
 
         if (_comboHudDelayConfirmed &&
             string.Equals(signature, _lastPresentedSignature, StringComparison.Ordinal))
@@ -269,12 +272,17 @@ internal sealed class ComboHudManager : IDisposable
     public void Dispose()
     {
         EmitGateHintIfChanged(null);
+        CancelComboHudDelayTimer();
+        _pendingComboHudSignature = null;
+        _comboHudDelayConfirmed = false;
+        _lastPresentedSignature = null;
+        _setComboHud(null);
 
-        if (_comboHudDelayTimer is null)
-            return;
-
-        _comboHudDelayTimer.Stop();
-        _comboHudDelayTimer.Tick -= OnComboHudDelayTimerTick;
-        _comboHudDelayTimer = null;
+        if (_comboHudDelayTimer is not null)
+        {
+            _comboHudDelayTimer.Tick -= OnComboHudDelayTimerTick;
+            _comboHudDelayTimer = null;
+        }
     }
 }
+

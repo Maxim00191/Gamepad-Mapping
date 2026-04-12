@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -7,10 +8,15 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Core;
-using GamepadMapperGUI.Interfaces.Services;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Interfaces.Services.Update;
+using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapping.Tests.Support;
 using Moq;
-using Vortice.XInput;
+
 using Xunit;
 using ITimer = GamepadMapperGUI.Interfaces.Core.ITimer;
 
@@ -24,6 +30,8 @@ public sealed class MappingEngineRadialMenuTests
         public List<MockTimer> Timers { get; } = new();
 
         public long GetTickCount64() => Ticks;
+
+        public long GetPerformanceTimestamp() => (Ticks * Stopwatch.Frequency) / 1000;
 
         public ITimer CreateTimer(TimeSpan interval, Action onTick)
         {
@@ -72,7 +80,7 @@ public sealed class MappingEngineRadialMenuTests
             keyboard,
             mouse,
             canDispatchOutputLive: () => true,
-            runOnUi: action => action(),
+            ui: ImmediateUiSynchronization.Instance,
             setMappedOutput: _ => { },
             setMappingStatus: _ => { },
             setComboHud: null,
@@ -220,7 +228,7 @@ public sealed class MappingEngineRadialMenuTests
                     items.Count == 1
                     && items[0].DisplayName == "HUD override"
                     && items[0].KeyboardKeyLabel == "E")),
-            Times.Once);
+            Times.Once());
     }
 
     /// <summary>
@@ -263,14 +271,14 @@ public sealed class MappingEngineRadialMenuTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.LeftShoulder, Vector2.Zero, Vector2.Zero), mappings);
         mockHud.Verify(
             h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()),
-            Times.Never);
+            Times.Never());
 
         engine.ProcessInputFrame(Frame(2, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
         await engine.WaitForIdleAsync();
 
         mockHud.Verify(
             h => h.ShowMenu("Test Radial", It.Is<IReadOnlyList<RadialMenuHudItem>>(items => items.Count == 2)),
-            Times.Once);
+            Times.Once());
     }
 
     [Fact]
@@ -293,21 +301,19 @@ public sealed class MappingEngineRadialMenuTests
         engine.ProcessInputFrame(Frame(1, GamepadButtons.LeftThumb, Vector2.Zero, Vector2.Zero), mappings);
         mockHud.Verify(
             h => h.ShowMenu("Test Radial", It.Is<IReadOnlyList<RadialMenuHudItem>>(items => items.Count == 2)),
-            Times.Once);
+            Times.Once());
 
         engine.ProcessInputFrame(
             Frame(2, GamepadButtons.LeftThumb, Vector2.Zero, new Vector2(0f, 1f)),
             mappings);
-        mockHud.Verify(h => h.UpdateSelection(0), Times.Once);
+        mockHud.Verify(h => h.UpdateSelection(0), Times.Once());
 
         engine.ProcessInputFrame(Frame(3, GamepadButtons.None, Vector2.Zero, new Vector2(0f, 1f)), mappings);
 
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.HideMenu(), Times.Once);
-        mockKeyboard.Verify(
-            k => k.TapKeyAsync(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+        mockHud.Verify(h => h.HideMenu(), Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.E, Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
         mockMouse.VerifyNoOtherCalls();
     }
@@ -336,15 +342,15 @@ public sealed class MappingEngineRadialMenuTests
         engine.ProcessInputFrame(
             Frame(3, GamepadButtons.LeftThumb, Vector2.Zero, Vector2.Zero),
             mappings);
-        mockHud.Verify(h => h.UpdateSelection(-1), Times.Once);
+        mockHud.Verify(h => h.UpdateSelection(-1), Times.Once());
 
         engine.ProcessInputFrame(Frame(4, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
 
         await engine.WaitForIdleAsync();
 
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
         mockKeyboard.VerifyNoOtherCalls();
     }
 
@@ -375,10 +381,8 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.HideMenu(), Times.Once);
-        mockKeyboard.Verify(
-            k => k.TapKeyAsync(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+        mockHud.Verify(h => h.HideMenu(), Times.Once());
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.E, Times.Once());
         mockKeyboard.VerifyNoOtherCalls();
     }
 
@@ -410,8 +414,8 @@ public sealed class MappingEngineRadialMenuTests
         await engine.WaitForIdleAsync();
 
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
         mockKeyboard.VerifyNoOtherCalls();
     }
 
@@ -439,7 +443,7 @@ public sealed class MappingEngineRadialMenuTests
         engine.ProcessInputFrame(
             Frame(3, GamepadButtons.LeftThumb, Vector2.Zero, Vector2.Zero),
             mappings);
-        mockHud.Verify(h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()), Times.Once);
+        mockHud.Verify(h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()), Times.Once());
 
         engine.ProcessInputFrame(Frame(4, GamepadButtons.None, Vector2.Zero, Vector2.Zero), mappings);
         engine.ProcessInputFrame(Frame(5, GamepadButtons.LeftThumb, Vector2.Zero, Vector2.Zero), mappings);
@@ -447,9 +451,7 @@ public sealed class MappingEngineRadialMenuTests
         await engine.WaitForIdleAsync();
 
         mockHud.Verify(h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()), Times.Exactly(2));
-        mockKeyboard.Verify(
-            k => k.TapKeyAsync(Key.E, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+        KeyboardEmulatorTestHelpers.VerifyExecuteKeyTap(mockKeyboard, Key.E, Times.Once());
     }
 
     [Fact]
@@ -469,11 +471,11 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()), Times.Never);
-        mockHud.Verify(h => h.HideMenu(), Times.Never);
+        mockHud.Verify(h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()), Times.Never());
+        mockHud.Verify(h => h.HideMenu(), Times.Never());
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
@@ -499,7 +501,7 @@ public sealed class MappingEngineRadialMenuTests
             Frame(2, GamepadButtons.LeftThumb, Vector2.Zero, new Vector2(0f, 0.4f)),
             mappings);
 
-        mockHud.Verify(h => h.UpdateSelection(It.IsAny<int>()), Times.Never);
+        mockHud.Verify(h => h.UpdateSelection(It.IsAny<int>()), Times.Never());
     }
 
     [Fact]
@@ -547,8 +549,8 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyDown(Key.W), Times.Once);
-        mockKeyboard.Verify(k => k.KeyDown(Key.I), Times.Never);
+        mockKeyboard.Verify(k => k.KeyDown(Key.W), Times.Once());
+        mockKeyboard.Verify(k => k.KeyDown(Key.I), Times.Never());
     }
 
     [Fact]
@@ -591,8 +593,8 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockKeyboard.Verify(k => k.KeyDown(Key.W), Times.Never);
-        mockKeyboard.Verify(k => k.KeyDown(Key.I), Times.Once);
+        mockKeyboard.Verify(k => k.KeyDown(Key.W), Times.Never());
+        mockKeyboard.Verify(k => k.KeyDown(Key.I), Times.Once());
     }
 
     [Fact]
@@ -616,10 +618,10 @@ public sealed class MappingEngineRadialMenuTests
         engine.ForceReleaseAllOutputs();
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.HideMenu(), Times.Once);
+        mockHud.Verify(h => h.HideMenu(), Times.Once());
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
@@ -647,10 +649,10 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.HideMenu(), Times.Once);
+        mockHud.Verify(h => h.HideMenu(), Times.Once());
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
@@ -675,10 +677,10 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.HideMenu(), Times.Once);
+        mockHud.Verify(h => h.HideMenu(), Times.Once());
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
@@ -703,11 +705,11 @@ public sealed class MappingEngineRadialMenuTests
 
         await engine.WaitForIdleAsync();
 
-        mockHud.Verify(h => h.ShowMenu("Empty", It.Is<IReadOnlyList<RadialMenuHudItem>>(l => l.Count == 0)), Times.Once);
-        mockHud.Verify(h => h.HideMenu(), Times.Once);
+        mockHud.Verify(h => h.ShowMenu("Empty", It.Is<IReadOnlyList<RadialMenuHudItem>>(l => l.Count == 0)), Times.Once());
+        mockHud.Verify(h => h.HideMenu(), Times.Once());
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
@@ -736,8 +738,8 @@ public sealed class MappingEngineRadialMenuTests
         await engine.WaitForIdleAsync();
 
         mockKeyboard.Verify(
-            k => k.TapKeyAsync(It.IsAny<Key>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+            k => k.ExecuteAsync(It.Is<OutputCommand>(c => c.Type == OutputCommandType.KeyTap), It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 
     [Fact]
@@ -813,8 +815,12 @@ public sealed class MappingEngineRadialMenuTests
 
         mockHud.Verify(
             h => h.ShowMenu(It.IsAny<string>(), It.IsAny<IReadOnlyList<RadialMenuHudItem>>()),
-            Times.Never);
-        mockMouse.Verify(m => m.LeftClickAsync(It.IsAny<CancellationToken>()), Times.Once);
+            Times.Never());
+        mockMouse.Verify(
+            m => m.ExecuteAsync(
+                It.Is<OutputCommand>(c => c.Type == OutputCommandType.PointerClick && c.PointerAction == PointerAction.LeftClick),
+                It.IsAny<CancellationToken>()),
+            Times.Once());
     }
 
     [Fact]
@@ -859,7 +865,14 @@ public sealed class MappingEngineRadialMenuTests
 
         mockHud.Verify(
             h => h.ShowMenu("Test Radial", It.Is<IReadOnlyList<RadialMenuHudItem>>(items => items.Count == 2)),
-            Times.Once);
-        mockMouse.Verify(m => m.LeftClickAsync(It.IsAny<CancellationToken>()), Times.Never);
+            Times.Once());
+        mockMouse.Verify(
+            m => m.ExecuteAsync(
+                It.Is<OutputCommand>(c => c.Type == OutputCommandType.PointerClick && c.PointerAction == PointerAction.LeftClick),
+                It.IsAny<CancellationToken>()),
+            Times.Never());
     }
 }
+
+
+
