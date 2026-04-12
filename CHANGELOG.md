@@ -1,3 +1,17 @@
+## Changelog v2.1.5 - 2026-04-12
+
+### Changed
+
+- **Input Injection keyboard:** `InjectedKeyboardSimulator` now takes an optional `ISendInputChannel` (defaulting to `Win32SendInputChannel`) and, when virtual-key-to-scan-code mapping succeeds, emits injected key events using **scan codes** (`InjectedInputKeyOptions.ScanCode`) instead of relying on virtual keys alone—matching the SendInput path’s layout mapping and improving compatibility for extended keys.
+
+## 更新日志 v2.1.5 - 2026-04-12
+
+### 更改
+
+- **Input Injection 键盘：** `InjectedKeyboardSimulator` 现可注入可选的 `ISendInputChannel`（默认 `Win32SendInputChannel`）；在虚拟键到扫描码映射成功时，优先以 **扫描码**（`InjectedInputKeyOptions.ScanCode`）生成注入按键事件，与 SendInput 路径的布局映射更一致，并改善扩展键等场景的兼容性。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.4...v2.1.5](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.4...v2.1.5)
+
 ## Changelog v2.1.4 - 2026-04-12
 
 ### Added
