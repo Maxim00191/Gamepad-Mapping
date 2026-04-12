@@ -2,8 +2,17 @@
 
 **English:** [README.md](README.md)
 
-Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的配置文件模板将 **XInput 手柄输入**转换为**键盘和鼠标输出**。
+Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的配置文件模板将 **兼容 XInput 的手柄输入**转换为**键盘和鼠标输出**。
 它专为没有良好原生手柄支持的游戏而设计，并提供可选的前台进程锁定功能，以避免在其他窗口中产生意外输入。
+
+## 最新版本（v2.1.4）
+
+- **输入栈可配置：** 可选择键鼠模拟的实现方式——经典 Win32 **`SendInput`**，或在受支持系统上使用 Windows **Input Injection**；同时可调整手柄读取相关选项。
+- **模拟量与鼠标手感：** 支持摇杆**死区形状**（轴向/径向）、**鼠标视角**灵敏度与平滑，以及可选的**拟人化**鼠标移动噪声（在设置中调节）。
+- **组合键快捷键：** 除单键点按外，配置动作可输出**组合键**（如修饰键 + 字母等同时或顺序触发的快捷键）。
+- **界面：** **设置**内容更丰富；**更新**使用独立面板；**手柄监视器**窗口布局与体验优化。
+
+完整变更列表见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 软件特色
 
@@ -11,16 +20,18 @@ Gamepad Mapping 是一款 Windows WPF 应用程序，它可以通过可编辑的
 - **模板驱动、可维护**：映射以经校验的 JSON 保存，便于编辑、备份与分享；可选的**前台进程过滤**让输出只作用于指定游戏窗口。
 - **对接社区模板**：应用内即可浏览、下载社区贡献的布局，无需从零搭配置。
 - **贴合 Windows 桌面环境**：目标进程以管理员运行时，应用可提示以同级权限重启，减轻 UIPI 对模拟输入的拦截。
+- **模拟后端可切换**：可按环境选择输出路径；可选的移动噪声有助于减轻鼠标移动过于“机械”的感觉。
 
 ## 核心功能
 
 - **基于模板的映射**：每个配置文件都是位于 `Assets/Profiles/templates` 目录下的一个 JSON 文件。
 - **按键 / 扳机 / 摇杆绑定**：支持按下 (press)、释放 (release)、轻触 (tap)、长按 (hold)、阈值 (thresholds) 和模拟轴激活规则。
-- **组合键和连招处理**：支持连招前导键 (combo-lead) 行为、修饰键宽限窗口以及可选的 HUD 提示。
+- **组合键和连招处理**：支持连招前导键 (combo-lead) 行为、修饰键宽限窗口、可选的 HUD 提示，以及**组合键形式**的快捷键输出。
 - **轮盘菜单操作**：通过手柄输入触发方向性操作选择。
 - **前台进程过滤**：仅当特定进程处于焦点时才映射输出。
-- **应用程序设置**：集中式全局设置，保存至 `Assets/Config/local_settings.json`。
-- **内置自动更新**：可在应用内检查新版本、下载安装包并发起安装流程。
+- **应用程序设置**：集中式全局设置，保存至 `Assets/Config/local_settings.json`，包含**摇杆死区形状**、**鼠标视角**相关调节及适用的**模拟后端**选择等。
+- **手柄监视器**：实时查看手柄状态，布局便于阅读。
+- **内置自动更新**：在应用内独立 **Updates** 区域检查新版本、下载安装包并发起安装。
 - **社区模板**：在配置编辑区与键盘动作、轮盘菜单并列的 **Community** 标签中浏览并下载社区贡献的配置。应用从 [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) 拉取目录索引（优先 GitHub Raw，不可用时自动降级到 jsDelivr CDN）。
 
 ## 自动更新
@@ -62,6 +73,11 @@ dotnet test "GamepadMapping.sln" -c Release
   - `Assets/Config/local_settings.json`：用户重写的全局设置（首次运行时自动创建）。
   - `Assets/Profiles/templates/*.json`：配置文件模板（映射、标签、组合键元数据、目标进程）。
 
+## 开发者文档
+
+  - [`docs/input-pipeline.md`](docs/input-pipeline.md)：输入帧如何经过中间件与映射引擎。
+  - [`docs/emulation-parity.md`](docs/emulation-parity.md)：不同模拟后端之间的行为说明。
+
 ## 模板结构（概览）
 
 每个模板通常包含以下内容：
@@ -88,8 +104,8 @@ dotnet test "GamepadMapping.sln" -c Release
   - WPF (.NET 9)
   - [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)
   - [Newtonsoft.Json](https://www.newtonsoft.com/json)
-  - [InputSimulatorPlus](https://www.nuget.org/packages/InputSimulatorPlus)
-  - [Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)
+  - [Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)（读取手柄）
+  - 默认通过 Win32 **`SendInput`** 合成键鼠；在受支持的系统上可选用 **Windows Input Injection**
 
 ## CI/CD (持续集成/持续部署)
 

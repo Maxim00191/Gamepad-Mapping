@@ -1,3 +1,69 @@
+## Changelog v2.1.4 - 2026-04-12
+
+### Added
+
+- **Input pipeline middleware:** Added `AnalogTransitionMiddleware`, `ButtonTransitionMiddleware`, and `InputStateSyncMiddleware` so analog/button transitions and cross-frame state stay consistent inside the input frame pipeline.
+- **Gamepad source abstraction:** Introduced `IGamepadSource` / `XInputSource` and refactored `GamepadReader` around `IXInput`, enabling a pluggable gamepad backend with clearer testing seams.
+- **Selectable gamepad & emulation backends:** Settings now expose gamepad source selection and keyboard/mouse emulation backend choice (classic `SendInput` vs Windows **Input Injection** on supported OS builds), with localized labels.
+- **Win32 emulators:** Replaced the legacy emulators with `Win32KeyboardEmulator` and `Win32MouseEmulator` built on `SendInput`, plus `ISendInputChannel` / `Win32SendInputChannel` for efficient batched `INPUT` submission.
+- **Injection simulators:** Added `InjectedKeyboardSimulator` and `InjectedMouseSimulator` for the Input Injection path, wired through `InputEmulationStackFactory` and `InputEmulationServices`.
+- **Human-like mouse noise:** Added Perlin-based `NoiseGenerator`, `HumanInputNoiseController`, and `HumanizingMouseEmulator` so mouse movement can apply smooth, configurable jitter; settings include noise parameters and stick-magnitude-aware blending.
+- **Unified emulator commands:** Extended `IKeyboardEmulator` / `IMouseEmulator` with `Execute` / `ExecuteAsync` so the mapping stack dispatches structured commands consistently across backends.
+- **Thumbstick deadzone shape:** Added `ThumbstickDeadzoneShape` (axial vs radial) with parser support, integrated through `GamepadReader` / analog processors for more predictable stick gates.
+- **Mouse-look & analog tuning:** Expanded `AppSettings` and UI for mouse-look sensitivity, smoothing, hysteresis, and magnitude-aware mouse movement; `GamepadThumbstickFromValueCatalog` standardizes editor thumbstick tokens, with `AnalogMappingProcessor` using stick magnitude for mouse-look mappings.
+- **Keyboard chord taps:** `InputTokenResolver` and `ButtonMappingProcessor` now support chord-style keyboard taps (e.g. modifier + key) with normalized key text.
+- **UI composition:** Split responsibilities out of `MainViewModel` into `ProfileOrchestrator`, `SettingsOrchestrator`, `UpdateOrchestrator`, and `UiOrchestrator`; added `GamepadService`, `MappingManager`, and `AppTargetingState`-aware `AppStatusMonitor` refresh behavior.
+- **UI threading contract:** Introduced `IUiSynchronization` / `DispatcherUiSynchronization` (and test `ImmediateUiSynchronization`) to replace ad-hoc `Action<Action>` UI marshaling in radial/mapping code paths.
+- **Process name debouncing:** Added `Debouncer` and applied it to process-name edits to reduce redundant targeting work.
+- **Gamepad monitor polish:** Refined `GamepadMonitorWindow` / `GamepadMonitorView` layout, sizing, and pixel snapping; improved reopen behavior when the owner window is hidden.
+- **Settings & updates UI:** Expanded `AppSettingsView` for new options; moved update UI into `UpdatesPanelView` and simplified `MainView` structure.
+- **Developer docs:** Added `docs/input-pipeline.md` and `docs/emulation-parity.md` describing the processing stack and emulation behavior.
+
+### Changed
+
+- **Folder & namespace organization:** Reorganized `Core`, `Interfaces`, `Models`, `Services`, and `Utils` into clearer subfolders (e.g. Infrastructure, Input, Storage, Update) without changing user-facing behavior by itself.
+- **Radial menu controller:** Reworked `RadialMenuController` with factory wiring and UI synchronization updates for more maintainable lifecycle and thread usage.
+- **Mapping engine:** Integrated middleware, command execution, chord handling, and UI sync updates; adjusted tests across mapping and radial scenarios.
+
+### Fixed
+
+- **Repository hygiene:** Fixed `.gitignore` rules that accidentally excluded `Services/Win32` sources so `Win32InputStructs.cs` and related interop ship in CI builds.
+- **Tests:** Corrected mock/service namespaces (`ISettingsService`, `IWin32Service`) and expanded coverage for new emulation, mapping, and service behaviors.
+
+## 更新日志 v2.1.4 - 2026-04-12
+
+### 新增
+
+- **输入管线中间件：** 新增 `AnalogTransitionMiddleware`、`ButtonTransitionMiddleware` 与 `InputStateSyncMiddleware`，在输入帧管线内统一处理模拟量/按键过渡与跨帧状态同步。
+- **手柄数据源抽象：** 引入 `IGamepadSource` / `XInputSource`，并将 `GamepadReader` 重构为基于 `IXInput`，便于替换后端与单元测试。
+- **可选手柄与模拟后端：** 设置中可选择手柄数据源及键鼠模拟实现（经典 `SendInput` 与 Windows **Input Injection**，在受支持系统上），并提供中英文文案。
+- **Win32 模拟器：** 以 `Win32KeyboardEmulator`、`Win32MouseEmulator` 替代旧实现，基于 `SendInput`；通过 `ISendInputChannel` / `Win32SendInputChannel` 批量提交 `INPUT`。
+- **注入式模拟器：** 新增 `InjectedKeyboardSimulator`、`InjectedMouseSimulator`，经 `InputEmulationStackFactory` 与 `InputEmulationServices` 接入。
+- **拟人化鼠标噪声：** 基于 Perlin 的 `NoiseGenerator`、`HumanInputNoiseController` 与 `HumanizingMouseEmulator`，支持可配置抖动；设置中包含噪声参数及与摇杆幅度联动的混合。
+- **模拟器统一命令接口：** 为 `IKeyboardEmulator` / `IMouseEmulator` 增加 `Execute` / `ExecuteAsync`，映射栈以统一方式调度各后端。
+- **摇杆死区形状：** 新增 `ThumbstickDeadzoneShape`（轴向/径向）及解析支持，并贯通 `GamepadReader` 与模拟量处理，使死区行为更可控。
+- **鼠标视角与模拟量调节：** 扩展 `AppSettings` 与界面（鼠标视角灵敏度、平滑、迟滞及与幅度相关的鼠标移动）；`GamepadThumbstickFromValueCatalog` 统一编辑器摇杆取值，`AnalogMappingProcessor` 对鼠标视角类映射使用摇杆幅度。
+- **组合键点按：** `InputTokenResolver` 与 `ButtonMappingProcessor` 支持组合键形式的键盘点按（如修饰键+字母），并规范化按键文本。
+- **界面职责拆分：** 将原 `MainViewModel` 中的职责拆至 `ProfileOrchestrator`、`SettingsOrchestrator`、`UpdateOrchestrator`、`UiOrchestrator`；新增 `GamepadService`、`MappingManager`，`AppStatusMonitor` 结合 `AppTargetingState` 优化状态刷新。
+- **UI 线程契约：** 引入 `IUiSynchronization` / `DispatcherUiSynchronization`（及测试用 `ImmediateUiSynchronization`），替代轮盘/映射路径中的 `Action<Action>` 式 UI 投递。
+- **进程名防抖：** 新增 `Debouncer` 并用于进程名编辑，减少无效的目标进程解析。
+- **手柄监视器：** 优化 `GamepadMonitorWindow` / `GamepadMonitorView` 布局、尺寸与像素对齐；改进主窗口不可见时的再次打开体验。
+- **设置与更新界面：** 扩展 `AppSettingsView`；将更新相关 UI 独立为 `UpdatesPanelView` 并精简 `MainView`。
+- **开发文档：** 新增 `docs/input-pipeline.md` 与 `docs/emulation-parity.md`，说明处理管线与模拟行为。
+
+### 更改
+
+- **目录与命名空间：** 调整 `Core`、`Interfaces`、`Models`、`Services`、`Utils` 子目录划分（如 Infrastructure、Input、Storage、Update），不改变对外功能语义。
+- **轮盘控制器：** 重构 `RadialMenuController`，配合工厂装配与 UI 同步，生命周期与线程使用更清晰。
+- **映射引擎：** 接入中间件、命令执行、组合键处理与 UI 同步变更，并同步更新相关单元测试。
+
+### 修复
+
+- **仓库忽略规则：** 修正误排除 `Services/Win32` 下源的 `.gitignore`，确保 `Win32InputStructs.cs` 等互操作代码进入 CI 构建。
+- **测试：** 修正 mock/服务命名空间（`ISettingsService`、`IWin32Service`），并补充新模拟、映射与服务行为的测试覆盖。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3...v2.1.4](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.3...v2.1.4)
+
 ## Changelog v2.1.3 - 2026-04-10
 
 ### Added

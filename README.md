@@ -2,8 +2,17 @@
 
 **简体中文:** [README_zh.md](README_zh.md)
 
-Gamepad Mapping is a Windows WPF app that converts **XInput controller input** into **keyboard and mouse output** through editable profile templates.  
+Gamepad Mapping is a Windows WPF app that converts **XInput-compatible controller input** into **keyboard and mouse output** through editable profile templates.  
 It is designed for games that do not have good native controller support, with optional foreground-process targeting to avoid accidental input in other windows.
+
+## Latest release (v2.1.4)
+
+- **Input stack options:** Choose how keyboard and mouse output is synthesized—classic Win32 **`SendInput`** or Windows **Input Injection** on supported builds—and tune how the app reads the controller.
+- **Analog and mouse feel:** Thumbstick **deadzone shape** (axial vs radial), **mouse-look** sensitivity and smoothing, and optional **human-like** mouse movement noise (configurable in settings).
+- **Keyboard chords in mappings:** Profile actions can emit **chord-style** shortcuts (for example modifier + key) in addition to single-key taps.
+- **UI:** Expanded **Settings**, a dedicated **Updates** panel, and a refined **gamepad monitor** window.
+
+For the full list of changes, see [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Highlights
 
@@ -11,16 +20,18 @@ It is designed for games that do not have good native controller support, with o
 - **Template-first design**: mappings live in validated JSON you can edit, version, and share; optional **foreground process filter** keeps output scoped to the game you care about.
 - **Community-ready**: pull templates from the in-app catalog when you do not want to build a layout from scratch.
 - **Desktop-aware**: when targets run elevated, the app can help you relaunch with matching elevation so synthetic input is not blocked by UIPI.
+- **Flexible emulation**: pick an output backend that fits your environment; optional movement noise helps cursor motion look less robotic in edge cases.
 
 ## Core capabilities
 
 - **Template-based mappings**: each profile is a JSON file under `Assets/Profiles/templates`.
 - **Button / trigger / stick bindings**: supports press, release, tap, hold, thresholds, and analog activation rules.
-- **Chord and combo handling**: combo-lead behavior, modifier grace windows, and optional HUD hints.
+- **Chord and combo handling**: combo-lead behavior, modifier grace windows, optional HUD hints, and **keyboard chord** output for shortcut-style actions.
 - **Radial menu actions**: trigger directional action selection from controller input.
 - **Foreground process filter**: map output only when a specific process is focused.
-- **Application settings**: centralized global settings saved to `Assets/Config/local_settings.json`.
-- **Built-in self-update**: check new releases, download installer assets, and start installation from inside the app.
+- **Application settings**: centralized global settings saved to `Assets/Config/local_settings.json`, including **thumbstick deadzone shape**, **mouse-look** tuning, and **emulation backend** selection where applicable.
+- **Gamepad monitor**: live view of controller state with layout tuned for readability.
+- **Built-in self-update**: check new releases, download installer assets, and start installation from the dedicated **Updates** section in the app.
 - **Community templates**: browse and download user-contributed profiles from the in-app **Community** tab (next to keyboard actions and radial menus in the profile editor). The app loads a catalog from [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) via GitHub Raw, with automatic fallback to the jsDelivr CDN when needed.
 
 ## Self-update
@@ -62,6 +73,11 @@ dotnet test "GamepadMapping.sln" -c Release
 - `Assets/Config/local_settings.json`: user-overridden global settings (auto-created on first run).
 - `Assets/Profiles/templates/*.json`: profile templates (mappings, labels, combo metadata, target process).
 
+## Developer documentation
+
+- [`docs/input-pipeline.md`](docs/input-pipeline.md): how input frames flow through middleware and mapping.
+- [`docs/emulation-parity.md`](docs/emulation-parity.md): behavior notes across emulation backends.
+
 ## Template schema (overview)
 
 Each template generally includes:
@@ -88,8 +104,8 @@ When needed, Gamepad Mapping can prompt to relaunch elevated so mappings continu
 - WPF (.NET 9)
 - [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)
 - [Newtonsoft.Json](https://www.newtonsoft.com/json)
-- [InputSimulatorPlus](https://www.nuget.org/packages/InputSimulatorPlus)
-- [Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput)
+- [Vortice.XInput](https://www.nuget.org/packages/Vortice.XInput) for reading controllers
+- Win32 **`SendInput`** for synthesized keyboard/mouse by default, with optional **Windows Input Injection** on supported OS builds
 
 ## CI/CD
 
