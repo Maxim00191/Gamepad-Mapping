@@ -6,6 +6,7 @@ using System.Windows.Input;
 using Windows.UI.Input.Preview.Injection;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Input;
 using Gamepad_Mapping;
 
 namespace GamepadMapperGUI.Core.Emulation;
@@ -16,10 +17,12 @@ namespace GamepadMapperGUI.Core.Emulation;
 public sealed class InjectedKeyboardSimulator : IKeyboardEmulator
 {
     private readonly InputInjector? _injector;
+    private readonly ISendInputChannel _sendChannel;
     private const int DefaultTapHoldMs = 30;
 
-    public InjectedKeyboardSimulator()
+    public InjectedKeyboardSimulator(ISendInputChannel? sendChannel = null)
     {
+        _sendChannel = sendChannel ?? new Win32SendInputChannel();
         try
         {
             _injector = InputInjector.TryCreate();
@@ -162,22 +165,30 @@ public sealed class InjectedKeyboardSimulator : IKeyboardEmulator
         }
     }
 
-    private static InjectedInputKeyboardInfo CreateKeyInfo(Key key, bool isUp)
+    private InjectedInputKeyboardInfo CreateKeyInfo(Key key, bool isUp)
     {
-        // KeyInterop.VirtualKeyFromKey returns the standard Win32 VK code.
-        // Windows.System.VirtualKey (used by InputInjector) values are identical to Win32 VK codes 
-        // for almost all keys, but we cast to (Windows.System.VirtualKey) to be explicit.
         var vk = (ushort)KeyInterop.VirtualKeyFromKey(key);
-        
         var options = isUp ? InjectedInputKeyOptions.KeyUp : InjectedInputKeyOptions.None;
 
-        // Handle extended keys if necessary. InputInjector handles most mapping automatically,
-        // but some specific keys (like Right Alt/Control) might need ScanCode or ExtendedKey flags
-        // if the VirtualKey alone isn't sufficient for the target app.
-        if (IsExtendedKey(vk))
+        if (vk != 0)
         {
-            options |= InjectedInputKeyOptions.ExtendedKey;
+            var scan = _sendChannel.MapVirtualKeyToScanCode(vk);
+            if (scan != 0)
+            {
+                if (IsExtendedKey(vk))
+                    options |= InjectedInputKeyOptions.ExtendedKey;
+                options |= InjectedInputKeyOptions.ScanCode;
+                return new InjectedInputKeyboardInfo
+                {
+                    VirtualKey = 0,
+                    ScanCode = (ushort)scan,
+                    KeyOptions = options
+                };
+            }
         }
+
+        if (IsExtendedKey(vk))
+            options |= InjectedInputKeyOptions.ExtendedKey;
 
         return new InjectedInputKeyboardInfo
         {
