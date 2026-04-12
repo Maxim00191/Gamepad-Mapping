@@ -175,6 +175,63 @@ public sealed class HumanInputNoiseControllerTests
         Assert.Equal(0, totalJitterAfterSettling);
     }
 
+    [Fact]
+    public void Disabled_AdjustTapHoldMs_ReturnsNominal()
+    {
+        var noise = new NoiseGenerator(1);
+        var time = new RealTimeProvider();
+        var c = new HumanInputNoiseController(noise, () => new HumanInputNoiseParameters(false, 1f, 1f, 0f), time);
+        Assert.Equal(63, c.AdjustTapHoldMs(63, 10));
+    }
+
+    [Fact]
+    public void MaxDeviationZero_AdjustTapHoldMs_ReturnsNominal()
+    {
+        var noise = new NoiseGenerator(1);
+        var time = new RealTimeProvider();
+        var c = new HumanInputNoiseController(noise, () => new HumanInputNoiseParameters(true, 1f, 1f, 0f), time);
+        Assert.Equal(80, c.AdjustTapHoldMs(80, 0));
+    }
+
+    [Fact]
+    public void Enabled_AdjustTapHoldMs_Nominal50_StaysWithinPlusMinus10BeforeEnvelope()
+    {
+        var noise = new NoiseGenerator(42);
+        var time = new RealTimeProvider();
+        var c = new HumanInputNoiseController(noise, () => new HumanInputNoiseParameters(true, 0.5f, 0.5f, 0f), time);
+        for (var i = 0; i < 400; i++)
+        {
+            var r = c.AdjustTapHoldMs(50, 10);
+            Assert.InRange(r, 40, 60);
+        }
+    }
+
+    [Fact]
+    public void Enabled_AdjustTapHoldMs_Nominal20_ClampedTo20To30()
+    {
+        var noise = new NoiseGenerator(99);
+        var time = new RealTimeProvider();
+        var c = new HumanInputNoiseController(noise, () => new HumanInputNoiseParameters(true, 1f, 1f, 0f), time);
+        for (var i = 0; i < 400; i++)
+        {
+            var r = c.AdjustTapHoldMs(20, 10);
+            Assert.InRange(r, 20, 30);
+        }
+    }
+
+    [Fact]
+    public void Enabled_AdjustTapHoldMs_Nominal100_ClampedTo90To100()
+    {
+        var noise = new NoiseGenerator(7);
+        var time = new RealTimeProvider();
+        var c = new HumanInputNoiseController(noise, () => new HumanInputNoiseParameters(true, 1f, 1f, 0f), time);
+        for (var i = 0; i < 400; i++)
+        {
+            var r = c.AdjustTapHoldMs(100, 10);
+            Assert.InRange(r, 90, 100);
+        }
+    }
+
     private sealed class MockNoiseGenerator(float constantValue) : INoiseGenerator
     {
         public float Sample1D(float x, float y = 0f) => constantValue;

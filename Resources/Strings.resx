@@ -306,6 +306,9 @@
   <data name="HumanNoiseEnableLabel" xml:space="preserve">
     <value>Human-like timing noise</value>
   </data>
+  <data name="HumanNoiseEnableTooltip" xml:space="preserve">
+    <value>Varies delays, mouse movement, and keyboard tap duration (±10 ms around the &quot;Keyboard tap duration&quot; setting).</value>
+  </data>
   <data name="HumanNoiseAmplitudeLabel" xml:space="preserve">
     <value>Noise amount</value>
   </data>

@@ -1,4 +1,3 @@
-using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Core.Emulation.Noise;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models;
@@ -10,26 +9,26 @@ namespace GamepadMapping.Tests.Services.Input;
 public sealed class InputEmulationStackFactoryTests
 {
     [Fact]
-    public void Disabled_KeyboardUnwrapped_MouseHumanized()
+    public void Disabled_KeyboardHumanized_MouseHumanized()
     {
         var factory = new InputEmulationStackFactory(() => 1);
         var (kbd, mouse) = factory.CreatePair(
             InputEmulationApiIds.Win32,
             () => new HumanInputNoiseParameters(false, 0.5f, 0.5f, 0.5f));
 
-        Assert.IsType<Win32KeyboardEmulator>(kbd);
+        Assert.IsType<HumanizingKeyboardEmulator>(kbd);
         Assert.IsType<HumanizingMouseEmulator>(mouse);
     }
 
     [Fact]
-    public void Enabled_KeyboardUnwrapped_MouseHumanized()
+    public void Enabled_KeyboardHumanized_MouseHumanized()
     {
         var factory = new InputEmulationStackFactory(() => 1);
         var (kbd, mouse) = factory.CreatePair(
             InputEmulationApiIds.Win32,
             () => new HumanInputNoiseParameters(true, 0.25f, 0.5f, 0.5f));
 
-        Assert.IsType<Win32KeyboardEmulator>(kbd);
+        Assert.IsType<HumanizingKeyboardEmulator>(kbd);
         Assert.IsType<HumanizingMouseEmulator>(mouse);
     }
 

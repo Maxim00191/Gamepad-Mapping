@@ -134,7 +134,7 @@ public class AppSettings
     /// Default keyboard tap hold duration in milliseconds when simulating a single key press.
     /// </summary>
     [JsonProperty("keyboardTapHoldDurationMs")]
-    public int KeyboardTapHoldDurationMs { get; set; } = 30;
+    public int KeyboardTapHoldDurationMs { get; set; } = 70;
 
     /// <summary>
     /// Default delay in milliseconds between repeated tap outputs when a mapping requests multiple repeats.

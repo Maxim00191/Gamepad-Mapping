@@ -84,6 +84,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
     private readonly Func<float> _getAnalogChangeEpsilon;
     private readonly Func<float> _getAnalogHysteresisPressExtra;
     private readonly Func<float> _getAnalogHysteresisReleaseExtra;
+    private readonly Func<int> _getKeyboardTapHoldDurationMs;
 
     public MappingEngine(
         IKeyboardEmulator keyboardEmulator,
@@ -113,7 +114,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         Func<int>? getGamepadPollingIntervalMs = null,
         Func<float>? getAnalogChangeEpsilon = null,
         Func<float>? getAnalogHysteresisPressExtra = null,
-        Func<float>? getAnalogHysteresisReleaseExtra = null)
+        Func<float>? getAnalogHysteresisReleaseExtra = null,
+        Func<int>? getKeyboardTapHoldDurationMs = null)
     {
         _timeProvider = timeProvider ?? new RealTimeProvider();
         _ui = ui;
@@ -131,6 +133,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         _getAnalogChangeEpsilon = getAnalogChangeEpsilon ?? (() => 0.01f);
         _getAnalogHysteresisPressExtra = getAnalogHysteresisPressExtra ?? (() => 0f);
         _getAnalogHysteresisReleaseExtra = getAnalogHysteresisReleaseExtra ?? (() => 0.01f);
+        _getKeyboardTapHoldDurationMs = getKeyboardTapHoldDurationMs ?? (() => 70);
         _analogProcessor = new AnalogProcessor(_getAnalogHysteresisPressExtra, _getAnalogHysteresisReleaseExtra);
         _comboHudDelayMs = modifierGraceMs;
         _leadKeyReleaseSuppressMs = leadKeyReleaseSuppressMs;
@@ -145,7 +148,11 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         
         _inputDispatcher = inputDispatcher ?? new InputDispatcher(
             DispatchMappedOutputAsync,
-            (modifiers, mainKey, ct) => _keyboardEmulator.TapKeyChordAsync(modifiers, mainKey, cancellationToken: ct),
+            (modifiers, mainKey, ct) => _keyboardEmulator.TapKeyChordAsync(
+                modifiers,
+                mainKey,
+                _getKeyboardTapHoldDurationMs(),
+                cancellationToken: ct),
             a => _ui.Post(a),
             setMappedOutput,
             setMappingStatus);
@@ -195,7 +202,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             _getMouseLookSettleMagnitude,
             _getMouseLookReboundSuppression,
             _getGamepadPollingIntervalMs,
-            _getAnalogChangeEpsilon);
+            _getAnalogChangeEpsilon,
+            _getKeyboardTapHoldDurationMs);
 
         if (_setComboHud != null)
         {
@@ -589,7 +597,7 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         }
     }
 
-    private static OutputCommand TranslateToCommand(DispatchedOutput output, TriggerMoment trigger)
+    private OutputCommand TranslateToCommand(DispatchedOutput output, TriggerMoment trigger)
     {
         if (output.KeyboardKey is { } key && key != Key.None)
         {
@@ -599,7 +607,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
                 TriggerMoment.Released => OutputCommandType.KeyRelease,
                 _ => OutputCommandType.KeyTap
             };
-            return new OutputCommand(type, Key: key);
+            var tapMeta = type == OutputCommandType.KeyTap ? _getKeyboardTapHoldDurationMs() : 0;
+            return new OutputCommand(type, Key: key, Metadata: tapMeta);
         }
 
         if (output.PointerAction is { } action && action != PointerAction.None)

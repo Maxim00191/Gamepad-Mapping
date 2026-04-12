@@ -41,6 +41,7 @@ internal sealed class AnalogMappingProcessor
     private readonly Func<float> _getMouseLookReboundSuppression;
     private readonly Func<int> _getGamepadPollingIntervalMs;
     private readonly Func<float> _getAnalogChangeEpsilon;
+    private readonly Func<int> _getKeyboardTapHoldDurationMs;
 
     public AnalogMappingProcessor(
         AnalogProcessor analogProcessor,
@@ -54,7 +55,8 @@ internal sealed class AnalogMappingProcessor
         Func<float>? getMouseLookSettleMagnitude = null,
         Func<float>? getMouseLookReboundSuppression = null,
         Func<int>? getGamepadPollingIntervalMs = null,
-        Func<float>? getAnalogChangeEpsilon = null)
+        Func<float>? getAnalogChangeEpsilon = null,
+        Func<int>? getKeyboardTapHoldDurationMs = null)
     {
         _analogProcessor = analogProcessor;
         _keyboardEmulator = keyboardEmulator;
@@ -68,6 +70,7 @@ internal sealed class AnalogMappingProcessor
         _getMouseLookReboundSuppression = getMouseLookReboundSuppression ?? (() => 0f);
         _getGamepadPollingIntervalMs = getGamepadPollingIntervalMs ?? (() => 10);
         _getAnalogChangeEpsilon = getAnalogChangeEpsilon ?? (() => 0.01f);
+        _getKeyboardTapHoldDurationMs = getKeyboardTapHoldDurationMs ?? (() => 70);
     }
 
     public void ProcessThumbstick(GamepadBindingType sourceType, Vector2 stickValue, IReadOnlyList<MappingEntry> mappingsSnapshot, bool isConsumed = false)
@@ -269,14 +272,14 @@ internal sealed class AnalogMappingProcessor
                         if (transition.IsActive)
                         {
                             if (mapping.Trigger == TriggerMoment.Tap)
-                                _keyboardEmulator.TapKey(command.Key);
+                                _keyboardEmulator.TapKey(command.Key, keyHoldMs: _getKeyboardTapHoldDurationMs());
                             else if (mapping.Trigger != TriggerMoment.Released)
                                 _keyboardEmulator.KeyDown(command.Key);
                         }
                         else
                         {
                             if (mapping.Trigger == TriggerMoment.Released)
-                                _keyboardEmulator.TapKey(command.Key);
+                                _keyboardEmulator.TapKey(command.Key, keyHoldMs: _getKeyboardTapHoldDurationMs());
                             else if (mapping.Trigger != TriggerMoment.Tap)
                                 _keyboardEmulator.KeyUp(command.Key);
                         }
@@ -343,14 +346,14 @@ internal sealed class AnalogMappingProcessor
             if (transition.IsActive)
             {
                 if (mapping.Trigger == TriggerMoment.Tap)
-                    _keyboardEmulator.TapKey(command.Key);
+                    _keyboardEmulator.TapKey(command.Key, keyHoldMs: _getKeyboardTapHoldDurationMs());
                 else if (mapping.Trigger != TriggerMoment.Released)
                     _keyboardEmulator.KeyDown(command.Key);
             }
             else
             {
                 if (mapping.Trigger == TriggerMoment.Released)
-                    _keyboardEmulator.TapKey(command.Key);
+                    _keyboardEmulator.TapKey(command.Key, keyHoldMs: _getKeyboardTapHoldDurationMs());
                 else if (mapping.Trigger != TriggerMoment.Tap)
                     _keyboardEmulator.KeyUp(command.Key);
             }

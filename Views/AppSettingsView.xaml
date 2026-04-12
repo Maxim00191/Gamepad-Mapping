@@ -58,6 +58,7 @@
                                   DisplayMemberPath="DisplayName"
                                   ToolTip="{Binding Source={StaticResource Loc}, Path=[InputApiWin32Hint]}" />
                         <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[HumanNoiseEnableLabel]}"
+                                  ToolTip="{Binding Source={StaticResource Loc}, Path=[HumanNoiseEnableTooltip]}"
                                   IsChecked="{Binding HumanNoiseEnabled, Mode=TwoWay}"
                                   Margin="0,4,0,6" />
                         <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HumanNoiseAmplitudeLabel]}"

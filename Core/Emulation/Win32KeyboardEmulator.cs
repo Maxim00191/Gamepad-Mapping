@@ -28,9 +28,9 @@ public sealed class Win32KeyboardEmulator : IKeyboardEmulator
     private readonly ISendInputChannel _sendChannel;
     private readonly object _sendLock = new();
     private readonly SemaphoreSlim _chordSequenceGate = new(1, 1);
-    private const int DefaultTapHoldMs = 30;
+    private const int DefaultTapHoldMs = 70;
     private const int MinTapHoldMs = 20;
-    private const int MaxTapHoldMs = 50;
+    private const int MaxTapHoldMs = 100;
 
     public Win32KeyboardEmulator(ISendInputChannel? sendChannel = null)
     {

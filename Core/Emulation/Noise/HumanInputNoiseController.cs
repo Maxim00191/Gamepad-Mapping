@@ -22,6 +22,12 @@ public sealed class HumanInputNoiseController : IHumanInputNoiseController
     /// <summary>Axial decoupling: fixed second coordinate for delay noise vs other Perlin samples.</summary>
     private const float DelayNoisePerlinSecondaryOffset = 0.31f;
 
+    /// <summary>Axial decoupling: second coordinate for tap-hold jitter vs delay/mouse streams.</summary>
+    private const float TapHoldNoisePerlinSecondaryOffset = 0.47f;
+
+    private const int TapHoldEnvelopeMinMs = 20;
+    private const int TapHoldEnvelopeMaxMs = 100;
+
     private const float DelaySmoothnessResponseFactor = 0.92f;
     private const float DelayMultiplierMin = 0.25f;
     private const float DelayMultiplierMax = 3.5f;
@@ -82,6 +88,7 @@ public sealed class HumanInputNoiseController : IHumanInputNoiseController
     private readonly object _sync = new();
 
     private double _delayPhase;
+    private double _tapHoldPhase;
     private float _mousePhase;
     private float _smoothedDelayMultiplier = 1f;
 
@@ -125,6 +132,23 @@ public sealed class HumanInputNoiseController : IHumanInputNoiseController
 
             int noisy = (int)Math.Round(baseDelayMs * _smoothedDelayMultiplier);
             return Math.Max(0, noisy);
+        }
+    }
+
+    public int AdjustTapHoldMs(int nominalMs, int maxDeviationMs)
+    {
+        lock (_sync)
+        {
+            var p = _getParameters();
+            if (!p.Enabled || maxDeviationMs <= 0)
+                return nominalMs;
+
+            float freqScale = DelayFrequencyScaleMin + p.Frequency * DelayFrequencyScaleSlope;
+            _tapHoldPhase += nominalMs * DelayPhaseSecondsPerMillisecond * freqScale;
+
+            float n = _noise.Sample2D((float)_tapHoldPhase, TapHoldNoisePerlinSecondaryOffset);
+            int delta = (int)Math.Round(n * maxDeviationMs);
+            return Math.Clamp(nominalMs + delta, TapHoldEnvelopeMinMs, TapHoldEnvelopeMaxMs);
         }
     }
 

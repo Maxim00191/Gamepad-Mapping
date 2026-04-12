@@ -319,7 +319,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(s => s.AnalogChangeEpsilon = Math.Clamp(value, 0.001f, 0.1f));
 
     [ObservableProperty] private int keyboardTapHoldDurationMs;
-    partial void OnKeyboardTapHoldDurationMsChanged(int value) => UpdateSetting(s => s.KeyboardTapHoldDurationMs = Math.Clamp(value, 20, 50));
+    partial void OnKeyboardTapHoldDurationMsChanged(int value) => UpdateSetting(s => s.KeyboardTapHoldDurationMs = Math.Clamp(value, 20, 100));
 
     [ObservableProperty] private int tapInterKeyDelayMs;
     partial void OnTapInterKeyDelayMsChanged(int value) => UpdateSetting(s => s.TapInterKeyDelayMs = Math.Clamp(value, 0, 1000));
@@ -549,7 +549,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             getGamepadPollingIntervalMs: () => _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
             getAnalogChangeEpsilon: () => _settingsOrchestrator.Settings.AnalogChangeEpsilon,
             getAnalogHysteresisPressExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisPressExtra,
-            getAnalogHysteresisReleaseExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisReleaseExtra);
+            getAnalogHysteresisReleaseExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisReleaseExtra,
+            getKeyboardTapHoldDurationMs: () => _settingsOrchestrator.Settings.KeyboardTapHoldDurationMs);
 
     private void RecreateMappingEngineForCurrentInputApi()
     {

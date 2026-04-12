@@ -18,7 +18,7 @@ public sealed class InjectedKeyboardSimulator : IKeyboardEmulator
 {
     private readonly InputInjector? _injector;
     private readonly ISendInputChannel _sendChannel;
-    private const int DefaultTapHoldMs = 30;
+    private const int DefaultTapHoldMs = 70;
 
     public InjectedKeyboardSimulator(ISendInputChannel? sendChannel = null)
     {
