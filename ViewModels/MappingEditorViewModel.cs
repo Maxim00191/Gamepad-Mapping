@@ -25,6 +25,9 @@ using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.ViewModels.Strategies;
 
+using Gamepad_Mapping.Services;
+using Gamepad_Mapping.Interfaces.Services;
+
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class MappingEditorViewModel : ObservableObject
@@ -54,11 +57,15 @@ public partial class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
     }
 
+    [ObservableProperty]
+    private ControllerVisualViewModel _controllerVisual;
+
     public MappingEditorViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
+        _controllerVisual = new ControllerVisualViewModel(this, new ControllerVisualService());
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
