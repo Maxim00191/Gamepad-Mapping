@@ -5,10 +5,11 @@ using ShapesPath = System.Windows.Shapes.Path;
 using System.Windows.Shapes;
 using System.Xml.Linq;
 using Gamepad_Mapping.Utils.ControllerSvg;
+using GamepadMapperGUI.Models.ControllerVisual;
 
 namespace GamepadMapping.Tests.Utils.ControllerSvg;
 
-public class XboxControllerInteractiveLayerBuilderTests
+public class ControllerVisualInteractiveLayerBuilderTests
 {
     [Fact]
     public void BuildIdElementIndex_first_id_wins_and_is_case_insensitive()
@@ -21,7 +22,7 @@ public class XboxControllerInteractiveLayerBuilderTests
             </svg>
             """);
 
-        var index = XboxControllerInteractiveLayerBuilder.BuildIdElementIndex(svg);
+        var index = ControllerVisualInteractiveLayerBuilder.BuildIdElementIndex(svg);
 
         Assert.True(index.TryGetValue("btn_A", out var first));
         Assert.Equal("path", first.Name.LocalName);
@@ -29,7 +30,7 @@ public class XboxControllerInteractiveLayerBuilderTests
     }
 
     [Fact]
-    public void Populate_inlineSvg_addsInteractivePath_forKnownId()
+    public void Populate_inlineSvg_addsInteractivePath_forKnownRegion()
     {
         Exception? threadEx = null;
         int childCount = 0;
@@ -46,13 +47,19 @@ public class XboxControllerInteractiveLayerBuilderTests
                     </svg>
                     """);
 
+                var layout = new ControllerVisualLayoutDescriptor(
+                    "test",
+                    "unused.svg",
+                    [new ControllerVisualRegionDefinition("logical_a", "btn_A")]);
+
                 var canvas = new Canvas();
                 var pathStyle = new Style(typeof(ShapesPath));
                 var rectStyle = new Style(typeof(Rectangle));
 
-                XboxControllerInteractiveLayerBuilder.Populate(
+                ControllerVisualInteractiveLayerBuilder.Populate(
                     canvas,
                     svg,
+                    layout,
                     pathStyle,
                     rectStyle,
                     (_, _) => { },
@@ -78,6 +85,6 @@ public class XboxControllerInteractiveLayerBuilderTests
 
         Assert.Null(threadEx);
         Assert.Equal(1, childCount);
-        Assert.Equal("btn_A", tag);
+        Assert.Equal("logical_a", tag);
     }
 }

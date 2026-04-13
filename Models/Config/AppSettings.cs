@@ -176,6 +176,10 @@ public class AppSettings
     [JsonProperty("gamepadMonitorVisible")]
     public bool GamepadMonitorVisible { get; set; }
 
+    /// <summary>When false, the main profile/template toolbar card is hidden to give the mapping workspace more vertical space.</summary>
+    [JsonProperty("workspaceHeaderExpanded")]
+    public bool WorkspaceHeaderExpanded { get; set; } = true;
+
     /// <summary>
     /// Radial menu commit: <c>returnStickToCenter</c> (default) or <c>releaseGuideKey</c>.
     /// </summary>

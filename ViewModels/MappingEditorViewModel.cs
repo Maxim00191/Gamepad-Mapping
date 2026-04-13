@@ -65,8 +65,10 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel = mainViewModel;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
-        var visualService = new ControllerVisualService();
-        ControllerVisual = new ControllerVisualViewModel(visualService);
+        ControllerVisual = new ControllerVisualViewModel(
+            _mainViewModel.ControllerVisualService,
+            _mainViewModel.ControllerVisualLayoutSource,
+            _mainViewModel.ControllerVisualLoader);
 
         ControllerVisual.PropertyChanged += (s, e) =>
         {
@@ -75,7 +77,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 var elementId = ControllerVisual.SelectedElementName;
                 if (string.IsNullOrEmpty(elementId)) return;
 
-                var binding = visualService.MapIdToBinding(elementId);
+                var binding = _mainViewModel.ControllerVisualService.MapIdToBinding(elementId);
                 
                 if (binding == null) return;
 

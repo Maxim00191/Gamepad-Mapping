@@ -3,14 +3,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gamepad_Mapping.Interfaces.Services;
 using GamepadMapperGUI.Models;
-using System.Linq;
-using System.Collections.Generic;
+using GamepadMapperGUI.Models.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class ControllerVisualViewModel : ObservableObject
 {
     private readonly IControllerVisualService _visualService;
+    private readonly IControllerVisualLayoutSource _layoutSource;
 
     [ObservableProperty]
     private string? _hoveredElementName;
@@ -21,9 +21,25 @@ public partial class ControllerVisualViewModel : ObservableObject
     [ObservableProperty]
     private MappingEntry? _selectedMapping;
 
-    public ControllerVisualViewModel(IControllerVisualService visualService)
+    [ObservableProperty]
+    private ControllerVisualLayoutDescriptor _activeLayout;
+
+    public IControllerVisualLoader Loader { get; }
+
+    public ControllerVisualViewModel(
+        IControllerVisualService visualService,
+        IControllerVisualLayoutSource layoutSource,
+        IControllerVisualLoader loader)
     {
         _visualService = visualService;
+        _layoutSource = layoutSource;
+        Loader = loader;
+        _activeLayout = layoutSource.GetActiveLayout();
+    }
+
+    public void RefreshActiveLayout()
+    {
+        ActiveLayout = _layoutSource.GetActiveLayout();
     }
 
     [RelayCommand]

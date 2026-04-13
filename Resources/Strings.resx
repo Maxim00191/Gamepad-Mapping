@@ -102,6 +102,15 @@
   <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
     <value>Show or hide the live monitor window. Resize the window to change width; it is saved in app settings.</value>
   </data>
+  <data name="WorkspaceHeaderCollapseTooltip" xml:space="preserve">
+    <value>Hide the profile and template toolbar to give more room for mappings and editors. Your choice is saved in app settings.</value>
+  </data>
+  <data name="WorkspaceHeaderExpandTooltip" xml:space="preserve">
+    <value>Show the profile and template toolbar again.</value>
+  </data>
+  <data name="WorkspaceHeaderExpandLabel" xml:space="preserve">
+    <value>Show profile toolbar</value>
+  </data>
   <data name="GamepadMonitorReaderOn" xml:space="preserve">
     <value>Reader on</value>
   </data>

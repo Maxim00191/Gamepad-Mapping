@@ -25,12 +25,13 @@
        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="12" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0"
-                Grid.Column="0"
+        <Grid Grid.Row="0"
+              Grid.Column="0">
+        <Border Visibility="{Binding IsWorkspaceHeaderExpanded, Converter={StaticResource BoolToVis}}"
                 Style="{StaticResource SectionCardBorder}"
                 Padding="12,10">
                 <Grid>
@@ -197,6 +198,18 @@
                                     </Grid>
                                 </StackPanel>
                             </ToggleButton>
+                            <Button Style="{StaticResource ToolbarButtonStyle}"
+                                    Width="32"
+                                    Height="32"
+                                    Margin="6,0,0,0"
+                                    Command="{Binding CollapseWorkspaceHeaderCommand}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[WorkspaceHeaderCollapseTooltip]}">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           Text="&#xE70E;"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" />
+                            </Button>
                         </StackPanel>
                     </Grid>
 
@@ -376,7 +389,35 @@
                 </Grid>
         </Border>
 
+        <Border Visibility="{Binding IsWorkspaceHeaderExpanded, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}"
+                Style="{StaticResource SectionCardBorder}"
+                Padding="6,4">
+            <Button Style="{StaticResource ToolbarButtonStyle}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    MinHeight="28"
+                    Padding="10,4"
+                    Command="{Binding ExpandWorkspaceHeaderCommand}"
+                    ToolTip="{Binding Source={StaticResource Loc}, Path=[WorkspaceHeaderExpandTooltip]}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="Segoe MDL2 Assets"
+                               Text="&#xE70D;"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceHeaderExpandLabel]}"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold" />
+                </StackPanel>
+            </Button>
+        </Border>
+        </Grid>
+
         <!-- Live monitor: separate tool window (GamepadMonitorWindow), opened from the toolbar toggle. -->
+
+        <Border Grid.Row="1"
+                Height="12"
+                Visibility="{Binding IsWorkspaceHeaderExpanded, Converter={StaticResource BoolToVis}}" />
 
         <Grid Grid.Row="2"
               Grid.Column="0">

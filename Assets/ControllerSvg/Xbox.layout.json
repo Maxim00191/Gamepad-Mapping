@@ -1,0 +1,27 @@
+{
+  "layoutKey": "xbox",
+  "displayName": "Xbox",
+  "svgFile": "Xbox.svg",
+  "regions": [
+    { "logicalId": "shoulder_R", "svgElementId": "shoulder_R" },
+    { "logicalId": "trigger_R", "svgElementId": "trigger_R" },
+    { "logicalId": "shoulder_L", "svgElementId": "shoulder_L" },
+    { "logicalId": "trigger_L", "svgElementId": "trigger_L" },
+    { "logicalId": "btn_share", "svgElementId": "btn_share" },
+    { "logicalId": "btn_back", "svgElementId": "btn_back" },
+    { "logicalId": "btn_home", "svgElementId": "btn_home" },
+    { "logicalId": "btn_start", "svgElementId": "btn_start" },
+    { "logicalId": "dpad_U", "svgElementId": "dpad_U" },
+    { "logicalId": "dpad_D", "svgElementId": "dpad_D" },
+    { "logicalId": "dpad_L", "svgElementId": "dpad_L" },
+    { "logicalId": "dpad_R", "svgElementId": "dpad_R" },
+    { "logicalId": "btn_Y", "svgElementId": "btn_Y" },
+    { "logicalId": "btn_A", "svgElementId": "btn_A" },
+    { "logicalId": "btn_X", "svgElementId": "btn_X" },
+    { "logicalId": "btn_B", "svgElementId": "btn_B" },
+    { "logicalId": "thumb_L", "svgElementId": "thumb_L" },
+    { "logicalId": "thumbStick_L", "svgElementId": "thumbStick_L" },
+    { "logicalId": "thumb_R", "svgElementId": "thumb_R" },
+    { "logicalId": "thumbStick_R", "svgElementId": "thumbStick_R" }
+  ]
+}

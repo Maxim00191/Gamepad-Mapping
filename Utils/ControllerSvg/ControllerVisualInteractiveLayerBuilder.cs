@@ -1,64 +1,23 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Linq;
-using GamepadMapperGUI.Utils;
+using GamepadMapperGUI.Models.ControllerVisual;
 using WpfPath = System.Windows.Shapes.Path;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 
 namespace Gamepad_Mapping.Utils.ControllerSvg;
 
-public static class XboxControllerInteractiveLayerBuilder
+public static class ControllerVisualInteractiveLayerBuilder
 {
-    private static readonly string[] InteractiveIdOrder =
-    [
-        "shoulder_R", "trigger_R", "shoulder_L", "trigger_L",
-        "btn_share", "btn_back", "btn_home", "btn_start",
-        "dpad_U", "dpad_D", "dpad_L", "dpad_R",
-        "btn_Y", "btn_A", "btn_X", "btn_B",
-        "thumbStick_L", "thumbStick_R"
-    ];
-
-    public static void Populate(
-        Canvas target,
-        Style interactivePathStyle,
-        Style interactiveRectangleStyle,
-        MouseButtonEventHandler mouseDown,
-        MouseEventHandler mouseEnter,
-        MouseEventHandler mouseLeave)
-    {
-        var svgPath = AppPaths.GetControllerSvgPath(ControllerSvgConstants.XboxControllerSvgFileName);
-        if (!File.Exists(svgPath))
-        {
-            Debug.WriteLine($"Controller SVG not found: {svgPath}");
-            return;
-        }
-
-        XDocument doc;
-        try
-        {
-            doc = XDocument.Load(svgPath);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to load controller SVG: {ex.Message}");
-            return;
-        }
-
-        var root = doc.Root;
-        if (root is null) return;
-
-        Populate(target, root, interactivePathStyle, interactiveRectangleStyle, mouseDown, mouseEnter, mouseLeave);
-    }
-
     public static void Populate(
         Canvas target,
         XElement svgRoot,
+        ControllerVisualLayoutDescriptor layout,
         Style interactivePathStyle,
         Style interactiveRectangleStyle,
         MouseButtonEventHandler mouseDown,
@@ -75,26 +34,48 @@ public static class XboxControllerInteractiveLayerBuilder
 
         var idIndex = BuildIdElementIndex(svgRoot);
 
-        foreach (var id in InteractiveIdOrder)
+        foreach (var region in layout.Regions)
         {
-            if (!idIndex.TryGetValue(id, out var el))
+            if (!idIndex.TryGetValue(region.SvgElementId, out var el))
+            {
+                Debug.WriteLine(
+                    $"Controller visual: no SVG element with id '{region.SvgElementId}' for logical '{region.LogicalId}'.");
                 continue;
+            }
 
             var local = el.Name.LocalName;
-            if (local.Equals("path", StringComparison.OrdinalIgnoreCase))
+            var kind = region.ElementKind;
+            if (kind == ControllerVisualElementKind.Auto)
             {
-                if (CreatePathShape(el, id, interactivePathStyle, mouseDown, mouseEnter, mouseLeave) is { } path)
-                    target.Children.Add(path);
+                if (local.Equals("path", StringComparison.OrdinalIgnoreCase))
+                    kind = ControllerVisualElementKind.Path;
+                else if (local.Equals("rect", StringComparison.OrdinalIgnoreCase))
+                    kind = ControllerVisualElementKind.Rect;
             }
-            else if (local.Equals("rect", StringComparison.OrdinalIgnoreCase))
+
+            switch (kind)
             {
-                if (CreateRectangleShape(el, id, interactiveRectangleStyle, mouseDown, mouseEnter, mouseLeave) is { } rect)
-                    target.Children.Add(rect);
+                case ControllerVisualElementKind.Path when local.Equals("path", StringComparison.OrdinalIgnoreCase):
+                    if (CreatePathShape(el, region.LogicalId, interactivePathStyle, mouseDown, mouseEnter, mouseLeave) is { } path)
+                        target.Children.Add(path);
+                    break;
+                case ControllerVisualElementKind.Rect when local.Equals("rect", StringComparison.OrdinalIgnoreCase):
+                    if (CreateRectangleShape(el, region.LogicalId, interactiveRectangleStyle, mouseDown, mouseEnter, mouseLeave) is { } rect)
+                        target.Children.Add(rect);
+                    break;
+                case ControllerVisualElementKind.Auto:
+                    Debug.WriteLine(
+                        $"Controller visual: unsupported or ambiguous element '{region.SvgElementId}' (localName={local}) for logical '{region.LogicalId}'.");
+                    break;
+                default:
+                    Debug.WriteLine(
+                        $"Controller visual: element kind mismatch for '{region.SvgElementId}' (expected {kind}, got {local}) for logical '{region.LogicalId}'.");
+                    break;
             }
         }
     }
 
-    internal static Dictionary<string, XElement> BuildIdElementIndex(XElement root)
+    public static Dictionary<string, XElement> BuildIdElementIndex(XElement root)
     {
         var d = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
         foreach (var e in root.Descendants())
@@ -110,7 +91,7 @@ public static class XboxControllerInteractiveLayerBuilder
 
     private static WpfPath? CreatePathShape(
         XElement pathEl,
-        string id,
+        string logicalId,
         Style style,
         MouseButtonEventHandler mouseDown,
         MouseEventHandler mouseEnter,
@@ -126,7 +107,7 @@ public static class XboxControllerInteractiveLayerBuilder
         }
         catch (FormatException ex)
         {
-            Debug.WriteLine($"Invalid path geometry for '{id}': {ex.Message}");
+            Debug.WriteLine($"Invalid path geometry for '{logicalId}': {ex.Message}");
             return null;
         }
 
@@ -140,7 +121,7 @@ public static class XboxControllerInteractiveLayerBuilder
         {
             Style = style,
             Data = geometry,
-            Tag = id
+            Tag = logicalId
         };
 
         path.MouseLeftButtonDown += mouseDown;
@@ -151,7 +132,7 @@ public static class XboxControllerInteractiveLayerBuilder
 
     private static WpfRectangle? CreateRectangleShape(
         XElement rectEl,
-        string id,
+        string logicalId,
         Style style,
         MouseButtonEventHandler mouseDown,
         MouseEventHandler mouseEnter,
@@ -172,7 +153,7 @@ public static class XboxControllerInteractiveLayerBuilder
             Height = h,
             RadiusX = rx,
             RadiusY = ry > 0 ? ry : rx,
-            Tag = id
+            Tag = logicalId
         };
         Canvas.SetLeft(rect, x);
         Canvas.SetTop(rect, y);

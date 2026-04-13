@@ -102,6 +102,15 @@
   <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
     <value>显示或隐藏实时监视器窗口。拖动窗口边缘调整宽度；宽度保存在应用设置中。</value>
   </data>
+  <data name="WorkspaceHeaderCollapseTooltip" xml:space="preserve">
+    <value>隐藏档案与模板工具栏，为映射与编辑区腾出更多垂直空间。此选项会保存在应用设置中。</value>
+  </data>
+  <data name="WorkspaceHeaderExpandTooltip" xml:space="preserve">
+    <value>重新显示档案与模板工具栏。</value>
+  </data>
+  <data name="WorkspaceHeaderExpandLabel" xml:space="preserve">
+    <value>显示档案工具栏</value>
+  </data>
   <data name="GamepadMonitorReaderOn" xml:space="preserve">
     <value>读取中</value>
   </data>

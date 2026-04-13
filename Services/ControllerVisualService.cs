@@ -27,9 +27,11 @@ public class ControllerVisualService : IControllerVisualService
         { "dpad_R", (GamepadBindingType.Button, "DPadRight", "D-Pad Right") },
         { "thumbStick_L", (GamepadBindingType.LeftThumbstick, "LeftThumbstick", "Left Thumbstick") },
         { "thumbStick_R", (GamepadBindingType.RightThumbstick, "RightThumbstick", "Right Thumbstick") },
-        { "thumb_L", (GamepadBindingType.Button, "LeftThumb", "Left Stick Click") },
-        { "thumb_R", (GamepadBindingType.Button, "RightThumb", "Right Stick Click") }
+        { "thumb_L", (GamepadBindingType.Button, "LeftThumb", "Left Stick") },
+        { "thumb_R", (GamepadBindingType.Button, "RightThumb", "Right Stick") }
     };
+
+    public IEnumerable<string> EnumerateMappedLogicalControlIds() => _idMap.Keys;
 
     public GamepadBinding? MapIdToBinding(string elementId)
     {

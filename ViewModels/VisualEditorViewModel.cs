@@ -29,11 +29,15 @@ public partial class VisualEditorViewModel : ObservableObject
         && SelectedMapping is null
         && !_mainViewModel.MappingEditorPanel.IsCreatingNewMapping;
 
-    public VisualEditorViewModel(MainViewModel mainViewModel, IControllerVisualService visualService)
+    public VisualEditorViewModel(
+        MainViewModel mainViewModel,
+        IControllerVisualService visualService,
+        IControllerVisualLayoutSource layoutSource,
+        IControllerVisualLoader controllerVisualLoader)
     {
         _mainViewModel = mainViewModel;
         _visualService = visualService;
-        ControllerVisual = new ControllerVisualViewModel(_visualService);
+        ControllerVisual = new ControllerVisualViewModel(visualService, layoutSource, controllerVisualLoader);
 
         _mainViewModel.MappingEditorPanel.PropertyChanged += OnMappingEditorPanelPropertyChanged;
 
@@ -69,7 +73,7 @@ public partial class VisualEditorViewModel : ObservableObject
     {
         if (mapping == null) return;
 
-        foreach (var elementId in new[] { "btn_A", "btn_B", "btn_X", "btn_Y", "shoulder_L", "shoulder_R", "trigger_L", "trigger_R", "btn_back", "btn_start", "btn_share", "btn_home", "dpad_U", "dpad_D", "dpad_L", "dpad_R", "thumbStick_L", "thumbStick_R", "thumb_L", "thumb_R" })
+        foreach (var elementId in _visualService.EnumerateMappedLogicalControlIds())
         {
             var binding = _visualService.MapIdToBinding(elementId);
             if (binding != null && mapping.From?.Type == binding.Type && mapping.From?.Value == binding.Value)

@@ -79,6 +79,9 @@ public static class AppPaths
     public static string GetControllerSvgPath(string fileName) =>
         Path.Combine(ResolveContentRoot(), "Assets", "ControllerSvg", fileName);
 
+    public static string GetControllerVisualLayoutManifestPath(string manifestFileName) =>
+        GetControllerSvgPath(manifestFileName);
+
     /// <summary>OS path layout under <c>Assets/Profiles/templates</c>; logical keys live in <see cref="TemplateStorageKey"/>.</summary>
     public static class TemplateCatalogPaths
     {

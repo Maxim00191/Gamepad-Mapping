@@ -28,6 +28,7 @@ using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
+using Gamepad_Mapping.Interfaces.Services;
 using Gamepad_Mapping.Services;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -51,6 +52,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IRadialMenuHud _radialMenuHud;
     private readonly Debouncer _processNameDebouncer;
     private bool _suppressGamepadMonitorSettingsPersistence;
+    private bool _suppressWorkspaceHeaderSettingsPersistence;
 
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
@@ -61,9 +63,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly AppToastViewModel _toastHost;
     private readonly IKeyboardEmulator? _keyboardEmulatorOverride;
     private readonly IMouseEmulator? _mouseEmulatorOverride;
+    private readonly IControllerVisualService _controllerVisualService;
+    private readonly IControllerVisualLayoutSource _controllerVisualLayoutSource;
+    private readonly IControllerVisualLoader _controllerVisualLoader;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
+
+    public IControllerVisualService ControllerVisualService => _controllerVisualService;
+
+    public IControllerVisualLayoutSource ControllerVisualLayoutSource => _controllerVisualLayoutSource;
+
+    public IControllerVisualLoader ControllerVisualLoader => _controllerVisualLoader;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -90,6 +101,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IXInput? xinput = null,
         IGamepadSource? gamepadSource = null,
         IInputEmulationStackFactory? inputEmulationStackFactory = null,
+        IControllerVisualService? controllerVisualService = null,
+        IControllerVisualLayoutSource? controllerVisualLayoutSource = null,
+        IControllerVisualLoader? controllerVisualLoader = null,
         IRadialMenuHud? radialMenuHud = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
@@ -127,7 +141,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
         _appToastService = appToastService ?? new AppToastService();
         _toastHost = new AppToastViewModel(_appToastService);
-        
+
+        _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
+        _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
+        _controllerVisualLoader = controllerVisualLoader ?? new ControllerVisualLoader();
+
         _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
 
         UpdatePanel = new UpdateViewModel(
@@ -172,6 +190,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             reader is GamepadReader gr2 ? gr2.RightThumbstickDeadzone : 0);
 
         InitializeUiSettings(appSettings);
+        ApplyWorkspaceHeaderInitialState(appSettings);
 
         InitializeChildViewModels(initialLeftDeadzone, initialRightDeadzone, appSettings);
 
@@ -219,6 +238,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public CommunityCatalogViewModel CommunityCatalogPanel { get; private set; } = null!;
     public GamepadMonitorViewModel GamepadMonitorPanel { get; private set; } = null!;
     public ProcessTargetPanelViewModel ProcessTargetPanel { get; private set; } = null!;
+
+    [ObservableProperty]
+    private bool isWorkspaceHeaderExpanded = true;
+
+    partial void OnIsWorkspaceHeaderExpandedChanged(bool value)
+    {
+        if (_suppressWorkspaceHeaderSettingsPersistence) return;
+        UpdateSetting(s => s.WorkspaceHeaderExpanded = value);
+    }
+
+    [RelayCommand]
+    private void CollapseWorkspaceHeader() => IsWorkspaceHeaderExpanded = false;
+
+    [RelayCommand]
+    private void ExpandWorkspaceHeader() => IsWorkspaceHeaderExpanded = true;
 
     [ObservableProperty]
     private ProcessInfo? selectedTargetProcess;
@@ -644,7 +678,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)
     {
         MappingEditorPanel = new MappingEditorViewModel(this);
-        VisualEditorPanel = new VisualEditorViewModel(this, new ControllerVisualService());
+        VisualEditorPanel = new VisualEditorViewModel(
+            this,
+            _controllerVisualService,
+            _controllerVisualLayoutSource,
+            _controllerVisualLoader);
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
@@ -666,6 +704,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         finally
         {
             _suppressGamepadMonitorSettingsPersistence = false;
+        }
+    }
+
+    private void ApplyWorkspaceHeaderInitialState(AppSettings s)
+    {
+        _suppressWorkspaceHeaderSettingsPersistence = true;
+        try
+        {
+            IsWorkspaceHeaderExpanded = s.WorkspaceHeaderExpanded;
+        }
+        finally
+        {
+            _suppressWorkspaceHeaderSettingsPersistence = false;
         }
     }
 
