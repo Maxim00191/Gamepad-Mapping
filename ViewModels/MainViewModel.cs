@@ -66,6 +66,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerVisualService _controllerVisualService;
     private readonly IControllerVisualLayoutSource _controllerVisualLayoutSource;
     private readonly IControllerVisualLoader _controllerVisualLoader;
+    private readonly IControllerVisualHighlightService _controllerVisualHighlightService;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -75,6 +76,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public IControllerVisualLayoutSource ControllerVisualLayoutSource => _controllerVisualLayoutSource;
 
     public IControllerVisualLoader ControllerVisualLoader => _controllerVisualLoader;
+    public IControllerVisualHighlightService ControllerVisualHighlightService => _controllerVisualHighlightService;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -145,6 +147,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
         _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
         _controllerVisualLoader = controllerVisualLoader ?? new ControllerVisualLoader();
+        _controllerVisualHighlightService = new ControllerVisualHighlightService(_controllerVisualService);
 
         _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
 
@@ -223,9 +226,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public bool IsGamepadRunning => _gamepadService.IsRunning;
 
+    public enum MainProfileWorkspaceTab
+    {
+        VisualEditor = 0,
+        Mappings = 1,
+        KeyboardActions = 2,
+        RadialMenus = 3
+    }
+
     [ObservableProperty]
-    private int profileListTabIndex;
-    partial void OnProfileListTabIndexChanged(int value) => RefreshRightPanelSurface();
+    private int _profileListTabIndex;
+
+    [ObservableProperty]
+    private bool _isVisualMode;
+
+    partial void OnProfileListTabIndexChanged(int value)
+    {
+        IsVisualMode = value == (int)MainProfileWorkspaceTab.VisualEditor;
+        RefreshRightPanelSurface();
+    }
 
     [ObservableProperty]
     private ProfileRightPanelSurface rightPanelSurface;
@@ -379,6 +398,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private float humanNoiseSmoothness;
     partial void OnHumanNoiseSmoothnessChanged(float value) => UpdateSetting(s => s.HumanNoiseSmoothness = Math.Clamp(value, 0f, 1f));
+
+    [ObservableProperty] private int controllerMappingOverlayPrimaryLabelModeIndex;
+    partial void OnControllerMappingOverlayPrimaryLabelModeIndexChanged(int value)
+    {
+        var mode = (ControllerMappingOverlayPrimaryLabelMode)Math.Clamp(value, 0, 1);
+        UpdateSetting(s => s.ControllerMappingOverlayPrimaryLabel = ControllerMappingOverlayLabelModeParser.ToSettingString(mode));
+        RefreshControllerVisualOverlays();
+    }
+
+    [ObservableProperty] private bool controllerMappingOverlayShowSecondary = true;
+    partial void OnControllerMappingOverlayShowSecondaryChanged(bool value)
+    {
+        UpdateSetting(s => s.ControllerMappingOverlayShowSecondary = value);
+        RefreshControllerVisualOverlays();
+    }
+
+    public event EventHandler? FocusMappingDetailsFirstFieldRequested;
+
+    public void RequestFocusMappingDetailsFirstField() =>
+        _dispatcher.BeginInvoke(() => FocusMappingDetailsFirstFieldRequested?.Invoke(this, EventArgs.Empty), DispatcherPriority.Input);
 
     public ObservableCollection<ComboHudPlacement> ComboHudPlacements { get; } = new(Enum.GetValues<ComboHudPlacement>());
 
@@ -607,16 +646,37 @@ public partial class MainViewModel : ObservableObject, IDisposable
     // Helper methods for UI refresh
     internal void RefreshRightPanelSurface()
     {
-        var mappingSurfaceTab = ProfileListTabIndex is (int)MainProfileWorkspaceTab.VisualEditor
-            or (int)MainProfileWorkspaceTab.Mappings;
+        var isVisualTab = ProfileListTabIndex == (int)MainProfileWorkspaceTab.VisualEditor;
+        var mappingSurfaceTab = isVisualTab || ProfileListTabIndex == (int)MainProfileWorkspaceTab.Mappings;
+        var hasMappingEditorContext = SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping;
+        
+        // P5: Persistent detail pane logic - if we are in visual tab and have a selected element, show mapping details
         var showMapping = mappingSurfaceTab
-            && (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
+            && (hasMappingEditorContext || (isVisualTab && HasSelectedVisualControl()));
         var showKeyboard = ProfileListTabIndex == (int)MainProfileWorkspaceTab.KeyboardActions
             && CatalogPanel.SelectedKeyboardAction is not null;
         var showRadial = ProfileListTabIndex == (int)MainProfileWorkspaceTab.RadialMenus
             && CatalogPanel.SelectedRadialMenu is not null;
 
         RightPanelSurface = showMapping ? ProfileRightPanelSurface.Mapping : showKeyboard ? ProfileRightPanelSurface.KeyboardAction : showRadial ? ProfileRightPanelSurface.RadialMenu : ProfileRightPanelSurface.None;
+    }
+
+    private bool HasSelectedVisualControl() =>
+        !string.IsNullOrWhiteSpace(VisualEditorPanel?.SelectedElementName);
+
+    internal void RefreshControllerVisualOverlays()
+    {
+        if (VisualEditorPanel is null || MappingEditorPanel is null)
+            return;
+
+        var mode = ControllerMappingOverlayLabelModeParser.Parse(_settingsOrchestrator.Settings.ControllerMappingOverlayPrimaryLabel);
+        var showSecondary = _settingsOrchestrator.Settings.ControllerMappingOverlayShowSecondary;
+        VisualEditorPanel.ControllerVisual.OverlayPrimaryLabelMode = mode;
+        VisualEditorPanel.ControllerVisual.OverlayShowSecondary = showSecondary;
+        MappingEditorPanel.ControllerVisual.OverlayPrimaryLabelMode = mode;
+        MappingEditorPanel.ControllerVisual.OverlayShowSecondary = showSecondary;
+        VisualEditorPanel.ControllerVisual.UpdateOverlay(Mappings);
+        MappingEditorPanel.ControllerVisual.UpdateOverlay(Mappings);
     }
 
     private void UpdateTemplateToggleDisplayNames()
@@ -661,6 +721,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         HumanNoiseAmplitude = appSettings.HumanNoiseAmplitude;
         HumanNoiseFrequency = appSettings.HumanNoiseFrequency;
         HumanNoiseSmoothness = appSettings.HumanNoiseSmoothness;
+        ControllerMappingOverlayPrimaryLabelModeIndex =
+            ControllerMappingOverlayLabelModeParser.Parse(appSettings.ControllerMappingOverlayPrimaryLabel) == ControllerMappingOverlayPrimaryLabelMode.PhysicalControl
+                ? 1
+                : 0;
+        ControllerMappingOverlayShowSecondary = appSettings.ControllerMappingOverlayShowSecondary;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
 
         AvailableInputApis.Clear();
@@ -682,7 +747,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             this,
             _controllerVisualService,
             _controllerVisualLayoutSource,
-            _controllerVisualLoader);
+            _controllerVisualLoader,
+            _controllerVisualHighlightService);
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
@@ -691,6 +757,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
+        RefreshControllerVisualOverlays();
     }
 
     private void ApplyGamepadMonitorInitialUiState(AppSettings s)

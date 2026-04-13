@@ -528,6 +528,21 @@
   <data name="VisualEditorNoMappingHint" xml:space="preserve">
     <value>This control is not mapped yet. Add a mapping to use it in your profile.</value>
   </data>
+  <data name="ControllerOverlayLabelSettingsHeader" xml:space="preserve">
+    <value>Diagram labels</value>
+  </data>
+  <data name="ControllerOverlayPrimaryLineLabel" xml:space="preserve">
+    <value>Primary line on each mapped control</value>
+  </data>
+  <data name="ControllerOverlayLabelModeActionSummary" xml:space="preserve">
+    <value>Action summary</value>
+  </data>
+  <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
+    <value>Physical control name</value>
+  </data>
+  <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
+    <value>Show “+N” when a control has multiple mappings</value>
+  </data>
   <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
     <value>Keyboard action</value>
   </data>

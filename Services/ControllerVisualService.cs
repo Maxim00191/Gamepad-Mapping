@@ -31,6 +31,18 @@ public class ControllerVisualService : IControllerVisualService
         { "thumb_R", (GamepadBindingType.Button, "RightThumb", "Right Stick") }
     };
 
+    public string? MapBindingToId(string value, GamepadBindingType type)
+    {
+        foreach (var kvp in _idMap)
+        {
+            if (kvp.Value.Type == type && string.Equals(kvp.Value.Value, value, StringComparison.OrdinalIgnoreCase))
+            {
+                return kvp.Key;
+            }
+        }
+        return null;
+    }
+
     public IEnumerable<string> EnumerateMappedLogicalControlIds() => _idMap.Keys;
 
     public GamepadBinding? MapIdToBinding(string elementId)
@@ -49,5 +61,13 @@ public class ControllerVisualService : IControllerVisualService
             return info.DisplayName;
         }
         return elementId;
+    }
+
+    public IEnumerable<MappingEntry> GetMappingsForElement(string elementId, IEnumerable<MappingEntry> mappings)
+    {
+        var binding = MapIdToBinding(elementId);
+        if (binding == null) return Enumerable.Empty<MappingEntry>();
+
+        return mappings.Where(m => m.From?.Type == binding.Type && m.From?.Value == binding.Value);
     }
 }

@@ -5,7 +5,7 @@ using System.Xml.Linq;
 
 namespace Gamepad_Mapping.Utils.ControllerSvg;
 
-public readonly record struct ControllerSvgViewport(double Width, double Height)
+public readonly record struct ControllerSvgViewport(double Width, double Height, double X = 0, double Y = 0)
 {
     public static bool TryReadSvgRoot(string svgPath, out ControllerSvgViewport viewport) =>
         TryReadSvgRoot(svgPath, out _, out viewport);
@@ -49,10 +49,11 @@ public readonly record struct ControllerSvgViewport(double Width, double Height)
         {
             var parts = viewBox.Split([' ', '\t', '\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 4 &&
+                TryParseDouble(parts[0], out var x) && TryParseDouble(parts[1], out var y) &&
                 TryParseDouble(parts[2], out var w) && TryParseDouble(parts[3], out var h) &&
                 w > 0 && h > 0)
             {
-                viewport = new ControllerSvgViewport(w, h);
+                viewport = new ControllerSvgViewport(w, h, x, y);
                 return true;
             }
         }

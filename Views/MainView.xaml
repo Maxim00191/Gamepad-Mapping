@@ -13,10 +13,11 @@
              Focusable="True"
              Background="{DynamicResource AppBackgroundBrush}"
              Foreground="{DynamicResource AppTextBrush}">
-   <UserControl.Resources>
-       <BooleanToVisibilityConverter x:Key="BoolToVis" />
-       <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
-   </UserControl.Resources>
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+    </UserControl.Resources>
    <Grid>
        <Grid Margin="12"
              Background="{DynamicResource AppBackgroundBrush}">

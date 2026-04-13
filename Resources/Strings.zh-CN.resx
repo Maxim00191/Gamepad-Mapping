@@ -528,6 +528,21 @@
   <data name="VisualEditorNoMappingHint" xml:space="preserve">
     <value>该按键尚未配置映射。添加映射后即可在配置文件中使用。</value>
   </data>
+  <data name="ControllerOverlayLabelSettingsHeader" xml:space="preserve">
+    <value>示意图标签</value>
+  </data>
+  <data name="ControllerOverlayPrimaryLineLabel" xml:space="preserve">
+    <value>已映射控件上的主行文字</value>
+  </data>
+  <data name="ControllerOverlayLabelModeActionSummary" xml:space="preserve">
+    <value>动作摘要</value>
+  </data>
+  <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
+    <value>物理按键名称</value>
+  </data>
+  <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
+    <value>同一控件有多条映射时显示“+N”</value>
+  </data>
   <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
     <value>键盘动作详情</value>
   </data>

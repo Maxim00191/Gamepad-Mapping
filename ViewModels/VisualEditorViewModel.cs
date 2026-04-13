@@ -33,11 +33,12 @@ public partial class VisualEditorViewModel : ObservableObject
         MainViewModel mainViewModel,
         IControllerVisualService visualService,
         IControllerVisualLayoutSource layoutSource,
-        IControllerVisualLoader controllerVisualLoader)
+        IControllerVisualLoader controllerVisualLoader,
+        IControllerVisualHighlightService highlightService)
     {
         _mainViewModel = mainViewModel;
         _visualService = visualService;
-        ControllerVisual = new ControllerVisualViewModel(visualService, layoutSource, controllerVisualLoader);
+        ControllerVisual = new ControllerVisualViewModel(visualService, layoutSource, controllerVisualLoader, highlightService);
 
         _mainViewModel.MappingEditorPanel.PropertyChanged += OnMappingEditorPanelPropertyChanged;
 
@@ -46,6 +47,9 @@ public partial class VisualEditorViewModel : ObservableObject
             if (e.PropertyName == nameof(ControllerVisualViewModel.SelectedElementName))
                 OnElementSelected(ControllerVisual.SelectedElementName);
         };
+
+        _mainViewModel.Mappings.CollectionChanged += (s, e) => ControllerVisual.UpdateOverlay(_mainViewModel.Mappings);
+        ControllerVisual.UpdateOverlay(_mainViewModel.Mappings);
 
         _mainViewModel.PropertyChanged += (_, e) =>
         {
@@ -64,10 +68,16 @@ public partial class VisualEditorViewModel : ObservableObject
     }
 
     partial void OnSelectedElementNameChanged(string? value) =>
-        OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));
+        RefreshVisualSelectionState();
 
     partial void OnSelectedMappingChanged(MappingEntry? value) =>
         OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));
+
+    private void RefreshVisualSelectionState()
+    {
+        OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));
+        _mainViewModel.RefreshRightPanelSurface();
+    }
 
     private void SyncFromGlobalSelection(MappingEntry? mapping)
     {
@@ -130,9 +140,14 @@ public partial class VisualEditorViewModel : ObservableObject
         var binding = _visualService.MapIdToBinding(SelectedElementName);
         if (binding == null) return;
 
+        // Ensure we are in the right state to show the editor
         _mainViewModel.MappingEditorPanel.AddMappingCommand.Execute(null);
         _mainViewModel.MappingEditorPanel.InputTrigger.SyncFrom(new MappingEntry { From = binding });
 
         SelectedMapping = _mainViewModel.SelectedMapping;
+        
+        // Switch to mapping tab if not already there, or ensure right panel is visible
+        _mainViewModel.RefreshRightPanelSurface();
+        _mainViewModel.RequestFocusMappingDetailsFirstField();
     }
 }

@@ -12,5 +12,7 @@
   },
   "gamepadMonitorPanelWidth": 220,
   "gamepadMonitorVisible": false,
-  "workspaceHeaderExpanded": true
+  "workspaceHeaderExpanded": true,
+  "controllerMappingOverlayPrimaryLabel": "actionSummary",
+  "controllerMappingOverlayShowSecondary": true
 }

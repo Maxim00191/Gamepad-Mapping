@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -22,7 +24,8 @@ public static class ControllerVisualInteractiveLayerBuilder
         Style interactiveRectangleStyle,
         MouseButtonEventHandler mouseDown,
         MouseEventHandler mouseEnter,
-        MouseEventHandler mouseLeave)
+        MouseEventHandler mouseLeave,
+        Func<string, string>? getAccessibleNameForLogicalId = null)
     {
         target.Children.Clear();
 
@@ -56,11 +59,11 @@ public static class ControllerVisualInteractiveLayerBuilder
             switch (kind)
             {
                 case ControllerVisualElementKind.Path when local.Equals("path", StringComparison.OrdinalIgnoreCase):
-                    if (CreatePathShape(el, region.LogicalId, interactivePathStyle, mouseDown, mouseEnter, mouseLeave) is { } path)
+                    if (CreatePathShape(el, region.LogicalId, interactivePathStyle, mouseDown, mouseEnter, mouseLeave, getAccessibleNameForLogicalId) is { } path)
                         target.Children.Add(path);
                     break;
                 case ControllerVisualElementKind.Rect when local.Equals("rect", StringComparison.OrdinalIgnoreCase):
-                    if (CreateRectangleShape(el, region.LogicalId, interactiveRectangleStyle, mouseDown, mouseEnter, mouseLeave) is { } rect)
+                    if (CreateRectangleShape(el, region.LogicalId, interactiveRectangleStyle, mouseDown, mouseEnter, mouseLeave, getAccessibleNameForLogicalId) is { } rect)
                         target.Children.Add(rect);
                     break;
                 case ControllerVisualElementKind.Auto:
@@ -95,7 +98,8 @@ public static class ControllerVisualInteractiveLayerBuilder
         Style style,
         MouseButtonEventHandler mouseDown,
         MouseEventHandler mouseEnter,
-        MouseEventHandler mouseLeave)
+        MouseEventHandler mouseLeave,
+        Func<string, string>? getAccessibleNameForLogicalId)
     {
         var d = ControllerSvgXml.AttributeIgnoreCase(pathEl, "d")?.Value;
         if (string.IsNullOrWhiteSpace(d)) return null;
@@ -121,12 +125,15 @@ public static class ControllerVisualInteractiveLayerBuilder
         {
             Style = style,
             Data = geometry,
-            Tag = logicalId
+            Tag = logicalId,
+            RenderTransform = FreezeMatrixTransform(ControllerSvgAccumulatedTransform.GetMatrix(pathEl))
         };
 
         path.MouseLeftButtonDown += mouseDown;
         path.MouseEnter += mouseEnter;
         path.MouseLeave += mouseLeave;
+        var name = getAccessibleNameForLogicalId?.Invoke(logicalId) ?? logicalId;
+        AutomationProperties.SetName(path, name);
         return path;
     }
 
@@ -136,7 +143,8 @@ public static class ControllerVisualInteractiveLayerBuilder
         Style style,
         MouseButtonEventHandler mouseDown,
         MouseEventHandler mouseEnter,
-        MouseEventHandler mouseLeave)
+        MouseEventHandler mouseLeave,
+        Func<string, string>? getAccessibleNameForLogicalId)
     {
         if (!TryParseDouble(ControllerSvgXml.AttributeIgnoreCase(rectEl, "x")?.Value, out var x)) return null;
         if (!TryParseDouble(ControllerSvgXml.AttributeIgnoreCase(rectEl, "y")?.Value, out var y)) return null;
@@ -153,7 +161,8 @@ public static class ControllerVisualInteractiveLayerBuilder
             Height = h,
             RadiusX = rx,
             RadiusY = ry > 0 ? ry : rx,
-            Tag = logicalId
+            Tag = logicalId,
+            RenderTransform = FreezeMatrixTransform(ControllerSvgAccumulatedTransform.GetMatrix(rectEl))
         };
         Canvas.SetLeft(rect, x);
         Canvas.SetTop(rect, y);
@@ -161,6 +170,8 @@ public static class ControllerVisualInteractiveLayerBuilder
         rect.MouseLeftButtonDown += mouseDown;
         rect.MouseEnter += mouseEnter;
         rect.MouseLeave += mouseLeave;
+        var name = getAccessibleNameForLogicalId?.Invoke(logicalId) ?? logicalId;
+        AutomationProperties.SetName(rect, name);
         return rect;
     }
 
@@ -172,5 +183,12 @@ public static class ControllerVisualInteractiveLayerBuilder
             return false;
         }
         return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static MatrixTransform FreezeMatrixTransform(Matrix matrix)
+    {
+        var t = new MatrixTransform(matrix);
+        t.Freeze();
+        return t;
     }
 }

@@ -68,7 +68,8 @@ public partial class MappingEditorViewModel : ObservableObject
         ControllerVisual = new ControllerVisualViewModel(
             _mainViewModel.ControllerVisualService,
             _mainViewModel.ControllerVisualLayoutSource,
-            _mainViewModel.ControllerVisualLoader);
+            _mainViewModel.ControllerVisualLoader,
+            _mainViewModel.ControllerVisualHighlightService);
 
         ControllerVisual.PropertyChanged += (s, e) =>
         {
@@ -95,6 +96,9 @@ public partial class MappingEditorViewModel : ObservableObject
                 }
             }
         };
+
+        Mappings.CollectionChanged += (s, e) => ControllerVisual.UpdateOverlay(Mappings);
+        ControllerVisual.UpdateOverlay(Mappings);
 
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
@@ -244,7 +248,17 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private bool isCreatingNewMapping;
 
-    partial void OnIsCreatingNewMappingChanged(bool value) => _mainViewModel.RefreshRightPanelSurface();
+    partial void OnIsCreatingNewMappingChanged(bool value)
+    {
+        _mainViewModel.RefreshRightPanelSurface();
+        OnPropertyChanged(nameof(UseSlimMappingPreview));
+    }
+
+    public bool UseSlimMappingPreview =>
+        _mainViewModel.IsVisualMode && SelectedMapping is not null && !IsCreatingNewMapping;
+
+    public void NotifyVisualModeRelatedPropertiesChanged() =>
+        OnPropertyChanged(nameof(UseSlimMappingPreview));
 
     public bool EditKeyboardAndHoldSectionsEnabled => SelectedActionType == MappingActionType.Keyboard;
 
@@ -632,6 +646,9 @@ public partial class MappingEditorViewModel : ObservableObject
     {
         switch (e.PropertyName)
         {
+            case nameof(MainViewModel.IsVisualMode):
+                NotifyVisualModeRelatedPropertiesChanged();
+                break;
             case nameof(MainViewModel.RadialMenus):
                 UpdateUnusedActionIds();
                 break;
@@ -641,6 +658,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
+                OnPropertyChanged(nameof(UseSlimMappingPreview));
                 SyncFromSelection(SelectedMapping);
                 ControllerVisual.SelectedMapping = SelectedMapping;
                 break;

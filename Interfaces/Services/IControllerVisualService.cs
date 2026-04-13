@@ -4,6 +4,11 @@ namespace Gamepad_Mapping.Interfaces.Services;
 
 public interface IControllerVisualService
 {
+    /// <summary>
+    /// Maps a binding value and type back to a logical control id.
+    /// </summary>
+    string? MapBindingToId(string value, GamepadBindingType type);
+
     IEnumerable<string> EnumerateMappedLogicalControlIds();
 
     /// <summary>
@@ -16,4 +21,9 @@ public interface IControllerVisualService
     /// Gets the display name for a logical control id.
     /// </summary>
     string GetDisplayName(string elementId);
+
+    /// <summary>
+    /// Gets all mappings associated with a logical control id.
+    /// </summary>
+    IEnumerable<MappingEntry> GetMappingsForElement(string elementId, IEnumerable<MappingEntry> mappings);
 }

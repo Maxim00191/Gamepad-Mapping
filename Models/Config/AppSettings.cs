@@ -279,4 +279,14 @@ public class AppSettings
     /// <summary>Low-pass on noise (normalized 0–1): higher ≈ smoother neuromuscular filtering, fewer sharp timing spikes.</summary>
     [JsonProperty("humanNoiseSmoothness")]
     public float HumanNoiseSmoothness { get; set; } = 0.3f;
+
+    /// <summary>
+    /// Controller diagram overlay primary line: <c>actionSummary</c> (default) or <c>physicalControl</c> (localized control name).
+    /// </summary>
+    [JsonProperty("controllerMappingOverlayPrimaryLabel")]
+    public string ControllerMappingOverlayPrimaryLabel { get; set; } = "actionSummary";
+
+    /// <summary>When true, show secondary text such as <c>+N</c> for additional mappings on the same control.</summary>
+    [JsonProperty("controllerMappingOverlayShowSecondary")]
+    public bool ControllerMappingOverlayShowSecondary { get; set; } = true;
 }
