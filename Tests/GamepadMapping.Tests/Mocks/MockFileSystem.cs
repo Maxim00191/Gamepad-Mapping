@@ -108,7 +108,7 @@ public class MockFileSystem : IFileSystem
         return true;
     }
 
-    public string GetDirectoryName(string path) => Path.GetDirectoryName(path);
+    public string? GetDirectoryName(string path) => Path.GetDirectoryName(path);
 }
 
 public class MockPathProvider : IPathProvider

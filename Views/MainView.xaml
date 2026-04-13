@@ -469,6 +469,15 @@
                             SelectedIndex="{Binding ProfileListTabIndex, Mode=TwoWay}">
                     <TabItem>
                         <TabItem.Header>
+                            <TextBlock Text="Visual Editor" />
+                        </TabItem.Header>
+                        <Grid Margin="12"
+                              VerticalAlignment="Stretch">
+                            <sections:VisualEditorView DataContext="{Binding VisualEditorPanel}" />
+                        </Grid>
+                    </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
                             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabMappings]}" />
                         </TabItem.Header>
                         <Grid Margin="12"

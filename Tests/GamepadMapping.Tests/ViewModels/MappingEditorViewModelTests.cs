@@ -121,6 +121,7 @@ public class MappingEditorViewModelTests
         {
             From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
         };
+        _mainViewModel.Mappings.Add(entry);
         _mainViewModel.SelectedMapping = entry;
         vm.SyncFromSelection(entry);
 

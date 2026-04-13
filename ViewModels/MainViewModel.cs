@@ -28,6 +28,7 @@ using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
+using Gamepad_Mapping.Services;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -205,10 +206,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private int profileListTabIndex;
+    partial void OnProfileListTabIndexChanged(int value) => RefreshRightPanelSurface();
 
     [ObservableProperty]
     private ProfileRightPanelSurface rightPanelSurface;
 
+    public VisualEditorViewModel VisualEditorPanel { get; private set; } = null!;
     public ProfileTemplatePanelViewModel ProfileTemplatePanel { get; private set; } = null!;
     public NewBindingPanelViewModel NewBindingPanel { get; private set; } = null!;
     public MappingEditorViewModel MappingEditorPanel { get; private set; } = null!;
@@ -229,7 +232,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void OnMappingManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SelectedMapping))
+        {
             OnPropertyChanged(nameof(SelectedMapping));
+            RefreshRightPanelSurface();
+        }
     }
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
@@ -567,9 +573,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     // Helper methods for UI refresh
     internal void RefreshRightPanelSurface()
     {
-        var showMapping = ProfileListTabIndex == 0 && (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
-        var showKeyboard = ProfileListTabIndex == 1 && CatalogPanel.SelectedKeyboardAction is not null;
-        var showRadial = ProfileListTabIndex == 2 && CatalogPanel.SelectedRadialMenu is not null;
+        var mappingSurfaceTab = ProfileListTabIndex is (int)MainProfileWorkspaceTab.VisualEditor
+            or (int)MainProfileWorkspaceTab.Mappings;
+        var showMapping = mappingSurfaceTab
+            && (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
+        var showKeyboard = ProfileListTabIndex == (int)MainProfileWorkspaceTab.KeyboardActions
+            && CatalogPanel.SelectedKeyboardAction is not null;
+        var showRadial = ProfileListTabIndex == (int)MainProfileWorkspaceTab.RadialMenus
+            && CatalogPanel.SelectedRadialMenu is not null;
 
         RightPanelSurface = showMapping ? ProfileRightPanelSurface.Mapping : showKeyboard ? ProfileRightPanelSurface.KeyboardAction : showRadial ? ProfileRightPanelSurface.RadialMenu : ProfileRightPanelSurface.None;
     }
@@ -632,9 +643,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)
     {
+        MappingEditorPanel = new MappingEditorViewModel(this);
+        VisualEditorPanel = new VisualEditorViewModel(this, new ControllerVisualService());
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
-        MappingEditorPanel = new MappingEditorViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
         CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);

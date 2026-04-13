@@ -65,7 +65,35 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel = mainViewModel;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
-        _controllerVisual = new ControllerVisualViewModel(this, new ControllerVisualService());
+        var visualService = new ControllerVisualService();
+        ControllerVisual = new ControllerVisualViewModel(visualService);
+
+        ControllerVisual.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(ControllerVisualViewModel.SelectedElementName))
+            {
+                var elementId = ControllerVisual.SelectedElementName;
+                if (string.IsNullOrEmpty(elementId)) return;
+
+                var binding = visualService.MapIdToBinding(elementId);
+                
+                if (binding == null) return;
+
+                var existing = Mappings.FirstOrDefault(m => 
+                    m.From?.Type == binding.Type && m.From?.Value == binding.Value);
+
+                if (existing != null)
+                {
+                    SelectedMapping = existing;
+                }
+                else
+                {
+                    BeginCreateNewMapping();
+                    InputTrigger.SyncFrom(new MappingEntry { From = binding });
+                }
+            }
+        };
+
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
@@ -612,6 +640,7 @@ public partial class MappingEditorViewModel : ObservableObject
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
                 SyncFromSelection(SelectedMapping);
+                ControllerVisual.SelectedMapping = SelectedMapping;
                 break;
             case nameof(MainViewModel.AvailableGamepadButtons):
                 OnPropertyChanged(nameof(AvailableGamepadButtons));

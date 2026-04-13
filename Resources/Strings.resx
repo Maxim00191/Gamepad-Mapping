@@ -513,6 +513,9 @@
   <data name="ProfileEditorPlaceholder" xml:space="preserve">
     <value>Select a row in the list or add one to edit details here.</value>
   </data>
+  <data name="VisualEditorNoMappingHint" xml:space="preserve">
+    <value>This control is not mapped yet. Add a mapping to use it in your profile.</value>
+  </data>
   <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
     <value>Keyboard action</value>
   </data>

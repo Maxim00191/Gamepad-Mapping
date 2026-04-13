@@ -513,6 +513,9 @@
   <data name="ProfileEditorPlaceholder" xml:space="preserve">
     <value>在左侧列表中选择一行，或添加新行，即可在此编辑详情。</value>
   </data>
+  <data name="VisualEditorNoMappingHint" xml:space="preserve">
+    <value>该按键尚未配置映射。添加映射后即可在配置文件中使用。</value>
+  </data>
   <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
     <value>键盘动作详情</value>
   </data>
