@@ -1,9 +1,9 @@
 using System.ComponentModel;
+using System.Xml.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shapes;
-using System.Windows.Media;
 using Gamepad_Mapping.Utils.ControllerSvg;
 using Gamepad_Mapping.ViewModels;
 
@@ -20,33 +20,60 @@ public partial class ControllerVisualView : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (ControllerSvgDrawingImageLoader.TryLoadAligned("Xbox.svg", out var alignedImage, out var viewport, out var layerTransform))
+        var fileName = ControllerSvgConstants.XboxControllerSvgFileName;
+
+        if (ControllerSvgDrawingImageLoader.TryLoadAligned(
+                fileName,
+                out var alignedImage,
+                out var viewport,
+                out var layerTransform,
+                out var svgRoot))
         {
             ControllerSvgImage.Source = alignedImage;
             ControllerVisualSvgRoot.Width = viewport.Width;
             ControllerVisualSvgRoot.Height = viewport.Height;
             InteractionLayer.RenderTransform = layerTransform;
             InteractionLayer.RenderTransformOrigin = new Point(0, 0);
+            PopulateInteractionLayer(svgRoot);
         }
-        else if (ControllerSvgDrawingImageLoader.TryLoad("Xbox.svg") is DrawingImage drawingImage)
+        else
         {
-            ControllerSvgImage.Source = drawingImage;
+            if (ControllerSvgDrawingImageLoader.TryLoad(fileName) is { } drawingImage)
+                ControllerSvgImage.Source = drawingImage;
+            PopulateInteractionLayer(svgRoot: null);
         }
 
+        if (DataContext is ControllerVisualViewModel vm)
+            UpdateSelection(vm.SelectedElementName);
+    }
+
+    private void PopulateInteractionLayer(XElement? svgRoot)
+    {
         var interactivePath = Resources["InteractivePathStyle"] as Style;
         var interactiveRect = Resources["InteractiveRectangleStyle"] as Style;
         if (interactivePath is null || interactiveRect is null) return;
 
-        XboxControllerInteractiveLayerBuilder.Populate(
-            InteractionLayer,
-            interactivePath,
-            interactiveRect,
-            Path_MouseLeftButtonDown,
-            Path_MouseEnter,
-            Path_MouseLeave);
-
-        if (DataContext is ControllerVisualViewModel vm)
-            UpdateSelection(vm.SelectedElementName);
+        if (svgRoot is not null)
+        {
+            XboxControllerInteractiveLayerBuilder.Populate(
+                InteractionLayer,
+                svgRoot,
+                interactivePath,
+                interactiveRect,
+                Path_MouseLeftButtonDown,
+                Path_MouseEnter,
+                Path_MouseLeave);
+        }
+        else
+        {
+            XboxControllerInteractiveLayerBuilder.Populate(
+                InteractionLayer,
+                interactivePath,
+                interactiveRect,
+                Path_MouseLeftButtonDown,
+                Path_MouseEnter,
+                Path_MouseLeave);
+        }
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -75,13 +102,19 @@ public partial class ControllerVisualView : UserControl
         var selectedStyle = Resources["SelectedPathStyle"] as Style;
         var interactiveStyle = Resources["InteractivePathStyle"] as Style;
 
-        if (interactiveStyle == null) return;
+        if (interactiveStyle is null) return;
 
-        foreach (var child in FindVisualChildren<FrameworkElement>(this))
+        var rectInteractive = Resources["InteractiveRectangleStyle"] as Style;
+        var rectSelected = Resources["SelectedRectangleStyle"] as Style;
+
+        foreach (var child in InteractionLayer.Children)
         {
-            if (child.Tag is not string tag) continue;
+            if (child is not FrameworkElement fe)
+                continue;
+            if (fe.Tag is not string tag)
+                continue;
 
-            switch (child)
+            switch (fe)
             {
                 case Path path:
                     path.Style = tag == selectedElementId
@@ -89,32 +122,11 @@ public partial class ControllerVisualView : UserControl
                         : interactiveStyle;
                     break;
                 case Rectangle rect:
-                    var rectInteractive = Resources["InteractiveRectangleStyle"] as Style;
-                    var rectSelected = Resources["SelectedRectangleStyle"] as Style;
                     if (rectInteractive is null) break;
                     rect.Style = tag == selectedElementId
                         ? rectSelected ?? rectInteractive
                         : rectInteractive;
                     break;
-            }
-        }
-    }
-
-    private static System.Collections.Generic.IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
-    {
-        if (depObj == null) yield break;
-        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(depObj); i++)
-        {
-            DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(depObj, i);
-            if (child != null && child is T t)
-            {
-                yield return t;
-            }
-
-            if (child is null) continue;
-            foreach (T childOfChild in FindVisualChildren<T>(child))
-            {
-                yield return childOfChild;
             }
         }
     }

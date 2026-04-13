@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Xml.Linq;
@@ -6,8 +7,15 @@ namespace Gamepad_Mapping.Utils.ControllerSvg;
 
 public readonly record struct ControllerSvgViewport(double Width, double Height)
 {
-    public static bool TryReadSvgRoot(string svgPath, out ControllerSvgViewport viewport)
+    public static bool TryReadSvgRoot(string svgPath, out ControllerSvgViewport viewport) =>
+        TryReadSvgRoot(svgPath, out _, out viewport);
+
+    public static bool TryReadSvgRoot(
+        string svgPath,
+        [NotNullWhen(true)] out XElement? svgRoot,
+        out ControllerSvgViewport viewport)
     {
+        svgRoot = null;
         viewport = default;
         if (!File.Exists(svgPath)) return false;
 
@@ -25,7 +33,11 @@ public readonly record struct ControllerSvgViewport(double Width, double Height)
         if (root is null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        return TryReadViewportFromSvgElement(root, out viewport);
+        if (!TryReadViewportFromSvgElement(root, out viewport))
+            return false;
+
+        svgRoot = root;
+        return true;
     }
 
     public static bool TryReadViewportFromSvgElement(XElement svgRoot, out ControllerSvgViewport viewport)

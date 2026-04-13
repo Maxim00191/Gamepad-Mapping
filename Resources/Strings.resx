@@ -87,6 +87,9 @@
   <data name="CreateBinding" xml:space="preserve">
     <value>Create binding</value>
   </data>
+  <data name="ControllerVisualClickToMapHint" xml:space="preserve">
+    <value> - Click to map</value>
+  </data>
   <data name="LiveGamepadMonitor" xml:space="preserve">
     <value>Live Gamepad Monitor</value>
   </data>

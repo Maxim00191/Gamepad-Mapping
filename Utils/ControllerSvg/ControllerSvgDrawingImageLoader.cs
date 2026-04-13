@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Xml.Linq;
 using SharpVectors.Converters;
 using SharpVectors.Renderers.Wpf;
 using GamepadMapperGUI.Utils;
@@ -35,15 +36,18 @@ public static class ControllerSvgDrawingImageLoader
         string fileName,
         [NotNullWhen(true)] out DrawingImage? image,
         out ControllerSvgViewport viewport,
-        [NotNullWhen(true)] out Transform? interactionLayerTransform)
+        [NotNullWhen(true)] out Transform? interactionLayerTransform,
+        [NotNullWhen(true)] out XElement? svgRoot)
     {
         image = null;
         interactionLayerTransform = null;
         viewport = default;
+        svgRoot = null;
 
         var path = AppPaths.GetControllerSvgPath(fileName);
         if (!File.Exists(path)) return false;
-        if (!ControllerSvgViewport.TryReadSvgRoot(path, out viewport)) return false;
+        if (!ControllerSvgViewport.TryReadSvgRoot(path, out var root, out viewport)) return false;
+        svgRoot = root;
 
         try
         {
@@ -53,7 +57,7 @@ public static class ControllerSvgDrawingImageLoader
 
             var bounds = drawing.Bounds;
             var intoViewport = ControllerSvgViewTransform.CreateUniformCenteredToViewport(bounds, viewport);
-            var forInteraction = ControllerSvgViewTransform.CreateUniformCenteredToViewport(bounds, viewport);
+            intoViewport.Freeze();
 
             var wrapper = new DrawingGroup();
             wrapper.Children.Add(drawing);
@@ -63,8 +67,7 @@ public static class ControllerSvgDrawingImageLoader
             image = new DrawingImage { Drawing = wrapper };
             image.Freeze();
 
-            interactionLayerTransform = forInteraction;
-            interactionLayerTransform.Freeze();
+            interactionLayerTransform = intoViewport;
             return true;
         }
         catch (Exception ex)

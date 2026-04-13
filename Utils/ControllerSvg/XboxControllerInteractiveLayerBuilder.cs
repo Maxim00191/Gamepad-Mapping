@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -31,9 +32,7 @@ public static class XboxControllerInteractiveLayerBuilder
         MouseEventHandler mouseEnter,
         MouseEventHandler mouseLeave)
     {
-        target.Children.Clear();
-
-        var svgPath = AppPaths.GetControllerSvgPath("Xbox.svg");
+        var svgPath = AppPaths.GetControllerSvgPath(ControllerSvgConstants.XboxControllerSvgFileName);
         if (!File.Exists(svgPath))
         {
             Debug.WriteLine($"Controller SVG not found: {svgPath}");
@@ -54,16 +53,32 @@ public static class XboxControllerInteractiveLayerBuilder
         var root = doc.Root;
         if (root is null) return;
 
-        if (ControllerSvgViewport.TryReadViewportFromSvgElement(root, out var vp))
+        Populate(target, root, interactivePathStyle, interactiveRectangleStyle, mouseDown, mouseEnter, mouseLeave);
+    }
+
+    public static void Populate(
+        Canvas target,
+        XElement svgRoot,
+        Style interactivePathStyle,
+        Style interactiveRectangleStyle,
+        MouseButtonEventHandler mouseDown,
+        MouseEventHandler mouseEnter,
+        MouseEventHandler mouseLeave)
+    {
+        target.Children.Clear();
+
+        if (ControllerSvgViewport.TryReadViewportFromSvgElement(svgRoot, out var vp))
         {
             target.Width = vp.Width;
             target.Height = vp.Height;
         }
 
+        var idIndex = BuildIdElementIndex(svgRoot);
+
         foreach (var id in InteractiveIdOrder)
         {
-            var el = FindById(root, id);
-            if (el is null) continue;
+            if (!idIndex.TryGetValue(id, out var el))
+                continue;
 
             var local = el.Name.LocalName;
             if (local.Equals("path", StringComparison.OrdinalIgnoreCase))
@@ -79,15 +94,18 @@ public static class XboxControllerInteractiveLayerBuilder
         }
     }
 
-    private static XElement? FindById(XElement root, string id)
+    internal static Dictionary<string, XElement> BuildIdElementIndex(XElement root)
     {
+        var d = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
         foreach (var e in root.Descendants())
         {
             var a = ControllerSvgXml.AttributeIgnoreCase(e, "id");
-            if (a is not null && string.Equals(a.Value, id, StringComparison.Ordinal))
-                return e;
+            if (a is null || string.IsNullOrWhiteSpace(a.Value))
+                continue;
+            d.TryAdd(a.Value, e);
         }
-        return null;
+
+        return d;
     }
 
     private static WpfPath? CreatePathShape(

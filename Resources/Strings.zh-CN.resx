@@ -87,6 +87,9 @@
   <data name="CreateBinding" xml:space="preserve">
     <value>创建映射</value>
   </data>
+  <data name="ControllerVisualClickToMapHint" xml:space="preserve">
+    <value> - 点击以映射</value>
+  </data>
   <data name="LiveGamepadMonitor" xml:space="preserve">
     <value>手柄实时监视器</value>
   </data>
