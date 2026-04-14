@@ -1,4 +1,4 @@
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models.ControllerVisual;
 
 namespace Gamepad_Mapping.Services;

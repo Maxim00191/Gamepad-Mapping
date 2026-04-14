@@ -12,7 +12,7 @@ using GamepadMapperGUI.Models.ControllerVisual;
 using WpfPath = System.Windows.Shapes.Path;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public static class ControllerVisualInteractiveLayerBuilder
 {

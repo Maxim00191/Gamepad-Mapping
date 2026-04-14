@@ -4,6 +4,7 @@
              xmlns:models="clr-namespace:GamepadMapperGUI.Models"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views.Sections"
+             xmlns:cvis="clr-namespace:Gamepad_Mapping.Views.Sections.ControllerVisual"
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
@@ -205,7 +206,7 @@
         <Border Grid.Column="1" Grid.Row="0"
                 Width="200" Margin="10,0,0,0"
                 Background="#252526" BorderBrush="#3F3F46" BorderThickness="1" CornerRadius="4">
-            <local:ControllerVisualView DataContext="{Binding ControllerVisual}" />
+            <cvis:ControllerVisualView DataContext="{Binding ControllerVisual}" />
         </Border>
 
         <Border Grid.Row="1" Grid.ColumnSpan="2"

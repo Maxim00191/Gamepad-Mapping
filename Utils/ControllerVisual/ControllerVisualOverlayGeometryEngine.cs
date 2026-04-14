@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Xml.Linq;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 /// <summary>
 /// Centralized engine for SVG-to-Overlay coordinate transformations and geometry calculations.

@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Xml.Linq;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public readonly record struct ControllerSvgViewport(double Width, double Height, double X = 0, double Y = 0)
 {

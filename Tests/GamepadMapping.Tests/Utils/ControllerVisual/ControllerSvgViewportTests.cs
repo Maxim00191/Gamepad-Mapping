@@ -1,7 +1,7 @@
 using System.Xml.Linq;
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 
-namespace GamepadMapping.Tests.Utils.ControllerSvg;
+namespace GamepadMapping.Tests.Utils.ControllerVisual;
 
 public class ControllerSvgViewportTests
 {

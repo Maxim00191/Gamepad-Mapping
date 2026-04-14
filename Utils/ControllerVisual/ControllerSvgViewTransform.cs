@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 internal static class ControllerSvgViewTransform
 {

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using Gamepad_Mapping.Models.Core.Visual;
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 
 namespace Gamepad_Mapping.Services;
 

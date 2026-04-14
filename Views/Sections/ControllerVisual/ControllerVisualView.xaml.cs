@@ -11,12 +11,14 @@ using System.Windows.Threading;
 using System.Xml.Linq;
 using Gamepad_Mapping.Interfaces.Services;
 using Gamepad_Mapping.Models.Core.Visual;
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 using Gamepad_Mapping.ViewModels;
+using Gamepad_Mapping.ViewModels.ControllerVisual;
+using Gamepad_Mapping.Views.Sections;
 using GamepadMapperGUI.Models.ControllerVisual;
 using GamepadMapperGUI.Utils;
 
-namespace Gamepad_Mapping.Views.Sections;
+namespace Gamepad_Mapping.Views.Sections.ControllerVisual;
 
 public partial class ControllerVisualView : UserControl
 {

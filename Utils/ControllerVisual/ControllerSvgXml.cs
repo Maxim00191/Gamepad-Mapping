@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 internal static class ControllerSvgXml
 {

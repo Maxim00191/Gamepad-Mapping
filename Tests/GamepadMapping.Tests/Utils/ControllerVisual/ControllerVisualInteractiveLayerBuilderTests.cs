@@ -4,10 +4,10 @@ using System.Windows.Controls;
 using ShapesPath = System.Windows.Shapes.Path;
 using System.Windows.Shapes;
 using System.Xml.Linq;
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models.ControllerVisual;
 
-namespace GamepadMapping.Tests.Utils.ControllerSvg;
+namespace GamepadMapping.Tests.Utils.ControllerVisual;
 
 public class ControllerVisualInteractiveLayerBuilderTests
 {

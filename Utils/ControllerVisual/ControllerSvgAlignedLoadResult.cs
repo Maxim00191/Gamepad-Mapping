@@ -1,7 +1,7 @@
 using System.Windows.Media;
 using System.Xml.Linq;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public sealed record ControllerSvgAlignedLoadResult(
     DrawingImage Image,

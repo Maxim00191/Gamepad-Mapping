@@ -1,4 +1,4 @@
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 using Xunit;
 
 namespace GamepadMapping.Tests.Utils;

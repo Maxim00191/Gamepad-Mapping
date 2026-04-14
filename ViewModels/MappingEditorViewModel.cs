@@ -27,6 +27,7 @@ using Gamepad_Mapping.ViewModels.Strategies;
 
 using Gamepad_Mapping.Services;
 using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.ViewModels.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 

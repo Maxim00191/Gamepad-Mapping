@@ -9,11 +9,11 @@ using CommunityToolkit.Mvvm.Input;
 using Gamepad_Mapping.Interfaces.Services;
 using Gamepad_Mapping.Models.Core.Visual;
 using Gamepad_Mapping.Services;
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.ControllerVisual;
 
-namespace Gamepad_Mapping.ViewModels;
+namespace Gamepad_Mapping.ViewModels.ControllerVisual;
 
 public partial class ControllerVisualViewModel : ObservableObject
 {

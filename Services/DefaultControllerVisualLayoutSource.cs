@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using Gamepad_Mapping.Interfaces.Services;
-using Gamepad_Mapping.Utils.ControllerSvg;
+using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models.ControllerVisual;
 using GamepadMapperGUI.Utils;
 

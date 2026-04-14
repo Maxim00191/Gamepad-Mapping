@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
 using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.ViewModels.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 

@@ -5,7 +5,7 @@ using System.Windows.Media;
 using System.Xml.Linq;
 using GamepadMapperGUI.Models.ControllerVisual;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public static class ControllerVisualOverlayLayerBuilder
 {

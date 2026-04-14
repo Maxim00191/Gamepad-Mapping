@@ -8,7 +8,7 @@ using SharpVectors.Converters;
 using SharpVectors.Renderers.Wpf;
 using GamepadMapperGUI.Utils;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public static class ControllerSvgDrawingImageLoader
 {

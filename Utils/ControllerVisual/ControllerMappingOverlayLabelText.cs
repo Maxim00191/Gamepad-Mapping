@@ -2,7 +2,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public static class ControllerMappingOverlayLabelText
 {

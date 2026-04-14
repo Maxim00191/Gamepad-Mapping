@@ -1,4 +1,4 @@
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public static class ControllerSvgConstants
 {

@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Media;
 using Gamepad_Mapping.Models.Core.Visual;
 
-namespace Gamepad_Mapping.Utils.ControllerSvg;
+namespace Gamepad_Mapping.Utils.ControllerVisual;
 
 public static class ControllerMappingOverlayLabelSizeEstimator
 {
