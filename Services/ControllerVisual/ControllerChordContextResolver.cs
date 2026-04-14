@@ -33,7 +33,7 @@ public sealed class ControllerChordContextResolver(IControllerVisualService visu
 
             foreach (var part in parts)
             {
-                var partId = _visualService.MapBindingToId(part, mapping.From.Type);
+                var partId = _visualService.MapChordSegmentToLogicalControlId(part);
                 if (partId is not null && !string.Equals(partId, selectedElementId, StringComparison.OrdinalIgnoreCase))
                     participants.Add(partId);
             }

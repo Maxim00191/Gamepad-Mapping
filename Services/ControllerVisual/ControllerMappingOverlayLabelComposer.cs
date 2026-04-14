@@ -210,7 +210,7 @@ public sealed class ControllerMappingOverlayLabelComposer(
         var labels = new List<string>(parts.Length);
         foreach (var p in parts)
         {
-            var id = _visual.MapBindingToId(p, mapping.From.Type);
+            var id = _visual.MapChordSegmentToLogicalControlId(p) ?? _visual.MapBindingToId(p, mapping.From.Type);
             var label = id is not null ? _visual.GetDisplayName(id) : p;
             labels.Add(ControllerMappingOverlayLabelText.NormalizeForOverlay(label));
         }

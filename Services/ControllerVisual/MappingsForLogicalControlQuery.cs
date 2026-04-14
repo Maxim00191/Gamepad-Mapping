@@ -19,22 +19,8 @@ public sealed class MappingsForLogicalControlQuery(IControllerVisualService visu
         return list;
     }
 
-    public bool MappingInvolvesLogicalControl(MappingEntry mapping, string elementId)
-    {
-        var binding = _visual.MapIdToBinding(elementId);
-        if (binding is null || mapping.From is null)
-            return false;
-
-        if (mapping.From.Type != binding.Type)
-            return false;
-
-        var value = mapping.From.Value ?? string.Empty;
-        if (value.IndexOf('+', StringComparison.Ordinal) < 0)
-            return string.Equals(value, binding.Value, StringComparison.OrdinalIgnoreCase);
-
-        var parts = value.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Any(p => string.Equals(p, binding.Value, StringComparison.OrdinalIgnoreCase));
-    }
+    public bool MappingInvolvesLogicalControl(MappingEntry mapping, string elementId) =>
+        _visual.IsMappingOnLogicalControl(mapping, elementId);
 
     public string? ResolvePrimaryLogicalControlIdForMapping(MappingEntry mapping)
     {
@@ -44,13 +30,20 @@ public sealed class MappingsForLogicalControlQuery(IControllerVisualService visu
         var type = mapping.From.Type;
         var value = mapping.From.Value;
         if (value.IndexOf('+', StringComparison.Ordinal) < 0)
-            return _visual.MapBindingToId(value, type);
+            return _visual.MapBindingToId(value, type) ?? _visual.MapChordSegmentToLogicalControlId(value);
 
         foreach (var p in value.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            var id = _visual.MapBindingToId(p, type);
+            var id = _visual.MapChordSegmentToLogicalControlId(p);
             if (id is not null)
                 return id;
+
+            if (type is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick)
+            {
+                id = _visual.MapBindingToId(p, type);
+                if (id is not null)
+                    return id;
+            }
         }
 
         return _visual.MapBindingToId(value, type);

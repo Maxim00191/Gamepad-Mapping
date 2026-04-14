@@ -18,7 +18,7 @@ public static class ControllerMappingFromDisplayFormatter
         var type = mapping.From.Type;
         if (raw.IndexOf('+', StringComparison.Ordinal) < 0)
         {
-            var id = visual.MapBindingToId(raw, type);
+            var id = visual.MapBindingToId(raw, type) ?? visual.MapChordSegmentToLogicalControlId(raw);
             var label = id is not null ? visual.GetDisplayName(id) : raw;
             return ControllerMappingOverlayLabelText.NormalizeForOverlay(label);
         }
@@ -27,7 +27,7 @@ public static class ControllerMappingFromDisplayFormatter
         var labels = new List<string>(parts.Length);
         foreach (var p in parts)
         {
-            var id = visual.MapBindingToId(p, type);
+            var id = visual.MapChordSegmentToLogicalControlId(p) ?? visual.MapBindingToId(p, type);
             var label = id is not null ? visual.GetDisplayName(id) : p;
             labels.Add(ControllerMappingOverlayLabelText.NormalizeForOverlay(label));
         }

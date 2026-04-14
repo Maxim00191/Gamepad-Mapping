@@ -9,6 +9,12 @@ public interface IControllerVisualService
     /// </summary>
     string? MapBindingToId(string value, GamepadBindingType type);
 
+    /// <summary>
+    /// Resolves one chord segment (e.g. <c>RightTrigger</c>, <c>B</c>) to a logical control id, independent of
+    /// the stored <see cref="GamepadBindingType"/> on the parent mapping (templates may store LT/RT chords as <see cref="GamepadBindingType.Button"/>).
+    /// </summary>
+    string? MapChordSegmentToLogicalControlId(string segment);
+
     IEnumerable<string> EnumerateMappedLogicalControlIds();
 
     /// <summary>
@@ -26,4 +32,10 @@ public interface IControllerVisualService
     /// Gets all mappings associated with a logical control id.
     /// </summary>
     IEnumerable<MappingEntry> GetMappingsForElement(string elementId, IEnumerable<MappingEntry> mappings);
+
+    /// <summary>
+    /// Whether <paramref name="mapping"/>'s input trigger is represented by <paramref name="elementId"/> on the diagram
+    /// (including thumbstick surfaces, which aggregate axis/direction tokens).
+    /// </summary>
+    bool IsMappingOnLogicalControl(MappingEntry mapping, string elementId);
 }

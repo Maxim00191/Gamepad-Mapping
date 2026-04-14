@@ -65,4 +65,18 @@ public class ControllerChordContextResolverTests
 
         Assert.Null(_resolver.FindChordMappingBetween("btn_X", "btn_X", new[] { chord }));
     }
+
+    [Fact]
+    public void GetChordParticipantElementIds_Includes_button_partner_when_chord_stores_RightTrigger_as_Button()
+    {
+        var chord = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RightTrigger + B" },
+            KeyboardKey = "Q"
+        };
+
+        var ids = _resolver.GetChordParticipantElementIds("trigger_R", new[] { chord });
+
+        Assert.Contains("btn_B", ids);
+    }
 }
