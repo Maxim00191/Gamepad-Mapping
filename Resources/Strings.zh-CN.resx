@@ -540,6 +540,9 @@
   <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
     <value>物理按键名称</value>
   </data>
+  <data name="ControllerOverlayLabelModeActionAndPhysical" xml:space="preserve">
+    <value>动作摘要与按键名称</value>
+  </data>
   <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
     <value>同一控件有多条映射时显示“+N”</value>
   </data>

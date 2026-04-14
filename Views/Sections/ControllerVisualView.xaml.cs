@@ -43,20 +43,17 @@ public partial class ControllerVisualView : UserControl
         var currentScale = MainScaleTransform.ScaleX;
         var newScale = currentScale * scaleFactor;
 
-        // Limit minimum zoom to prevent infinite zooming out
         const double minScale = 0.1;
         if (newScale < minScale)
         {
             newScale = minScale;
         }
 
-        // Re-calculate the actual scale factor used (in case it was clamped)
         var actualScaleFactor = newScale / currentScale;
 
         MainScaleTransform.ScaleX = newScale;
         MainScaleTransform.ScaleY = newScale;
 
-        // Adjust translation to keep the point under the mouse
         MainTranslateTransform.X = (MainTranslateTransform.X - pos.X) * actualScaleFactor + pos.X;
         MainTranslateTransform.Y = (MainTranslateTransform.Y - pos.Y) * actualScaleFactor + pos.Y;
 
@@ -191,19 +188,32 @@ public partial class ControllerVisualView : UserControl
         if (vm.Loader.TryLoad(layout, out var aligned))
         {
             ControllerSvgImage.Source = aligned.Image;
-            ControllerVisualSvgRoot.Width = aligned.Viewport.Width;
-            ControllerVisualSvgRoot.Height = aligned.Viewport.Height;
-            InteractionLayer.RenderTransform = aligned.InteractionLayerTransform;
-            InteractionLayer.RenderTransformOrigin = new Point(0, 0);
+            ApplyAlignedDiagramSurface(aligned.Viewport.Width, aligned.Viewport.Height, aligned.InteractionLayerTransform);
             PopulateInteractionLayer(aligned.SvgRoot, layout);
         }
         else
         {
             ControllerSvgImage.Source = ControllerSvgDrawingImageLoader.TryLoad(layout.SvgFileName);
+            ApplyAlignedDiagramSurface(300, 250, null);
             PopulateInteractionLayer(svgRoot: null, layout);
         }
 
         UpdateSelection(vm.SelectedElementName);
+    }
+
+    private void ApplyAlignedDiagramSurface(double width, double height, Transform? interactionTransform)
+    {
+        ControllerVisualSvgRoot.Width = width;
+        ControllerVisualSvgRoot.Height = height;
+        InteractionLayer.Width = width;
+        InteractionLayer.Height = height;
+        OverlayLayer.Width = width;
+        OverlayLayer.Height = height;
+
+        InteractionLayer.RenderTransform = interactionTransform;
+        InteractionLayer.RenderTransformOrigin = new Point(0, 0);
+        OverlayLayer.RenderTransform = interactionTransform;
+        OverlayLayer.RenderTransformOrigin = new Point(0, 0);
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -235,7 +245,6 @@ public partial class ControllerVisualView : UserControl
             ApplyControllerVisualLayout();
         else if (e.PropertyName == nameof(ControllerVisualViewModel.HighlightService))
         {
-            // Re-subscribe if highlight service changes
             UpdateSelection(vm.SelectedElementName);
         }
     }
@@ -302,8 +311,7 @@ public partial class ControllerVisualView : UserControl
         if (sender is FrameworkElement element && DataContext is ControllerVisualViewModel vm)
         {
             vm.SelectElementCommand.Execute(element.Tag as string);
-            
-            // On click, if there's no mapping, we might want to trigger the create command in the parent
+
             for (var cur = element as DependencyObject; cur != null; cur = VisualTreeHelper.GetParent(cur))
             {
                 if (cur is VisualEditorView ve && ve.DataContext is VisualEditorViewModel visualVm)

@@ -39,6 +39,8 @@ public partial class ControllerVisualViewModel : ObservableObject
 
     private Size? _overlayLayoutViewport;
 
+    private readonly IControllerVisualLayoutHelper _layoutHelper;
+
     public ControllerMappingOverlayPrimaryLabelMode OverlayPrimaryLabelMode { get; set; } =
         ControllerMappingOverlayPrimaryLabelMode.ActionSummary;
 
@@ -56,10 +58,12 @@ public partial class ControllerVisualViewModel : ObservableObject
         IControllerVisualService visualService,
         IControllerVisualLayoutSource layoutSource,
         IControllerVisualLoader loader,
-        IControllerVisualHighlightService highlightService)
+        IControllerVisualHighlightService highlightService,
+        IControllerVisualLayoutHelper? layoutHelper = null)
     {
         _visualService = visualService;
         _layoutSource = layoutSource;
+        _layoutHelper = layoutHelper ?? new ControllerVisualLayoutHelper();
         Loader = loader;
         HighlightService = highlightService;
         _activeLayout = layoutSource.GetActiveLayout();
@@ -78,29 +82,24 @@ public partial class ControllerVisualViewModel : ObservableObject
     {
         if (string.IsNullOrEmpty(elementId)) return;
         
-        var binding = _visualService.MapIdToBinding(elementId);
-        if (binding == null) return;
+        if (_visualService.MapIdToBinding(elementId) is null) return;
 
-        // Notify that we want to create a mapping for this binding
-        // This is handled by the MappingEditorViewModel which subscribes to changes
         SelectedElementName = elementId;
     }
 
     public void RequestCreateMapping()
     {
         if (string.IsNullOrEmpty(SelectedElementName)) return;
-        
-        var binding = _visualService.MapIdToBinding(SelectedElementName);
-        if (binding == null) return;
 
-        // This will be picked up by MappingEditorViewModel's property change listener
-        // which calls BeginCreateNewMapping
-        OnPropertyChanged(nameof(SelectedElementName)); 
+        if (_visualService.MapIdToBinding(SelectedElementName) is null) return;
+
+        OnPropertyChanged(nameof(SelectedElementName));
     }
 
     private void ApplySceneToOverlayItems(ControllerVisualSceneState scene)
     {
-        // Update existing OverlayItems based on the scene state
+        var isAnyHovered = scene.Elements.Any(e => e.Highlight == ControllerVisualHighlightKind.Hover);
+
         foreach (var elementState in scene.Elements)
         {
             var item = OverlayItems.FirstOrDefault(i => i.ElementId == elementState.ElementId);
@@ -110,11 +109,11 @@ public partial class ControllerVisualViewModel : ObservableObject
                 item.IsSelected = elementState.Highlight == ControllerVisualHighlightKind.Selected;
                 item.IsDimmed = elementState.IsDimmed;
                 item.IsChordPart = elementState.Highlight == ControllerVisualHighlightKind.ChordSecondary;
+
+                item.IsLeaderLineVisible = !isAnyHovered || item.IsHovered || item.IsSelected;
             }
         }
     }
-
-    private readonly IControllerVisualLayoutHelper _layoutHelper = new ControllerVisualLayoutHelper();
 
     public void ApplyOverlayAnchorPositions(IReadOnlyDictionary<string, Point> positions, Size? layoutViewport = null)
     {
@@ -143,19 +142,11 @@ public partial class ControllerVisualViewModel : ObservableObject
 
             item.X = p.X;
             item.Y = p.Y;
-
-            var layoutResult = _layoutHelper.CalculateLayout(item.ElementId, p, labelSize, viewport);
-
-            item.Quadrant = layoutResult.Quadrant;
-            item.LabelX = layoutResult.LabelBoxPosition.X - p.X;
-            item.LabelY = layoutResult.LabelBoxPosition.Y - p.Y;
-
-            item.LeaderLinePoints = layoutResult.LeaderLinePoints
-                .Select(q => new Point(q.X - p.X, q.Y - p.Y))
-                .ToArray();
+            item.EstimatedWidth = labelSize.Width;
+            item.EstimatedHeight = labelSize.Height;
         }
 
-        _layoutHelper.ResolveOverlaps(OverlayItems, viewport, labelSizes);
+        _layoutHelper.ArrangeOverlayItems(OverlayItems, labelSizes, viewport);
     }
 
     private static Rect BuildOverlayLayoutRect(Size? diagramSize, Size[] labelSizes)
@@ -170,12 +161,12 @@ public partial class ControllerVisualViewModel : ObservableObject
             h = ds.Height;
         }
 
-        var pad = 80d;
+        var pad = 96d;
         if (labelSizes.Length > 0)
         {
             var maxW = labelSizes.Max(z => z.Width);
             var maxH = labelSizes.Max(z => z.Height);
-            pad = Math.Max(pad, Math.Max(maxW, maxH) + 16d);
+            pad = Math.Max(pad, Math.Max(maxW, maxH) + 24d);
         }
 
         return new Rect(-pad, -pad, w + 2d * pad, h + 2d * pad);
@@ -193,20 +184,47 @@ public partial class ControllerVisualViewModel : ObservableObject
             var primaryMapping = elementMappings[0];
             var displayName = _visualService.GetDisplayName(elementId) ?? elementId;
             var actionSummary = primaryMapping.OutputSummaryForGrid ?? string.Empty;
-            var primaryText = OverlayPrimaryLabelMode == ControllerMappingOverlayPrimaryLabelMode.PhysicalControl
-                ? displayName
-                : actionSummary;
+            var normalizedDisplay = ControllerMappingOverlayLabelText.NormalizeForOverlay(displayName);
+            var normalizedSummary = ControllerMappingOverlayLabelText.NormalizeForOverlay(actionSummary);
 
-            string? secondary = null;
-            if (OverlayShowSecondary && elementMappings.Count > 1)
-                secondary = $"+{elementMappings.Count - 1}";
+            var extraMappingCount = OverlayShowSecondary && elementMappings.Count > 1 ? elementMappings.Count - 1 : 0;
+
+            string primaryText;
+            string? secondary;
+            var stackLabels = false;
+
+            if (OverlayPrimaryLabelMode == ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)
+            {
+                var actionLine = string.IsNullOrWhiteSpace(normalizedSummary) ? normalizedDisplay : normalizedSummary;
+                primaryText = actionLine;
+                if (string.Equals(actionLine, normalizedDisplay, StringComparison.Ordinal))
+                {
+                    secondary = extraMappingCount > 0 ? $"+{extraMappingCount}" : null;
+                }
+                else
+                {
+                    stackLabels = true;
+                    secondary = extraMappingCount > 0
+                        ? $"{normalizedDisplay} · +{extraMappingCount}"
+                        : normalizedDisplay;
+                }
+            }
+            else
+            {
+                primaryText = OverlayPrimaryLabelMode == ControllerMappingOverlayPrimaryLabelMode.PhysicalControl
+                    ? normalizedDisplay
+                    : (string.IsNullOrWhiteSpace(normalizedSummary) ? normalizedDisplay : normalizedSummary);
+                secondary = extraMappingCount > 0 ? $"+{extraMappingCount}" : null;
+            }
 
             var item = new ControllerMappingOverlayItem
             {
                 ElementId = elementId,
                 PrimaryLabel = primaryText,
                 SecondaryLabel = secondary,
-                OverlayToolTip = BuildOverlayToolTip(displayName, actionSummary, secondary),
+                StackPrimaryAndSecondary = stackLabels,
+                HasExtraMappings = extraMappingCount > 0,
+                OverlayToolTip = BuildOverlayToolTip(normalizedDisplay, normalizedSummary, secondary),
                 IsCombination = !string.IsNullOrEmpty(primaryMapping.From?.Value) && primaryMapping.From.Value.Contains('+')
             };
             items.Add(item);
@@ -219,13 +237,13 @@ public partial class ControllerVisualViewModel : ObservableObject
         UpdateVisualStates();
     }
 
-    private static string? BuildOverlayToolTip(string displayName, string actionSummary, string? secondary)
+    private static string? BuildOverlayToolTip(string normalizedDisplay, string normalizedSummary, string? secondary)
     {
         var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(displayName))
-            parts.Add(displayName);
-        if (!string.IsNullOrWhiteSpace(actionSummary) && !string.Equals(actionSummary, displayName, StringComparison.Ordinal))
-            parts.Add(actionSummary);
+        if (!string.IsNullOrWhiteSpace(normalizedDisplay))
+            parts.Add(normalizedDisplay);
+        if (!string.IsNullOrWhiteSpace(normalizedSummary) && !string.Equals(normalizedSummary, normalizedDisplay, StringComparison.Ordinal))
+            parts.Add(normalizedSummary);
         if (!string.IsNullOrWhiteSpace(secondary))
             parts.Add(secondary);
         return parts.Count > 0 ? string.Join(Environment.NewLine, parts) : null;

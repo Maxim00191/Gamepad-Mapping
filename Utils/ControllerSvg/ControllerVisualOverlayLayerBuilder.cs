@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
@@ -16,22 +17,30 @@ public static class ControllerVisualOverlayLayerBuilder
         var positions = new Dictionary<string, Point>(StringComparer.OrdinalIgnoreCase);
 
         ControllerSvgViewport.TryReadViewportFromSvgElement(svgRoot, out var viewport);
+        var spineX = viewport.Width > 0 ? viewport.Width * 0.5 : 0;
 
         foreach (var region in layout.Regions)
         {
             if (!idIndex.TryGetValue(region.SvgElementId, out var el)) continue;
 
-            if (TryGetElementCenter(el, viewport, out var center))
-                positions[region.LogicalId] = center;
+            if (!TryGetElementOverlayBounds(el, viewport, out var ob))
+                continue;
+
+            var midY = ob.Top + ob.Height * 0.5;
+            var cx = ob.Left + ob.Width * 0.5;
+            var isLeft = cx < spineX;
+            var exact = ControllerVisualOverlayGeometryEngine.GetExactPathAnchor(el, viewport, isLeft);
+            positions[region.LogicalId] = exact != default
+                ? exact
+                : (isLeft ? new Point(ob.Left, midY) : new Point(ob.Right, midY));
         }
 
         return positions;
     }
 
-    private static bool TryGetElementCenter(XElement el, ControllerSvgViewport viewport, out Point center)
+    private static bool TryGetElementOverlayBounds(XElement el, ControllerSvgViewport viewport, out Rect overlayBounds)
     {
-        center = new Point();
-
+        overlayBounds = default;
         var transform = ControllerSvgAccumulatedTransform.GetMatrix(el);
 
         var local = el.Name.LocalName;
@@ -42,10 +51,7 @@ public static class ControllerVisualOverlayLayerBuilder
             try
             {
                 var geometry = Geometry.Parse(d);
-                var bounds = geometry.Bounds;
-                var rawCenter = new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
-                var t = transform.Transform(rawCenter);
-                center = new Point(t.X - viewport.X, t.Y - viewport.Y);
+                overlayBounds = ControllerVisualOverlayGeometryEngine.TransformToViewport(transform, geometry.Bounds, viewport);
                 return true;
             }
             catch
@@ -61,9 +67,8 @@ public static class ControllerVisualOverlayLayerBuilder
                 double.TryParse(ControllerSvgXml.AttributeIgnoreCase(el, "width")?.Value, out var w) &&
                 double.TryParse(ControllerSvgXml.AttributeIgnoreCase(el, "height")?.Value, out var h))
             {
-                var rawCenter = new Point(x + w / 2, y + h / 2);
-                var t = transform.Transform(rawCenter);
-                center = new Point(t.X - viewport.X, t.Y - viewport.Y);
+                var localRect = new Rect(x, y, w, h);
+                overlayBounds = ControllerVisualOverlayGeometryEngine.TransformToViewport(transform, localRect, viewport);
                 return true;
             }
         }

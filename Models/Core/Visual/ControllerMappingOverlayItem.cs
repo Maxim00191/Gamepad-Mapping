@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Gamepad_Mapping.Models.Core.Visual;
@@ -19,6 +20,12 @@ public partial class ControllerMappingOverlayItem : ObservableObject
     private string? _secondaryLabel;
 
     [ObservableProperty]
+    private bool _stackPrimaryAndSecondary;
+
+    [ObservableProperty]
+    private bool _hasExtraMappings;
+
+    [ObservableProperty]
     private bool _isCombination;
 
     [ObservableProperty]
@@ -31,7 +38,7 @@ public partial class ControllerMappingOverlayItem : ObservableObject
     private bool _isDimmed;
 
     [ObservableProperty]
-    private Point[] _leaderLinePoints = Array.Empty<Point>();
+    private Geometry _leaderLineGeometry = Geometry.Empty;
 
     [ObservableProperty]
     private double _labelX;
@@ -46,6 +53,9 @@ public partial class ControllerMappingOverlayItem : ObservableObject
     private bool _isChordPart;
 
     [ObservableProperty]
+    private bool _isLeaderLineVisible = true;
+
+    [ObservableProperty]
     private string? _overlayToolTip;
 
     [ObservableProperty]
@@ -53,4 +63,16 @@ public partial class ControllerMappingOverlayItem : ObservableObject
 
     [ObservableProperty]
     private double _y;
+
+    [ObservableProperty]
+    private double _estimatedWidth;
+
+    [ObservableProperty]
+    private double _estimatedHeight;
+
+    [ObservableProperty]
+    private bool _isLeftColumn;
+
+    [ObservableProperty]
+    private int _leaderLaneIndex;
 }

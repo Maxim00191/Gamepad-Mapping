@@ -5,7 +5,7 @@
 Gamepad Mapping is a Windows WPF app that converts **XInput-compatible controller input** into **keyboard and mouse output** through editable profile templates.  
 It is designed for games that do not have good native controller support, with optional foreground-process targeting to avoid accidental input in other windows.
 
-## Latest release (v2.1.4)
+## Latest release
 
 - **Input stack options:** Choose how keyboard and mouse output is synthesized—classic Win32 **`SendInput`** or Windows **Input Injection** on supported builds—and tune how the app reads the controller.
 - **Analog and mouse feel:** Thumbstick **deadzone shape** (axial vs radial), **mouse-look** sensitivity and smoothing, and optional **human-like** mouse movement noise (configurable in settings).

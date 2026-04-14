@@ -14,14 +14,15 @@
              d:DataContext="{d:DesignInstance Type=viewmodels:ControllerVisualViewModel}">
     <UserControl.Resources>
         <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:DimmingConverter x:Key="DimmingConverter" />
         <converters:InverseUniformScaleConverter x:Key="InverseUniformScaleConverter" />
-        <converters:PointsToPathGeometryConverter x:Key="PointsToPathGeometryConverter" />
         <x:Static x:Key="OverlayPrimaryFontSize" Member="svgutils:ControllerMappingOverlayLabelMetrics.PrimaryFontSize" />
         <x:Static x:Key="OverlaySecondaryFontSize" Member="svgutils:ControllerMappingOverlayLabelMetrics.SecondaryFontSize" />
         <sys:Double x:Key="HoverHintPrimaryFontSize">13</sys:Double>
         <sys:Double x:Key="HoverHintSecondaryFontSize">11</sys:Double>
         <x:Static x:Key="OverlayLabelMaxWidth" Member="svgutils:ControllerMappingOverlayLabelMetrics.MaxTextBlockWidth" />
+        <x:Static x:Key="OverlayLabelMaxBoxWidth" Member="svgutils:ControllerMappingOverlayLabelMetrics.MaxLabelBoxWidth" />
         <x:Static x:Key="OverlayBorderPadding" Member="svgutils:ControllerMappingOverlayLabelMetrics.BorderPaddingThickness" />
         
         <Style x:Key="InteractivePathStyle" TargetType="Path">
@@ -79,74 +80,189 @@
                     <TranslateTransform x:Name="MainTranslateTransform" />
                 </TransformGroup>
             </Grid.RenderTransform>
-            <Grid x:Name="ControllerVisualSvgRoot" Width="300" Height="250">
-                <Image x:Name="ControllerSvgImage" Stretch="Uniform" />
+            <Grid x:Name="ControllerVisualSvgRoot" Width="300" Height="250" ClipToBounds="False">
+                <Image x:Name="ControllerSvgImage" Stretch="Uniform" Panel.ZIndex="0" />
 
-                <Canvas x:Name="InteractionLayer" Width="300" Height="250" Background="Transparent" />
+                <Canvas x:Name="InteractionLayer" Width="300" Height="250" Background="Transparent" Panel.ZIndex="1" />
 
-                <ItemsControl x:Name="OverlayLayer" ItemsSource="{Binding OverlayItems}" IsHitTestVisible="False">
+                <Grid x:Name="OverlayLayer" Width="300" Height="250" Panel.ZIndex="2" ClipToBounds="False">
                     <AutomationProperties.Name>Controller Mapping Overlay</AutomationProperties.Name>
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Canvas.Left" Value="{Binding X}" />
-                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid>
-                                <!-- Leader Line -->
-                                <Polyline Points="{Binding LeaderLinePoints, Converter={StaticResource PointsToPathGeometryConverter}}" 
-                                          Stroke="#44FFFFFF" StrokeThickness="1" StrokeDashArray="2,2" />
-
-                                <Grid RenderTransformOrigin="0.5,0.5">
+                    <ItemsControl ItemsSource="{Binding OverlayItems}" IsHitTestVisible="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas ClipToBounds="False" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
+                                    <Path Data="{Binding LeaderLineGeometry}"
+                                          StrokeThickness="1.2"
+                                          SnapsToDevicePixels="True"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Fill="{x:Null}"
+                                          Visibility="{Binding IsLeaderLineVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Path.Style>
+                                            <Style TargetType="Path">
+                                                <Setter Property="Stroke" Value="#66FFFFFF" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                                                        <Setter Property="Stroke" Value="#007ACC" />
+                                                        <Setter Property="StrokeThickness" Value="2.5" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Stroke" Value="#007ACC" />
+                                                        <Setter Property="StrokeThickness" Value="2" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
+                                    <Ellipse Width="3" Height="3" Fill="#44FFFFFF"
+                                             HorizontalAlignment="Left" VerticalAlignment="Top"
+                                             IsHitTestVisible="False"
+                                             Visibility="{Binding IsLeaderLineVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Ellipse.RenderTransform>
+                                            <TranslateTransform X="-1.5" Y="-1.5" />
+                                        </Ellipse.RenderTransform>
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                                                        <Setter Property="Fill" Value="#007ACC" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Fill" Value="#007ACC" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding OverlayItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas ClipToBounds="False" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" RenderTransformOrigin="0.5,0.5">
                                     <Grid.RenderTransform>
                                         <TranslateTransform X="{Binding LabelX}" Y="{Binding LabelY}" />
                                     </Grid.RenderTransform>
                                     <Button Background="Transparent" BorderThickness="0" Padding="0"
                                             Command="{Binding DataContext.SelectElementCommand, RelativeSource={RelativeSource AncestorType=local:ControllerVisualView}}"
-                                            CommandParameter="{Binding ElementId}">
+                                            CommandParameter="{Binding ElementId}"
+                                            IsHitTestVisible="True">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <ContentPresenter />
                                             </ControlTemplate>
                                         </Button.Template>
-                                        <Border Background="#EE1E1E1E" CornerRadius="3" Padding="{StaticResource OverlayBorderPadding}" BorderBrush="#3F3F46" BorderThickness="1"
+                                        <Border ClipToBounds="True"
+                                                CornerRadius="2" Padding="{StaticResource OverlayBorderPadding}"
+                                                BorderThickness="0,0,0,1"
+                                                Width="{Binding EstimatedWidth}" MaxWidth="{StaticResource OverlayLabelMaxBoxWidth}"
+                                                MinWidth="28"
+                                                Height="{Binding EstimatedHeight}"
                                                 Opacity="{Binding IsDimmed, Converter={StaticResource DimmingConverter}}"
                                                 AutomationProperties.Name="{Binding PrimaryLabel}"
                                                 ToolTip="{Binding OverlayToolTip}">
                                             <Border.Style>
                                                 <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#45282828" />
+                                                    <Setter Property="BorderBrush" Value="#55FFFFFF" />
                                                     <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasExtraMappings}" Value="True">
+                                                            <Setter Property="Background" Value="#402A3F5C" />
+                                                            <Setter Property="BorderBrush" Value="#664785C4" />
+                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter Property="BorderBrush" Value="#007ACC" />
-                                                            <Setter Property="BorderThickness" Value="2" />
+                                                            <Setter Property="BorderBrush" Value="#CC007ACC" />
+                                                            <Setter Property="BorderThickness" Value="0,0,0,2" />
                                                         </DataTrigger>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#FF2D2D30" />
+                                                            <Setter Property="Background" Value="#602D2D30" />
                                                         </Trigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <StackPanel Orientation="Horizontal">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Orientation" Value="Horizontal" />
+                                                        <Setter Property="HorizontalAlignment" Value="Left" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding StackPrimaryAndSecondary}" Value="True">
+                                                                <Setter Property="Orientation" Value="Vertical" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsLeftColumn}" Value="True">
+                                                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
                                                 <TextBlock Text="{Binding PrimaryLabel}" Foreground="White" FontSize="{StaticResource OverlayPrimaryFontSize}" FontWeight="Bold"
-                                                           MaxWidth="{StaticResource OverlayLabelMaxWidth}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                                                <TextBlock Text="{Binding SecondaryLabel}" Foreground="#007ACC" FontSize="{StaticResource OverlaySecondaryFontSize}" Margin="3,0,0,0" 
-                                                           MaxWidth="{StaticResource OverlayLabelMaxWidth}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                                                           Visibility="{Binding SecondaryLabel, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                           HorizontalAlignment="Stretch" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="TextAlignment" Value="Left" />
+                                                            <Setter Property="Margin" Value="0" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsLeftColumn}" Value="True">
+                                                                    <Setter Property="TextAlignment" Value="Right" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding SecondaryLabel}" FontSize="{StaticResource OverlaySecondaryFontSize}"
+                                                           HorizontalAlignment="Stretch" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                                           Visibility="{Binding SecondaryLabel, Converter={StaticResource NullToVisibilityConverter}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#007ACC" />
+                                                            <Setter Property="Margin" Value="3,0,0,0" />
+                                                            <Setter Property="TextAlignment" Value="Left" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding StackPrimaryAndSecondary}" Value="True">
+                                                                    <Setter Property="Foreground" Value="#B0B0B0" />
+                                                                    <Setter Property="Margin" Value="0,2,0,0" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsLeftColumn}" Value="True">
+                                                                    <Setter Property="TextAlignment" Value="Right" />
+                                                                    <Setter Property="Margin" Value="0,0,0,0" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </StackPanel>
                                         </Border>
                                     </Button>
                                 </Grid>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
             </Grid>
         </Grid>
         

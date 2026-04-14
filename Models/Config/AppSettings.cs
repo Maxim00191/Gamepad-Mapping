@@ -281,7 +281,7 @@ public class AppSettings
     public float HumanNoiseSmoothness { get; set; } = 0.3f;
 
     /// <summary>
-    /// Controller diagram overlay primary line: <c>actionSummary</c> (default) or <c>physicalControl</c> (localized control name).
+    /// Controller diagram overlay primary line: <c>actionSummary</c>, <c>physicalControl</c>, or <c>actionAndPhysical</c> (action plus control name).
     /// </summary>
     [JsonProperty("controllerMappingOverlayPrimaryLabel")]
     public string ControllerMappingOverlayPrimaryLabel { get; set; } = "actionSummary";

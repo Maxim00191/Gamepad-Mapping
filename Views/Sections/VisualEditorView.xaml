@@ -42,10 +42,11 @@
                                Text="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelSettingsHeader]}" />
                     <StackPanel Orientation="Horizontal">
                         <ComboBox MinHeight="28"
-                                  Width="200"
+                                  Width="240"
                                   SelectedIndex="{Binding DataContext.ControllerMappingOverlayPrimaryLabelModeIndex, RelativeSource={RelativeSource AncestorType=views:MainView}, Mode=TwoWay}">
                             <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModeActionSummary]}" />
                             <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModePhysicalControl]}" />
+                            <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModeActionAndPhysical]}" />
                         </ComboBox>
                         <CheckBox Margin="15,0,0,0"
                                   VerticalAlignment="Center"

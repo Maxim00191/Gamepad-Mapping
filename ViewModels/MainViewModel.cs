@@ -29,6 +29,7 @@ using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
 using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Models.Core.Visual;
 using Gamepad_Mapping.Services;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -67,6 +68,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerVisualLayoutSource _controllerVisualLayoutSource;
     private readonly IControllerVisualLoader _controllerVisualLoader;
     private readonly IControllerVisualHighlightService _controllerVisualHighlightService;
+    private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -77,6 +79,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public IControllerVisualLoader ControllerVisualLoader => _controllerVisualLoader;
     public IControllerVisualHighlightService ControllerVisualHighlightService => _controllerVisualHighlightService;
+
+    public IControllerVisualLayoutHelper ControllerVisualLayoutHelper => _controllerVisualLayoutHelper;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -106,6 +110,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IControllerVisualService? controllerVisualService = null,
         IControllerVisualLayoutSource? controllerVisualLayoutSource = null,
         IControllerVisualLoader? controllerVisualLoader = null,
+        IControllerVisualLayoutHelper? controllerVisualLayoutHelper = null,
         IRadialMenuHud? radialMenuHud = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
@@ -148,6 +153,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
         _controllerVisualLoader = controllerVisualLoader ?? new ControllerVisualLoader();
         _controllerVisualHighlightService = new ControllerVisualHighlightService(_controllerVisualService);
+        _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
 
         _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
 
@@ -402,7 +408,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int controllerMappingOverlayPrimaryLabelModeIndex;
     partial void OnControllerMappingOverlayPrimaryLabelModeIndexChanged(int value)
     {
-        var mode = (ControllerMappingOverlayPrimaryLabelMode)Math.Clamp(value, 0, 1);
+        var mode = (ControllerMappingOverlayPrimaryLabelMode)Math.Clamp(value, 0, 2);
         UpdateSetting(s => s.ControllerMappingOverlayPrimaryLabel = ControllerMappingOverlayLabelModeParser.ToSettingString(mode));
         RefreshControllerVisualOverlays();
     }
@@ -721,10 +727,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         HumanNoiseAmplitude = appSettings.HumanNoiseAmplitude;
         HumanNoiseFrequency = appSettings.HumanNoiseFrequency;
         HumanNoiseSmoothness = appSettings.HumanNoiseSmoothness;
-        ControllerMappingOverlayPrimaryLabelModeIndex =
-            ControllerMappingOverlayLabelModeParser.Parse(appSettings.ControllerMappingOverlayPrimaryLabel) == ControllerMappingOverlayPrimaryLabelMode.PhysicalControl
-                ? 1
-                : 0;
+        ControllerMappingOverlayPrimaryLabelModeIndex = ControllerMappingOverlayLabelModeParser.Parse(appSettings.ControllerMappingOverlayPrimaryLabel) switch
+        {
+            ControllerMappingOverlayPrimaryLabelMode.PhysicalControl => 1,
+            ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl => 2,
+            _ => 0
+        };
         ControllerMappingOverlayShowSecondary = appSettings.ControllerMappingOverlayShowSecondary;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
 

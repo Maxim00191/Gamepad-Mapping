@@ -10,12 +10,15 @@ public class ControllerMappingOverlayLabelModeParserTests
     [InlineData("actionSummary", ControllerMappingOverlayPrimaryLabelMode.ActionSummary)]
     [InlineData("physicalControl", ControllerMappingOverlayPrimaryLabelMode.PhysicalControl)]
     [InlineData("PHYSICALCONTROL", ControllerMappingOverlayPrimaryLabelMode.PhysicalControl)]
+    [InlineData("actionAndPhysical", ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
+    [InlineData("ACTIONANDPHYSICAL", ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
     public void Parse_maps_expected_mode(string? raw, ControllerMappingOverlayPrimaryLabelMode expected) =>
         Assert.Equal(expected, ControllerMappingOverlayLabelModeParser.Parse(raw));
 
     [Theory]
     [InlineData(ControllerMappingOverlayPrimaryLabelMode.ActionSummary, "actionSummary")]
     [InlineData(ControllerMappingOverlayPrimaryLabelMode.PhysicalControl, "physicalControl")]
+    [InlineData(ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl, "actionAndPhysical")]
     public void ToSettingString_round_trips(ControllerMappingOverlayPrimaryLabelMode mode, string s) =>
         Assert.Equal(s, ControllerMappingOverlayLabelModeParser.ToSettingString(mode));
 }

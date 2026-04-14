@@ -38,7 +38,12 @@ public partial class VisualEditorViewModel : ObservableObject
     {
         _mainViewModel = mainViewModel;
         _visualService = visualService;
-        ControllerVisual = new ControllerVisualViewModel(visualService, layoutSource, controllerVisualLoader, highlightService);
+        ControllerVisual = new ControllerVisualViewModel(
+            visualService,
+            layoutSource,
+            controllerVisualLoader,
+            highlightService,
+            mainViewModel.ControllerVisualLayoutHelper);
 
         _mainViewModel.MappingEditorPanel.PropertyChanged += OnMappingEditorPanelPropertyChanged;
 

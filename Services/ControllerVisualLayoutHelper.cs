@@ -5,88 +5,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using Gamepad_Mapping.Models.Core.Visual;
+using Gamepad_Mapping.Utils.ControllerSvg;
 
 namespace Gamepad_Mapping.Services;
 
 public class ControllerVisualLayoutHelper : IControllerVisualLayoutHelper
 {
-    private const double HorizontalOffset = 60;
-    private const double VerticalOffset = 40;
-    private const double Margin = 10;
+    private const double Margin = 12d;
+    private const double MinVerticalGap = 16d;
+    private const int MaxClampIterations = 48;
 
-    public ControllerLabelLayoutResult CalculateLayout(
-        string elementId,
-        Point anchor,
-        Size labelSize,
-        Rect viewport)
-    {
-        var centerX = viewport.X + viewport.Width / 2;
-        var centerY = viewport.Y + viewport.Height / 2;
+    private const double TagSafeGapFromBody = 50d;
 
-        var isLeft = anchor.X < centerX;
-        var isTop = anchor.Y < centerY;
+    private const double BandAnchorBlend = 0.62;
 
-        double labelX;
-        double labelY;
+    private const double LayoutEpsilon = 0.01;
 
-        if (isLeft)
-        {
-            labelX = Math.Max(viewport.Left + Margin, anchor.X - HorizontalOffset - labelSize.Width);
-        }
-        else
-        {
-            labelX = Math.Min(viewport.Right - labelSize.Width - Margin, anchor.X + HorizontalOffset);
-        }
+    private const int WingResolveIterations = 80;
 
-        if (isTop)
-        {
-            labelY = Math.Max(viewport.Top + Margin, anchor.Y - VerticalOffset - labelSize.Height);
-        }
-        else
-        {
-            labelY = Math.Min(viewport.Bottom - labelSize.Height - Margin, anchor.Y + VerticalOffset);
-        }
-
-        var labelPos = new Point(labelX, labelY);
-        var quadrant = isLeft
-            ? (isTop ? ControllerLabelQuadrant.TopLeft : ControllerLabelQuadrant.BottomLeft)
-            : (isTop ? ControllerLabelQuadrant.TopRight : ControllerLabelQuadrant.BottomRight);
-
-        Point connectionPoint;
-        Point elbowPoint;
-
-        switch (quadrant)
-        {
-            case ControllerLabelQuadrant.TopLeft:
-                connectionPoint = new Point(labelX + labelSize.Width, labelY + labelSize.Height);
-                elbowPoint = new Point(connectionPoint.X, anchor.Y);
-                break;
-            case ControllerLabelQuadrant.TopRight:
-                connectionPoint = new Point(labelX, labelY + labelSize.Height);
-                elbowPoint = new Point(connectionPoint.X, anchor.Y);
-                break;
-            case ControllerLabelQuadrant.BottomLeft:
-                connectionPoint = new Point(labelX + labelSize.Width, labelY);
-                elbowPoint = new Point(connectionPoint.X, anchor.Y);
-                break;
-            case ControllerLabelQuadrant.BottomRight:
-            default:
-                connectionPoint = new Point(labelX, labelY);
-                elbowPoint = new Point(connectionPoint.X, anchor.Y);
-                break;
-        }
-
-        return new ControllerLabelLayoutResult(
-            anchor,
-            labelPos,
-            new[] { anchor, elbowPoint, connectionPoint },
-            quadrant);
-    }
-
-    public void ResolveOverlaps(
+    public void ArrangeOverlayItems(
         IList<ControllerMappingOverlayItem> items,
-        Rect viewport,
-        IReadOnlyList<Size> labelSizes)
+        IReadOnlyList<Size> labelSizes,
+        Rect viewport)
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(labelSizes);
@@ -95,123 +35,215 @@ public class ControllerVisualLayoutHelper : IControllerVisualLayoutHelper
 
         if (items.Count == 0) return;
 
-        const int maxIterations = 64;
+        var spineX = viewport.X + viewport.Width * 0.5;
+        var centerY = viewport.Y + viewport.Height * 0.5;
+        var body = EstimateBodyBounds(viewport);
 
-        for (var iter = 0; iter < maxIterations; iter++)
+        var left = new List<int>();
+        var right = new List<int>();
+        for (var i = 0; i < items.Count; i++)
         {
-            var rects = new Rect[items.Count];
-            for (var i = 0; i < items.Count; i++)
-                rects[i] = GetAbsoluteLabelRect(items[i], labelSizes[i]);
+            if (items[i].X < spineX) left.Add(i);
+            else right.Add(i);
+        }
 
+        left.Sort(CompareForLayoutOrder(items));
+        right.Sort(CompareForLayoutOrder(items));
+
+        PlaceWing(items, labelSizes, viewport, centerY, body, left, isLeftWing: true);
+        PlaceWing(items, labelSizes, viewport, centerY, body, right, isLeftWing: false);
+
+        for (var iter = 0; iter < MaxClampIterations; iter++)
+        {
             var changed = false;
-
             for (var i = 0; i < items.Count; i++)
             {
-                for (var j = i + 1; j < items.Count; j++)
+                if (ClampToViewport(items[i], labelSizes[i], viewport, Margin))
                 {
-                    if (!IntersectsWithGap(rects[i], rects[j], Margin))
-                        continue;
-
-                    var moved = TrySeparateAlongShallowAxis(items[j], rects[i], rects[j], Margin);
-                    if (moved)
-                    {
-                        rects[j] = GetAbsoluteLabelRect(items[j], labelSizes[j]);
-                        UpdateLeaderLine(items[j], labelSizes[j]);
-                        changed = true;
-                    }
+                    UpdateLeaderLine(items[i], labelSizes[i], body.Left, body.Left + body.Width, items[i].LeaderLaneIndex);
+                    changed = true;
                 }
             }
 
-            if (VerticalPackLowerPriority(items, labelSizes, rects))
-                changed = true;
-
-            for (var i = 0; i < items.Count; i++)
-            {
-                if (!ClampToViewport(items[i], labelSizes[i], viewport, Margin))
-                    continue;
-
-                UpdateLeaderLine(items[i], labelSizes[i]);
-                changed = true;
-            }
-
-            if (!changed)
-                break;
+            if (!changed) break;
         }
     }
 
-    private static bool VerticalPackLowerPriority(
+    private static Comparison<int> CompareForLayoutOrder(IList<ControllerMappingOverlayItem> items) =>
+        (a, b) =>
+        {
+            var ba = ControllerOverlayLabelBandClassifier.GetBand(items[a].ElementId);
+            var bb = ControllerOverlayLabelBandClassifier.GetBand(items[b].ElementId);
+            var c = ba.CompareTo(bb);
+            if (c != 0) return c;
+            return items[a].Y.CompareTo(items[b].Y);
+        };
+
+    public ControllerLabelLayoutResult CalculateLayout(
+        string elementId,
+        Point anchor,
+        Size labelSize,
+        Rect viewport)
+    {
+        var item = new ControllerMappingOverlayItem
+        {
+            ElementId = elementId,
+            X = anchor.X,
+            Y = anchor.Y
+        };
+        var list = new List<ControllerMappingOverlayItem> { item };
+        var sizes = new[] { labelSize };
+        ArrangeOverlayItems(list, sizes, viewport);
+
+        var body = EstimateBodyBounds(viewport);
+        var labelPos = new Point(anchor.X + item.LabelX, anchor.Y + item.LabelY);
+        var labelWorld = new Rect(labelPos, labelSize);
+        var geom = ControllerMappingOverlayLeaderGeometry.BuildAnchorRelativeBezierLeader(
+            anchor, labelWorld, item.Quadrant, body.Left, body.Left + body.Width, item.LeaderLaneIndex);
+        return new ControllerLabelLayoutResult(anchor, labelPos, geom, item.Quadrant);
+    }
+
+    private static Rect EstimateBodyBounds(Rect viewport)
+    {
+        var spine = viewport.X + viewport.Width * 0.5;
+        var halfReach = Math.Min(spine - viewport.Left, viewport.Right - spine);
+        var bodyHalf = halfReach * 0.39;
+        return new Rect(spine - bodyHalf, viewport.Y, bodyHalf * 2, viewport.Height);
+    }
+
+    private static void PlaceWing(
         IList<ControllerMappingOverlayItem> items,
         IReadOnlyList<Size> labelSizes,
-        Rect[] rects)
+        Rect viewport,
+        double centerY,
+        Rect body,
+        List<int> indices,
+        bool isLeftWing)
     {
-        var order = Enumerable.Range(0, items.Count)
-            .OrderBy(i => rects[i].Top)
-            .ThenBy(i => rects[i].Left)
-            .ToArray();
+        if (indices.Count == 0) return;
 
-        var any = false;
-        for (var oi = 1; oi < order.Length; oi++)
+        var margin = Margin;
+        var availableHeight = Math.Max(0, viewport.Height - 2d * margin);
+        var n = indices.Count;
+        var heights = indices.Select(i => labelSizes[i].Height).ToArray();
+
+        var tops = new double[n];
+
+        for (var k = 0; k < n; k++)
         {
-            var j = order[oi];
-            var itemJ = items[j];
-            var rj = GetAbsoluteLabelRect(itemJ, labelSizes[j]);
+            var idx = indices[k];
+            var band = ControllerOverlayLabelBandClassifier.GetBand(items[idx].ElementId);
+            var targetCenter = ControllerOverlayLabelBandClassifier.GetBandTargetCenterY(band, viewport, margin);
+            var blendedCenter = items[idx].Y * (1d - BandAnchorBlend) + targetCenter * BandAnchorBlend;
+            tops[k] = blendedCenter - heights[k] * 0.5;
+        }
 
-            for (var ok = 0; ok < oi; ok++)
+        for (var iter = 0; iter < WingResolveIterations; iter++)
+        {
+            var changed = false;
+            for (var k = 1; k < n; k++)
             {
-                var i = order[ok];
-                var ri = rects[i];
-                if (!IntersectsWithGap(ri, rj, Margin))
-                    continue;
+                var prev = indices[k - 1];
+                var hPrev = labelSizes[prev].Height;
+                var minTop = tops[k - 1] + hPrev + MinVerticalGap;
+                if (tops[k] < minTop - LayoutEpsilon)
+                {
+                    tops[k] = minTop;
+                    changed = true;
+                }
+            }
 
-                var delta = ri.Bottom + Margin - rj.Top;
-                if (delta <= 0)
-                    continue;
+            var last = indices[n - 1];
+            var lastH = labelSizes[last].Height;
+            var bottomLimit = viewport.Bottom - margin;
+            if (tops[n - 1] + lastH > bottomLimit + LayoutEpsilon)
+            {
+                var shift = tops[n - 1] + lastH - bottomLimit;
+                for (var k = 0; k < n; k++)
+                    tops[k] -= shift;
+                changed = true;
+            }
 
-                itemJ.LabelY += delta;
-                UpdateLeaderLine(itemJ, labelSizes[j]);
-                rj = GetAbsoluteLabelRect(itemJ, labelSizes[j]);
-                rects[j] = rj;
-                any = true;
+            var topLimit = viewport.Top + margin;
+            if (tops[0] < topLimit - LayoutEpsilon)
+            {
+                var shift = topLimit - tops[0];
+                for (var k = 0; k < n; k++)
+                    tops[k] += shift;
+                changed = true;
+            }
+
+            if (!changed) break;
+        }
+
+        var span = tops[n - 1] + heights[n - 1] - tops[0];
+        var slack = availableHeight - span;
+        if (slack > 0.5 && n > 0)
+        {
+            var shift = slack * 0.5;
+            for (var k = 0; k < n; k++)
+                tops[k] += shift;
+
+            if (tops[n - 1] + heights[n - 1] > viewport.Bottom - margin)
+            {
+                var overflow = tops[n - 1] + heights[n - 1] - (viewport.Bottom - margin);
+                for (var k = 0; k < n; k++)
+                    tops[k] -= overflow;
+            }
+
+            if (tops[0] < viewport.Top + margin)
+            {
+                var under = viewport.Top + margin - tops[0];
+                for (var k = 0; k < n; k++)
+                    tops[k] += under;
             }
         }
 
-        return any;
+        var bodyLeft = body.Left;
+        var bodyRight = body.Left + body.Width;
+
+        var leftColumnRightEdge = body.Left - TagSafeGapFromBody;
+        var rightColumnLeftEdge = body.Right + TagSafeGapFromBody;
+
+        for (var k = 0; k < n; k++)
+        {
+            var i = indices[k];
+            var item = items[i];
+            var w = labelSizes[i].Width;
+
+            double labelAbsX;
+            if (isLeftWing)
+            {
+                labelAbsX = leftColumnRightEdge - w;
+                if (labelAbsX < viewport.Left + margin)
+                    labelAbsX = viewport.Left + margin;
+            }
+            else
+            {
+                labelAbsX = rightColumnLeftEdge;
+                if (labelAbsX + w > viewport.Right - margin)
+                    labelAbsX = viewport.Right - margin - w;
+            }
+
+            item.LabelX = labelAbsX - item.X;
+            item.LabelY = tops[k] - item.Y;
+            item.IsLeftColumn = isLeftWing;
+            item.LeaderLaneIndex = k;
+
+            item.Quadrant = isLeftWing
+                ? (item.Y < centerY ? ControllerLabelQuadrant.TopLeft : ControllerLabelQuadrant.BottomLeft)
+                : (item.Y < centerY ? ControllerLabelQuadrant.TopRight : ControllerLabelQuadrant.BottomRight);
+
+            UpdateLeaderLine(item, labelSizes[i], bodyLeft, bodyRight, k);
+        }
     }
 
-    private static Rect GetAbsoluteLabelRect(ControllerMappingOverlayItem item, Size labelSize) =>
-        new(item.X + item.LabelX, item.Y + item.LabelY, labelSize.Width, labelSize.Height);
-
-    private static bool IntersectsWithGap(Rect a, Rect b, double gap) =>
-        !(a.Right + gap <= b.Left || b.Right + gap <= a.Left || a.Bottom + gap <= b.Top || b.Bottom + gap <= a.Top);
-
-    private static bool TrySeparateAlongShallowAxis(
-        ControllerMappingOverlayItem move,
-        Rect fixedRect,
-        Rect movingRect,
-        double gap)
+    private static void UpdateLeaderLine(ControllerMappingOverlayItem item, Size labelSize, double bodyLeft, double bodyRight, int laneIndex)
     {
-        var overlapX = Math.Min(fixedRect.Right, movingRect.Right) - Math.Max(fixedRect.Left, movingRect.Left);
-        var overlapY = Math.Min(fixedRect.Bottom, movingRect.Bottom) - Math.Max(fixedRect.Top, movingRect.Top);
-        if (overlapX <= 0 || overlapY <= 0)
-            return false;
-
-        var sepX = overlapX + gap;
-        var sepY = overlapY + gap;
-
-        if (overlapX < overlapY)
-        {
-            var midA = fixedRect.Left + fixedRect.Width * 0.5;
-            var midB = movingRect.Left + movingRect.Width * 0.5;
-            move.LabelX += midB >= midA ? sepX : -sepX;
-        }
-        else
-        {
-            var midA = fixedRect.Top + fixedRect.Height * 0.5;
-            var midB = movingRect.Top + movingRect.Height * 0.5;
-            move.LabelY += midB >= midA ? sepY : -sepY;
-        }
-
-        return true;
+        var anchor = new Point(item.X, item.Y);
+        var labelWorld = new Rect(item.X + item.LabelX, item.Y + item.LabelY, labelSize.Width, labelSize.Height);
+        item.LeaderLineGeometry = ControllerMappingOverlayLeaderGeometry.BuildAnchorRelativeBezierLeader(
+            anchor, labelWorld, item.Quadrant, bodyLeft, bodyRight, laneIndex);
     }
 
     private static bool ClampToViewport(ControllerMappingOverlayItem item, Size labelSize, Rect viewport, double margin)
@@ -250,27 +282,5 @@ public class ControllerVisualLayoutHelper : IControllerVisualLayoutHelper
         }
 
         return changed;
-    }
-
-    private static void UpdateLeaderLine(ControllerMappingOverlayItem item, Size labelSize)
-    {
-        var anchor = new Point(item.X, item.Y);
-        var labelX = item.LabelX + item.X;
-        var labelY = item.LabelY + item.Y;
-
-        Point connectionPoint = item.Quadrant switch
-        {
-            ControllerLabelQuadrant.TopLeft => new Point(labelX + labelSize.Width, labelY + labelSize.Height),
-            ControllerLabelQuadrant.TopRight => new Point(labelX, labelY + labelSize.Height),
-            ControllerLabelQuadrant.BottomLeft => new Point(labelX + labelSize.Width, labelY),
-            ControllerLabelQuadrant.BottomRight => new Point(labelX, labelY),
-            _ => new Point(labelX, labelY)
-        };
-
-        var elbowPoint = new Point(connectionPoint.X, anchor.Y);
-        var world = new[] { anchor, elbowPoint, connectionPoint };
-        item.LeaderLinePoints = world
-            .Select(p => new Point(p.X - anchor.X, p.Y - anchor.Y))
-            .ToArray();
     }
 }

@@ -11,6 +11,9 @@ public class ControllerVisualLayoutHelperTests
     private readonly Size _labelSize = new(100, 30);
     private readonly Rect _viewport = new(0, 0, 800, 600);
 
+    private static bool IntersectsWithGap(Rect a, Rect b, double gap) =>
+        !(a.Right + gap <= b.Left || b.Right + gap <= a.Left || a.Bottom + gap <= b.Top || b.Bottom + gap <= a.Top);
+
     [Theory]
     [InlineData(100, 100, ControllerLabelQuadrant.TopLeft)]
     [InlineData(700, 100, ControllerLabelQuadrant.TopRight)]
@@ -24,51 +27,47 @@ public class ControllerVisualLayoutHelperTests
     }
 
     [Fact]
-    public void ResolveOverlaps_AdjustsOverlappingLabels()
+    public void ArrangeOverlayItems_SeparatesSameWingLabelsVertically()
     {
-        // Two labels in the same quadrant (TopLeft) that overlap vertically
+        var a1 = new Point(100, 100);
+        var a2 = new Point(100, 110);
         var item1 = new ControllerMappingOverlayItem
         {
             ElementId = "1",
-            X = 100, Y = 100,
-            LabelX = -160, LabelY = -70, // Result of CalculateLayout for (100,100)
-            Quadrant = ControllerLabelQuadrant.TopLeft
+            X = a1.X,
+            Y = a1.Y
         };
-        
         var item2 = new ControllerMappingOverlayItem
         {
             ElementId = "2",
-            X = 100, Y = 110, // Close to item1
-            LabelX = -160, LabelY = -60, // Overlaps with item1
-            Quadrant = ControllerLabelQuadrant.TopLeft
+            X = a2.X,
+            Y = a2.Y
         };
 
         var items = new List<ControllerMappingOverlayItem> { item1, item2 };
         var sizes = new[] { _labelSize, _labelSize };
-        _helper.ResolveOverlaps(items, _viewport, sizes);
+        _helper.ArrangeOverlayItems(items, sizes, _viewport);
 
-        // item2 should have been pushed down
-        Assert.True(item2.LabelY + item2.Y >= item1.LabelY + item1.Y + _labelSize.Height + 10);
+        var ra = new Rect(item1.X + item1.LabelX, item1.Y + item1.LabelY, _labelSize.Width, _labelSize.Height);
+        var rb = new Rect(item2.X + item2.LabelX, item2.Y + item2.LabelY, _labelSize.Width, _labelSize.Height);
+        Assert.False(IntersectsWithGap(ra, rb, 10));
     }
 
     [Fact]
-    public void ResolveOverlaps_KeepsLabelsInViewport()
+    public void ArrangeOverlayItems_KeepsLabelsInViewport()
     {
-        // Label pushed near the bottom edge
         var item = new ControllerMappingOverlayItem
         {
             ElementId = "1",
-            X = 700, Y = 560,
-            LabelX = 60, LabelY = 40, // Abs Y = 600
-            Quadrant = ControllerLabelQuadrant.BottomRight
+            X = 700,
+            Y = 560
         };
 
         var items = new List<ControllerMappingOverlayItem> { item };
-        _helper.ResolveOverlaps(items, _viewport, [_labelSize]);
+        _helper.ArrangeOverlayItems(items, [_labelSize], _viewport);
 
         double absY = item.LabelY + item.Y;
-        // Viewport bottom is 600, margin is 10, label height is 30
-        // Max absY should be 600 - 10 - 30 = 560
-        Assert.True(absY <= _viewport.Bottom - 10 - _labelSize.Height + 0.001);
+        const double margin = 12d;
+        Assert.True(absY <= _viewport.Bottom - margin - _labelSize.Height + 0.001);
     }
 }

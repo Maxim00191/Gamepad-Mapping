@@ -69,7 +69,8 @@ public partial class MappingEditorViewModel : ObservableObject
             _mainViewModel.ControllerVisualService,
             _mainViewModel.ControllerVisualLayoutSource,
             _mainViewModel.ControllerVisualLoader,
-            _mainViewModel.ControllerVisualHighlightService);
+            _mainViewModel.ControllerVisualHighlightService,
+            _mainViewModel.ControllerVisualLayoutHelper);
 
         ControllerVisual.PropertyChanged += (s, e) =>
         {

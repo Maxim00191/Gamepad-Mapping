@@ -540,6 +540,9 @@
   <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
     <value>Physical control name</value>
   </data>
+  <data name="ControllerOverlayLabelModeActionAndPhysical" xml:space="preserve">
+    <value>Action summary and control name</value>
+  </data>
   <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
     <value>Show “+N” when a control has multiple mappings</value>
   </data>

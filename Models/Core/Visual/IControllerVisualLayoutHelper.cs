@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Gamepad_Mapping.Models.Core.Visual;
 
@@ -21,7 +22,7 @@ public enum ControllerLabelQuadrant
 public record ControllerLabelLayoutResult(
     Point Anchor,
     Point LabelBoxPosition,
-    Point[] LeaderLinePoints,
+    Geometry LeaderLineGeometry,
     ControllerLabelQuadrant Quadrant
 );
 
@@ -30,14 +31,14 @@ public record ControllerLabelLayoutResult(
 /// </summary>
 public interface IControllerVisualLayoutHelper
 {
+    void ArrangeOverlayItems(
+        IList<ControllerMappingOverlayItem> items,
+        IReadOnlyList<Size> labelSizes,
+        Rect viewport);
+
     ControllerLabelLayoutResult CalculateLayout(
         string elementId,
         Point anchor,
         Size labelSize,
         Rect viewport);
-
-    void ResolveOverlaps(
-        IList<ControllerMappingOverlayItem> items,
-        Rect viewport,
-        IReadOnlyList<Size> labelSizes);
 }
