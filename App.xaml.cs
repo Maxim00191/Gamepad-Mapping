@@ -44,58 +44,68 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        Logger.Info("Application starting...");
-#if DEBUG
+
         try
         {
-            var debugPath = Path.Combine(AppPaths.ResolveContentRoot(), "__DEBUG_APPPATHS_ROOT.txt");
-            File.WriteAllText(debugPath, $"Content root: {AppPaths.ResolveContentRoot()}\nBase Directory: {AppContext.BaseDirectory}\nProcess Path: {Environment.ProcessPath}\nCurrent Directory: {Directory.GetCurrentDirectory()}");
-            Logger.Info($"Wrote debug app paths to {debugPath}");
+            Logger.Info("Application starting...");
+#if DEBUG
+            try
+            {
+                var debugPath = Path.Combine(AppPaths.ResolveContentRoot(), "__DEBUG_APPPATHS_ROOT.txt");
+                File.WriteAllText(debugPath, $"Content root: {AppPaths.ResolveContentRoot()}\nBase Directory: {AppContext.BaseDirectory}\nProcess Path: {Environment.ProcessPath}\nCurrent Directory: {Directory.GetCurrentDirectory()}");
+                Logger.Info($"Wrote debug app paths to {debugPath}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to write debug app paths: {ex.Message}");
+            }
+#endif
+            LaunchUpdateSuccessArgs = ParseUpdateSuccessArgs(e.Args);
+            ApplyLanguage();
+            ApplySystemTheme();
+            SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+            CheckStartupElevationCompatibility();
+
+            var gitHubContentService = new GitHubContentService();
+            var localFileService = new LocalFileService();
+            var updateInstallerService = new UpdateInstallerService();
+            var settingsService = new SettingsService();
+            var appSettings = settingsService.LoadSettingsInternal();
+            var profileService = new ProfileService(settingsService: settingsService, appSettings: appSettings);
+            var updateVersionCacheService = new UpdateVersionCacheService();
+            var trustedUtcTimeService = new TrustedUtcTimeService();
+            var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
+            var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
+            var appToastService = new AppToastService();
+            ToastService = appToastService;
+            var xinputService = new XInputService();
+            var gamepadSource = new XInputSource(xinputService);
+            var mainViewModel = new MainViewModel(
+                profileService: profileService,
+                gitHubContentService: gitHubContentService,
+                communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService),
+                updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
+                localFileService: localFileService,
+                updateInstallerService: updateInstallerService,
+                updateQuotaService: updateQuotaService,
+                settingsService: settingsService,
+                trustedUtcTimeService: trustedUtcTimeService,
+                updateVersionCacheService: updateVersionCacheService,
+                updateQuotaPolicyProvider: updateQuotaPolicyProvider,
+                appToastService: appToastService,
+                xinput: xinputService,
+                gamepadSource: gamepadSource);
+
+            var mainWindow = new MainWindow(mainViewModel);
+            MainWindow = mainWindow;
+            mainWindow.Show();
         }
         catch (Exception ex)
         {
-            Logger.Error($"Failed to write debug app paths: {ex.Message}");
+            Logger.Error("Critical failure during application startup", ex);
+            StartupDiagnostics.ShowFatalErrorDialog(ex);
+            Shutdown(1);
         }
-#endif
-        LaunchUpdateSuccessArgs = ParseUpdateSuccessArgs(e.Args);
-        ApplyLanguage();
-        ApplySystemTheme();
-        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
-        CheckStartupElevationCompatibility();
-
-        var gitHubContentService = new GitHubContentService();
-        var localFileService = new LocalFileService();
-        var updateInstallerService = new UpdateInstallerService();
-        var settingsService = new SettingsService();
-        var appSettings = settingsService.LoadSettingsInternal();
-        var profileService = new ProfileService(settingsService: settingsService, appSettings: appSettings);
-        var updateVersionCacheService = new UpdateVersionCacheService();
-        var trustedUtcTimeService = new TrustedUtcTimeService();
-        var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
-        var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
-        var appToastService = new AppToastService();
-        ToastService = appToastService;
-        var xinputService = new XInputService();
-        var gamepadSource = new XInputSource(xinputService);
-        var mainViewModel = new MainViewModel(
-            profileService: profileService,
-            gitHubContentService: gitHubContentService,
-            communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService),
-            updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
-            localFileService: localFileService,
-            updateInstallerService: updateInstallerService,
-            updateQuotaService: updateQuotaService,
-            settingsService: settingsService,
-            trustedUtcTimeService: trustedUtcTimeService,
-            updateVersionCacheService: updateVersionCacheService,
-            updateQuotaPolicyProvider: updateQuotaPolicyProvider,
-            appToastService: appToastService,
-            xinput: xinputService,
-            gamepadSource: gamepadSource);
-
-        var mainWindow = new MainWindow(mainViewModel);
-        MainWindow = mainWindow;
-        mainWindow.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)

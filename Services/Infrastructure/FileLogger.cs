@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text;
+using System.Diagnostics;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -35,15 +37,27 @@ public class FileLogger : ILogger
             logEntry += Environment.NewLine + exception.ToString();
         }
 
+        var fullEntry = logEntry + Environment.NewLine;
+
         lock (_lock)
         {
             try
             {
-                File.AppendAllText(_logFilePath, logEntry + Environment.NewLine);
+                File.AppendAllText(_logFilePath, fullEntry, Encoding.UTF8);
             }
             catch
             {
-                // Fail silently to avoid crashing the app due to logging issues
+                // Fallback: try to write to a temporary file if the primary path is blocked
+                try
+                {
+                    var tempPath = Path.Combine(Path.GetTempPath(), $"gamepad_mapping_emergency_{DateTime.Now:yyyyMMdd}.log");
+                    File.AppendAllText(tempPath, $"[EMERGENCY FALLBACK] {fullEntry}", Encoding.UTF8);
+                }
+                catch
+                {
+                    // Last resort: Debug output only
+                    Debug.WriteLine($"LOG FAILURE: {fullEntry}");
+                }
             }
         }
     }

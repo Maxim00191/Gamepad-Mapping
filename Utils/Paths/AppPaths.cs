@@ -107,13 +107,35 @@ public static class AppPaths
 
     public static string GetLogsDirectory()
     {
-        var root = ResolveContentRoot();
-        var logsDir = Path.Combine(root, "Logs");
-        if (!Directory.Exists(logsDir))
+        try
         {
-            Directory.CreateDirectory(logsDir);
+            var root = ResolveContentRoot();
+            var logsDir = Path.Combine(root, "Logs");
+            if (!Directory.Exists(logsDir))
+            {
+                Directory.CreateDirectory(logsDir);
+            }
+            return logsDir;
         }
-        return logsDir;
+        catch
+        {
+            // Fallback to LocalAppData if content root is read-only or resolution fails
+            try
+            {
+                var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var fallbackDir = Path.Combine(localAppData, "GamepadMapping", "Logs");
+                if (!Directory.Exists(fallbackDir))
+                {
+                    Directory.CreateDirectory(fallbackDir);
+                }
+                return fallbackDir;
+            }
+            catch
+            {
+                // Last resort: Temp path
+                return Path.GetTempPath();
+            }
+        }
     }
 
     public static string GetUpdateDownloadsDirectory()
