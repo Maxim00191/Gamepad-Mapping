@@ -10,6 +10,7 @@ public partial class MainWindow : Window
 
     public MainWindow(MainViewModel viewModel)
     {
+        _viewModel = viewModel;
         InitializeComponent();
         // Force standard resizable window chrome at runtime in case any
         // theme/style initialization overrides XAML window settings.
@@ -17,7 +18,6 @@ public partial class MainWindow : Window
         ResizeMode = ResizeMode.CanResize;
         SizeToContent = SizeToContent.Manual;
         WindowState = WindowState.Normal;
-        _viewModel = viewModel;
         DataContext = _viewModel;
         Title = $"Gamepad Mapping v{GetDisplayVersion()} - Maxim";
     }

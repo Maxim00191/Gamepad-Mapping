@@ -59,7 +59,10 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel = mainViewModel;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
+
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
+        if (Application.Current?.Resources["Loc"] is TranslationService translationService)
+            translationService.PropertyChanged += TranslationServiceOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
         _mainViewModel.KeyboardActions.CollectionChanged += (_, _) =>
@@ -140,8 +143,9 @@ public partial class MappingEditorViewModel : ObservableObject
         HasUnusedActionIds = unused.Count > 0;
         if (HasUnusedActionIds)
         {
-            UnusedActionIdsHint = $"Notice: {unused.Count} actionId(s) in catalog are not used in any mapping or radial menu.";
-            UnusedActionIdsTooltip = string.Join(Environment.NewLine, 
+            UnusedActionIdsHint = string.Format(CultureInfo.CurrentUICulture,
+                Loc("ProfileMappingUnusedCatalogActionIdsHint"), unused.Count);
+            UnusedActionIdsTooltip = string.Join(Environment.NewLine,
                 unused.Select(a => $"{a.Id}: {a.Description}"));
         }
         else
@@ -207,7 +211,10 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private bool isCreatingNewMapping;
 
-    partial void OnIsCreatingNewMappingChanged(bool value) => _mainViewModel.RefreshRightPanelSurface();
+    partial void OnIsCreatingNewMappingChanged(bool value)
+    {
+        _mainViewModel.RefreshRightPanelSurface();
+    }
 
     public bool EditKeyboardAndHoldSectionsEnabled => SelectedActionType == MappingActionType.Keyboard;
 
@@ -589,6 +596,12 @@ public partial class MappingEditorViewModel : ObservableObject
     {
         if (e.PropertyName == nameof(IKeyboardCaptureService.KeyboardKeyCapturePrompt))
             OnPropertyChanged(nameof(KeyboardKeyCapturePrompt));
+    }
+
+    private void TranslationServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TranslationService.Culture))
+            UpdateUnusedActionIds();
     }
 
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)

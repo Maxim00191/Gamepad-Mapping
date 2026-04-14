@@ -87,6 +87,9 @@
   <data name="CreateBinding" xml:space="preserve">
     <value>创建映射</value>
   </data>
+  <data name="ControllerVisualClickToMapHint" xml:space="preserve">
+    <value> - 点击以映射</value>
+  </data>
   <data name="LiveGamepadMonitor" xml:space="preserve">
     <value>手柄实时监视器</value>
   </data>
@@ -98,6 +101,15 @@
   </data>
   <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
     <value>显示或隐藏实时监视器窗口。拖动窗口边缘调整宽度；宽度保存在应用设置中。</value>
+  </data>
+  <data name="WorkspaceHeaderCollapseTooltip" xml:space="preserve">
+    <value>隐藏档案与模板工具栏，为映射与编辑区腾出更多垂直空间。此选项会保存在应用设置中。</value>
+  </data>
+  <data name="WorkspaceHeaderExpandTooltip" xml:space="preserve">
+    <value>重新显示档案与模板工具栏。</value>
+  </data>
+  <data name="WorkspaceHeaderExpandLabel" xml:space="preserve">
+    <value>显示档案工具栏</value>
   </data>
   <data name="GamepadMonitorReaderOn" xml:space="preserve">
     <value>读取中</value>
@@ -513,6 +525,48 @@
   <data name="ProfileEditorPlaceholder" xml:space="preserve">
     <value>在左侧列表中选择一行，或添加新行，即可在此编辑详情。</value>
   </data>
+  <data name="VisualEditorNoMappingHint" xml:space="preserve">
+    <value>该按键尚未配置映射。添加映射后即可在配置文件中使用。</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsHeader" xml:space="preserve">
+    <value>所选控件的映射</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsSelectHint" xml:space="preserve">
+    <value>在示意图上点击一个按键，可列出所有使用该键的映射（含组合键）。</value>
+  </data>
+  <data name="VisualEditorAddMappingForControl" xml:space="preserve">
+    <value>为此控件再添加一条映射</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsMappingCountZero" xml:space="preserve">
+    <value>无映射</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsMappingCountOne" xml:space="preserve">
+    <value>1 条映射</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsMappingCountMany" xml:space="preserve">
+    <value>{0} 条映射</value>
+  </data>
+  <data name="VisualEditorDeselectController" xml:space="preserve">
+    <value>取消选择</value>
+  </data>
+  <data name="ControllerOverlayLabelSettingsHeader" xml:space="preserve">
+    <value>示意图标签</value>
+  </data>
+  <data name="ControllerOverlayPrimaryLineLabel" xml:space="preserve">
+    <value>已映射控件上的主行文字</value>
+  </data>
+  <data name="ControllerOverlayLabelModeActionSummary" xml:space="preserve">
+    <value>映射简介</value>
+  </data>
+  <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
+    <value>手柄按键名称</value>
+  </data>
+  <data name="ControllerOverlayLabelModeActionAndPhysical" xml:space="preserve">
+    <value>映射简介与手柄按键名称</value>
+  </data>
+  <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
+    <value>同一控件有多条映射时显示“+N”</value>
+  </data>
   <data name="ProfileEditorKeyboardActionTitle" xml:space="preserve">
     <value>键盘动作详情</value>
   </data>
@@ -829,5 +883,23 @@
   </data>
   <data name="WelcomeToastMessage" xml:space="preserve">
     <value>感谢使用。选择一个模板，映射按键后即可开始游戏。需要时可在「设置」中更改语言、检查更新等。</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsHint" xml:space="preserve">
+    <value>提示：键盘目录中有 {0} 个操作 ID 未在任何映射或径向菜单中使用。</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>目录中未使用的操作 ID</value>
+  </data>
+  <data name="ProfileMappingValidationErrorsShort" xml:space="preserve">
+    <value>验证错误</value>
+  </data>
+  <data name="ProfileMappingValidationWarningsShort" xml:space="preserve">
+    <value>验证警告</value>
+  </data>
+  <data name="ProfileMappingValidationErrorsTooltipTitle" xml:space="preserve">
+    <value>配置文件验证错误</value>
+  </data>
+  <data name="ProfileMappingValidationWarningsTooltipTitle" xml:space="preserve">
+    <value>配置文件验证警告</value>
   </data>
 </root>

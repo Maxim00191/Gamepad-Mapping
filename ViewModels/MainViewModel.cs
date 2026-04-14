@@ -28,6 +28,9 @@ using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
+using Gamepad_Mapping.Models.Core.Visual;
+using Gamepad_Mapping.Services.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -50,6 +53,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IRadialMenuHud _radialMenuHud;
     private readonly Debouncer _processNameDebouncer;
     private bool _suppressGamepadMonitorSettingsPersistence;
+    private bool _suppressWorkspaceHeaderSettingsPersistence;
 
     private readonly ICommunityTemplateService _communityService;
     private readonly IUpdateService _updateService;
@@ -60,9 +64,31 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly AppToastViewModel _toastHost;
     private readonly IKeyboardEmulator? _keyboardEmulatorOverride;
     private readonly IMouseEmulator? _mouseEmulatorOverride;
+    private readonly IControllerVisualService _controllerVisualService;
+    private readonly IControllerVisualLayoutSource _controllerVisualLayoutSource;
+    private readonly IControllerVisualLoader _controllerVisualLoader;
+    private readonly IControllerChordContextResolver _controllerChordContextResolver;
+    private readonly IControllerVisualHighlightService _controllerVisualHighlightService;
+    private readonly IControllerMappingOverlayLabelComposer _controllerMappingOverlayLabelComposer;
+    private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
+    private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
+
+    public IControllerVisualService ControllerVisualService => _controllerVisualService;
+
+    public IControllerVisualLayoutSource ControllerVisualLayoutSource => _controllerVisualLayoutSource;
+
+    public IControllerVisualLoader ControllerVisualLoader => _controllerVisualLoader;
+    public IControllerVisualHighlightService ControllerVisualHighlightService => _controllerVisualHighlightService;
+
+    public IControllerMappingOverlayLabelComposer ControllerMappingOverlayLabelComposer =>
+        _controllerMappingOverlayLabelComposer;
+
+    public IControllerVisualLayoutHelper ControllerVisualLayoutHelper => _controllerVisualLayoutHelper;
+
+    public IMappingsForLogicalControlQuery MappingsForLogicalControlQuery => _mappingsForLogicalControlQuery;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -89,6 +115,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IXInput? xinput = null,
         IGamepadSource? gamepadSource = null,
         IInputEmulationStackFactory? inputEmulationStackFactory = null,
+        IControllerVisualService? controllerVisualService = null,
+        IControllerVisualLayoutSource? controllerVisualLayoutSource = null,
+        IControllerVisualLoader? controllerVisualLoader = null,
+        IControllerVisualLayoutHelper? controllerVisualLayoutHelper = null,
         IRadialMenuHud? radialMenuHud = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
@@ -126,7 +156,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
         _appToastService = appToastService ?? new AppToastService();
         _toastHost = new AppToastViewModel(_appToastService);
-        
+
+        _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
+        _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
+        _controllerVisualLoader = controllerVisualLoader ?? new ControllerVisualLoader();
+        _controllerChordContextResolver = new ControllerChordContextResolver(_controllerVisualService);
+        _controllerVisualHighlightService = new ControllerVisualHighlightService(
+            _controllerVisualService,
+            _controllerChordContextResolver);
+        _controllerMappingOverlayLabelComposer = new ControllerMappingOverlayLabelComposer(
+            _controllerVisualService,
+            _controllerChordContextResolver);
+        _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
+        _mappingsForLogicalControlQuery = new MappingsForLogicalControlQuery(_controllerVisualService);
+
         _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
 
         UpdatePanel = new UpdateViewModel(
@@ -171,6 +214,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             reader is GamepadReader gr2 ? gr2.RightThumbstickDeadzone : 0);
 
         InitializeUiSettings(appSettings);
+        ApplyWorkspaceHeaderInitialState(appSettings);
 
         InitializeChildViewModels(initialLeftDeadzone, initialRightDeadzone, appSettings);
 
@@ -203,12 +247,30 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public bool IsGamepadRunning => _gamepadService.IsRunning;
 
+    public enum MainProfileWorkspaceTab
+    {
+        VisualEditor = 0,
+        Mappings = 1,
+        KeyboardActions = 2,
+        RadialMenus = 3
+    }
+
     [ObservableProperty]
-    private int profileListTabIndex;
+    private int _profileListTabIndex;
+
+    [ObservableProperty]
+    private bool _isVisualMode;
+
+    partial void OnProfileListTabIndexChanged(int value)
+    {
+        IsVisualMode = value == (int)MainProfileWorkspaceTab.VisualEditor;
+        RefreshRightPanelSurface();
+    }
 
     [ObservableProperty]
     private ProfileRightPanelSurface rightPanelSurface;
 
+    public VisualEditorViewModel VisualEditorPanel { get; private set; } = null!;
     public ProfileTemplatePanelViewModel ProfileTemplatePanel { get; private set; } = null!;
     public NewBindingPanelViewModel NewBindingPanel { get; private set; } = null!;
     public MappingEditorViewModel MappingEditorPanel { get; private set; } = null!;
@@ -216,6 +278,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public CommunityCatalogViewModel CommunityCatalogPanel { get; private set; } = null!;
     public GamepadMonitorViewModel GamepadMonitorPanel { get; private set; } = null!;
     public ProcessTargetPanelViewModel ProcessTargetPanel { get; private set; } = null!;
+
+    [ObservableProperty]
+    private bool isWorkspaceHeaderExpanded = true;
+
+    partial void OnIsWorkspaceHeaderExpandedChanged(bool value)
+    {
+        if (_suppressWorkspaceHeaderSettingsPersistence) return;
+        UpdateSetting(s => s.WorkspaceHeaderExpanded = value);
+    }
+
+    [RelayCommand]
+    private void CollapseWorkspaceHeader() => IsWorkspaceHeaderExpanded = false;
+
+    [RelayCommand]
+    private void ExpandWorkspaceHeader() => IsWorkspaceHeaderExpanded = true;
 
     [ObservableProperty]
     private ProcessInfo? selectedTargetProcess;
@@ -229,7 +306,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void OnMappingManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SelectedMapping))
+        {
             OnPropertyChanged(nameof(SelectedMapping));
+            RefreshRightPanelSurface();
+        }
     }
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
@@ -339,6 +419,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private float humanNoiseSmoothness;
     partial void OnHumanNoiseSmoothnessChanged(float value) => UpdateSetting(s => s.HumanNoiseSmoothness = Math.Clamp(value, 0f, 1f));
+
+    [ObservableProperty] private int controllerMappingOverlayPrimaryLabelModeIndex;
+    partial void OnControllerMappingOverlayPrimaryLabelModeIndexChanged(int value)
+    {
+        var mode = (ControllerMappingOverlayPrimaryLabelMode)Math.Clamp(value, 0, 2);
+        UpdateSetting(s => s.ControllerMappingOverlayPrimaryLabel = ControllerMappingOverlayLabelModeParser.ToSettingString(mode));
+        RefreshControllerVisualOverlays();
+    }
+
+    [ObservableProperty] private bool controllerMappingOverlayShowSecondary = true;
+    partial void OnControllerMappingOverlayShowSecondaryChanged(bool value)
+    {
+        UpdateSetting(s => s.ControllerMappingOverlayShowSecondary = value);
+        RefreshControllerVisualOverlays();
+    }
+
+    public event EventHandler? FocusMappingDetailsFirstFieldRequested;
+
+    public void RequestFocusMappingDetailsFirstField() =>
+        _dispatcher.BeginInvoke(() => FocusMappingDetailsFirstFieldRequested?.Invoke(this, EventArgs.Empty), DispatcherPriority.Input);
 
     public ObservableCollection<ComboHudPlacement> ComboHudPlacements { get; } = new(Enum.GetValues<ComboHudPlacement>());
 
@@ -567,11 +667,34 @@ public partial class MainViewModel : ObservableObject, IDisposable
     // Helper methods for UI refresh
     internal void RefreshRightPanelSurface()
     {
-        var showMapping = ProfileListTabIndex == 0 && (SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping);
-        var showKeyboard = ProfileListTabIndex == 1 && CatalogPanel.SelectedKeyboardAction is not null;
-        var showRadial = ProfileListTabIndex == 2 && CatalogPanel.SelectedRadialMenu is not null;
+        var isVisualTab = ProfileListTabIndex == (int)MainProfileWorkspaceTab.VisualEditor;
+        var mappingSurfaceTab = isVisualTab || ProfileListTabIndex == (int)MainProfileWorkspaceTab.Mappings;
+        var hasMappingEditorContext = SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping;
+        
+        // P5: Persistent detail pane logic - if we are in visual tab and have a selected element, show mapping details
+        var showMapping = mappingSurfaceTab
+            && (hasMappingEditorContext || (isVisualTab && HasSelectedVisualControl()));
+        var showKeyboard = ProfileListTabIndex == (int)MainProfileWorkspaceTab.KeyboardActions
+            && CatalogPanel.SelectedKeyboardAction is not null;
+        var showRadial = ProfileListTabIndex == (int)MainProfileWorkspaceTab.RadialMenus
+            && CatalogPanel.SelectedRadialMenu is not null;
 
         RightPanelSurface = showMapping ? ProfileRightPanelSurface.Mapping : showKeyboard ? ProfileRightPanelSurface.KeyboardAction : showRadial ? ProfileRightPanelSurface.RadialMenu : ProfileRightPanelSurface.None;
+    }
+
+    private bool HasSelectedVisualControl() =>
+        !string.IsNullOrWhiteSpace(VisualEditorPanel?.SelectedElementName);
+
+    internal void RefreshControllerVisualOverlays()
+    {
+        if (VisualEditorPanel is null)
+            return;
+
+        var mode = ControllerMappingOverlayLabelModeParser.Parse(_settingsOrchestrator.Settings.ControllerMappingOverlayPrimaryLabel);
+        var showSecondary = _settingsOrchestrator.Settings.ControllerMappingOverlayShowSecondary;
+        VisualEditorPanel.ControllerVisual.OverlayPrimaryLabelMode = mode;
+        VisualEditorPanel.ControllerVisual.OverlayShowSecondary = showSecondary;
+        VisualEditorPanel.ControllerVisual.UpdateOverlay(Mappings);
     }
 
     private void UpdateTemplateToggleDisplayNames()
@@ -616,6 +739,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         HumanNoiseAmplitude = appSettings.HumanNoiseAmplitude;
         HumanNoiseFrequency = appSettings.HumanNoiseFrequency;
         HumanNoiseSmoothness = appSettings.HumanNoiseSmoothness;
+        ControllerMappingOverlayPrimaryLabelModeIndex = ControllerMappingOverlayLabelModeParser.Parse(appSettings.ControllerMappingOverlayPrimaryLabel) switch
+        {
+            ControllerMappingOverlayPrimaryLabelMode.PhysicalControl => 1,
+            ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl => 2,
+            _ => 0
+        };
+        ControllerMappingOverlayShowSecondary = appSettings.ControllerMappingOverlayShowSecondary;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
 
         AvailableInputApis.Clear();
@@ -632,15 +762,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)
     {
+        MappingEditorPanel = new MappingEditorViewModel(this);
+        VisualEditorPanel = new VisualEditorViewModel(
+            this,
+            _controllerVisualService,
+            _mappingsForLogicalControlQuery,
+            _controllerVisualLayoutSource,
+            _controllerVisualLoader,
+            _controllerVisualHighlightService);
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
-        MappingEditorPanel = new MappingEditorViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
         CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
+        RefreshControllerVisualOverlays();
     }
 
     private void ApplyGamepadMonitorInitialUiState(AppSettings s)
@@ -654,6 +792,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         finally
         {
             _suppressGamepadMonitorSettingsPersistence = false;
+        }
+    }
+
+    private void ApplyWorkspaceHeaderInitialState(AppSettings s)
+    {
+        _suppressWorkspaceHeaderSettingsPersistence = true;
+        try
+        {
+            IsWorkspaceHeaderExpanded = s.WorkspaceHeaderExpanded;
+        }
+        finally
+        {
+            _suppressWorkspaceHeaderSettingsPersistence = false;
         }
     }
 

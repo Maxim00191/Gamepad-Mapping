@@ -11,5 +11,8 @@
     "removeOrphanFiles": true
   },
   "gamepadMonitorPanelWidth": 220,
-  "gamepadMonitorVisible": false
+  "gamepadMonitorVisible": false,
+  "workspaceHeaderExpanded": true,
+  "controllerMappingOverlayPrimaryLabel": "actionSummary",
+  "controllerMappingOverlayShowSecondary": true
 }

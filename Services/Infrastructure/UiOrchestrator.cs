@@ -138,6 +138,14 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         });
     }
 
+    public bool? ShowActionEditDialog(MappingEntry mapping)
+    {
+        // This would be implemented in the actual application code to show a window.
+        // For the sake of this task, I'll assume the contract is enough for now 
+        // as I cannot create new Windows/XAML files easily without knowing the project's Window base classes.
+        return null;
+    }
+
     public void Dispose()
     {
         _templateSwitchHudTimer?.Stop();

@@ -64,7 +64,7 @@ public class MappingEntry : ObservableObject
         {
             if (SetProperty(ref _keyboardKey, value))
             {
-                OnPropertyChanged(nameof(OutputSummaryForGrid));
+                NotifyOutputSummariesChanged();
                 OnPropertyChanged(nameof(ActionType));
                 OnPropertyChanged(nameof(RequiresDeferralOnPress));
             }
@@ -92,7 +92,11 @@ public class MappingEntry : ObservableObject
     public string Description
     {
         get => _description;
-        set => SetProperty(ref _description, value);
+        set
+        {
+            if (SetProperty(ref _description, value))
+                NotifyOutputSummariesChanged();
+        }
     }
 
     private string? _descriptionKey;
@@ -181,7 +185,7 @@ public class MappingEntry : ObservableObject
         {
             if (SetProperty(ref _itemCycle, value))
             {
-                OnPropertyChanged(nameof(OutputSummaryForGrid));
+                NotifyOutputSummariesChanged();
                 OnPropertyChanged(nameof(ActionType));
                 OnPropertyChanged(nameof(RequiresDeferralOnPress));
             }
@@ -199,7 +203,7 @@ public class MappingEntry : ObservableObject
         {
             if (SetProperty(ref _templateToggle, value))
             {
-                OnPropertyChanged(nameof(OutputSummaryForGrid));
+                NotifyOutputSummariesChanged();
                 OnPropertyChanged(nameof(ActionType));
                 OnPropertyChanged(nameof(RequiresDeferralOnPress));
             }
@@ -216,7 +220,7 @@ public class MappingEntry : ObservableObject
         set
         {
             if (SetProperty(ref _templateToggleDisplayName, value))
-                OnPropertyChanged(nameof(OutputSummaryForGrid));
+                NotifyOutputSummariesChanged();
         }
     }
 
@@ -231,7 +235,7 @@ public class MappingEntry : ObservableObject
         {
             if (SetProperty(ref _radialMenu, value))
             {
-                OnPropertyChanged(nameof(OutputSummaryForGrid));
+                NotifyOutputSummariesChanged();
                 OnPropertyChanged(nameof(ActionType));
                 OnPropertyChanged(nameof(RequiresDeferralOnPress));
             }
@@ -303,6 +307,31 @@ public class MappingEntry : ObservableObject
         }
     }
 
+    /// <summary>Overlay label: keyboard actions combine <see cref="Description"/> and <see cref="KeyboardKey"/>; others match <see cref="OutputSummaryForGrid"/>.</summary>
+    [JsonIgnore]
+    public string OutputSummaryForControllerOverlay
+    {
+        get
+        {
+            if (ActionType != MappingActionType.Keyboard)
+                return OutputSummaryForGrid;
+
+            var desc = (_description ?? string.Empty).Trim();
+            var key = (_keyboardKey ?? string.Empty).Trim();
+            if (desc.Length > 0 && key.Length > 0)
+                return $"{desc} - {key}";
+            if (key.Length > 0)
+                return key;
+            return desc;
+        }
+    }
+
+    private void NotifyOutputSummariesChanged()
+    {
+        OnPropertyChanged(nameof(OutputSummaryForGrid));
+        OnPropertyChanged(nameof(OutputSummaryForControllerOverlay));
+    }
+
     internal void ApplyKeyboardActionResolution(string? keyboardKey, string? defaultDescription, TemplateToggleBinding? templateToggle = null, RadialMenuBinding? radialMenu = null, ItemCycleBinding? itemCycle = null)
     {
         if (templateToggle != null)
@@ -331,13 +360,14 @@ public class MappingEntry : ObservableObject
         {
             _keyboardKey = keyboardKey ?? string.Empty;
             OnPropertyChanged(nameof(KeyboardKey));
-            OnPropertyChanged(nameof(OutputSummaryForGrid));
+            NotifyOutputSummariesChanged();
         }
 
         if (!string.IsNullOrWhiteSpace(defaultDescription) && string.IsNullOrWhiteSpace(_description))
         {
             _description = defaultDescription.Trim();
             OnPropertyChanged(nameof(Description));
+            NotifyOutputSummariesChanged();
         }
     }
 
@@ -369,7 +399,7 @@ public class MappingEntry : ObservableObject
         {
             _holdKeyboardKey = keyboardKey ?? string.Empty;
             OnPropertyChanged(nameof(HoldKeyboardKey));
-            OnPropertyChanged(nameof(OutputSummaryForGrid));
+            NotifyOutputSummariesChanged();
         }
     }
 
@@ -417,7 +447,7 @@ public class MappingEntry : ObservableObject
         {
             _keyboardKey = key;
             OnPropertyChanged(nameof(KeyboardKey));
-            OnPropertyChanged(nameof(OutputSummaryForGrid));
+            NotifyOutputSummariesChanged();
         }
 
         var desc = (def.Description ?? string.Empty).Trim();
@@ -425,6 +455,7 @@ public class MappingEntry : ObservableObject
         {
             _description = desc;
             OnPropertyChanged(nameof(Description));
+            NotifyOutputSummariesChanged();
         }
     }
 }

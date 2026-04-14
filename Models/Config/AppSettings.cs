@@ -176,6 +176,10 @@ public class AppSettings
     [JsonProperty("gamepadMonitorVisible")]
     public bool GamepadMonitorVisible { get; set; }
 
+    /// <summary>When false, the main profile/template toolbar card is hidden to give the mapping workspace more vertical space.</summary>
+    [JsonProperty("workspaceHeaderExpanded")]
+    public bool WorkspaceHeaderExpanded { get; set; } = true;
+
     /// <summary>
     /// Radial menu commit: <c>returnStickToCenter</c> (default) or <c>releaseGuideKey</c>.
     /// </summary>
@@ -275,4 +279,14 @@ public class AppSettings
     /// <summary>Low-pass on noise (normalized 0–1): higher ≈ smoother neuromuscular filtering, fewer sharp timing spikes.</summary>
     [JsonProperty("humanNoiseSmoothness")]
     public float HumanNoiseSmoothness { get; set; } = 0.3f;
+
+    /// <summary>
+    /// Controller diagram overlay primary line: <c>actionSummary</c>, <c>physicalControl</c>, or <c>actionAndPhysical</c> (action plus control name).
+    /// </summary>
+    [JsonProperty("controllerMappingOverlayPrimaryLabel")]
+    public string ControllerMappingOverlayPrimaryLabel { get; set; } = "actionSummary";
+
+    /// <summary>When true, show secondary text such as <c>+N</c> for additional mappings on the same control.</summary>
+    [JsonProperty("controllerMappingOverlayShowSecondary")]
+    public bool ControllerMappingOverlayShowSecondary { get; set; } = true;
 }
