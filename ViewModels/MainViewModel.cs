@@ -28,9 +28,9 @@ using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
-using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.Models.Core.Visual;
-using Gamepad_Mapping.Services;
+using Gamepad_Mapping.Services.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -67,7 +67,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerVisualService _controllerVisualService;
     private readonly IControllerVisualLayoutSource _controllerVisualLayoutSource;
     private readonly IControllerVisualLoader _controllerVisualLoader;
+    private readonly IControllerChordContextResolver _controllerChordContextResolver;
     private readonly IControllerVisualHighlightService _controllerVisualHighlightService;
+    private readonly IControllerMappingOverlayLabelComposer _controllerMappingOverlayLabelComposer;
     private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
 
     public UpdateViewModel UpdatePanel { get; }
@@ -79,6 +81,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public IControllerVisualLoader ControllerVisualLoader => _controllerVisualLoader;
     public IControllerVisualHighlightService ControllerVisualHighlightService => _controllerVisualHighlightService;
+
+    public IControllerMappingOverlayLabelComposer ControllerMappingOverlayLabelComposer =>
+        _controllerMappingOverlayLabelComposer;
 
     public IControllerVisualLayoutHelper ControllerVisualLayoutHelper => _controllerVisualLayoutHelper;
 
@@ -152,7 +157,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
         _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
         _controllerVisualLoader = controllerVisualLoader ?? new ControllerVisualLoader();
-        _controllerVisualHighlightService = new ControllerVisualHighlightService(_controllerVisualService);
+        _controllerChordContextResolver = new ControllerChordContextResolver(_controllerVisualService);
+        _controllerVisualHighlightService = new ControllerVisualHighlightService(
+            _controllerVisualService,
+            _controllerChordContextResolver);
+        _controllerMappingOverlayLabelComposer = new ControllerMappingOverlayLabelComposer(
+            _controllerVisualService,
+            _controllerChordContextResolver);
         _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
 
         _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);

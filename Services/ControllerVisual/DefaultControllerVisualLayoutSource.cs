@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.IO;
-using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models.ControllerVisual;
 using GamepadMapperGUI.Utils;
 
-namespace Gamepad_Mapping.Services;
+namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public sealed class DefaultControllerVisualLayoutSource : IControllerVisualLayoutSource
 {

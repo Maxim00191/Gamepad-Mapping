@@ -7,7 +7,7 @@ using System.Windows;
 using Gamepad_Mapping.Models.Core.Visual;
 using Gamepad_Mapping.Utils.ControllerVisual;
 
-namespace Gamepad_Mapping.Services;
+namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public class ControllerVisualLayoutHelper : IControllerVisualLayoutHelper
 {

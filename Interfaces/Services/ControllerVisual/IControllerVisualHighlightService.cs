@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel;
 using Gamepad_Mapping.Models.Core.Visual;
 
-namespace Gamepad_Mapping.Interfaces.Services;
+namespace Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 
 /// <summary>
 /// Produces the visual scene state for the controller based on the current editor context.

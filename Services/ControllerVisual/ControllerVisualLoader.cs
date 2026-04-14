@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models.ControllerVisual;
 
-namespace Gamepad_Mapping.Services;
+namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public sealed class ControllerVisualLoader : IControllerVisualLoader
 {

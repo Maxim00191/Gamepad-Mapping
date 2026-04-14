@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GamepadMapperGUI.Models.ControllerVisual;
 
-namespace Gamepad_Mapping.Services;
+namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public static class ControllerVisualManifestParser
 {

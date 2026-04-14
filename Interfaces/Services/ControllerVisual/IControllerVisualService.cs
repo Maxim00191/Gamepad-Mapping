@@ -1,6 +1,6 @@
 using GamepadMapperGUI.Models;
 
-namespace Gamepad_Mapping.Interfaces.Services;
+namespace Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 
 public interface IControllerVisualService
 {

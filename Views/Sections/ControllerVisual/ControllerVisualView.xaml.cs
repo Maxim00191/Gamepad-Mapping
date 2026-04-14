@@ -9,7 +9,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Xml.Linq;
-using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.Models.Core.Visual;
 using Gamepad_Mapping.Utils.ControllerVisual;
 using Gamepad_Mapping.ViewModels;

@@ -6,9 +6,9 @@ using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.Models.Core.Visual;
-using Gamepad_Mapping.Services;
+using Gamepad_Mapping.Services.ControllerVisual;
 using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.ControllerVisual;
@@ -41,6 +41,8 @@ public partial class ControllerVisualViewModel : ObservableObject
 
     private readonly IControllerVisualLayoutHelper _layoutHelper;
 
+    private readonly IControllerMappingOverlayLabelComposer _mappingOverlayLabelComposer;
+
     public ControllerMappingOverlayPrimaryLabelMode OverlayPrimaryLabelMode { get; set; } =
         ControllerMappingOverlayPrimaryLabelMode.ActionSummary;
 
@@ -59,11 +61,13 @@ public partial class ControllerVisualViewModel : ObservableObject
         IControllerVisualLayoutSource layoutSource,
         IControllerVisualLoader loader,
         IControllerVisualHighlightService highlightService,
+        IControllerMappingOverlayLabelComposer mappingOverlayLabelComposer,
         IControllerVisualLayoutHelper? layoutHelper = null)
     {
         _visualService = visualService;
         _layoutSource = layoutSource;
         _layoutHelper = layoutHelper ?? new ControllerVisualLayoutHelper();
+        _mappingOverlayLabelComposer = mappingOverlayLabelComposer;
         Loader = loader;
         HighlightService = highlightService;
         _activeLayout = layoutSource.GetActiveLayout();
@@ -175,57 +179,30 @@ public partial class ControllerVisualViewModel : ObservableObject
     public void UpdateOverlay(IEnumerable<MappingEntry> mappings)
     {
         _lastMappings = mappings;
+        var allMappings = mappings as IReadOnlyList<MappingEntry> ?? mappings.ToList();
         var items = new List<ControllerMappingOverlayItem>();
         foreach (var elementId in _visualService.EnumerateMappedLogicalControlIds())
         {
-            var elementMappings = _visualService.GetMappingsForElement(elementId, mappings).ToList();
+            var elementMappings = _visualService.GetMappingsForElement(elementId, allMappings).ToList();
             if (elementMappings.Count == 0) continue;
 
-            var primaryMapping = elementMappings[0];
-            var displayName = _visualService.GetDisplayName(elementId) ?? elementId;
-            var actionSummary = primaryMapping.OutputSummaryForControllerOverlay ?? string.Empty;
-            var normalizedDisplay = ControllerMappingOverlayLabelText.NormalizeForOverlay(displayName);
-            var normalizedSummary = ControllerMappingOverlayLabelText.NormalizeForOverlay(actionSummary);
-
-            var extraMappingCount = OverlayShowSecondary && elementMappings.Count > 1 ? elementMappings.Count - 1 : 0;
-
-            string primaryText;
-            string? secondary;
-            var stackLabels = false;
-
-            if (OverlayPrimaryLabelMode == ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)
-            {
-                var actionLine = string.IsNullOrWhiteSpace(normalizedSummary) ? normalizedDisplay : normalizedSummary;
-                primaryText = actionLine;
-                if (string.Equals(actionLine, normalizedDisplay, StringComparison.Ordinal))
-                {
-                    secondary = extraMappingCount > 0 ? $"+{extraMappingCount}" : null;
-                }
-                else
-                {
-                    stackLabels = true;
-                    secondary = extraMappingCount > 0
-                        ? $"{normalizedDisplay} · +{extraMappingCount}"
-                        : normalizedDisplay;
-                }
-            }
-            else
-            {
-                primaryText = OverlayPrimaryLabelMode == ControllerMappingOverlayPrimaryLabelMode.PhysicalControl
-                    ? normalizedDisplay
-                    : (string.IsNullOrWhiteSpace(normalizedSummary) ? normalizedDisplay : normalizedSummary);
-                secondary = extraMappingCount > 0 ? $"+{extraMappingCount}" : null;
-            }
+            var snap = _mappingOverlayLabelComposer.Compose(
+                elementId,
+                elementMappings,
+                allMappings,
+                SelectedElementName,
+                OverlayPrimaryLabelMode,
+                OverlayShowSecondary);
 
             var item = new ControllerMappingOverlayItem
             {
                 ElementId = elementId,
-                PrimaryLabel = primaryText,
-                SecondaryLabel = secondary,
-                StackPrimaryAndSecondary = stackLabels,
-                HasExtraMappings = extraMappingCount > 0,
-                OverlayToolTip = BuildOverlayToolTip(normalizedDisplay, normalizedSummary, secondary),
-                IsCombination = !string.IsNullOrEmpty(primaryMapping.From?.Value) && primaryMapping.From.Value.Contains('+')
+                PrimaryLabel = snap.PrimaryLabel,
+                SecondaryLabel = snap.SecondaryLabel,
+                StackPrimaryAndSecondary = snap.StackPrimaryAndSecondary,
+                HasExtraMappings = snap.HasExtraMappings,
+                OverlayToolTip = snap.OverlayToolTip,
+                IsCombination = snap.IsCombination
             };
             items.Add(item);
         }
@@ -240,25 +217,20 @@ public partial class ControllerVisualViewModel : ObservableObject
             HoveredElementName = ResolveInteractionLabel(HoveredElementId);
     }
 
-    private static string? BuildOverlayToolTip(string normalizedDisplay, string normalizedSummary, string? secondary)
-    {
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(normalizedDisplay))
-            parts.Add(normalizedDisplay);
-        if (!string.IsNullOrWhiteSpace(normalizedSummary) && !string.Equals(normalizedSummary, normalizedDisplay, StringComparison.Ordinal))
-            parts.Add(normalizedSummary);
-        if (!string.IsNullOrWhiteSpace(secondary))
-            parts.Add(secondary);
-        return parts.Count > 0 ? string.Join(Environment.NewLine, parts) : null;
-    }
-
     public void UpdateVisualStates()
     {
         UpdateHighlightService();
     }
 
     partial void OnHoveredElementIdChanged(string? value) => UpdateVisualStates();
-    partial void OnSelectedElementNameChanged(string? value) => UpdateVisualStates();
+
+    partial void OnSelectedElementNameChanged(string? value)
+    {
+        if (_lastMappings is not null)
+            UpdateOverlay(_lastMappings);
+        else
+            UpdateHighlightService();
+    }
 
     public void RefreshActiveLayout()
     {
@@ -290,7 +262,6 @@ public partial class ControllerVisualViewModel : ObservableObject
     private void SelectElement(string? elementId)
     {
         SelectedElementName = elementId;
-        UpdateHighlightService();
     }
 
     [RelayCommand]

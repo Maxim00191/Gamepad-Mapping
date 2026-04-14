@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Gamepad_Mapping.Interfaces.Services;
+using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using GamepadMapperGUI.Models;
 
-namespace Gamepad_Mapping.Services;
+namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public class ControllerVisualService : IControllerVisualService
 {

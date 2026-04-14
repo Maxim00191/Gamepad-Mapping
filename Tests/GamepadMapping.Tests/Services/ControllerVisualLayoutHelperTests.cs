@@ -1,6 +1,6 @@
 using System.Windows;
 using Gamepad_Mapping.Models.Core.Visual;
-using Gamepad_Mapping.Services;
+using Gamepad_Mapping.Services.ControllerVisual;
 using Xunit;
 
 namespace GamepadMapping.Tests.Services;
