@@ -1,3 +1,34 @@
+## Changelog v2.2.0 - 2026-04-14
+### Added
+- **Human-like keyboard noise:** Introduced `HumanizingKeyboardEmulator` to apply Perlin-based jitter to keyboard tap-hold durations (±10ms), enhancing anti-detection and natural input feel.
+- **Global exception handling:** Added `StartupDiagnostics` for centralized crash reporting, fatal error dialogs, and environment logging (OS, runtime, process path).
+- **Dedicated entry point:** Introduced `Program.cs` as the explicit `[STAThread]` entry point to ensure diagnostic handlers are registered before any WPF components initialize.
+- **Logging robustness:** Enhanced `FileLogger` with UTF-8 encoding and an emergency fallback to `%TEMP%` if the primary log directory is inaccessible.
+- **Path resolution safety:** Improved `AppPaths` with fallback logic to `LocalAppData` for log storage when the application root is read-only.
+### Changed
+- **Keyboard tap duration:** Increased default tap-hold duration from 30ms to 70ms and expanded the allowed range to 20ms–100ms for better compatibility with modern games.
+- **Startup sequence:** Refactored `App.xaml.cs` to wrap the entire startup process in a diagnostic-aware try-catch block.
+- **Noise controller expansion:** Updated `IHumanInputNoiseController` and its implementation to support independent phase tracking for tap-hold jitter.
+
+### Fixed
+- **Startup path logging:** Fixed a bug where debug path information was logged outside of the main startup try-catch block.
+- **UI Tooltips:** Added missing tooltips for human-like noise settings in `AppSettingsView`.
+## 更新日志 v2.2.0 - 2026-04-14
+### 新增
+- **拟人化键盘抖动：** 引入 `HumanizingKeyboardEmulator`，通过 Perlin 噪声为键盘点按时长加入随机抖动（±10ms），增强防检测能力并提升输入自然度。
+- **全局异常处理：** 新增 `StartupDiagnostics` 模块，实现集中化的崩溃报告、致命错误对话框以及详细的环境日志记录（操作系统、运行时、进程路径等）。
+- **专用入口点：** 引入 `Program.cs` 作为显式的 `[STAThread]` 入口，确保在任何 WPF 组件初始化前优先注册诊断处理程序。
+- **日志稳健性：** 增强 `FileLogger`，支持 UTF-8 编码，并在主日志目录不可访问时自动回退到 `%TEMP%` 临时目录。
+- **路径解析安全：** 优化 `AppPaths` 逻辑，当程序根目录只读时，日志存储将自动回退至 `LocalAppData`。
+### 更改
+- **键盘点按时长：** 将默认点按时长从 30ms 提升至 70ms，并将可调范围扩大至 20ms–100ms，以提升与现代游戏的兼容性。
+- **启动流程重构：** 重构 `App.xaml.cs`，将整个启动过程包裹在具备诊断能力的 try-catch 块中。
+- **噪声控制器扩展：** 更新 `IHumanInputNoiseController` 接口及其实现，支持独立的点按抖动相位跟踪。
+### 修复
+- **启动路径日志：** 修复了调试路径信息在主启动异常捕获块之外记录的问题。
+- **UI 提示：** 为 `AppSettingsView` 中的类人化噪声设置补充了缺失的工具提示。
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.5...v2.2.0](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.1.5...v2.2.0)
+
 ## Changelog v2.1.5 - 2026-04-12
 
 ### Changed
