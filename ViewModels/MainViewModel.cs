@@ -687,17 +687,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     internal void RefreshControllerVisualOverlays()
     {
-        if (VisualEditorPanel is null || MappingEditorPanel is null)
+        if (VisualEditorPanel is null)
             return;
 
         var mode = ControllerMappingOverlayLabelModeParser.Parse(_settingsOrchestrator.Settings.ControllerMappingOverlayPrimaryLabel);
         var showSecondary = _settingsOrchestrator.Settings.ControllerMappingOverlayShowSecondary;
         VisualEditorPanel.ControllerVisual.OverlayPrimaryLabelMode = mode;
         VisualEditorPanel.ControllerVisual.OverlayShowSecondary = showSecondary;
-        MappingEditorPanel.ControllerVisual.OverlayPrimaryLabelMode = mode;
-        MappingEditorPanel.ControllerVisual.OverlayShowSecondary = showSecondary;
         VisualEditorPanel.ControllerVisual.UpdateOverlay(Mappings);
-        MappingEditorPanel.ControllerVisual.UpdateOverlay(Mappings);
     }
 
     private void UpdateTemplateToggleDisplayNames()

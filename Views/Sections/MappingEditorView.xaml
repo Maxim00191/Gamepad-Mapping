@@ -4,7 +4,6 @@
              xmlns:models="clr-namespace:GamepadMapperGUI.Models"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views.Sections"
-             xmlns:cvis="clr-namespace:Gamepad_Mapping.Views.Sections.ControllerVisual"
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
@@ -13,16 +12,12 @@
         <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     </UserControl.Resources>
     <Grid VerticalAlignment="Stretch">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
-        <DataGrid Grid.Column="0" Grid.Row="0"
+
+        <DataGrid Grid.Row="0"
                   ItemsSource="{Binding Mappings}"
                   AutoGenerateColumns="False"
                   IsReadOnly="False"
@@ -203,83 +198,6 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Column="1" Grid.Row="0"
-                Width="200" Margin="10,0,0,0"
-                Background="#252526" BorderBrush="#3F3F46" BorderThickness="1" CornerRadius="4">
-            <cvis:ControllerVisualView DataContext="{Binding ControllerVisual}" />
-        </Border>
-
-        <Border Grid.Row="1" Grid.ColumnSpan="2"
-                Background="#2D2D30" 
-                BorderBrush="#3F3F46" 
-                BorderThickness="0,1,0,0"
-                Padding="8,4">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" Visibility="{Binding HasUnusedActionIds, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <TextBlock Text="&#xE946;" 
-                               FontFamily="Segoe MDL2 Assets" 
-                               Foreground="#007ACC" 
-                               VerticalAlignment="Center" 
-                               Margin="0,0,8,0"/>
-                    <TextBlock Text="{Binding UnusedActionIdsHint}" 
-                               Foreground="#CCCCCC" 
-                               FontSize="12"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis"
-                               ToolTipService.InitialShowDelay="100">
-                        <TextBlock.ToolTip>
-                            <ToolTip Background="#252526" Foreground="#F1F1F1" BorderBrush="#3F3F46">
-                                <StackPanel Margin="4">
-                                    <TextBlock Text="Unused Action IDs in Catalog:" FontWeight="Bold" Margin="0,0,0,4"/>
-                                    <TextBlock Text="{Binding UnusedActionIdsTooltip}"/>
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Visibility="{Binding HasValidationError, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,4,0,0">
-                    <TextBlock Text="&#xE783;" 
-                               FontFamily="Segoe MDL2 Assets" 
-                               Foreground="Red" 
-                               VerticalAlignment="Center" 
-                               Margin="0,0,8,0"/>
-                    <TextBlock Text="Validation Errors" 
-                               Foreground="Red" 
-                               FontSize="12"
-                               VerticalAlignment="Center">
-                        <TextBlock.ToolTip>
-                            <ToolTip Background="#252526" Foreground="#F1F1F1" BorderBrush="#3F3F46">
-                                <StackPanel Margin="4">
-                                    <TextBlock Text="Profile Validation Errors:" FontWeight="Bold" Margin="0,0,0,4"/>
-                                    <TextBlock Text="{Binding ValidationError}"/>
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Visibility="{Binding HasValidationWarning, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,4,0,0">
-                    <TextBlock Text="&#xE7BA;" 
-                               FontFamily="Segoe MDL2 Assets" 
-                               Foreground="Orange" 
-                               VerticalAlignment="Center" 
-                               Margin="0,0,8,0"/>
-                    <TextBlock Text="Validation Warnings" 
-                               Foreground="Orange" 
-                               FontSize="12"
-                               VerticalAlignment="Center">
-                        <TextBlock.ToolTip>
-                            <ToolTip Background="#252526" Foreground="#F1F1F1" BorderBrush="#3F3F46">
-                                <StackPanel Margin="4">
-                                    <TextBlock Text="Profile Validation Warnings:" FontWeight="Bold" Margin="0,0,0,4"/>
-                                    <TextBlock Text="{Binding ValidationWarning}"/>
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                </StackPanel>
-            </StackPanel>
-        </Border>
+        <local:ProfileMappingStatusHintsBar Grid.Row="1" />
     </Grid>
 </UserControl>

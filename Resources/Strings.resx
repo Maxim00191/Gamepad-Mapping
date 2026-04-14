@@ -553,13 +553,13 @@
     <value>Primary line on each mapped control</value>
   </data>
   <data name="ControllerOverlayLabelModeActionSummary" xml:space="preserve">
-    <value>Action summary</value>
+    <value>Mapping summary</value>
   </data>
   <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
-    <value>Physical control name</value>
+    <value>Gamepad button name</value>
   </data>
   <data name="ControllerOverlayLabelModeActionAndPhysical" xml:space="preserve">
-    <value>Action summary and control name</value>
+    <value>Mapping summary and gamepad button name</value>
   </data>
   <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
     <value>Show “+N” when a control has multiple mappings</value>
@@ -880,5 +880,23 @@ Do you want to overwrite it?</value>
   </data>
   <data name="WelcomeToastMessage" xml:space="preserve">
     <value>Thanks for trying the app. Pick a template, map your buttons, and you are ready to play. You can change language, updates, and more in Settings whenever you like.</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsHint" xml:space="preserve">
+    <value>Notice: {0} catalog action ID(s) are not used in any mapping or radial menu.</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>Unused action IDs in catalog</value>
+  </data>
+  <data name="ProfileMappingValidationErrorsShort" xml:space="preserve">
+    <value>Validation errors</value>
+  </data>
+  <data name="ProfileMappingValidationWarningsShort" xml:space="preserve">
+    <value>Validation warnings</value>
+  </data>
+  <data name="ProfileMappingValidationErrorsTooltipTitle" xml:space="preserve">
+    <value>Profile validation errors</value>
+  </data>
+  <data name="ProfileMappingValidationWarningsTooltipTitle" xml:space="preserve">
+    <value>Profile validation warnings</value>
   </data>
 </root>

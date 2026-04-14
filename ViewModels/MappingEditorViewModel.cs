@@ -25,10 +25,6 @@ using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.ViewModels.Strategies;
 
-using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
-using Gamepad_Mapping.Services.ControllerVisual;
-using Gamepad_Mapping.ViewModels.ControllerVisual;
-
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class MappingEditorViewModel : ObservableObject
@@ -58,57 +54,15 @@ public partial class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
     }
 
-    [ObservableProperty]
-    private ControllerVisualViewModel _controllerVisual;
-
     public MappingEditorViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
-        ControllerVisual = new ControllerVisualViewModel(
-            _mainViewModel.ControllerVisualService,
-            _mainViewModel.ControllerVisualLayoutSource,
-            _mainViewModel.ControllerVisualLoader,
-            _mainViewModel.ControllerVisualHighlightService,
-            _mainViewModel.ControllerMappingOverlayLabelComposer,
-            _mainViewModel.ControllerVisualLayoutHelper);
-
-        ControllerVisual.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(ControllerVisualViewModel.SelectedElementName))
-            {
-                var elementId = ControllerVisual.SelectedElementName;
-                if (string.IsNullOrEmpty(elementId)) return;
-
-                var binding = _mainViewModel.ControllerVisualService.MapIdToBinding(elementId);
-
-                if (binding == null) return;
-
-                var forControl = _mainViewModel.MappingsForLogicalControlQuery
-                    .GetMappingsForLogicalControl(elementId, Mappings)
-                    .ToList();
-
-                if (forControl.Count > 0)
-                {
-                    var current = SelectedMapping;
-                    if (current is not null && forControl.Any(x => ReferenceEquals(x, current)))
-                        return;
-
-                    SelectedMapping = forControl[0];
-                }
-                else
-                {
-                    BeginCreateNewMapping();
-                    InputTrigger.SyncFrom(new MappingEntry { From = binding });
-                }
-            }
-        };
-
-        Mappings.CollectionChanged += (s, e) => ControllerVisual.UpdateOverlay(Mappings);
-        ControllerVisual.UpdateOverlay(Mappings);
 
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
+        if (Application.Current?.Resources["Loc"] is TranslationService translationService)
+            translationService.PropertyChanged += TranslationServiceOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
         _mainViewModel.KeyboardActions.CollectionChanged += (_, _) =>
@@ -189,8 +143,9 @@ public partial class MappingEditorViewModel : ObservableObject
         HasUnusedActionIds = unused.Count > 0;
         if (HasUnusedActionIds)
         {
-            UnusedActionIdsHint = $"Notice: {unused.Count} actionId(s) in catalog are not used in any mapping or radial menu.";
-            UnusedActionIdsTooltip = string.Join(Environment.NewLine, 
+            UnusedActionIdsHint = string.Format(CultureInfo.CurrentUICulture,
+                Loc("ProfileMappingUnusedCatalogActionIdsHint"), unused.Count);
+            UnusedActionIdsTooltip = string.Join(Environment.NewLine,
                 unused.Select(a => $"{a.Id}: {a.Description}"));
         }
         else
@@ -259,14 +214,7 @@ public partial class MappingEditorViewModel : ObservableObject
     partial void OnIsCreatingNewMappingChanged(bool value)
     {
         _mainViewModel.RefreshRightPanelSurface();
-        OnPropertyChanged(nameof(UseSlimMappingPreview));
     }
-
-    public bool UseSlimMappingPreview =>
-        _mainViewModel.IsVisualMode && SelectedMapping is not null && !IsCreatingNewMapping;
-
-    public void NotifyVisualModeRelatedPropertiesChanged() =>
-        OnPropertyChanged(nameof(UseSlimMappingPreview));
 
     public bool EditKeyboardAndHoldSectionsEnabled => SelectedActionType == MappingActionType.Keyboard;
 
@@ -650,13 +598,16 @@ public partial class MappingEditorViewModel : ObservableObject
             OnPropertyChanged(nameof(KeyboardKeyCapturePrompt));
     }
 
+    private void TranslationServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TranslationService.Culture))
+            UpdateUnusedActionIds();
+    }
+
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
-            case nameof(MainViewModel.IsVisualMode):
-                NotifyVisualModeRelatedPropertiesChanged();
-                break;
             case nameof(MainViewModel.RadialMenus):
                 UpdateUnusedActionIds();
                 break;
@@ -666,9 +617,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
-                OnPropertyChanged(nameof(UseSlimMappingPreview));
                 SyncFromSelection(SelectedMapping);
-                ControllerVisual.SelectedMapping = SelectedMapping;
                 break;
             case nameof(MainViewModel.AvailableGamepadButtons):
                 OnPropertyChanged(nameof(AvailableGamepadButtons));

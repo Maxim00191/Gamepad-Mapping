@@ -553,13 +553,13 @@
     <value>已映射控件上的主行文字</value>
   </data>
   <data name="ControllerOverlayLabelModeActionSummary" xml:space="preserve">
-    <value>动作摘要</value>
+    <value>映射简介</value>
   </data>
   <data name="ControllerOverlayLabelModePhysicalControl" xml:space="preserve">
-    <value>物理按键名称</value>
+    <value>手柄按键名称</value>
   </data>
   <data name="ControllerOverlayLabelModeActionAndPhysical" xml:space="preserve">
-    <value>动作摘要与按键名称</value>
+    <value>映射简介与手柄按键名称</value>
   </data>
   <data name="ControllerOverlayShowSecondaryLabel" xml:space="preserve">
     <value>同一控件有多条映射时显示“+N”</value>
@@ -880,5 +880,23 @@
   </data>
   <data name="WelcomeToastMessage" xml:space="preserve">
     <value>感谢使用。选择一个模板，映射按键后即可开始游戏。需要时可在「设置」中更改语言、检查更新等。</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsHint" xml:space="preserve">
+    <value>提示：键盘目录中有 {0} 个操作 ID 未在任何映射或径向菜单中使用。</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>目录中未使用的操作 ID</value>
+  </data>
+  <data name="ProfileMappingValidationErrorsShort" xml:space="preserve">
+    <value>验证错误</value>
+  </data>
+  <data name="ProfileMappingValidationWarningsShort" xml:space="preserve">
+    <value>验证警告</value>
+  </data>
+  <data name="ProfileMappingValidationErrorsTooltipTitle" xml:space="preserve">
+    <value>配置文件验证错误</value>
+  </data>
+  <data name="ProfileMappingValidationWarningsTooltipTitle" xml:space="preserve">
+    <value>配置文件验证警告</value>
   </data>
 </root>

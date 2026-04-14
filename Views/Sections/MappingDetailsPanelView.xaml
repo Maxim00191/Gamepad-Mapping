@@ -8,7 +8,6 @@
      xmlns:strategies="clr-namespace:Gamepad_Mapping.ViewModels.Strategies"
      xmlns:models="clr-namespace:GamepadMapperGUI.Models">
     <UserControl.Resources>
-        <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
         <utils:GamepadBindingTypeToLocalizationConverter x:Key="GamepadBindingTypeToLoc" />
@@ -208,34 +207,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Visual Mode Slim Preview (mapped control only; full editor when creating or unmapped) -->
-        <ScrollViewer Grid.Row="0" 
-                      Visibility="{Binding UseSlimMappingPreview, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="12">
-                <Border Background="#2D2D30" CornerRadius="4" Padding="12" Margin="0,0,0,12">
-                    <StackPanel>
-                        <TextBlock Text="{Binding SelectedMapping.Description}" 
-                                   FontWeight="Bold" FontSize="14" Foreground="White"
-                                   Visibility="{Binding SelectedMapping.Description, Converter={StaticResource NullToVisibilityConverter}}"/>
-                        <TextBlock Text="{Binding SelectedMapping.OutputSummaryForGrid}" 
-                                   FontSize="18" Foreground="#007ACC" FontWeight="SemiBold" Margin="0,4,0,0"/>
-                        <TextBlock Text="{Binding SelectedMapping.ActionType, Converter={StaticResource ActionTypeToLoc}}" 
-                                   FontSize="11" Foreground="#AAAAAA" Margin="0,2,0,0"/>
-                    </StackPanel>
-                </Border>
-                
-                <Button Content="Edit Mapping" 
-                        HorizontalAlignment="Stretch"
-                        Command="{Binding DataContext.MappingEditorPanel.UpdateSelectedBindingCommand, RelativeSource={RelativeSource AncestorType=local:MainView}}"
-                        Margin="0,0,0,8"/>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Standard Full Editor -->
         <ScrollViewer x:Name="MappingDetailsEditorScroll"
                       Grid.Row="0"
-                      Visibility="{Binding UseSlimMappingPreview, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}"
                       MinHeight="0"
                       VerticalScrollBarVisibility="Auto">
                 <StackPanel>

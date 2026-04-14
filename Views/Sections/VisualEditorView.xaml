@@ -15,6 +15,10 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition MinWidth="{DynamicResource VisualWorkspaceLogicalMappingsColumnMinWidth}"
                               Width="*" />
@@ -23,11 +27,13 @@
                               Width="2*" />
         </Grid.ColumnDefinitions>
 
-        <sections:VisualLogicalControlMappingsView Grid.Column="0"
+        <sections:VisualLogicalControlMappingsView Grid.Row="0"
+                                                    Grid.Column="0"
                                                     VerticalAlignment="Stretch"
                                                     DataContext="{Binding LogicalControlMappings}" />
 
-        <GridSplitter Grid.Column="1"
+        <GridSplitter Grid.Row="0"
+                      Grid.Column="1"
                       Width="{DynamicResource VisualWorkspaceVisualEditorSplitterWidth}"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
@@ -35,7 +41,8 @@
                       ResizeBehavior="PreviousAndNext"
                       ShowsPreview="True" />
 
-        <Grid Grid.Column="2"
+        <Grid Grid.Row="0"
+              Grid.Column="2"
               MinHeight="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -92,5 +99,11 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <sections:ProfileMappingStatusHintsBar Grid.Row="1"
+                                              Grid.Column="0"
+                                              Grid.ColumnSpan="3"
+                                              Margin="0,10,0,0"
+                                              DataContext="{Binding DataContext.MappingEditorPanel, RelativeSource={RelativeSource AncestorType=views:MainView}}" />
     </Grid>
 </UserControl>
