@@ -388,16 +388,18 @@ public partial class ProfileService : IProfileService
 
     private IEnumerable<(string fullPath, string? catalogFolder, string stem)> EnumerateTemplateCatalogJsonFiles(string templatesDir)
     {
-        foreach (var file in _fileSystem.GetFiles(templatesDir, "*.json", SearchOption.TopDirectoryOnly))
-            yield return (file, null, Path.GetFileNameWithoutExtension(file));
-
-        foreach (var subDir in _fileSystem.GetDirectories(templatesDir))
+        foreach (var file in _fileSystem.GetFiles(templatesDir, "*.json", SearchOption.AllDirectories))
         {
-            var folderStr = Path.GetFileName(subDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            if (string.IsNullOrEmpty(folderStr))
+            if (string.Equals(Path.GetFileName(file), "index.json", StringComparison.OrdinalIgnoreCase))
                 continue;
-            foreach (var file in _fileSystem.GetFiles(subDir, "*.json", SearchOption.TopDirectoryOnly))
-                yield return (file, folderStr, Path.GetFileNameWithoutExtension(file));
+
+            var rel = Path.GetRelativePath(templatesDir, file);
+            var relDir = Path.GetDirectoryName(rel);
+            string? catalogFolder = string.IsNullOrEmpty(relDir)
+                ? null
+                : relDir.Replace(Path.DirectorySeparatorChar, TemplateStorageKey.Separator)
+                    .Replace(Path.AltDirectorySeparatorChar, TemplateStorageKey.Separator);
+            yield return (file, catalogFolder, Path.GetFileNameWithoutExtension(file));
         }
     }
 

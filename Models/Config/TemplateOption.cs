@@ -4,7 +4,7 @@ public class TemplateOption
 {
     public string ProfileId { get; set; } = string.Empty;
 
-    /// <summary>Single-level catalog folder under the templates root, or null/empty for templates in the root directory.</summary>
+    /// <summary>Relative catalog folder under the templates root (<c>/</c>-separated), or null/empty for JSON files in the templates root.</summary>
     public string? CatalogSubfolder { get; set; }
 
     /// <summary>Effective game-group id for this row (see <see cref="GameProfileTemplate.EffectiveTemplateGroupId"/>).</summary>

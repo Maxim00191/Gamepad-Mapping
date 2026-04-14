@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,17 +8,17 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
-using GamepadMapperGUI.Interfaces.Services.Update;
-using GamepadMapperGUI.Interfaces.Services.Input;
-using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Services.Infrastructure;
+using Gamepad_Mapping.Views;
 
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class CommunityCatalogViewModel : ObservableObject
 {
     private readonly ICommunityTemplateService _communityService;
+    private readonly ICommunityTemplateUploadService _uploadService;
     private readonly MainViewModel _main;
 
     [ObservableProperty]
@@ -28,10 +29,14 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
     public ObservableCollection<CommunityTemplateFolderGroup> FolderGroups { get; } = new();
 
-    public CommunityCatalogViewModel(MainViewModel main, ICommunityTemplateService communityService)
+    public CommunityCatalogViewModel(
+        MainViewModel main,
+        ICommunityTemplateService communityService,
+        ICommunityTemplateUploadService uploadService)
     {
         _main = main;
         _communityService = communityService;
+        _uploadService = uploadService;
     }
 
     [RelayCommand(CanExecute = nameof(CanRefreshTemplates))]
@@ -126,6 +131,106 @@ public partial class CommunityCatalogViewModel : ObservableObject
     }
 
     private bool CanDownloadTemplate(CommunityTemplateInfo? template) => !IsLoading;
+
+    [RelayCommand(CanExecute = nameof(CanUploadToCommunity))]
+    private async Task UploadToCommunityAsync()
+    {
+        var sel = _main.SelectedTemplate;
+        if (sel is null)
+        {
+            MessageBox.Show(
+                "Select a template in the profile panel before uploading.",
+                "Community upload",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var collector = new CommunityTemplateBundleCollector(_main.GetProfileService());
+        IReadOnlyList<CommunityTemplateBundleEntry> bundleEntries;
+        try
+        {
+            bundleEntries = collector.CollectLinkedTemplates(sel.StorageKey);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Could not collect templates: {ex.Message}",
+                "Community upload",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        if (bundleEntries.Count == 0)
+        {
+            MessageBox.Show(
+                "No templates to upload.",
+                "Community upload",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
+        var dialogVm = new CommunityTemplateUploadDialogViewModel
+        {
+            GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder),
+            AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author,
+            ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim(),
+        };
+        dialogVm.LoadBundle(bundleEntries);
+
+        var dialog = new CommunityTemplateUploadWindow
+        {
+            Owner = Application.Current?.MainWindow,
+            DataContext = dialogVm
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        IsLoading = true;
+        UploadToCommunityCommand.NotifyCanExecuteChanged();
+        StatusMessage = "Uploading to GitHub…";
+
+        try
+        {
+            var result = await _uploadService.SubmitBundleAsync(
+                dialogVm.GetSelectedTemplates(),
+                dialogVm.GameFolderName,
+                dialogVm.AuthorName,
+                dialogVm.ListingDescription);
+
+            if (result.Success)
+            {
+                StatusMessage = string.IsNullOrWhiteSpace(result.PullRequestHtmlUrl)
+                    ? "Pull request created."
+                    : $"Pull request: {result.PullRequestHtmlUrl}";
+            }
+            else
+            {
+                StatusMessage = result.ErrorMessage ?? "Upload failed.";
+                MessageBox.Show(
+                    result.ErrorMessage ?? "Upload failed.",
+                    "Community upload",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Upload failed: {ex.Message}";
+            MessageBox.Show(ex.Message, "Community upload", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsLoading = false;
+            UploadToCommunityCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private bool CanUploadToCommunity() => !IsLoading;
 
     private static string ResolveFolderName(string? catalogFolder)
     {

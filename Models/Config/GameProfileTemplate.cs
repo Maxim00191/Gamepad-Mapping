@@ -52,6 +52,10 @@ public class GameProfileTemplate : IKeyboardActionCatalog
     [JsonProperty("author", NullValueHandling = NullValueHandling.Ignore)]
     public string? Author { get; set; }
 
+    /// <summary>Short description for community template listings (plain text).</summary>
+    [JsonProperty("communityListingDescription", NullValueHandling = NullValueHandling.Ignore)]
+    public string? CommunityListingDescription { get; set; }
+
     [JsonProperty("displayNameKey")]
     public string DisplayNameKey { get; set; } = string.Empty;
 

@@ -289,4 +289,20 @@ public class AppSettings
     /// <summary>When true, show secondary text such as <c>+N</c> for additional mappings on the same control.</summary>
     [JsonProperty("controllerMappingOverlayShowSecondary")]
     public bool ControllerMappingOverlayShowSecondary { get; set; } = true;
+
+    [JsonProperty("communityProfilesRepoOwner")]
+    public string CommunityProfilesRepoOwner { get; set; } = "Maxim00191";
+
+    [JsonProperty("communityProfilesRepoName")]
+    public string CommunityProfilesRepoName { get; set; } = "GamepadMapping-CommunityProfiles";
+
+    [JsonProperty("communityProfilesRepoBranch")]
+    public string CommunityProfilesRepoBranch { get; set; } = "main";
+
+    /// <summary>
+    /// GitHub personal access token (<c>repo</c> scope for a public repo is enough) used only to create a branch, upload JSON, and open a PR.
+    /// Configure via <c>local_settings.json</c>; do not ship real tokens in defaults.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadToken")]
+    public string CommunityProfilesUploadToken { get; set; } = string.Empty;
 }

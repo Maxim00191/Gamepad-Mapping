@@ -25,6 +25,18 @@ public class ProfileValidator : IValidator<GameProfileTemplate>
         if (!string.IsNullOrWhiteSpace(profile.TemplateGroupId) && !ProfileService.IsValidId(profile.TemplateGroupId))
             errors.Add("Template Group ID (when set) contains invalid characters.");
 
+        if (!string.IsNullOrWhiteSpace(profile.TemplateCatalogFolder))
+        {
+            try
+            {
+                TemplateStorageKey.ValidateCatalogFolderPathForSave(profile.TemplateCatalogFolder);
+            }
+            catch (ArgumentException ex)
+            {
+                errors.Add(ex.Message);
+            }
+        }
+
         // Validate Keyboard Actions
         var actionIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (profile.KeyboardActions != null)

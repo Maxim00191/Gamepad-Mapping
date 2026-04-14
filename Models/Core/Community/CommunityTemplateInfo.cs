@@ -23,6 +23,9 @@ public class CommunityTemplateInfo
     [JsonProperty("catalogFolder")]
     public string? CatalogFolder { get; set; }
 
+    [JsonProperty("fileName")]
+    public string? FileName { get; set; }
+
     [JsonProperty("tags")]
     public List<string>? Tags { get; set; }
 }

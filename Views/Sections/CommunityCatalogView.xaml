@@ -94,11 +94,17 @@
                            FontSize="16" FontWeight="SemiBold" 
                            Foreground="{DynamicResource AppTextBrush}"
                            VerticalAlignment="Center"/>
-                <Button Content="Refresh" 
-                        Command="{Binding RefreshTemplatesCommand}"
-                        HorizontalAlignment="Right"
-                        Padding="12,4"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Upload…"
+                            Command="{Binding UploadToCommunityCommand}"
+                            Padding="12,4"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"/>
+                    <Button Content="Refresh" 
+                            Command="{Binding RefreshTemplatesCommand}"
+                            Padding="12,4"
+                            Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"/>
+                </StackPanel>
             </Grid>
         </Border>
 

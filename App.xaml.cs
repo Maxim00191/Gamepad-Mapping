@@ -83,7 +83,7 @@ public partial class App : Application
             var mainViewModel = new MainViewModel(
                 profileService: profileService,
                 gitHubContentService: gitHubContentService,
-                communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService),
+                communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService, appSettings),
                 updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
                 localFileService: localFileService,
                 updateInstallerService: updateInstallerService,

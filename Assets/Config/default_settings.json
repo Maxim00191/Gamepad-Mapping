@@ -14,5 +14,9 @@
   "gamepadMonitorVisible": false,
   "workspaceHeaderExpanded": true,
   "controllerMappingOverlayPrimaryLabel": "actionSummary",
-  "controllerMappingOverlayShowSecondary": true
+  "controllerMappingOverlayShowSecondary": true,
+  "communityProfilesRepoOwner": "Maxim00191",
+  "communityProfilesRepoName": "GamepadMapping-CommunityProfiles",
+  "communityProfilesRepoBranch": "main",
+  "communityProfilesUploadToken": ""
 }

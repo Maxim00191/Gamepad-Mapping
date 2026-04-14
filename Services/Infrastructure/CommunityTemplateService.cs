@@ -22,13 +22,10 @@ namespace GamepadMapperGUI.Services.Infrastructure;
 
 public class CommunityTemplateService : ICommunityTemplateService
 {
-    private const string RepoOwner = "Maxim00191";
-    private const string RepoName = "GamepadMapping-CommunityProfiles";
-    private const string Branch = "main";
-
     private readonly IGitHubContentService _gitHubContentService;
     private readonly IProfileService _profileService;
     private readonly ILocalFileService _localFileService;
+    private readonly AppSettings _communityRepoSettings;
 
     private DateTime _lastRequestTime = DateTime.MinValue;
     private static readonly TimeSpan MinRequestInterval = TimeSpan.FromSeconds(2);
@@ -40,17 +37,34 @@ public class CommunityTemplateService : ICommunityTemplateService
     public CommunityTemplateService(
         IProfileService profileService,
         IGitHubContentService? gitHubContentService = null,
-        ILocalFileService? localFileService = null)
+        ILocalFileService? localFileService = null,
+        AppSettings? communityRepoSettings = null)
     {
         _profileService = profileService;
         _gitHubContentService = gitHubContentService ?? new GitHubContentService();
         _localFileService = localFileService ?? new LocalFileService();
+        _communityRepoSettings = communityRepoSettings ?? new AppSettings();
     }
 
     public CommunityTemplateService(IProfileService profileService, HttpClient httpClient)
-        : this(profileService, new GitHubContentService(httpClient), new LocalFileService())
+        : this(profileService, new GitHubContentService(httpClient), new LocalFileService(), null)
     {
     }
+
+    private string RepoOwner =>
+        string.IsNullOrWhiteSpace(_communityRepoSettings.CommunityProfilesRepoOwner)
+            ? "Maxim00191"
+            : _communityRepoSettings.CommunityProfilesRepoOwner.Trim();
+
+    private string RepoName =>
+        string.IsNullOrWhiteSpace(_communityRepoSettings.CommunityProfilesRepoName)
+            ? "GamepadMapping-CommunityProfiles"
+            : _communityRepoSettings.CommunityProfilesRepoName.Trim();
+
+    private string Branch =>
+        string.IsNullOrWhiteSpace(_communityRepoSettings.CommunityProfilesRepoBranch)
+            ? "main"
+            : _communityRepoSettings.CommunityProfilesRepoBranch.Trim();
 
     public async Task<List<CommunityTemplateInfo>> GetTemplatesAsync()
     {
@@ -191,9 +205,11 @@ public class CommunityTemplateService : ICommunityTemplateService
         return _useCdnPreferred ? GetCdnUrl(folder, id) : GetGitHubRawUrl(folder, id);
     }
 
-    private static GitHubRepositoryContentRequest CreateRequest(string? folder, string id)
+    private GitHubRepositoryContentRequest CreateRequest(string? folder, string id)
     {
-        var relativePath = string.IsNullOrEmpty(folder) ? $"{id}.json" : $"{folder}/{id}.json";
+        var stem = (id ?? string.Empty).Trim();
+        var folderPart = (folder ?? string.Empty).Replace('\\', '/').Trim('/');
+        var relativePath = folderPart.Length == 0 ? $"{stem}.json" : $"{folderPart}/{stem}.json";
         return new GitHubRepositoryContentRequest(RepoOwner, RepoName, Branch, relativePath);
     }
 
