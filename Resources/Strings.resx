@@ -546,6 +546,9 @@
   <data name="VisualEditorLogicalControlMappingsMappingCountMany" xml:space="preserve">
     <value>{0} mappings</value>
   </data>
+  <data name="VisualEditorDeselectController" xml:space="preserve">
+    <value>Deselect</value>
+  </data>
   <data name="ControllerOverlayLabelSettingsHeader" xml:space="preserve">
     <value>Diagram labels</value>
   </data>

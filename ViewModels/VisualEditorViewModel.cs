@@ -94,9 +94,20 @@ public partial class VisualEditorViewModel : ObservableObject
 
     partial void OnSelectedElementNameChanged(string? value)
     {
+        OnPropertyChanged(nameof(HasVisualElementSelection));
+        ClearVisualSelectionCommand.NotifyCanExecuteChanged();
         LogicalControlMappings.SetElementContext(value);
         RefreshVisualSelectionState();
     }
+
+    public bool HasVisualElementSelection => !string.IsNullOrEmpty(SelectedElementName);
+
+    [RelayCommand(CanExecute = nameof(CanClearVisualSelection))]
+    private void ClearVisualSelection() =>
+        ControllerVisual.SelectedElementName = null;
+
+    private bool CanClearVisualSelection() =>
+        !string.IsNullOrEmpty(SelectedElementName);
 
     partial void OnSelectedMappingChanged(MappingEntry? value) =>
         OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));

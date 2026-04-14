@@ -89,13 +89,23 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <Button Grid.Column="1"
-                            MinWidth="120"
-                            VerticalAlignment="Center"
-                            Padding="12,6"
-                            Content="{Binding Source={StaticResource Loc}, Path=[AddMapping]}"
-                            Command="{Binding CreateMappingCommand}"
-                            Visibility="{Binding ShowVisualCreateMappingCallout, Converter={StaticResource BoolToVis}}" />
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Button MinWidth="100"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                Padding="12,6"
+                                Content="{Binding Source={StaticResource Loc}, Path=[VisualEditorDeselectController]}"
+                                Command="{Binding ClearVisualSelectionCommand}"
+                                Visibility="{Binding HasVisualElementSelection, Converter={StaticResource BoolToVis}}" />
+                        <Button MinWidth="120"
+                                VerticalAlignment="Center"
+                                Padding="12,6"
+                                Content="{Binding Source={StaticResource Loc}, Path=[AddMapping]}"
+                                Command="{Binding CreateMappingCommand}"
+                                Visibility="{Binding ShowVisualCreateMappingCallout, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

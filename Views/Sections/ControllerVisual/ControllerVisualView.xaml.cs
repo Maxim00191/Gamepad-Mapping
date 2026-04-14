@@ -37,6 +37,41 @@ public partial class ControllerVisualView : UserControl
         MainRoot.MouseUp += OnMouseUp;
     }
 
+    private void MainRoot_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left || _isPanning) return;
+        if (DataContext is not ControllerVisualViewModel vm) return;
+        if (string.IsNullOrEmpty(vm.SelectedElementName)) return;
+        if (IsInteractiveControllerDiagramHit(e.OriginalSource as DependencyObject)) return;
+
+        vm.SelectElementCommand.Execute(null);
+        e.Handled = true;
+    }
+
+    private bool IsInteractiveControllerDiagramHit(DependencyObject? source)
+    {
+        for (var cur = source; cur is not null; cur = VisualTreeHelper.GetParent(cur))
+        {
+            switch (cur)
+            {
+                case Button:
+                    return true;
+                case Path { Tag: string }:
+                    return true;
+                case Rectangle { Tag: string }:
+                    return true;
+            }
+
+            if (ReferenceEquals(cur, HoverHintBar))
+                return true;
+
+            if (ReferenceEquals(cur, MainRoot))
+                break;
+        }
+
+        return false;
+    }
+
     private void OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
         var pos = e.GetPosition(TransformContainer);

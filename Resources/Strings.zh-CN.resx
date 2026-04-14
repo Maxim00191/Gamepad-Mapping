@@ -546,6 +546,9 @@
   <data name="VisualEditorLogicalControlMappingsMappingCountMany" xml:space="preserve">
     <value>{0} 条映射</value>
   </data>
+  <data name="VisualEditorDeselectController" xml:space="preserve">
+    <value>取消选择</value>
+  </data>
   <data name="ControllerOverlayLabelSettingsHeader" xml:space="preserve">
     <value>示意图标签</value>
   </data>

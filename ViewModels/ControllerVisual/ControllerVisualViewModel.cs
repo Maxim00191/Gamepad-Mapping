@@ -226,6 +226,12 @@ public partial class ControllerVisualViewModel : ObservableObject
 
     partial void OnSelectedElementNameChanged(string? value)
     {
+        if (string.IsNullOrEmpty(value))
+        {
+            HoveredElementId = null;
+            HoveredElementName = null;
+        }
+
         if (_lastMappings is not null)
             UpdateOverlay(_lastMappings);
         else
