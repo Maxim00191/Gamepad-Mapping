@@ -71,6 +71,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerVisualHighlightService _controllerVisualHighlightService;
     private readonly IControllerMappingOverlayLabelComposer _controllerMappingOverlayLabelComposer;
     private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
+    private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -86,6 +87,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _controllerMappingOverlayLabelComposer;
 
     public IControllerVisualLayoutHelper ControllerVisualLayoutHelper => _controllerVisualLayoutHelper;
+
+    public IMappingsForLogicalControlQuery MappingsForLogicalControlQuery => _mappingsForLogicalControlQuery;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -165,6 +168,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _controllerVisualService,
             _controllerChordContextResolver);
         _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
+        _mappingsForLogicalControlQuery = new MappingsForLogicalControlQuery(_controllerVisualService);
 
         _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
 
@@ -765,6 +769,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         VisualEditorPanel = new VisualEditorViewModel(
             this,
             _controllerVisualService,
+            _mappingsForLogicalControlQuery,
             _controllerVisualLayoutSource,
             _controllerVisualLoader,
             _controllerVisualHighlightService);

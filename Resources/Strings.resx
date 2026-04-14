@@ -528,6 +528,24 @@
   <data name="VisualEditorNoMappingHint" xml:space="preserve">
     <value>This control is not mapped yet. Add a mapping to use it in your profile.</value>
   </data>
+  <data name="VisualEditorLogicalControlMappingsHeader" xml:space="preserve">
+    <value>Mappings for selected control</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsSelectHint" xml:space="preserve">
+    <value>Click a control on the diagram to list every mapping that uses it (including chords).</value>
+  </data>
+  <data name="VisualEditorAddMappingForControl" xml:space="preserve">
+    <value>Add another mapping for this control</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsMappingCountZero" xml:space="preserve">
+    <value>No mappings</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsMappingCountOne" xml:space="preserve">
+    <value>1 mapping</value>
+  </data>
+  <data name="VisualEditorLogicalControlMappingsMappingCountMany" xml:space="preserve">
+    <value>{0} mappings</value>
+  </data>
   <data name="ControllerOverlayLabelSettingsHeader" xml:space="preserve">
     <value>Diagram labels</value>
   </data>

@@ -82,15 +82,20 @@ public partial class MappingEditorViewModel : ObservableObject
                 if (string.IsNullOrEmpty(elementId)) return;
 
                 var binding = _mainViewModel.ControllerVisualService.MapIdToBinding(elementId);
-                
+
                 if (binding == null) return;
 
-                var existing = Mappings.FirstOrDefault(m => 
-                    m.From?.Type == binding.Type && m.From?.Value == binding.Value);
+                var forControl = _mainViewModel.MappingsForLogicalControlQuery
+                    .GetMappingsForLogicalControl(elementId, Mappings)
+                    .ToList();
 
-                if (existing != null)
+                if (forControl.Count > 0)
                 {
-                    SelectedMapping = existing;
+                    var current = SelectedMapping;
+                    if (current is not null && forControl.Any(x => ReferenceEquals(x, current)))
+                        return;
+
+                    SelectedMapping = forControl[0];
                 }
                 else
                 {

@@ -12,6 +12,7 @@ public partial class VisualEditorViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
     private readonly IControllerVisualService _visualService;
+    private readonly IMappingsForLogicalControlQuery _mappingQuery;
 
     [ObservableProperty]
     private ControllerVisualViewModel _controllerVisual;
@@ -25,20 +26,29 @@ public partial class VisualEditorViewModel : ObservableObject
     [ObservableProperty]
     private string? _selectedDisplayName;
 
+    public VisualLogicalControlMappingsViewModel LogicalControlMappings { get; }
+
     public bool ShowVisualCreateMappingCallout =>
         !string.IsNullOrEmpty(SelectedElementName)
-        && SelectedMapping is null
-        && !_mainViewModel.MappingEditorPanel.IsCreatingNewMapping;
+        && !_mainViewModel.MappingEditorPanel.IsCreatingNewMapping
+        && !HasAnyMappingForSelectedElement();
 
     public VisualEditorViewModel(
         MainViewModel mainViewModel,
         IControllerVisualService visualService,
+        IMappingsForLogicalControlQuery mappingQuery,
         IControllerVisualLayoutSource layoutSource,
         IControllerVisualLoader controllerVisualLoader,
         IControllerVisualHighlightService highlightService)
     {
         _mainViewModel = mainViewModel;
         _visualService = visualService;
+        _mappingQuery = mappingQuery;
+        LogicalControlMappings = new VisualLogicalControlMappingsViewModel(
+            mainViewModel,
+            mappingQuery,
+            visualService);
+
         ControllerVisual = new ControllerVisualViewModel(
             visualService,
             layoutSource,
@@ -55,7 +65,11 @@ public partial class VisualEditorViewModel : ObservableObject
                 OnElementSelected(ControllerVisual.SelectedElementName);
         };
 
-        _mainViewModel.Mappings.CollectionChanged += (s, e) => ControllerVisual.UpdateOverlay(_mainViewModel.Mappings);
+        _mainViewModel.Mappings.CollectionChanged += (_, _) =>
+        {
+            ControllerVisual.UpdateOverlay(_mainViewModel.Mappings);
+            OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));
+        };
         ControllerVisual.UpdateOverlay(_mainViewModel.Mappings);
 
         _mainViewModel.PropertyChanged += (_, e) =>
@@ -68,14 +82,21 @@ public partial class VisualEditorViewModel : ObservableObject
         };
     }
 
+    private bool HasAnyMappingForSelectedElement() =>
+        !string.IsNullOrEmpty(SelectedElementName)
+        && _mappingQuery.GetMappingsForLogicalControl(SelectedElementName!, _mainViewModel.Mappings).Count > 0;
+
     private void OnMappingEditorPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MappingEditorViewModel.IsCreatingNewMapping))
+        if (e.PropertyName is nameof(MappingEditorViewModel.IsCreatingNewMapping))
             OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));
     }
 
-    partial void OnSelectedElementNameChanged(string? value) =>
+    partial void OnSelectedElementNameChanged(string? value)
+    {
+        LogicalControlMappings.SetElementContext(value);
         RefreshVisualSelectionState();
+    }
 
     partial void OnSelectedMappingChanged(MappingEntry? value) =>
         OnPropertyChanged(nameof(ShowVisualCreateMappingCallout));
@@ -88,20 +109,17 @@ public partial class VisualEditorViewModel : ObservableObject
 
     private void SyncFromGlobalSelection(MappingEntry? mapping)
     {
-        if (mapping == null) return;
+        if (mapping is null)
+            return;
 
-        foreach (var elementId in _visualService.EnumerateMappedLogicalControlIds())
-        {
-            var binding = _visualService.MapIdToBinding(elementId);
-            if (binding != null && mapping.From?.Type == binding.Type && mapping.From?.Value == binding.Value)
-            {
-                ControllerVisual.SelectedElementName = elementId;
-                SelectedMapping = mapping;
-                SelectedElementName = elementId;
-                SelectedDisplayName = _visualService.GetDisplayName(elementId);
-                break;
-            }
-        }
+        var elementId = _mappingQuery.ResolvePrimaryLogicalControlIdForMapping(mapping);
+        if (string.IsNullOrEmpty(elementId))
+            return;
+
+        ControllerVisual.SelectedElementName = elementId;
+        SelectedMapping = mapping;
+        SelectedElementName = elementId;
+        SelectedDisplayName = _visualService.GetDisplayName(elementId);
     }
 
     private void OnElementSelected(string? elementName)
@@ -116,45 +134,31 @@ public partial class VisualEditorViewModel : ObservableObject
         }
 
         var binding = _visualService.MapIdToBinding(elementName);
-        if (binding == null)
+        if (binding is null)
         {
             SelectedMapping = null;
             _mainViewModel.SelectedMapping = null;
             return;
         }
 
-        var existing = _mainViewModel.Mappings.FirstOrDefault(m =>
-            m.From?.Type == binding.Type &&
-            m.From?.Value == binding.Value);
-
-        if (existing != null)
-        {
-            SelectedMapping = existing;
-            _mainViewModel.SelectedMapping = existing;
-        }
-        else
+        var forControl = _mappingQuery.GetMappingsForLogicalControl(elementName, _mainViewModel.Mappings);
+        if (forControl.Count == 0)
         {
             SelectedMapping = null;
             _mainViewModel.SelectedMapping = null;
+            return;
         }
+
+        var current = _mainViewModel.SelectedMapping;
+        if (current is not null && forControl.Any(x => ReferenceEquals(x, current)))
+            return;
+
+        var pick = forControl[0];
+        SelectedMapping = pick;
+        _mainViewModel.SelectedMapping = pick;
     }
 
     [RelayCommand]
-    private void CreateMapping()
-    {
-        if (string.IsNullOrEmpty(SelectedElementName)) return;
-
-        var binding = _visualService.MapIdToBinding(SelectedElementName);
-        if (binding == null) return;
-
-        // Ensure we are in the right state to show the editor
-        _mainViewModel.MappingEditorPanel.AddMappingCommand.Execute(null);
-        _mainViewModel.MappingEditorPanel.InputTrigger.SyncFrom(new MappingEntry { From = binding });
-
-        SelectedMapping = _mainViewModel.SelectedMapping;
-        
-        // Switch to mapping tab if not already there, or ensure right panel is visible
-        _mainViewModel.RefreshRightPanelSurface();
-        _mainViewModel.RequestFocusMappingDetailsFirstField();
-    }
+    private void CreateMapping() =>
+        LogicalControlMappings.AddMappingForSelectedControlCommand.Execute(null);
 }
