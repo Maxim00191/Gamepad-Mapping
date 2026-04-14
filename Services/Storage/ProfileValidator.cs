@@ -77,6 +77,9 @@ public class ProfileValidator : IValidator<GameProfileTemplate>
             }
         }
 
+        if (profile.Mappings is null)
+            errors.Add("'mappings' is required.");
+
         // Validate Mappings
         if (profile.Mappings != null)
         {

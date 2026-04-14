@@ -902,4 +902,145 @@
   <data name="ProfileMappingValidationWarningsTooltipTitle" xml:space="preserve">
     <value>配置文件验证警告</value>
   </data>
+  <data name="CommunityUpload_ChecksHeader" xml:space="preserve">
+    <value>仓库检查（实时）</value>
+  </data>
+  <data name="CommunityUpload_ChecksIntro" xml:space="preserve">
+    <value>以下检查与社区仓库校验脚本一致。每一步都会说明在发起拉取请求之前要验证的内容。</value>
+  </data>
+  <data name="CommunityUpload_Step_Submission_Title" xml:space="preserve">
+    <value>1. 提交路径与列表说明</value>
+  </data>
+  <data name="CommunityUpload_Step_Submission_Prompt" xml:space="preserve">
+    <value>确认已填写游戏文件夹、作者文件夹和列表说明，并能组合成将要写入 JSON 的有效目录路径。</value>
+  </data>
+  <data name="CommunityUpload_Step_Selection_Title" xml:space="preserve">
+    <value>2. 已选模板与 profileId</value>
+  </data>
+  <data name="CommunityUpload_Step_Selection_Prompt" xml:space="preserve">
+    <value>确认至少选中一个模板，且任意两个已选文件不能使用相同的 profileId（仓库要求每个文件唯一）。</value>
+  </data>
+  <data name="CommunityUpload_Step_Content_Title" xml:space="preserve">
+    <value>3. 模板 JSON 规则</value>
+  </data>
+  <data name="CommunityUpload_Step_Content_Prompt" xml:space="preserve">
+    <value>运行与本应用及社区 CI 脚本相同的检查：映射、径向菜单、操作引用，以及 actionId / holdActionId 的解析规则。</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Ok" xml:space="preserve">
+    <value>通过</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Warning" xml:space="preserve">
+    <value>警告（仍允许上传）</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Error" xml:space="preserve">
+    <value>已阻止 — 请先修复再上传</value>
+  </data>
+  <data name="CommunityUpload_SuggestionLabel" xml:space="preserve">
+    <value>建议</value>
+  </data>
+  <data name="CommunityUpload_Suggest_GameFolder" xml:space="preserve">
+    <value>输入单个游戏文件夹名称（字母、数字、点、下划线、连字符）。它将作为 GitHub 路径的第一段。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_AuthorFolder" xml:space="preserve">
+    <value>输入作者文件夹名称（单段，不能含斜杠）。模板将放在该游戏文件夹下。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ListingDescription" xml:space="preserve">
+    <value>为社区列表添加简短纯文本说明。将保存在模板 JSON 中。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_PathRules" xml:space="preserve">
+    <value>仅使用有效的单段名称：避免 / \\ : * ? &quot; &lt; &gt; | 与控制字符。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_SelectTemplate" xml:space="preserve">
+    <value>在上方列表中至少勾选一个模板；若不想上传则取消。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_DuplicateProfileId" xml:space="preserve">
+    <value>重命名其中一个配置文件使每个已选文件的 profileId 唯一，或从本次提交中排除多余项。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ProfileId" xml:space="preserve">
+    <value>在配置面板中打开模板，设置非空的 profile ID，并与文件名约定一致。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingsRequired" xml:space="preserve">
+    <value>确保 JSON 包含 mappings 数组。若是手改文件，可在应用中保存一次。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingInput" xml:space="preserve">
+    <value>每条映射都需要游戏输入（from.value 字段）。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingOutput" xml:space="preserve">
+    <value>添加键盘输出，或让映射引用定义了输出的 keyboardActions id。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_KeyboardCatalog" xml:space="preserve">
+    <value>使 keyboardActions 的 id 与映射上的 actionId / holdActionId 一致，去掉重复，并为每条目录项配置真实输出。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_CatalogFolderJson" xml:space="preserve">
+    <value>将 JSON 中的 templateCatalogFolder 改为合法的单段路径，或清空并由应用管理路径。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_RadialMenu" xml:space="preserve">
+    <value>检查径向菜单 id 以及条目的 actionId 是否引用已存在的 keyboardActions。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TemplateGroupId" xml:space="preserve">
+    <value>模板组 id 仅使用字母、数字、点、下划线与连字符。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ActionIdExclusive" xml:space="preserve">
+    <value>从该映射中移除内联的 itemCycle / templateToggle / radialMenu，或不要在同一行使用 actionId。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_WarningReview" xml:space="preserve">
+    <value>可选：处理警告以符合更严格的仓库设置（将警告视为错误）。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_Generic" xml:space="preserve">
+    <value>对照 Assets/Profiles/templates 中的可用模板，或按提示信息修正对应字段。</value>
+  </data>
+  <data name="CommunityUpload_FixIssuesBeforeUpload" xml:space="preserve">
+    <value>请先修复「仓库检查」下列出的问题，或取消上传。</value>
+  </data>
+  <data name="CommunityUpload_WindowTitle" xml:space="preserve">
+    <value>上传模板到社区</value>
+  </data>
+  <data name="CommunityUpload_Intro" xml:space="preserve">
+    <value>将当前模板以及通过模板切换关联的配置文件一并提交，由 GitHub 拉取请求审核。不需要纳入本次提交的可取消勾选。</value>
+  </data>
+  <data name="CommunityUpload_TemplatesToInclude" xml:space="preserve">
+    <value>要包含的模板</value>
+  </data>
+  <data name="CommunityUpload_SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="CommunityUpload_ClearSelection" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="CommunityUpload_GameFolderLabel" xml:space="preserve">
+    <value>游戏文件夹（仓库分组）</value>
+  </data>
+  <data name="CommunityUpload_AuthorFolderLabel" xml:space="preserve">
+    <value>作者文件夹</value>
+  </data>
+  <data name="CommunityUpload_ListingDescriptionLabel" xml:space="preserve">
+    <value>列表说明</value>
+  </data>
+  <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
+    <value>需要在 local_settings.json 中配置 communityProfilesUploadToken（具有仓库权限的 GitHub PAT）。仓库自动化会打开 PR；合并后将运行索引更新工作流。</value>
+  </data>
+  <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
+    <value>上传</value>
+  </data>
+  <data name="CommunityUpload_SelectionSummary" xml:space="preserve">
+    <value>已选择 {0} / {1} 个模板文件用于上传。</value>
+  </data>
+  <data name="CommunityUpload_Error_NoTemplatesInBundle" xml:space="preserve">
+    <value>包内没有模板。</value>
+  </data>
+  <data name="CommunityUpload_Error_SelectAtLeastOne" xml:space="preserve">
+    <value>请至少选择一个要上传的模板。</value>
+  </data>
+  <data name="CommunityUpload_Error_GameFolderRequired" xml:space="preserve">
+    <value>必须填写游戏文件夹名称。</value>
+  </data>
+  <data name="CommunityUpload_Error_AuthorRequired" xml:space="preserve">
+    <value>必须填写作者名称。</value>
+  </data>
+  <data name="CommunityUpload_Error_ListingDescriptionRequired" xml:space="preserve">
+    <value>必须填写列表说明。</value>
+  </data>
+  <data name="CommunityUpload_Error_InvalidInput" xml:space="preserve">
+    <value>输入无效。</value>
+  </data>
 </root>

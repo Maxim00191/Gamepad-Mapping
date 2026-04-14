@@ -1,16 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Models.Core.Community;
 
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
 {
+    private readonly ICommunityTemplateUploadComplianceService _complianceService;
+
+    public CommunityTemplateUploadDialogViewModel(ICommunityTemplateUploadComplianceService complianceService)
+    {
+        _complianceService = complianceService;
+        if (Application.Current?.Resources["Loc"] is GamepadMapperGUI.Services.Infrastructure.TranslationService loc)
+            loc.PropertyChanged += OnLocPropertyChanged;
+    }
+
     [ObservableProperty]
     private string _gameFolderName = string.Empty;
 
@@ -23,7 +37,12 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
     [ObservableProperty]
     private string _selectionSummary = string.Empty;
 
+    [ObservableProperty]
+    private bool _complianceReady;
+
     public ObservableCollection<CommunityTemplateUploadBundleRowViewModel> BundleItems { get; } = new();
+
+    public ObservableCollection<CommunityTemplateComplianceStepViewModel> ComplianceSteps { get; } = new();
 
     public void LoadBundle(IReadOnlyList<CommunityTemplateBundleEntry> entries)
     {
@@ -33,10 +52,26 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
             BundleItems.Add(new CommunityTemplateUploadBundleRowViewModel(
                 e.StorageKey,
                 e.Template,
-                UpdateSelectionSummary));
+                OnBundleItemChanged));
         }
 
         UpdateSelectionSummary();
+        RefreshCompliance();
+    }
+
+    private void OnLocPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(GamepadMapperGUI.Services.Infrastructure.TranslationService.Culture) or "Item[]")
+        {
+            UpdateSelectionSummary();
+            RefreshCompliance();
+        }
+    }
+
+    private void OnBundleItemChanged()
+    {
+        UpdateSelectionSummary();
+        RefreshCompliance();
     }
 
     public IReadOnlyList<GameProfileTemplate> GetSelectedTemplates()
@@ -50,6 +85,7 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
         foreach (var item in BundleItems)
             item.IsIncluded = true;
         UpdateSelectionSummary();
+        RefreshCompliance();
     }
 
     [RelayCommand]
@@ -58,49 +94,122 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
         foreach (var item in BundleItems)
             item.IsIncluded = false;
         UpdateSelectionSummary();
+        RefreshCompliance();
     }
 
     private void UpdateSelectionSummary()
     {
         var n = BundleItems.Count(static i => i.IsIncluded);
         var t = BundleItems.Count;
-        SelectionSummary = $"{n} of {t} template file(s) selected for upload.";
+        var loc = Application.Current?.Resources["Loc"] as GamepadMapperGUI.Services.Infrastructure.TranslationService;
+        SelectionSummary = loc is null
+            ? string.Format(CultureInfo.CurrentCulture, "{0} of {1} template file(s) selected for upload.", n, t)
+            : string.Format(CultureInfo.CurrentCulture, loc["CommunityUpload_SelectionSummary"], n, t);
+    }
+
+    partial void OnGameFolderNameChanged(string value) => RefreshCompliance();
+
+    partial void OnAuthorNameChanged(string value) => RefreshCompliance();
+
+    partial void OnListingDescriptionChanged(string value) => RefreshCompliance();
+
+    private void RefreshCompliance()
+    {
+        var loc = Application.Current?.Resources["Loc"] as GamepadMapperGUI.Services.Infrastructure.TranslationService;
+        if (loc is null)
+        {
+            ComplianceReady = false;
+            ComplianceSteps.Clear();
+            return;
+        }
+
+        var selected = BundleItems
+            .Where(static i => i.IsIncluded)
+            .Select(static i => new CommunityTemplateBundleEntry(i.StorageKey, i.Template))
+            .ToList();
+
+        var result = _complianceService.EvaluateSubmission(
+            selected,
+            GameFolderName,
+            AuthorName,
+            ListingDescription);
+
+        ComplianceReady = result.ReadyToSubmit;
+        ComplianceSteps.Clear();
+        foreach (var step in result.Steps)
+        {
+            var items = new ObservableCollection<CommunityTemplateComplianceIssueViewModel>();
+            foreach (var issue in step.Issues)
+            {
+                var line = string.IsNullOrEmpty(issue.TemplateLabel)
+                    ? issue.Detail
+                    : $"{issue.TemplateLabel}: {issue.Detail}";
+                var sug = string.IsNullOrEmpty(issue.SuggestionKey)
+                    ? null
+                    : loc[issue.SuggestionKey!];
+                items.Add(new CommunityTemplateComplianceIssueViewModel(line, sug));
+            }
+
+            var statusKey = step.Severity switch
+            {
+                CommunityTemplateComplianceSeverity.Ok => "CommunityUpload_SeveritySummary_Ok",
+                CommunityTemplateComplianceSeverity.Warning => "CommunityUpload_SeveritySummary_Warning",
+                _ => "CommunityUpload_SeveritySummary_Error"
+            };
+
+            ComplianceSteps.Add(new CommunityTemplateComplianceStepViewModel(
+                loc[step.TitleKey],
+                loc[step.PromptKey],
+                loc[statusKey],
+                step.Severity,
+                items));
+        }
     }
 
     public bool TryCommit(out string? errorMessage)
     {
         errorMessage = null;
+        RefreshCompliance();
+        var loc = Application.Current?.Resources["Loc"] as GamepadMapperGUI.Services.Infrastructure.TranslationService;
+
+        if (!ComplianceReady)
+        {
+            errorMessage = loc?["CommunityUpload_FixIssuesBeforeUpload"]
+                           ?? "Fix the issues listed under Repository checks before uploading, or cancel.";
+            return false;
+        }
+
         var game = (GameFolderName ?? string.Empty).Trim();
         var author = (AuthorName ?? string.Empty).Trim();
         var desc = (ListingDescription ?? string.Empty).Trim();
 
         if (BundleItems.Count == 0)
         {
-            errorMessage = "No templates in bundle.";
+            errorMessage = loc?["CommunityUpload_Error_NoTemplatesInBundle"] ?? "No templates in bundle.";
             return false;
         }
 
         if (!BundleItems.Any(static i => i.IsIncluded))
         {
-            errorMessage = "Select at least one template to upload.";
+            errorMessage = loc?["CommunityUpload_Error_SelectAtLeastOne"] ?? "Select at least one template to upload.";
             return false;
         }
 
         if (game.Length == 0)
         {
-            errorMessage = "Game folder name is required.";
+            errorMessage = loc?["CommunityUpload_Error_GameFolderRequired"] ?? "Game folder name is required.";
             return false;
         }
 
         if (author.Length == 0)
         {
-            errorMessage = "Author name is required.";
+            errorMessage = loc?["CommunityUpload_Error_AuthorRequired"] ?? "Author name is required.";
             return false;
         }
 
         if (desc.Length == 0)
         {
-            errorMessage = "Listing description is required.";
+            errorMessage = loc?["CommunityUpload_Error_ListingDescriptionRequired"] ?? "Listing description is required.";
             return false;
         }
 

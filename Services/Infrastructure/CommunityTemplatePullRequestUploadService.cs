@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Models.Core.Community;
 using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Services.Infrastructure;
@@ -21,11 +22,16 @@ public sealed class CommunityTemplatePullRequestUploadService : ICommunityTempla
 
     private readonly AppSettings _settings;
     private readonly HttpClient _httpClient;
+    private readonly ICommunityTemplateUploadComplianceService _compliance;
 
-    public CommunityTemplatePullRequestUploadService(AppSettings settings, HttpClient? httpClient = null)
+    public CommunityTemplatePullRequestUploadService(
+        AppSettings settings,
+        HttpClient? httpClient = null,
+        ICommunityTemplateUploadComplianceService? complianceService = null)
     {
         _settings = settings;
         _httpClient = httpClient ?? new HttpClient();
+        _compliance = complianceService ?? new CommunityTemplateUploadComplianceService();
     }
 
     public async Task<CommunityTemplateUploadResult> SubmitBundleAsync(
@@ -76,6 +82,42 @@ public sealed class CommunityTemplatePullRequestUploadService : ICommunityTempla
 
         var catalogFolder = TemplateStorageKey.ValidateCatalogFolderPathForSave($"{gameSeg}/{authorSeg}");
 
+        var bundleEntries = templates
+            .Select((t, i) => new CommunityTemplateBundleEntry($"{i}:{(t.ProfileId ?? string.Empty).Trim()}", t))
+            .ToList();
+        var complianceResult = _compliance.EvaluateSubmission(
+            bundleEntries,
+            gameFolderDisplayName,
+            authorTrimmed,
+            desc);
+        if (!complianceResult.ReadyToSubmit)
+        {
+            var lines = new List<string>();
+            foreach (var step in complianceResult.Steps)
+            {
+                if (step.Severity != CommunityTemplateComplianceSeverity.Error || step.Issues.Count == 0)
+                    continue;
+
+                foreach (var issue in step.Issues)
+                {
+                    var line = string.IsNullOrEmpty(issue.TemplateLabel)
+                        ? issue.Detail
+                        : $"{issue.TemplateLabel}: {issue.Detail}";
+                    lines.Add(line);
+                    if (lines.Count >= 12)
+                        break;
+                }
+
+                if (lines.Count >= 12)
+                    break;
+            }
+
+            var msg = lines.Count > 0
+                ? string.Join(Environment.NewLine, lines)
+                : "Template validation failed.";
+            return new CommunityTemplateUploadResult(false, null, msg);
+        }
+
         try
         {
             var baseSha = await GetBranchHeadShaAsync(token, owner, repo, baseBranch, cancellationToken)
@@ -92,7 +134,7 @@ public sealed class CommunityTemplatePullRequestUploadService : ICommunityTempla
 
             foreach (var t in templates)
             {
-                var clone = CloneForUpload(t, catalogFolder, authorTrimmed, desc);
+                var clone = CommunityTemplateSubmissionClone.CloneForSubmission(t, catalogFolder, authorTrimmed, desc);
                 var relativePath = $"{catalogFolder.Replace('\\', '/')}/{clone.ProfileId.Trim()}.json";
                 var json = JsonConvert.SerializeObject(clone, Newtonsoft.Json.Formatting.Indented);
                 await PutRepositoryFileAsync(token, owner, repo, relativePath, branchName, json, cancellationToken)
@@ -116,21 +158,6 @@ public sealed class CommunityTemplatePullRequestUploadService : ICommunityTempla
         {
             return new CommunityTemplateUploadResult(false, null, ex.Message);
         }
-    }
-
-    private static GameProfileTemplate CloneForUpload(
-        GameProfileTemplate source,
-        string catalogFolder,
-        string authorForJson,
-        string listingDescription)
-    {
-        var json = JsonConvert.SerializeObject(source);
-        var clone = JsonConvert.DeserializeObject<GameProfileTemplate>(json)
-                    ?? throw new InvalidOperationException("Template clone failed.");
-        clone.TemplateCatalogFolder = catalogFolder;
-        clone.Author = authorForJson;
-        clone.CommunityListingDescription = listingDescription;
-        return clone;
     }
 
     private static string BuildPrBody(string catalogFolder, IReadOnlyList<string> profileIds, string listingDescription)

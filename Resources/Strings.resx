@@ -902,4 +902,145 @@ Do you want to overwrite it?</value>
   <data name="ProfileMappingValidationWarningsTooltipTitle" xml:space="preserve">
     <value>Profile validation warnings</value>
   </data>
+  <data name="CommunityUpload_ChecksHeader" xml:space="preserve">
+    <value>Repository checks (live)</value>
+  </data>
+  <data name="CommunityUpload_ChecksIntro" xml:space="preserve">
+    <value>These checks mirror the community repository validator. Each step explains what we verify before your pull request is opened.</value>
+  </data>
+  <data name="CommunityUpload_Step_Submission_Title" xml:space="preserve">
+    <value>1. Submission paths and listing text</value>
+  </data>
+  <data name="CommunityUpload_Step_Submission_Prompt" xml:space="preserve">
+    <value>We confirm the game folder, author folder, and listing description are filled in and combine into a valid catalog path for the JSON we will commit.</value>
+  </data>
+  <data name="CommunityUpload_Step_Selection_Title" xml:space="preserve">
+    <value>2. Selected templates and profile IDs</value>
+  </data>
+  <data name="CommunityUpload_Step_Selection_Prompt" xml:space="preserve">
+    <value>We verify at least one template is selected and that no two selected files share the same profileId (the repository requires unique ids per file).</value>
+  </data>
+  <data name="CommunityUpload_Step_Content_Title" xml:space="preserve">
+    <value>3. Template JSON rules</value>
+  </data>
+  <data name="CommunityUpload_Step_Content_Prompt" xml:space="preserve">
+    <value>We run the same profile and keyboard-action catalog checks as the app and the community CI script: mappings, radial menus, action references, and resolver rules for actionId / holdActionId.</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Ok" xml:space="preserve">
+    <value>Pass</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Warning" xml:space="preserve">
+    <value>Warnings (upload still allowed)</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Error" xml:space="preserve">
+    <value>Blocked — fix before upload</value>
+  </data>
+  <data name="CommunityUpload_SuggestionLabel" xml:space="preserve">
+    <value>Suggestion</value>
+  </data>
+  <data name="CommunityUpload_Suggest_GameFolder" xml:space="preserve">
+    <value>Enter a single folder name for the game (letters, digits, dot, underscore, hyphen). It becomes the first segment of the path on GitHub.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_AuthorFolder" xml:space="preserve">
+    <value>Enter your author folder name (one segment, no slashes). It groups your templates under the game folder.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ListingDescription" xml:space="preserve">
+    <value>Add a short plain-text description for the community listing. It is stored in the template JSON.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_PathRules" xml:space="preserve">
+    <value>Use only valid single-segment names: avoid / \\ : * ? &quot; &lt; &gt; | and control characters.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_SelectTemplate" xml:space="preserve">
+    <value>Check at least one template in the list above, or cancel if you meant to upload nothing.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_DuplicateProfileId" xml:space="preserve">
+    <value>Rename one of the profiles so each selected file has a unique profileId, or exclude extras from this submission.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ProfileId" xml:space="preserve">
+    <value>Open the template in the profile panel and set a non-empty profile ID that matches the file name convention you use.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingsRequired" xml:space="preserve">
+    <value>Ensure the JSON includes a mappings array. Save the profile from the app if the file was hand-edited.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingInput" xml:space="preserve">
+    <value>Every mapping needs a gamepad input (the from.value field).</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingOutput" xml:space="preserve">
+    <value>Add a keyboard output, or point the mapping at a keyboardActions id that defines the output.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_KeyboardCatalog" xml:space="preserve">
+    <value>Align keyboardActions ids with actionId / holdActionId on mappings, remove duplicates, and give each catalog entry a real output.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_CatalogFolderJson" xml:space="preserve">
+    <value>Fix templateCatalogFolder in JSON to valid single-segment parts, or clear it and let the app manage paths.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_RadialMenu" xml:space="preserve">
+    <value>Check radial menu ids and item actionId values reference existing keyboardActions entries.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TemplateGroupId" xml:space="preserve">
+    <value>Use only letters, digits, dot, underscore, and hyphen in the template group id.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ActionIdExclusive" xml:space="preserve">
+    <value>Remove inline itemCycle / templateToggle / radialMenu from this mapping, or stop using actionId on the same row.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_WarningReview" xml:space="preserve">
+    <value>Optional: address warnings to match stricter repository settings (warnings-as-errors).</value>
+  </data>
+  <data name="CommunityUpload_Suggest_Generic" xml:space="preserve">
+    <value>Compare your template with a working profile from Assets/Profiles/templates or fix the field mentioned in the message.</value>
+  </data>
+  <data name="CommunityUpload_FixIssuesBeforeUpload" xml:space="preserve">
+    <value>Fix the issues listed under Repository checks before uploading, or cancel.</value>
+  </data>
+  <data name="CommunityUpload_WindowTitle" xml:space="preserve">
+    <value>Upload templates to community</value>
+  </data>
+  <data name="CommunityUpload_Intro" xml:space="preserve">
+    <value>Submit the current template and any profiles linked by template switches for review via a GitHub pull request. Uncheck templates you do not want in this submission.</value>
+  </data>
+  <data name="CommunityUpload_TemplatesToInclude" xml:space="preserve">
+    <value>Templates to include</value>
+  </data>
+  <data name="CommunityUpload_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="CommunityUpload_ClearSelection" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="CommunityUpload_GameFolderLabel" xml:space="preserve">
+    <value>Game folder (repository group)</value>
+  </data>
+  <data name="CommunityUpload_AuthorFolderLabel" xml:space="preserve">
+    <value>Author folder</value>
+  </data>
+  <data name="CommunityUpload_ListingDescriptionLabel" xml:space="preserve">
+    <value>Listing description</value>
+  </data>
+  <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
+    <value>Requires communityProfilesUploadToken in local_settings.json (GitHub PAT with repo scope). The repository automation opens a PR; merging runs the index update workflow.</value>
+  </data>
+  <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
+    <value>Upload</value>
+  </data>
+  <data name="CommunityUpload_SelectionSummary" xml:space="preserve">
+    <value>{0} of {1} template file(s) selected for upload.</value>
+  </data>
+  <data name="CommunityUpload_Error_NoTemplatesInBundle" xml:space="preserve">
+    <value>No templates in bundle.</value>
+  </data>
+  <data name="CommunityUpload_Error_SelectAtLeastOne" xml:space="preserve">
+    <value>Select at least one template to upload.</value>
+  </data>
+  <data name="CommunityUpload_Error_GameFolderRequired" xml:space="preserve">
+    <value>Game folder name is required.</value>
+  </data>
+  <data name="CommunityUpload_Error_AuthorRequired" xml:space="preserve">
+    <value>Author name is required.</value>
+  </data>
+  <data name="CommunityUpload_Error_ListingDescriptionRequired" xml:space="preserve">
+    <value>Listing description is required.</value>
+  </data>
+  <data name="CommunityUpload_Error_InvalidInput" xml:space="preserve">
+    <value>Invalid input.</value>
+  </data>
 </root>

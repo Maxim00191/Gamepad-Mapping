@@ -56,6 +56,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool _suppressWorkspaceHeaderSettingsPersistence;
 
     private readonly ICommunityTemplateService _communityService;
+    private readonly ICommunityTemplateUploadComplianceService _communityTemplateComplianceService;
     private readonly ICommunityTemplateUploadService _communityTemplateUploadService;
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
@@ -101,6 +102,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IMappingEngine? mappingEngine = null,
         ISettingsService? settingsService = null,
         ICommunityTemplateService? communityService = null,
+        ICommunityTemplateUploadComplianceService? communityTemplateComplianceService = null,
         ICommunityTemplateUploadService? communityTemplateUploadService = null,
         IUpdateService? updateService = null,
         IGitHubContentService? gitHubContentService = null,
@@ -152,8 +154,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _localFileService = localFileService ?? new LocalFileService();
         var sharedGitHubContentService = gitHubContentService ?? new GitHubContentService();
         var resolvedUpdateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
+        _communityTemplateComplianceService =
+            communityTemplateComplianceService ?? new CommunityTemplateUploadComplianceService();
         _communityTemplateUploadService = communityTemplateUploadService
-            ?? new CommunityTemplatePullRequestUploadService(appSettings);
+            ?? new CommunityTemplatePullRequestUploadService(appSettings, null, _communityTemplateComplianceService);
         _communityService = communityService ?? new CommunityTemplateService(
             _profileService,
             sharedGitHubContentService,
@@ -781,7 +785,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
-        CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService, _communityTemplateUploadService);
+        CommunityCatalogPanel = new CommunityCatalogViewModel(
+            this,
+            _communityService,
+            _communityTemplateUploadService,
+            _communityTemplateComplianceService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;

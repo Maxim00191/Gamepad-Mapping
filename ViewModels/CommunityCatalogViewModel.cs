@@ -19,6 +19,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
 {
     private readonly ICommunityTemplateService _communityService;
     private readonly ICommunityTemplateUploadService _uploadService;
+    private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly MainViewModel _main;
 
     [ObservableProperty]
@@ -32,11 +33,13 @@ public partial class CommunityCatalogViewModel : ObservableObject
     public CommunityCatalogViewModel(
         MainViewModel main,
         ICommunityTemplateService communityService,
-        ICommunityTemplateUploadService uploadService)
+        ICommunityTemplateUploadService uploadService,
+        ICommunityTemplateUploadComplianceService complianceService)
     {
         _main = main;
         _communityService = communityService;
         _uploadService = uploadService;
+        _complianceService = complianceService;
     }
 
     [RelayCommand(CanExecute = nameof(CanRefreshTemplates))]
@@ -173,7 +176,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
-        var dialogVm = new CommunityTemplateUploadDialogViewModel
+        var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService)
         {
             GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder),
             AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author,
