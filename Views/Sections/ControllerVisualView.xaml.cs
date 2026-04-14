@@ -132,7 +132,7 @@ public partial class ControllerVisualView : UserControl
         {
             string AccessibleName(string logicalId) =>
                 DataContext is ControllerVisualViewModel vm
-                    ? vm.GetElementDisplayName(logicalId)
+                    ? vm.GetElementInteractionLabel(logicalId)
                     : logicalId;
 
             ControllerVisualInteractiveLayerBuilder.Populate(

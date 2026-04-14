@@ -183,7 +183,7 @@ public partial class ControllerVisualViewModel : ObservableObject
 
             var primaryMapping = elementMappings[0];
             var displayName = _visualService.GetDisplayName(elementId) ?? elementId;
-            var actionSummary = primaryMapping.OutputSummaryForGrid ?? string.Empty;
+            var actionSummary = primaryMapping.OutputSummaryForControllerOverlay ?? string.Empty;
             var normalizedDisplay = ControllerMappingOverlayLabelText.NormalizeForOverlay(displayName);
             var normalizedSummary = ControllerMappingOverlayLabelText.NormalizeForOverlay(actionSummary);
 
@@ -235,6 +235,9 @@ public partial class ControllerVisualViewModel : ObservableObject
 
         ApplyOverlayAnchorsToItems();
         UpdateVisualStates();
+
+        if (!string.IsNullOrEmpty(HoveredElementId))
+            HoveredElementName = ResolveInteractionLabel(HoveredElementId);
     }
 
     private static string? BuildOverlayToolTip(string normalizedDisplay, string normalizedSummary, string? secondary)
@@ -265,6 +268,24 @@ public partial class ControllerVisualViewModel : ObservableObject
     public string GetElementDisplayName(string logicalId) =>
         _visualService.GetDisplayName(logicalId) ?? logicalId;
 
+    public string GetElementInteractionLabel(string logicalId) => ResolveInteractionLabel(logicalId);
+
+    private string ResolveInteractionLabel(string logicalId)
+    {
+        if (_lastMappings is not null)
+        {
+            var mapped = _visualService.GetMappingsForElement(logicalId, _lastMappings).FirstOrDefault();
+            if (mapped is not null)
+            {
+                var label = ControllerMappingOverlayLabelText.NormalizeForOverlay(mapped.OutputSummaryForControllerOverlay);
+                if (!string.IsNullOrWhiteSpace(label))
+                    return label;
+            }
+        }
+
+        return _visualService.GetDisplayName(logicalId) ?? logicalId;
+    }
+
     [RelayCommand]
     private void SelectElement(string? elementId)
     {
@@ -276,7 +297,7 @@ public partial class ControllerVisualViewModel : ObservableObject
     private void HoverElement(string? elementId)
     {
         HoveredElementId = elementId;
-        HoveredElementName = string.IsNullOrEmpty(elementId) ? null : _visualService.GetDisplayName(elementId);
+        HoveredElementName = string.IsNullOrEmpty(elementId) ? null : ResolveInteractionLabel(elementId);
         UpdateHighlightService();
     }
 
