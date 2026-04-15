@@ -1048,4 +1048,13 @@
 
 {0}</value>
   </data>
+  <data name="CommunityCatalog_Header" xml:space="preserve">
+    <value>社区模板</value>
+  </data>
+  <data name="CommunityCatalog_Upload" xml:space="preserve">
+    <value>上传…</value>
+  </data>
+  <data name="CommunityCatalog_Download" xml:space="preserve">
+    <value>下载</value>
+  </data>
 </root>

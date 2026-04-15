@@ -3,80 +3,31 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:vm="clr-namespace:Gamepad_Mapping.ViewModels"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
-        <Style x:Key="CommunityFolderHeaderToggleStyle" TargetType="ToggleButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Grid Background="Transparent">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="14" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Path x:Name="Arrow"
-                                  Grid.Column="0"
-                                  Width="7"
-                                  Height="7"
-                                  Margin="0,0,6,0"
-                                  VerticalAlignment="Center"
-                                  Fill="{DynamicResource AppSecondaryTextBrush}"
-                                  Data="M 0 0 L 7 3.5 L 0 7 Z" />
-                            <ContentPresenter Grid.Column="1"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Arrow" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <RotateTransform Angle="90" CenterX="3.5" CenterY="3.5" />
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AppTextBrush}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="CommunityFolderCardStyle" TargetType="Border">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppSeparatorBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
         </Style>
 
-        <Style x:Key="CommunityFolderExpanderStyle" TargetType="Expander">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+        <Style x:Key="CommunityTemplateRowBorderStyle" TargetType="Border">
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Margin" Value="0,0,0,6" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Expander">
-                        <StackPanel>
-                            <ToggleButton x:Name="HeaderSite"
-                                          Style="{StaticResource CommunityFolderHeaderToggleStyle}"
-                                          IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                          Content="{TemplateBinding Header}"
-                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                          ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" />
-                            <Border x:Name="ContentSite"
-                                    Margin="14,4,0,0"
-                                    Visibility="Collapsed">
-                                <ContentPresenter Content="{TemplateBinding Content}"
-                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                  ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}" />
-                            </Border>
-                        </StackPanel>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsExpanded" Value="True">
-                                <Setter TargetName="ContentSite" Property="Visibility" Value="Visible" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppSeparatorBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -90,17 +41,17 @@
         <!-- Header -->
         <Border Grid.Row="0" Padding="12" BorderBrush="{DynamicResource AppSeparatorBrush}" BorderThickness="0,0,0,1">
             <Grid>
-                <TextBlock Text="Community Templates" 
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Header]}" 
                            FontSize="16" FontWeight="SemiBold" 
                            Foreground="{DynamicResource AppTextBrush}"
                            VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Upload…"
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Upload]}"
                             Command="{Binding UploadToCommunityCommand}"
                             Padding="12,4"
                             Margin="0,0,8,0"
                             Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"/>
-                    <Button Content="Refresh" 
+                    <Button Content="{Binding Source={StaticResource Loc}, Path=[Refresh]}" 
                             Command="{Binding RefreshTemplatesCommand}"
                             Padding="12,4"
                             Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"/>
@@ -109,62 +60,88 @@
         </Border>
 
         <!-- Template folders -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1"
+                      Padding="10"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="True"
+                      PanningMode="VerticalFirst">
             <ItemsControl ItemsSource="{Binding FolderGroups}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Expander IsExpanded="False"
-                                  Style="{StaticResource CommunityFolderExpanderStyle}">
-                            <Expander.Header>
-                                <DockPanel LastChildFill="False">
-                                    <TextBlock Text="{Binding FolderName}"
-                                               FontSize="13"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource AppTextBrush}"/>
-                                    <TextBlock Text="{Binding Templates.Count, StringFormat=' ({0})'}"
-                                               Margin="6,0,0,0"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource AppSecondaryTextBrush}"/>
-                                </DockPanel>
-                            </Expander.Header>
-
-                            <ItemsControl ItemsSource="{Binding Templates}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Padding="12" BorderBrush="{DynamicResource AppSeparatorBrush}" BorderThickness="0,0,0,1">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="{Binding DisplayName}"
-                                                               FontSize="14" FontWeight="Bold"
-                                                               Foreground="{DynamicResource AppTextBrush}"/>
-                                                    <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
-                                                               FontSize="12"
-                                                               Foreground="{DynamicResource AppSecondaryTextBrush}"
-                                                               Margin="0,2,0,4"/>
-                                                    <TextBlock Text="{Binding Description}"
-                                                               FontSize="12"
-                                                               Foreground="{DynamicResource AppSecondaryTextBrush}"
-                                                               TextWrapping="Wrap"/>
-                                                </StackPanel>
-
-                                                <Button Grid.Column="1"
-                                                        Content="Download"
-                                                        Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        VerticalAlignment="Center"
-                                                        Padding="16,6"
-                                                        Margin="12,0,0,0"/>
-                                            </Grid>
+                        <Border Style="{StaticResource CommunityFolderCardStyle}">
+                            <Expander IsExpanded="True">
+                                <Expander.Header>
+                                    <Grid Margin="0,2,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding FolderName}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold" />
+                                        <Border Grid.Column="1"
+                                                Margin="10,0,0,0"
+                                                Padding="8,2"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource AppSelectionBrush}">
+                                            <TextBlock Text="{Binding Templates.Count}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
                                         </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Expander>
+                                    </Grid>
+                                </Expander.Header>
+
+                                <ItemsControl ItemsSource="{Binding Templates}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource CommunityTemplateRowBorderStyle}"
+                                                    ToolTipService.ShowDuration="15000"
+                                                    ToolTipService.InitialShowDelay="120">
+                                                <Border.ToolTip>
+                                                    <ToolTip MaxWidth="380">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                       FontWeight="SemiBold"
+                                                                       Margin="0,0,0,4" />
+                                                            <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
+                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                       Margin="0,0,0,6" />
+                                                            <TextBlock Text="{Binding Description}"
+                                                                       TextWrapping="Wrap"
+                                                                       Foreground="{DynamicResource AppTextBrush}" />
+                                                        </StackPanel>
+                                                    </ToolTip>
+                                                </Border.ToolTip>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   FontSize="13"
+                                                                   FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
+                                                                   Margin="0,2,0,0"
+                                                                   FontSize="11"
+                                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1"
+                                                            Content="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Download]}"
+                                                            Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            VerticalAlignment="Center"
+                                                            Padding="14,5"
+                                                            Margin="12,0,0,0" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Expander>
+                        </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

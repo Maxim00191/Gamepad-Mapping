@@ -1048,4 +1048,13 @@ Do you want to overwrite it?</value>
 
 {0}</value>
   </data>
+  <data name="CommunityCatalog_Header" xml:space="preserve">
+    <value>Community Templates</value>
+  </data>
+  <data name="CommunityCatalog_Upload" xml:space="preserve">
+    <value>Upload…</value>
+  </data>
+  <data name="CommunityCatalog_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
 </root>
