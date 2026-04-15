@@ -11,6 +11,7 @@ using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Models.Core.Community;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -48,6 +49,39 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
     public ObservableCollection<CommunityTemplateUploadBundleRowViewModel> BundleItems { get; } = new();
 
     public ObservableCollection<CommunityTemplateComplianceStepViewModel> ComplianceSteps { get; } = new();
+
+    public void ApplyDraft(CommunityUploadDialogDraft draft)
+    {
+        if (draft is null)
+            return;
+
+        GameFolderName = draft.GameFolderName ?? string.Empty;
+        AuthorName = draft.AuthorName ?? string.Empty;
+        ListingDescription = draft.ListingDescription ?? string.Empty;
+
+        var included = new HashSet<string>(
+            draft.IncludedStorageKeys ?? [],
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in BundleItems)
+            item.IsIncluded = included.Contains(item.StorageKey);
+
+        UpdateSelectionSummary();
+        RefreshCompliance();
+    }
+
+    public CommunityUploadDialogDraft CaptureDraft()
+    {
+        var includedStorageKeys = BundleItems
+            .Where(static item => item.IsIncluded)
+            .Select(static item => item.StorageKey)
+            .ToList();
+        return new CommunityUploadDialogDraft(
+            GameFolderName ?? string.Empty,
+            AuthorName ?? string.Empty,
+            ListingDescription ?? string.Empty,
+            includedStorageKeys);
+    }
 
     public void LoadBundle(IReadOnlyList<CommunityTemplateBundleEntry> entries)
     {

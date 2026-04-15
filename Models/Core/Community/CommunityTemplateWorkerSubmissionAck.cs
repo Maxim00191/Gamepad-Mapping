@@ -25,6 +25,9 @@ public sealed class CommunityTemplateWorkerSubmissionAck
     [JsonPropertyName("detail")]
     public string? Detail { get; init; }
 
+    [JsonPropertyName("code")]
+    public string? Code { get; init; }
+
     [JsonPropertyName("requestId")]
     public string? RequestId { get; init; }
 

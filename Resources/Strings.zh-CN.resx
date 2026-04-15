@@ -1126,4 +1126,7 @@
   <data name="TemplateCommunityDescriptionToggleHint" xml:space="preserve">
     <value>展开或收起说明面板</value>
   </data>
+  <data name="CommunityUpload_Error_PipelineBusy" xml:space="preserve">
+    <value>社区仓库流水线当前正在处理其他上传，请稍后再试。</value>
+  </data>
 </root>

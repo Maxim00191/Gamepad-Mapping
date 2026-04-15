@@ -188,6 +188,127 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
         Assert.Contains("cloudflare/community-upload", r.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task SubmitBundleAsync_PipelineBusyError_ReturnsBusyFlag()
+    {
+        const string body =
+            """{"success":false,"error":"Pipeline busy","code":"pipeline_busy","phase":"workflow_in_progress","requestId":"rid-ci"}""";
+        var handler = new DelegateHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
+        }));
+
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main",
+            CommunityProfilesUploadWorkerApiKey = "k"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        using var http = new HttpClient(handler);
+        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+
+        var r = await sut.SubmitBundleAsync(
+            [new GameProfileTemplate { ProfileId = "p1" }],
+            "G",
+            "A",
+            "Description text here.");
+
+        Assert.False(r.Success);
+        Assert.True(r.IsPipelineBusy);
+        Assert.Contains("Pipeline busy", r.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitBundleAsync_LockedStatusWithoutBody_ReturnsBusyFlag()
+    {
+        var handler = new DelegateHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Locked)
+        {
+            Content = new StringContent(string.Empty, Encoding.UTF8, "application/json")
+        }));
+
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main",
+            CommunityProfilesUploadWorkerApiKey = "k"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        using var http = new HttpClient(handler);
+        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+
+        var r = await sut.SubmitBundleAsync(
+            [new GameProfileTemplate { ProfileId = "p1" }],
+            "G",
+            "A",
+            "Description text here.");
+
+        Assert.False(r.Success);
+        Assert.True(r.IsPipelineBusy);
+    }
+
+    [Fact]
+    public async Task SubmitBundleAsync_UnparsedBusyMarker_ReturnsBusyFlag()
+    {
+        const string body = "workflow in progress";
+        var handler = new DelegateHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadGateway)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "text/plain")
+        }));
+
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main",
+            CommunityProfilesUploadWorkerApiKey = "k"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        using var http = new HttpClient(handler);
+        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+
+        var r = await sut.SubmitBundleAsync(
+            [new GameProfileTemplate { ProfileId = "p1" }],
+            "G",
+            "A",
+            "Description text here.");
+
+        Assert.False(r.Success);
+        Assert.True(r.IsPipelineBusy);
+    }
+
     private sealed class DelegateHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _send;

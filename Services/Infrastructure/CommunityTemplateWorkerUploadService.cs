@@ -21,6 +21,18 @@ namespace GamepadMapperGUI.Services.Infrastructure;
 
 public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUploadService
 {
+    private static readonly string[] PipelineBusyMarkers =
+    [
+        "pipeline_busy",
+        "pipeline busy",
+        "ci_busy",
+        "ci busy",
+        "workflow_busy",
+        "workflow busy",
+        "workflow_in_progress",
+        "workflow in progress"
+    ];
+
     private const string LegacyMissingParametersDeploymentHint =
         "The upload URL appears to be running an older worker that only accepts {\"fileName\",\"content\"}. "
         + "This app sends the community bundle format (schemaVersion, files with relativePath and contentBase64). "
@@ -232,12 +244,20 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
                 }
 
                 failureText = AppendLegacyWorkerHintIfApplicable(httpCode, responseText, failureText);
-                return new CommunityTemplateUploadResult(false, null, failureText);
+                return new CommunityTemplateUploadResult(
+                    false,
+                    null,
+                    failureText,
+                    IsPipelineBusy(httpCode, ack, responseText));
             }
 
             var unparsed = CommunityTemplateWorkerSubmissionAck.BuildUnparsedFailureMessage(httpCode, responseText);
             unparsed = AppendLegacyWorkerHintIfApplicable(httpCode, responseText, unparsed);
-            return new CommunityTemplateUploadResult(false, null, unparsed);
+            return new CommunityTemplateUploadResult(
+                false,
+                null,
+                unparsed,
+                IsPipelineBusy(httpCode, null, responseText));
         }
         catch (HttpRequestException ex)
         {
@@ -279,5 +299,41 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         {
             return false;
         }
+    }
+
+    private static bool IsPipelineBusy(
+        int workerHttpStatusCode,
+        CommunityTemplateWorkerSubmissionAck? ack,
+        string? responseBody)
+    {
+        if (workerHttpStatusCode is 409 or 423)
+            return true;
+
+        if (ack is not null)
+        {
+            if (ContainsPipelineBusyMarker(ack.Code)
+                || ContainsPipelineBusyMarker(ack.Phase)
+                || ContainsPipelineBusyMarker(ack.Error)
+                || ContainsPipelineBusyMarker(ack.Detail))
+            {
+                return true;
+            }
+        }
+
+        return ContainsPipelineBusyMarker(responseBody);
+    }
+
+    private static bool ContainsPipelineBusyMarker(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        foreach (var marker in PipelineBusyMarkers)
+        {
+            if (text.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 }

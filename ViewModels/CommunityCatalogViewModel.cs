@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models.Core;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 using Gamepad_Mapping.Views;
 
@@ -20,6 +21,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly IAppToastService _appToastService;
     private readonly MainViewModel _main;
+    private CommunityUploadDialogDraft? _uploadDialogDraft;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -253,13 +255,18 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
         var publishedIndex = await _communityService.GetCommunityIndexSnapshotAsync().ConfigureAwait(true);
-        var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService, publishedIndex)
-        {
-            GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder),
-            AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author,
-            ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim(),
-        };
+        var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService, publishedIndex);
         dialogVm.LoadBundle(bundleEntries);
+        if (_uploadDialogDraft is not null)
+        {
+            dialogVm.ApplyDraft(_uploadDialogDraft);
+        }
+        else
+        {
+            dialogVm.GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder);
+            dialogVm.AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author;
+            dialogVm.ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim();
+        }
 
         var dialog = new CommunityTemplateUploadWindow
         {
@@ -268,7 +275,12 @@ public partial class CommunityCatalogViewModel : ObservableObject
         };
 
         if (dialog.ShowDialog() != true)
+        {
+            _uploadDialogDraft = dialogVm.CaptureDraft();
             return;
+        }
+
+        _uploadDialogDraft = dialogVm.CaptureDraft();
 
         IsLoading = true;
         UploadToCommunityCommand.NotifyCanExecuteChanged();
@@ -287,13 +299,15 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 StatusMessage = string.IsNullOrWhiteSpace(result.PullRequestHtmlUrl)
                     ? "Pull request created."
                     : $"Pull request: {result.PullRequestHtmlUrl}";
+                _uploadDialogDraft = null;
             }
             else
             {
-                StatusMessage = result.ErrorMessage ?? "Upload failed.";
+                var failureMessage = BuildUploadFailureMessage(result);
+                StatusMessage = failureMessage;
                 MessageBox.Show(
-                    result.ErrorMessage ?? "Upload failed.",
-                    "Community upload",
+                    failureMessage,
+                    Localize("CommunityUpload_WindowTitle"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
@@ -346,6 +360,18 @@ public partial class CommunityCatalogViewModel : ObservableObject
     {
         var normalized = catalogFolder?.Trim();
         return string.IsNullOrWhiteSpace(normalized) ? "Uncategorized" : normalized;
+    }
+
+    private static string BuildUploadFailureMessage(CommunityTemplateUploadResult result)
+    {
+        if (!result.IsPipelineBusy)
+            return result.ErrorMessage ?? "Upload failed.";
+
+        var busyMessage = Localize("CommunityUpload_Error_PipelineBusy");
+        var detail = (result.ErrorMessage ?? string.Empty).Trim();
+        return detail.Length == 0
+            ? busyMessage
+            : string.Concat(busyMessage, Environment.NewLine, Environment.NewLine, detail);
     }
 }
 

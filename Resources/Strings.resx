@@ -1126,4 +1126,7 @@ This only removes your local copy.</value>
   <data name="TemplateCommunityDescriptionToggleHint" xml:space="preserve">
     <value>Expand or collapse description panel</value>
   </data>
+  <data name="CommunityUpload_Error_PipelineBusy" xml:space="preserve">
+    <value>The community repository pipeline is currently busy processing another upload. Please try again in a moment.</value>
+  </data>
 </root>
