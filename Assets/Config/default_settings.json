@@ -18,6 +18,6 @@
   "communityProfilesRepoOwner": "Maxim00191",
   "communityProfilesRepoName": "GamepadMapping-CommunityProfiles",
   "communityProfilesRepoBranch": "main",
-  "communityProfilesUploadWorkerUrl": "https://gamepad-mapping-template-community-repo.w202810388s.workers.dev",
+  "communityProfilesUploadWorkerUrl": "https://gamepad-mapping-template-community-repo.w202810388s.workers.dev/submit",
   "communityProfilesUploadToken": ""
 }

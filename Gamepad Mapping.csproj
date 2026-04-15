@@ -41,7 +41,7 @@
       <_CommunityUploadKeyGenPath>$(IntermediateOutputPath)CommunityUploadWorkerEmbeddedKey.g.cs</_CommunityUploadKeyGenPath>
       <_EmitCommunityUploadKeyScript>$(MSBuildThisFileDirectory)publish\EmitCommunityUploadWorkerEmbeddedKey.ps1</_EmitCommunityUploadKeyScript>
     </PropertyGroup>
-    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_EmitCommunityUploadKeyScript)&quot; -OutputPath &quot;$(_CommunityUploadKeyGenPath)&quot; -ApiKeyBase64 &quot;$(CommunityProfilesUploadWorkerApiKeyBase64)&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_EmitCommunityUploadKeyScript)&quot; -OutputPath &quot;$(_CommunityUploadKeyGenPath)&quot; -ApiKeyBase64 &quot;$(CommunityProfilesUploadWorkerApiKeyBase64)&quot; -SigningKeyBase64 &quot;$(CommunityProfilesUploadWorkerSigningKeyBase64)&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <ItemGroup>
       <Compile Remove="$(_CommunityUploadKeyGenPath)" />
       <Compile Include="$(_CommunityUploadKeyGenPath)" />

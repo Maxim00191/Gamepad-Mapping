@@ -314,6 +314,13 @@ public class AppSettings
     public string CommunityProfilesUploadWorkerApiKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional HMAC signing key for worker request signatures and one-time ticket proofs. When empty,
+    /// the uploader falls back to <see cref="CommunityProfilesUploadWorkerApiKey"/> for backward compatibility.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadWorkerSigningKey")]
+    public string CommunityProfilesUploadWorkerSigningKey { get; set; } = string.Empty;
+
+    /// <summary>
     /// GitHub personal access token (<c>repo</c> scope for a public repo is enough) used only when
     /// <see cref="CommunityProfilesUploadWorkerUrl"/> is empty: direct API access to create a branch, upload JSON, and open a PR.
     /// Configure via <c>local_settings.json</c>; do not ship real tokens in defaults.

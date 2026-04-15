@@ -108,29 +108,41 @@ jobs:
         shell: pwsh
         env:
           COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY: ${{ secrets.COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY }}
+          COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY: ${{ secrets.COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY)) {
             throw "Missing required secret COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY (set for the release environment)."
           }
+          if ([string]::IsNullOrWhiteSpace($env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY)) {
+            throw "Missing required secret COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY (set for the release environment)."
+          }
           $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY))
+          $signingB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY))
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained true `
             -o publish-single `
             -p:PublishSingleFile=true `
             -p:IncludeNativeLibrariesForSelfExtract=true `
-            "-p:CommunityProfilesUploadWorkerApiKeyBase64=$b64"
+            "-p:CommunityProfilesUploadWorkerApiKeyBase64=$b64" `
+            "-p:CommunityProfilesUploadWorkerSigningKeyBase64=$signingB64"
 
       - name: Publish framework-dependent (win-x64, runtime not bundled)
         shell: pwsh
         env:
           COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY: ${{ secrets.COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY }}
+          COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY: ${{ secrets.COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY)) {
             throw "Missing required secret COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY (set for the release environment)."
           }
+          if ([string]::IsNullOrWhiteSpace($env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY)) {
+            throw "Missing required secret COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY (set for the release environment)."
+          }
           $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY))
+          $signingB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY))
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false `
             -o publish-fx `
-            "-p:CommunityProfilesUploadWorkerApiKeyBase64=$b64"
+            "-p:CommunityProfilesUploadWorkerApiKeyBase64=$b64" `
+            "-p:CommunityProfilesUploadWorkerSigningKeyBase64=$signingB64"
 
       - name: Publish updater payload (win-x64, framework-dependent)
         run: >

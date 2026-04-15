@@ -21,7 +21,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly IAppToastService _appToastService;
     private readonly MainViewModel _main;
-    private CommunityUploadDialogDraft? _uploadDialogDraft;
+    private CommunityUploadDialogMemory? _uploadDialogMemory;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -255,13 +255,14 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
         var publishedIndex = await _communityService.GetCommunityIndexSnapshotAsync().ConfigureAwait(true);
+        var bundleFingerprint = CommunityUploadBundleFingerprint.Compute(bundleEntries);
         var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService, publishedIndex);
         try
         {
             dialogVm.LoadBundle(bundleEntries);
-            if (_uploadDialogDraft is not null)
+            if (_uploadDialogMemory?.Matches(bundleFingerprint) == true)
             {
-                dialogVm.ApplyDraft(_uploadDialogDraft);
+                dialogVm.ApplyDraft(_uploadDialogMemory.Draft);
             }
             else
             {
@@ -278,11 +279,15 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
             if (dialog.ShowDialog() != true)
             {
-                _uploadDialogDraft = dialogVm.CaptureDraft();
+                _uploadDialogMemory = new CommunityUploadDialogMemory(
+                    bundleFingerprint,
+                    dialogVm.CaptureDraft());
                 return;
             }
 
-            _uploadDialogDraft = dialogVm.CaptureDraft();
+            _uploadDialogMemory = new CommunityUploadDialogMemory(
+                bundleFingerprint,
+                dialogVm.CaptureDraft());
 
             IsLoading = true;
             UploadToCommunityCommand.NotifyCanExecuteChanged();
@@ -301,7 +306,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
                     StatusMessage = string.IsNullOrWhiteSpace(result.PullRequestHtmlUrl)
                         ? "Pull request created."
                         : $"Pull request: {result.PullRequestHtmlUrl}";
-                    _uploadDialogDraft = null;
+                    _uploadDialogMemory = null;
                 }
                 else
                 {

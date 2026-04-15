@@ -10,4 +10,13 @@ internal static class CommunityUploadWorkerCredentials
 
         return CommunityUploadWorkerEmbeddedKey.GetUploadWorkerApiKey();
     }
+
+    internal static string ResolveUploadWorkerSigningKey(string? fromAppSettings)
+    {
+        var trimmed = (fromAppSettings ?? string.Empty).Trim();
+        if (trimmed.Length > 0)
+            return trimmed;
+
+        return CommunityUploadWorkerEmbeddedKey.GetUploadWorkerSigningKey();
+    }
 }

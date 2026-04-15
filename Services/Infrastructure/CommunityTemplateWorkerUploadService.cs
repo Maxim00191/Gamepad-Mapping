@@ -49,19 +49,23 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
     {
         PropertyNameCaseInsensitive = true
     };
+    private static readonly Uri SubmitTicketRelativePath = new("/ticket", UriKind.Relative);
 
     private readonly AppSettings _settings;
     private readonly HttpClient _httpClient;
     private readonly ICommunityTemplateUploadComplianceService _compliance;
+    private readonly ICommunityUploadWorkerRequestSigner _requestSigner;
 
     public CommunityTemplateWorkerUploadService(
         AppSettings settings,
         HttpClient? httpClient = null,
-        ICommunityTemplateUploadComplianceService? complianceService = null)
+        ICommunityTemplateUploadComplianceService? complianceService = null,
+        ICommunityUploadWorkerRequestSigner? requestSigner = null)
     {
         _settings = settings;
         _httpClient = httpClient ?? new HttpClient();
         _compliance = complianceService ?? new CommunityTemplateUploadComplianceService();
+        _requestSigner = requestSigner ?? new CommunityUploadWorkerRequestSigner();
     }
 
     public async Task<CommunityTemplateUploadResult> SubmitBundleAsync(
@@ -97,6 +101,9 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
                 null,
                 "Community upload API key is not set. Add communityProfilesUploadWorkerApiKey to Assets/Config/local_settings.json with the same value as the Cloudflare Worker secret UPLOAD_API_KEY (or build with the embedded key).");
         }
+        var uploadWorkerSigningKey = CommunityUploadWorkerCredentials.ResolveUploadWorkerSigningKey(_settings.CommunityProfilesUploadWorkerSigningKey);
+        if (uploadWorkerSigningKey.Length == 0)
+            uploadWorkerSigningKey = uploadWorkerApiKey;
 
         if (templates is null || templates.Count == 0)
             return new CommunityTemplateUploadResult(false, null, "No templates to upload.");
@@ -228,6 +235,21 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         try
         {
             var body = StjJsonSerializer.Serialize(payload, SerializerOptions);
+            var payloadSha256 = ComputeSha256Hex(body);
+            var ticket = await RequestOneTimeTicketAsync(
+                endpointUri,
+                uploadWorkerApiKey,
+                uploadWorkerSigningKey,
+                payloadSha256,
+                cancellationToken).ConfigureAwait(false);
+            if (ticket is null)
+            {
+                return new CommunityTemplateUploadResult(
+                    false,
+                    null,
+                    "Could not obtain an upload ticket from the worker.");
+            }
+
             using var request = new HttpRequestMessage(HttpMethod.Post, endpointUri)
             {
                 Content = new StringContent(body, Encoding.UTF8, new MediaTypeHeaderValue("application/json"))
@@ -238,6 +260,17 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
             request.Headers.TryAddWithoutValidation(
                 CommunityUploadWorkerRequestHeaders.CustomAuthKey,
                 uploadWorkerApiKey);
+            _requestSigner.ApplySignatureHeaders(
+                request,
+                endpointUri,
+                body,
+                uploadWorkerSigningKey);
+            request.Headers.TryAddWithoutValidation(
+                CommunityUploadWorkerRequestHeaders.TicketIdKey,
+                ticket.TicketId);
+            request.Headers.TryAddWithoutValidation(
+                CommunityUploadWorkerRequestHeaders.TicketProofKey,
+                ticket.TicketProof);
 
             using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -300,6 +333,102 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
             return new CommunityTemplateUploadResult(false, null, ex.Message);
         }
     }
+
+    private async Task<CommunityUploadTicket?> RequestOneTimeTicketAsync(
+        Uri endpointUri,
+        string uploadWorkerApiKey,
+        string uploadWorkerSigningKey,
+        string payloadSha256,
+        CancellationToken cancellationToken)
+    {
+        var ticketEndpoint = BuildTicketEndpoint(endpointUri);
+        var ticketPayload = new CommunityTemplateWorkerTicketRequest
+        {
+            PayloadSha256 = payloadSha256,
+            SubmitPath = endpointUri.PathAndQuery
+        };
+        var ticketBody = StjJsonSerializer.Serialize(ticketPayload, SerializerOptions);
+
+        using var ticketRequest = new HttpRequestMessage(HttpMethod.Post, ticketEndpoint)
+        {
+            Content = new StringContent(ticketBody, Encoding.UTF8, new MediaTypeHeaderValue("application/json"))
+        };
+        ticketRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        ticketRequest.Headers.UserAgent.ParseAdd("GamepadMapping-CommunityUpload/1.0");
+        ticketRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", uploadWorkerApiKey);
+        ticketRequest.Headers.TryAddWithoutValidation(
+            CommunityUploadWorkerRequestHeaders.CustomAuthKey,
+            uploadWorkerApiKey);
+        _requestSigner.ApplySignatureHeaders(
+            ticketRequest,
+            ticketEndpoint,
+            ticketBody,
+            uploadWorkerSigningKey);
+
+        using var ticketResponse = await _httpClient.SendAsync(ticketRequest, cancellationToken).ConfigureAwait(false);
+        var ticketResponseText = await ticketResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+        CommunityTemplateWorkerTicketAck? ack = null;
+        try
+        {
+            ack = StjJsonSerializer.Deserialize<CommunityTemplateWorkerTicketAck>(ticketResponseText, DeserializerOptions);
+        }
+        catch (StjJsonException)
+        {
+        }
+
+        if (ticketResponse.IsSuccessStatusCode && ack?.Success == true)
+        {
+            var ticketId = (ack.TicketId ?? string.Empty).Trim();
+            var ticketProof = (ack.TicketProof ?? string.Empty).Trim();
+            if (ticketId.Length == 0 || ticketProof.Length == 0)
+                return null;
+
+            return new CommunityUploadTicket(ticketId, ticketProof);
+        }
+
+        var httpCode = (int)ticketResponse.StatusCode;
+        if (ack is not null)
+        {
+            var err = ack.Error?.Trim();
+            var detail = ack.Detail?.Trim();
+            var lines = new List<string>();
+            if (!string.IsNullOrEmpty(err))
+                lines.Add(err!);
+            if (!string.IsNullOrEmpty(detail))
+                lines.Add(detail!);
+            lines.Add($"Ticket endpoint HTTP: {httpCode}");
+            if (!string.IsNullOrWhiteSpace(ack.RequestId))
+                lines.Add($"Ticket request ID: {ack.RequestId!.Trim()}");
+            throw new HttpRequestException(string.Join(Environment.NewLine, lines));
+        }
+
+        throw new HttpRequestException(
+            CommunityTemplateWorkerSubmissionAck.BuildUnparsedFailureMessage(httpCode, ticketResponseText));
+    }
+
+    private static Uri BuildTicketEndpoint(Uri submitEndpoint)
+    {
+        if (submitEndpoint.AbsolutePath.EndsWith("/submit", StringComparison.OrdinalIgnoreCase))
+        {
+            var builder = new UriBuilder(submitEndpoint)
+            {
+                Path = submitEndpoint.AbsolutePath[..^"/submit".Length] + SubmitTicketRelativePath.OriginalString,
+                Query = string.Empty
+            };
+            return builder.Uri;
+        }
+
+        return new Uri(submitEndpoint, SubmitTicketRelativePath);
+    }
+
+    private static string ComputeSha256Hex(string input)
+    {
+        var bytes = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private sealed record CommunityUploadTicket(string TicketId, string TicketProof);
 
     private static string AppendLegacyWorkerHintIfApplicable(int httpStatusCode, string? responseBody, string message)
     {
