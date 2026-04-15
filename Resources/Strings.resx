@@ -1017,7 +1017,7 @@ Do you want to overwrite it?</value>
     <value>Listing description</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>Recommended: set communityProfilesUploadWorkerUrl in local_settings.json so uploads go through the relay (no GitHub token in the app). Optional: communityProfilesUploadWorkerApiKey if your worker checks UPLOAD_API_KEY. Developer fallback when the worker URL is empty: communityProfilesUploadToken (GitHub PAT, repo scope). The repository opens a PR; merging runs the index update workflow.</value>
+    <value>Recommended: set communityProfilesUploadWorkerUrl in local_settings.json so uploads go through the relay ticket handshake (no GitHub token or shared worker secret in the app). Developer fallback when the worker URL is empty: communityProfilesUploadToken (GitHub PAT, repo scope). The repository opens a PR; merging runs the index update workflow.</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>Upload</value>
@@ -1137,5 +1137,14 @@ This only removes your local copy.</value>
   </data>
   <data name="CommunityUpload_Suggest_TemplateFileSizeLimit" xml:space="preserve">
     <value>Each template file must be 1 MB or smaller before upload.</value>
+  </data>
+  <data name="CommunityCatalog_LoadFailed" xml:space="preserve">
+    <value>Failed to load community templates.</value>
+  </data>
+  <data name="CommunityCatalog_Empty" xml:space="preserve">
+    <value>No templates found.</value>
+  </data>
+  <data name="CommunityCatalog_RefreshCooldownTooltip" xml:space="preserve">
+    <value>Cooling down. Try again in {0} s.</value>
   </data>
 </root>

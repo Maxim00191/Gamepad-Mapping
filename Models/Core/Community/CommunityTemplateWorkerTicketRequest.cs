@@ -11,4 +11,7 @@ public sealed class CommunityTemplateWorkerTicketRequest
 
     [JsonPropertyName("submitPath")]
     public string SubmitPath { get; init; } = string.Empty;
+
+    [JsonPropertyName("turnstileToken")]
+    public string? TurnstileToken { get; init; }
 }

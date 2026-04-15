@@ -18,6 +18,38 @@ namespace GamepadMapping.Tests.Services;
 public sealed class CommunityTemplateWorkerUploadServiceTests
 {
     [Fact]
+    public async Task SubmitBundleAsync_RemoteHttpWorkerUrl_ReturnsError()
+    {
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "http://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+
+        var r = await sut.SubmitBundleAsync(
+            [new GameProfileTemplate { ProfileId = "a" }],
+            "Game",
+            "Author",
+            "Description text here.");
+
+        Assert.False(r.Success);
+        Assert.Contains("HTTPS", r.ErrorMessage ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task SubmitBundleAsync_MissingWorkerUrl_ReturnsError()
     {
         var settings = new AppSettings { CommunityProfilesUploadWorkerUrl = "" };
@@ -39,42 +71,20 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
     {
         Uri? capturedUri = null;
         HttpMethod? capturedMethod = null;
-        string? capturedAuth = null;
-        string? capturedCustomAuth = null;
-        string? capturedSigVersion = null;
-        string? capturedSigTimestamp = null;
-        string? capturedSigNonce = null;
-        string? capturedSigContentHash = null;
-        string? capturedSig = null;
+        string? capturedTicketBody = null;
         string? capturedTicketId = null;
         string? capturedTicketProof = null;
         string? capturedBody = null;
         var handler = new DelegateHandler(async (req, ct) =>
         {
             if (IsTicketRequest(req))
+            {
+                capturedTicketBody = req.Content is not null ? await req.Content.ReadAsStringAsync(ct) : null;
                 return BuildTicketSuccessResponse();
+            }
 
             capturedUri = req.RequestUri;
             capturedMethod = req.Method;
-            capturedAuth = req.Headers.Authorization?.ToString();
-            capturedCustomAuth = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.CustomAuthKey, out var vals)
-                ? string.Join(",", vals)
-                : null;
-            capturedSigVersion = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.SignatureVersionKey, out var sigVersionVals)
-                ? string.Join(",", sigVersionVals)
-                : null;
-            capturedSigTimestamp = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.TimestampSecondsKey, out var sigTimestampVals)
-                ? string.Join(",", sigTimestampVals)
-                : null;
-            capturedSigNonce = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.NonceKey, out var sigNonceVals)
-                ? string.Join(",", sigNonceVals)
-                : null;
-            capturedSigContentHash = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.ContentSha256Key, out var sigHashVals)
-                ? string.Join(",", sigHashVals)
-                : null;
-            capturedSig = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.SignatureKey, out var sigVals)
-                ? string.Join(",", sigVals)
-                : null;
             capturedTicketId = req.Headers.TryGetValues(CommunityUploadWorkerRequestHeaders.TicketIdKey, out var ticketIdVals)
                 ? string.Join(",", ticketIdVals)
                 : null;
@@ -94,8 +104,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "secret-key"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -108,8 +117,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://ignored/") };
-        var fixedSigner = new FixedSigner();
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object, fixedSigner);
+        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "my-profile" }],
@@ -122,15 +130,10 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
         Assert.NotNull(capturedUri);
         Assert.Equal(HttpMethod.Post, capturedMethod);
         Assert.Equal(new Uri("https://upload.example/submit"), capturedUri);
-        Assert.Equal("Bearer secret-key", capturedAuth);
-        Assert.Equal("secret-key", capturedCustomAuth);
-        Assert.Equal(CommunityUploadWorkerRequestHeaders.SignatureVersionV1, capturedSigVersion);
-        Assert.Equal("1700000000", capturedSigTimestamp);
-        Assert.Equal("nonce-fixed", capturedSigNonce);
-        Assert.Equal("hash-fixed", capturedSigContentHash);
-        Assert.Equal("sig-fixed", capturedSig);
         Assert.Equal("ticket-1", capturedTicketId);
         Assert.Equal("proof-1", capturedTicketProof);
+        Assert.NotNull(capturedTicketBody);
+        Assert.DoesNotContain("\"turnstileToken\":", capturedTicketBody!, StringComparison.Ordinal);
 
         Assert.NotNull(capturedBody);
         Assert.Contains("\"schemaVersion\":1", capturedBody!, StringComparison.Ordinal);
@@ -159,8 +162,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -211,8 +213,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -260,8 +261,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -295,8 +295,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -336,8 +335,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -390,8 +388,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -436,8 +433,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
             CommunityProfilesRepoOwner = "o",
             CommunityProfilesRepoName = "r",
-            CommunityProfilesRepoBranch = "main",
-            CommunityProfilesUploadWorkerApiKey = "k"
+            CommunityProfilesRepoBranch = "main"
         };
 
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
@@ -460,6 +456,57 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
 
         Assert.False(r.Success);
         Assert.True(r.IsPipelineBusy);
+    }
+
+    [Fact]
+    public async Task SubmitBundleAsync_TicketProviderReturnsToken_IncludesTurnstileTokenInTicketRequest()
+    {
+        string? capturedTicketBody = null;
+        var handler = new DelegateHandler(async (req, ct) =>
+        {
+            if (IsTicketRequest(req))
+            {
+                capturedTicketBody = req.Content is not null ? await req.Content.ReadAsStringAsync(ct) : null;
+                return BuildTicketSuccessResponse();
+            }
+
+            var ack = """{"success":true,"pullRequestHtmlUrl":"https://example.com/pr/1"}""";
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(ack, Encoding.UTF8, "application/json")
+            };
+        });
+
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        using var http = new HttpClient(handler);
+        var tokenProvider = new FixedTicketTokenProvider("turnstile-token-123");
+        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object, tokenProvider);
+
+        var result = await sut.SubmitBundleAsync(
+            [new GameProfileTemplate { ProfileId = "profile-1" }],
+            "MyGame",
+            "Author",
+            "Description text here.");
+
+        Assert.True(result.Success);
+        Assert.NotNull(capturedTicketBody);
+        Assert.Contains("\"turnstileToken\":\"turnstile-token-123\"", capturedTicketBody!, StringComparison.Ordinal);
     }
 
     private sealed class DelegateHandler : HttpMessageHandler
@@ -490,15 +537,17 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
         };
     }
 
-    private sealed class FixedSigner : ICommunityUploadWorkerRequestSigner
+    private sealed class FixedTicketTokenProvider : ICommunityUploadTicketTokenProvider
     {
-        public void ApplySignatureHeaders(HttpRequestMessage request, Uri endpointUri, string requestBody, string signingKey)
+        private readonly string _token;
+
+        public FixedTicketTokenProvider(string token)
         {
-            request.Headers.TryAddWithoutValidation(CommunityUploadWorkerRequestHeaders.SignatureVersionKey, CommunityUploadWorkerRequestHeaders.SignatureVersionV1);
-            request.Headers.TryAddWithoutValidation(CommunityUploadWorkerRequestHeaders.TimestampSecondsKey, "1700000000");
-            request.Headers.TryAddWithoutValidation(CommunityUploadWorkerRequestHeaders.NonceKey, "nonce-fixed");
-            request.Headers.TryAddWithoutValidation(CommunityUploadWorkerRequestHeaders.ContentSha256Key, "hash-fixed");
-            request.Headers.TryAddWithoutValidation(CommunityUploadWorkerRequestHeaders.SignatureKey, "sig-fixed");
+            _token = token;
         }
+
+        public Task<string?> GetTurnstileTokenAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(_token);
     }
+
 }

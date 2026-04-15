@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="InputSimulatorPlus" Version="1.0.7" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3240.44" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Vortice.XInput" Version="3.8.3" />
     <PackageReference Include="SharpVectors.Wpf" Version="1.8.5" />
@@ -35,18 +36,6 @@
   <ItemGroup>
     <ProjectReference Include="Updater\Updater.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
-
-  <Target Name="GenerateCommunityUploadWorkerEmbeddedKey" BeforeTargets="BeforeCompile;CoreCompile">
-    <PropertyGroup>
-      <_CommunityUploadKeyGenPath>$(IntermediateOutputPath)CommunityUploadWorkerEmbeddedKey.g.cs</_CommunityUploadKeyGenPath>
-      <_EmitCommunityUploadKeyScript>$(MSBuildThisFileDirectory)publish\EmitCommunityUploadWorkerEmbeddedKey.ps1</_EmitCommunityUploadKeyScript>
-    </PropertyGroup>
-    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_EmitCommunityUploadKeyScript)&quot; -OutputPath &quot;$(_CommunityUploadKeyGenPath)&quot; -ApiKeyBase64 &quot;$(CommunityProfilesUploadWorkerApiKeyBase64)&quot; -SigningKeyBase64 &quot;$(CommunityProfilesUploadWorkerSigningKeyBase64)&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
-    <ItemGroup>
-      <Compile Remove="$(_CommunityUploadKeyGenPath)" />
-      <Compile Include="$(_CommunityUploadKeyGenPath)" />
-    </ItemGroup>
-  </Target>
 
   <!-- Unit tests live under Tests/; default SDK glob would compile them into this executable. -->
   <ItemGroup>

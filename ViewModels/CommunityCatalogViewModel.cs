@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
@@ -16,12 +18,22 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class CommunityCatalogViewModel : ObservableObject
 {
+    private readonly TimeSpan _refreshCooldownDuration;
+
     private readonly ICommunityTemplateService _communityService;
     private readonly ICommunityTemplateUploadService _uploadService;
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly IAppToastService _appToastService;
     private readonly MainViewModel _main;
     private CommunityUploadDialogMemory? _uploadDialogMemory;
+    private DateTime _refreshCooldownEndsUtc = DateTime.MinValue;
+    private DispatcherTimer? _refreshCooldownTimer;
+
+    [ObservableProperty]
+    private bool _isRefreshCooldownActive;
+
+    [ObservableProperty]
+    private int _refreshCooldownSecondsRemaining;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -36,18 +48,34 @@ public partial class CommunityCatalogViewModel : ObservableObject
         ICommunityTemplateService communityService,
         ICommunityTemplateUploadService uploadService,
         ICommunityTemplateUploadComplianceService complianceService,
-        IAppToastService appToastService)
+        IAppToastService appToastService,
+        int communityCatalogRefreshCooldownSeconds = 10)
     {
         _main = main;
         _communityService = communityService;
         _uploadService = uploadService;
         _complianceService = complianceService;
         _appToastService = appToastService;
+        var seconds = Math.Clamp(communityCatalogRefreshCooldownSeconds, 1, 600);
+        _refreshCooldownDuration = TimeSpan.FromSeconds(seconds);
     }
+
+    public string RefreshButtonToolTip
+        => IsRefreshCooldownActive
+            ? string.Format(
+                Localize("CommunityCatalog_RefreshCooldownTooltip"),
+                Math.Max(0, RefreshCooldownSecondsRemaining))
+            : Localize("Refresh");
 
     [RelayCommand(CanExecute = nameof(CanRefreshTemplates))]
     public async Task RefreshTemplatesAsync()
     {
+        if (DateTime.UtcNow < _refreshCooldownEndsUtc)
+            return;
+
+        _refreshCooldownEndsUtc = DateTime.UtcNow.Add(_refreshCooldownDuration);
+        StartRefreshCooldownTimer();
+
         IsLoading = true;
         StatusMessage = "Loading community templates...";
         FolderGroups.Clear();
@@ -55,7 +83,15 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
         try
         {
-            var templates = await _communityService.GetTemplatesAsync();
+            var templates = await _communityService.GetCommunityIndexSnapshotAsync(
+                CancellationToken.None,
+                CommunityIndexFetchBehavior.PreferFreshIndex);
+
+            if (templates is null)
+            {
+                StatusMessage = Localize("CommunityCatalog_LoadFailed");
+                return;
+            }
 
             var groupedTemplates = templates
                 .GroupBy(static t => ResolveFolderName(t.CatalogFolder))
@@ -71,11 +107,11 @@ public partial class CommunityCatalogViewModel : ObservableObject
             }
 
             await RefreshLocalInstallFlagsAsync();
-            StatusMessage = templates.Count > 0 ? null : "No templates found.";
+            StatusMessage = templates.Count > 0 ? null : Localize("CommunityCatalog_Empty");
         }
         catch
         {
-            StatusMessage = "Failed to load community templates.";
+            StatusMessage = Localize("CommunityCatalog_LoadFailed");
         }
         finally
         {
@@ -84,7 +120,75 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
     }
 
-    private bool CanRefreshTemplates() => !IsLoading;
+    private bool CanRefreshTemplates() => !IsLoading && !IsRefreshCooldownActive;
+
+    private void StartRefreshCooldownTimer()
+    {
+        if (_refreshCooldownTimer is not null)
+        {
+            _refreshCooldownTimer.Stop();
+            _refreshCooldownTimer.Tick -= OnRefreshCooldownTick;
+            _refreshCooldownTimer = null;
+        }
+
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null)
+            return;
+
+        void StartLocal()
+        {
+            RefreshCooldownSecondsRemaining = (int)Math.Ceiling((_refreshCooldownEndsUtc - DateTime.UtcNow).TotalSeconds);
+            if (RefreshCooldownSecondsRemaining < 1)
+                RefreshCooldownSecondsRemaining = (int)_refreshCooldownDuration.TotalSeconds;
+
+            IsRefreshCooldownActive = true;
+
+            _refreshCooldownTimer = new DispatcherTimer(DispatcherPriority.Background, dispatcher)
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _refreshCooldownTimer.Tick += OnRefreshCooldownTick;
+            _refreshCooldownTimer.Start();
+        }
+
+        if (dispatcher.CheckAccess())
+            StartLocal();
+        else
+            dispatcher.Invoke(StartLocal);
+    }
+
+    private void OnRefreshCooldownTick(object? sender, EventArgs e)
+    {
+        var left = (int)Math.Ceiling((_refreshCooldownEndsUtc - DateTime.UtcNow).TotalSeconds);
+        if (left <= 0)
+        {
+            StopRefreshCooldownTimer();
+            return;
+        }
+
+        RefreshCooldownSecondsRemaining = left;
+    }
+
+    private void StopRefreshCooldownTimer()
+    {
+        if (_refreshCooldownTimer is not null)
+        {
+            _refreshCooldownTimer.Stop();
+            _refreshCooldownTimer.Tick -= OnRefreshCooldownTick;
+            _refreshCooldownTimer = null;
+        }
+
+        IsRefreshCooldownActive = false;
+        RefreshCooldownSecondsRemaining = 0;
+    }
+
+    partial void OnIsRefreshCooldownActiveChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RefreshButtonToolTip));
+        RefreshTemplatesCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnRefreshCooldownSecondsRemainingChanged(int value) => OnPropertyChanged(nameof(RefreshButtonToolTip));
 
     [RelayCommand(CanExecute = nameof(CanDownloadTemplate))]
     public async Task DownloadTemplateAsync(CommunityCatalogTemplateItemViewModel templateItem)

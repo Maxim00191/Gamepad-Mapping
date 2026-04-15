@@ -54,18 +54,18 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
     private readonly AppSettings _settings;
     private readonly HttpClient _httpClient;
     private readonly ICommunityTemplateUploadComplianceService _compliance;
-    private readonly ICommunityUploadWorkerRequestSigner _requestSigner;
+    private readonly ICommunityUploadTicketTokenProvider _ticketTokenProvider;
 
     public CommunityTemplateWorkerUploadService(
         AppSettings settings,
         HttpClient? httpClient = null,
         ICommunityTemplateUploadComplianceService? complianceService = null,
-        ICommunityUploadWorkerRequestSigner? requestSigner = null)
+        ICommunityUploadTicketTokenProvider? ticketTokenProvider = null)
     {
         _settings = settings;
         _httpClient = httpClient ?? new HttpClient();
         _compliance = complianceService ?? new CommunityTemplateUploadComplianceService();
-        _requestSigner = requestSigner ?? new CommunityUploadWorkerRequestSigner();
+        _ticketTokenProvider = ticketTokenProvider ?? new CommunityUploadTicketTokenProvider(settings);
     }
 
     public async Task<CommunityTemplateUploadResult> SubmitBundleAsync(
@@ -93,17 +93,13 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
                 "communityProfilesUploadWorkerUrl must be an absolute http(s) URL.");
         }
 
-        var uploadWorkerApiKey = CommunityUploadWorkerCredentials.ResolveUploadWorkerApiKey(_settings.CommunityProfilesUploadWorkerApiKey);
-        if (uploadWorkerApiKey.Length == 0)
+        if (endpointUri.Scheme == Uri.UriSchemeHttp && !IsLoopbackUploadHost(endpointUri.Host))
         {
             return new CommunityTemplateUploadResult(
                 false,
                 null,
-                "Community upload API key is not set. Add communityProfilesUploadWorkerApiKey to Assets/Config/local_settings.json with the same value as the Cloudflare Worker secret UPLOAD_API_KEY (or build with the embedded key).");
+                "communityProfilesUploadWorkerUrl must use HTTPS unless the host is localhost (cleartext HTTP is not allowed for remote workers).");
         }
-        var uploadWorkerSigningKey = CommunityUploadWorkerCredentials.ResolveUploadWorkerSigningKey(_settings.CommunityProfilesUploadWorkerSigningKey);
-        if (uploadWorkerSigningKey.Length == 0)
-            uploadWorkerSigningKey = uploadWorkerApiKey;
 
         if (templates is null || templates.Count == 0)
             return new CommunityTemplateUploadResult(false, null, "No templates to upload.");
@@ -238,8 +234,6 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
             var payloadSha256 = ComputeSha256Hex(body);
             var ticket = await RequestOneTimeTicketAsync(
                 endpointUri,
-                uploadWorkerApiKey,
-                uploadWorkerSigningKey,
                 payloadSha256,
                 cancellationToken).ConfigureAwait(false);
             if (ticket is null)
@@ -256,15 +250,6 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
             };
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.UserAgent.ParseAdd("GamepadMapping-CommunityUpload/1.0");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", uploadWorkerApiKey);
-            request.Headers.TryAddWithoutValidation(
-                CommunityUploadWorkerRequestHeaders.CustomAuthKey,
-                uploadWorkerApiKey);
-            _requestSigner.ApplySignatureHeaders(
-                request,
-                endpointUri,
-                body,
-                uploadWorkerSigningKey);
             request.Headers.TryAddWithoutValidation(
                 CommunityUploadWorkerRequestHeaders.TicketIdKey,
                 ticket.TicketId);
@@ -305,7 +290,7 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
                 if (httpCode == 401)
                 {
                     failureText += Environment.NewLine
-                        + "Confirm communityProfilesUploadWorkerApiKey in local_settings.json matches the Worker’s UPLOAD_API_KEY secret (no extra spaces; property name spelled exactly).";
+                        + "Confirm the worker deployment accepts ticket-based uploads and that the ticket has not expired.";
                 }
 
                 failureText = AppendLegacyWorkerHintIfApplicable(httpCode, responseText, failureText);
@@ -336,8 +321,6 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
 
     private async Task<CommunityUploadTicket?> RequestOneTimeTicketAsync(
         Uri endpointUri,
-        string uploadWorkerApiKey,
-        string uploadWorkerSigningKey,
         string payloadSha256,
         CancellationToken cancellationToken)
     {
@@ -345,7 +328,8 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         var ticketPayload = new CommunityTemplateWorkerTicketRequest
         {
             PayloadSha256 = payloadSha256,
-            SubmitPath = endpointUri.PathAndQuery
+            SubmitPath = endpointUri.PathAndQuery,
+            TurnstileToken = await _ticketTokenProvider.GetTurnstileTokenAsync(cancellationToken).ConfigureAwait(false)
         };
         var ticketBody = StjJsonSerializer.Serialize(ticketPayload, SerializerOptions);
 
@@ -355,15 +339,6 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         };
         ticketRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         ticketRequest.Headers.UserAgent.ParseAdd("GamepadMapping-CommunityUpload/1.0");
-        ticketRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", uploadWorkerApiKey);
-        ticketRequest.Headers.TryAddWithoutValidation(
-            CommunityUploadWorkerRequestHeaders.CustomAuthKey,
-            uploadWorkerApiKey);
-        _requestSigner.ApplySignatureHeaders(
-            ticketRequest,
-            ticketEndpoint,
-            ticketBody,
-            uploadWorkerSigningKey);
 
         using var ticketResponse = await _httpClient.SendAsync(ticketRequest, cancellationToken).ConfigureAwait(false);
         var ticketResponseText = await ticketResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -405,6 +380,16 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
 
         throw new HttpRequestException(
             CommunityTemplateWorkerSubmissionAck.BuildUnparsedFailureMessage(httpCode, ticketResponseText));
+    }
+
+    private static bool IsLoopbackUploadHost(string host)
+    {
+        if (string.IsNullOrEmpty(host))
+            return false;
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return string.Equals(host, "127.0.0.1", StringComparison.Ordinal)
+               || string.Equals(host, "[::1]", StringComparison.Ordinal);
     }
 
     private static Uri BuildTicketEndpoint(Uri submitEndpoint)

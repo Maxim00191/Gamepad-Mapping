@@ -1017,7 +1017,7 @@
     <value>列表说明</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>推荐：在 local_settings.json 中设置 communityProfilesUploadWorkerUrl，通过中转上传（应用内无需 GitHub 令牌）。若 Worker 校验 UPLOAD_API_KEY，可填写 communityProfilesUploadWorkerApiKey。未配置 Worker 地址时的开发者回退：communityProfilesUploadToken（GitHub PAT，需 repo 权限）。仓库会打开 PR；合并后将运行索引更新工作流。</value>
+    <value>推荐：在 local_settings.json 中设置 communityProfilesUploadWorkerUrl，通过中转票据握手上传（应用内无需 GitHub 令牌或共享 Worker 密钥）。未配置 Worker 地址时的开发者回退：communityProfilesUploadToken（GitHub PAT，需 repo 权限）。仓库会打开 PR；合并后将运行索引更新工作流。</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>上传</value>
@@ -1137,5 +1137,14 @@
   </data>
   <data name="CommunityUpload_Suggest_TemplateFileSizeLimit" xml:space="preserve">
     <value>每个模板文件上传前必须不超过 1 MB。</value>
+  </data>
+  <data name="CommunityCatalog_LoadFailed" xml:space="preserve">
+    <value>无法加载社区模板。</value>
+  </data>
+  <data name="CommunityCatalog_Empty" xml:space="preserve">
+    <value>未找到模板。</value>
+  </data>
+  <data name="CommunityCatalog_RefreshCooldownTooltip" xml:space="preserve">
+    <value>冷却中，请约 {0} 秒后再试。</value>
   </data>
 </root>

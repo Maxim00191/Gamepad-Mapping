@@ -300,25 +300,46 @@ public class AppSettings
     public string CommunityProfilesRepoBranch { get; set; } = "main";
 
     /// <summary>
-    /// HTTPS endpoint for the community upload Cloudflare Worker. When non-empty, uploads use this relay instead of
+    /// Minimum interval between community catalog index refreshes (seconds). Clamped when applied in the community catalog UI.
+    /// </summary>
+    [JsonProperty("communityCatalogRefreshCooldownSeconds")]
+    public int CommunityCatalogRefreshCooldownSeconds { get; set; } = 10;
+
+    /// <summary>
+    /// HTTPS URL of the community upload Cloudflare Worker (path usually ends with <c>/submit</c>). HTTP is allowed only for
+    /// loopback hosts (e.g. wrangler dev). When non-empty, uploads use this relay instead of
     /// <see cref="CommunityProfilesUploadToken"/> (recommended for release builds).
     /// </summary>
     [JsonProperty("communityProfilesUploadWorkerUrl")]
     public string CommunityProfilesUploadWorkerUrl { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional shared secret matching the worker’s <c>UPLOAD_API_KEY</c>. The client sends it as
-    /// <c>Authorization: Bearer …</c> and <c>X-Custom-Auth-Key</c> so deployments that validate either style accept the request.
+    /// Debug-only: optional Turnstile token for the worker ticket endpoint (automation). Ignored in release builds; use the
+    /// in-app challenge via <see cref="CommunityProfilesUploadTurnstileSiteKey"/> instead.
     /// </summary>
-    [JsonProperty("communityProfilesUploadWorkerApiKey")]
-    public string CommunityProfilesUploadWorkerApiKey { get; set; } = string.Empty;
+    [JsonProperty("communityProfilesUploadTurnstileToken")]
+    public string CommunityProfilesUploadTurnstileToken { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional HMAC signing key for worker request signatures and one-time ticket proofs. When empty,
-    /// the uploader falls back to <see cref="CommunityProfilesUploadWorkerApiKey"/> for backward compatibility.
+    /// Turnstile site key (public) used for the in-app WebView2 challenge. In Cloudflare, allow only the hostname that
+    /// serves the embed page (your Worker or custom domain), not end-user machines.
     /// </summary>
-    [JsonProperty("communityProfilesUploadWorkerSigningKey")]
-    public string CommunityProfilesUploadWorkerSigningKey { get; set; } = string.Empty;
+    [JsonProperty("communityProfilesUploadTurnstileSiteKey")]
+    public string CommunityProfilesUploadTurnstileSiteKey { get; set; } = "0x4AAAAAAC98uX3YOdWxbOQk";
+
+    /// <summary>
+    /// Optional absolute HTTPS URL of the Turnstile embed page (must match an allowed hostname in Cloudflare).
+    /// When empty, the app uses <c>https://&lt;worker-host&gt;/turnstile-embed</c> derived from
+    /// <see cref="CommunityProfilesUploadWorkerUrl"/>.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadTurnstileHostPageUrl")]
+    public string CommunityProfilesUploadTurnstileHostPageUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Turnstile action used when rendering the challenge widget.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadTurnstileAction")]
+    public string CommunityProfilesUploadTurnstileAction { get; set; } = "community_upload_ticket";
 
     /// <summary>
     /// GitHub personal access token (<c>repo</c> scope for a public repo is enough) used only when

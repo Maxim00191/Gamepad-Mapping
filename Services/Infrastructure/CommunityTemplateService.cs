@@ -29,8 +29,6 @@ public class CommunityTemplateService : ICommunityTemplateService
     private readonly ILocalFileService _localFileService;
     private readonly AppSettings _communityRepoSettings;
 
-    private DateTime _lastRequestTime = DateTime.MinValue;
-    private static readonly TimeSpan MinRequestInterval = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan FallbackTimeout = TimeSpan.FromSeconds(4);
 
     // 状态标记：是否优先使用 CDN（一旦 GitHub 失败，本次会话后续请求将优先走 CDN）
@@ -70,26 +68,23 @@ public class CommunityTemplateService : ICommunityTemplateService
 
     public async Task<List<CommunityTemplateInfo>> GetTemplatesAsync()
     {
-        if (DateTime.Now - _lastRequestTime < MinRequestInterval)
-        {
-            App.Logger.Warning("Request throttled: Refreshing too fast.");
-            return new List<CommunityTemplateInfo>();
-        }
-        _lastRequestTime = DateTime.Now;
-
-        var list = await LoadCommunityIndexFromNetworkAsync(CancellationToken.None);
+        var list = await LoadCommunityIndexFromNetworkAsync(CancellationToken.None, CommunityIndexFetchBehavior.Default);
         return list ?? [];
     }
 
-    public Task<List<CommunityTemplateInfo>?> GetCommunityIndexSnapshotAsync(CancellationToken cancellationToken = default)
-        => LoadCommunityIndexFromNetworkAsync(cancellationToken);
+    public Task<List<CommunityTemplateInfo>?> GetCommunityIndexSnapshotAsync(
+        CancellationToken cancellationToken = default,
+        CommunityIndexFetchBehavior fetchBehavior = CommunityIndexFetchBehavior.Default)
+        => LoadCommunityIndexFromNetworkAsync(cancellationToken, fetchBehavior);
 
-    private async Task<List<CommunityTemplateInfo>?> LoadCommunityIndexFromNetworkAsync(CancellationToken cancellationToken)
+    private async Task<List<CommunityTemplateInfo>?> LoadCommunityIndexFromNetworkAsync(
+        CancellationToken cancellationToken,
+        CommunityIndexFetchBehavior fetchBehavior)
     {
         try
         {
             App.Logger.Info("Fetching community index with fallback strategy...");
-            var json = await DownloadStringWithFallbackAsync("index.json");
+            var json = await DownloadStringWithFallbackAsync("index.json", cancellationToken, fetchBehavior);
 
             if (string.IsNullOrEmpty(json))
             {
@@ -256,15 +251,26 @@ public class CommunityTemplateService : ICommunityTemplateService
         }
     }
 
-    private async Task<string?> DownloadStringWithFallbackAsync(string relativePath)
+    private async Task<string?> DownloadStringWithFallbackAsync(
+        string relativePath,
+        CancellationToken cancellationToken,
+        CommunityIndexFetchBehavior fetchBehavior)
     {
         try
         {
             var request = new GitHubRepositoryContentRequest(RepoOwner, RepoName, Branch, relativePath);
+            var preferForRequest = fetchBehavior == CommunityIndexFetchBehavior.PreferFreshIndex
+                ? false
+                : _useCdnPreferred;
+            var querySuffix = fetchBehavior == CommunityIndexFetchBehavior.PreferFreshIndex
+                ? $"gm_cb={DateTime.UtcNow.Ticks}"
+                : null;
             var result = await _gitHubContentService.GetTextWithRawCdnFallbackAsync(
                 request,
-                preferCdn: _useCdnPreferred,
-                rawTimeout: FallbackTimeout);
+                preferForRequest,
+                FallbackTimeout,
+                cancellationToken,
+                querySuffix);
             _useCdnPreferred = result.UsedCdn;
             return result.Content;
         }

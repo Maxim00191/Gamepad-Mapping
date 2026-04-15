@@ -7,65 +7,20 @@
 .PARAMETER Tag
     Used in zip file names (e.g. v1.4.0). If omitted, uses the exact git tag at HEAD, or "local".
 
-.PARAMETER CommunityProfilesUploadWorkerApiKey
-    Optional local override for COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY.
-
-.PARAMETER CommunityProfilesUploadWorkerSigningKey
-    Optional local override for COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY.
-
-.PARAMETER UseHardcodedWorkerSecrets
-    If set, uses hardcoded secrets in this script when CLI args and environment variables are not provided.
-
-.PARAMETER LocalSecretsPath
-    Optional path to a local secrets script that sets
-    COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY and COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY.
-
 .EXAMPLE
     .\publish\publish-release.ps1
 .EXAMPLE
     .\publish\publish-release.ps1 -Tag v1.4.0
-.EXAMPLE
-    $env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY = "..."
-    $env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY = "..."
-    .\publish\publish-release.ps1 -Tag v1.4.0
-.EXAMPLE
-    .\publish\publish-release.ps1 -Tag v1.4.0 -UseHardcodedWorkerSecrets
-.EXAMPLE
-    .\publish\publish-release.ps1 -Tag v1.4.0 -LocalSecretsPath .\publish\local-secrets.ps1
 #>
 param(
-    [string] $Tag = "",
-    [string] $CommunityProfilesUploadWorkerApiKey = "",
-    [string] $CommunityProfilesUploadWorkerSigningKey = "",
-    [switch] $UseHardcodedWorkerSecrets,
-    [string] $LocalSecretsPath = ""
+    [string] $Tag = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-function Convert-ToBase64Utf8([string] $value) {
-    return [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($value))
-}
-
 $publishRoot = $PSScriptRoot
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path -Path $publishRoot -ChildPath ".."))
 Set-Location -LiteralPath $repoRoot
-
-$resolvedLocalSecretsPath = if (-not [string]::IsNullOrWhiteSpace($LocalSecretsPath)) {
-    if ([System.IO.Path]::IsPathRooted($LocalSecretsPath)) {
-        $LocalSecretsPath
-    }
-    else {
-        Join-Path $repoRoot $LocalSecretsPath
-    }
-}
-else {
-    Join-Path $publishRoot "local-secrets.ps1"
-}
-
-if (Test-Path -LiteralPath $resolvedLocalSecretsPath) {
-    . $resolvedLocalSecretsPath
-}
 
 $csproj = Join-Path $repoRoot "Gamepad Mapping.csproj"
 if (-not (Test-Path -LiteralPath $csproj)) {
@@ -84,52 +39,6 @@ $requiredUpdaterFiles = Get-Content -LiteralPath $updaterManifestPath |
 if (-not $requiredUpdaterFiles -or $requiredUpdaterFiles.Count -eq 0) {
     throw "Updater payload manifest is empty: $updaterManifestPath"
 }
-
-# Optional local-only fallback. Fill these if you want true hardcoded local release secrets.
-$hardcodedCommunityProfilesUploadWorkerApiKey = ""
-$hardcodedCommunityProfilesUploadWorkerSigningKey = ""
-
-$resolvedUploadWorkerApiKey = if (-not [string]::IsNullOrWhiteSpace($CommunityProfilesUploadWorkerApiKey)) {
-    $CommunityProfilesUploadWorkerApiKey
-}
-elseif (-not [string]::IsNullOrWhiteSpace($script:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY)) {
-    $script:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY
-}
-elseif (-not [string]::IsNullOrWhiteSpace($env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY)) {
-    $env:COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY
-}
-elseif ($UseHardcodedWorkerSecrets.IsPresent) {
-    $hardcodedCommunityProfilesUploadWorkerApiKey
-}
-else {
-    ""
-}
-
-$resolvedUploadWorkerSigningKey = if (-not [string]::IsNullOrWhiteSpace($CommunityProfilesUploadWorkerSigningKey)) {
-    $CommunityProfilesUploadWorkerSigningKey
-}
-elseif (-not [string]::IsNullOrWhiteSpace($script:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY)) {
-    $script:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY
-}
-elseif (-not [string]::IsNullOrWhiteSpace($env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY)) {
-    $env:COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY
-}
-elseif ($UseHardcodedWorkerSecrets.IsPresent) {
-    $hardcodedCommunityProfilesUploadWorkerSigningKey
-}
-else {
-    ""
-}
-
-if ([string]::IsNullOrWhiteSpace($resolvedUploadWorkerApiKey)) {
-    throw "Missing COMMUNITY_PROFILES_UPLOAD_WORKER_API_KEY. Provide -CommunityProfilesUploadWorkerApiKey, set env var, or use -UseHardcodedWorkerSecrets with a value in this script."
-}
-if ([string]::IsNullOrWhiteSpace($resolvedUploadWorkerSigningKey)) {
-    throw "Missing COMMUNITY_PROFILES_UPLOAD_WORKER_SIGNING_KEY. Provide -CommunityProfilesUploadWorkerSigningKey, set env var, or use -UseHardcodedWorkerSecrets with a value in this script."
-}
-
-$uploadWorkerApiKeyB64 = Convert-ToBase64Utf8 $resolvedUploadWorkerApiKey
-$uploadWorkerSigningKeyB64 = Convert-ToBase64Utf8 $resolvedUploadWorkerSigningKey
 
 if ([string]::IsNullOrWhiteSpace($Tag)) {
     Push-Location -LiteralPath $repoRoot
@@ -171,16 +80,12 @@ Write-Host "dotnet publish: single-file, self-contained win-x64 -> publish\singl
 & dotnet publish $csproj -c Release -r win-x64 --self-contained true `
     -o $publishSingle `
     -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    "-p:CommunityProfilesUploadWorkerApiKeyBase64=$uploadWorkerApiKeyB64" `
-    "-p:CommunityProfilesUploadWorkerSigningKeyBase64=$uploadWorkerSigningKeyB64"
+    -p:IncludeNativeLibrariesForSelfExtract=true
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "dotnet publish: framework-dependent win-x64 -> publish\fx" -ForegroundColor Cyan
 & dotnet publish $csproj -c Release -r win-x64 --self-contained false `
-    -o $publishFx `
-    "-p:CommunityProfilesUploadWorkerApiKeyBase64=$uploadWorkerApiKeyB64" `
-    "-p:CommunityProfilesUploadWorkerSigningKeyBase64=$uploadWorkerSigningKeyB64"
+    -o $publishFx
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "dotnet publish: updater payload (win-x64, framework-dependent) -> publish\\updater" -ForegroundColor Cyan
