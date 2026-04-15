@@ -73,6 +73,12 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         set => _mainViewModel.CurrentTemplateCatalogFolder = value;
     }
 
+    public string CurrentTemplateCommunityListingDescription
+    {
+        get => _mainViewModel.CurrentTemplateCommunityListingDescription;
+        set => _mainViewModel.CurrentTemplateCommunityListingDescription = value;
+    }
+
     public string TemplateTargetProcessName
     {
         get => _mainViewModel.TemplateTargetProcessName;
@@ -126,6 +132,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 TemplateCatalogFolder = string.IsNullOrEmpty(catalogFolder) ? null : catalogFolder,
                 DisplayName = CurrentTemplateDisplayName,
                 Author = NormalizeOptionalAuthor(CurrentTemplateAuthor),
+                CommunityListingDescription = NormalizeOptionalAuthor(CurrentTemplateCommunityListingDescription),
                 TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
                 ComboLeadButtons = comboLeads,
                 KeyboardActions = _mainViewModel.KeyboardActions.Count == 0 ? null : _mainViewModel.KeyboardActions.ToList(),
@@ -280,6 +287,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.CurrentTemplateCatalogFolder):
                 OnPropertyChanged(nameof(CurrentTemplateCatalogFolder));
+                break;
+            case nameof(MainViewModel.CurrentTemplateCommunityListingDescription):
+                OnPropertyChanged(nameof(CurrentTemplateCommunityListingDescription));
                 break;
             case nameof(MainViewModel.TemplateTargetProcessName):
                 OnPropertyChanged(nameof(TemplateTargetProcessName));

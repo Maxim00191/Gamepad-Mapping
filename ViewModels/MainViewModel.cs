@@ -74,6 +74,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerMappingOverlayLabelComposer _controllerMappingOverlayLabelComposer;
     private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
     private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
+    private readonly Debouncer _communityListingDescriptionDebouncer;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -144,6 +145,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var appSettings = _settingsOrchestrator.Settings;
 
         _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
+        _communityListingDescriptionDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1200));
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
@@ -559,6 +561,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public string CurrentTemplateTemplateGroupId { get => _profileOrchestrator.CurrentTemplateTemplateGroupId; set => _profileOrchestrator.CurrentTemplateTemplateGroupId = value; }
     public string CurrentTemplateAuthor { get => _profileOrchestrator.CurrentTemplateAuthor; set => _profileOrchestrator.CurrentTemplateAuthor = value; }
     public string CurrentTemplateCatalogFolder { get => _profileOrchestrator.CurrentTemplateCatalogFolder; set => _profileOrchestrator.CurrentTemplateCatalogFolder = value; }
+    public string CurrentTemplateCommunityListingDescription
+    {
+        get => _profileOrchestrator.CurrentTemplateCommunityListingDescription;
+        set
+        {
+            if (string.Equals(_profileOrchestrator.CurrentTemplateCommunityListingDescription, value, StringComparison.Ordinal))
+                return;
+
+            _profileOrchestrator.CurrentTemplateCommunityListingDescription = value;
+            _communityListingDescriptionDebouncer.Debounce(PersistCurrentTemplateCommunityListingDescription);
+            OnPropertyChanged();
+        }
+    }
     public IReadOnlyList<string>? ComboLeadButtonsPersist => _profileOrchestrator.ComboLeadButtonsPersist;
 
     [RelayCommand] private void StartGamepad() { _gamepadService.Start(); OnPropertyChanged(nameof(IsGamepadRunning)); GamepadMonitorPanel.IsGamepadRunning = true; }
@@ -566,6 +581,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _communityListingDescriptionDebouncer.Cancel();
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
             mappingNotify.PropertyChanged -= OnMappingManagerPropertyChanged;
         GamepadMonitorPanel.PropertyChanged -= OnGamepadMonitorPanelSettingsChanged;
@@ -722,6 +738,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private static float ResolveStickDeadzone(float specific, float shared) => specific > 0f ? Math.Clamp(specific, 0f, 0.9f) : Math.Clamp(shared, 0f, 0.9f);
+
+    private void PersistCurrentTemplateCommunityListingDescription()
+    {
+        var selected = SelectedTemplate;
+        if (selected is null)
+            return;
+
+        var template = _profileService.LoadSelectedTemplate(selected);
+        if (template is null)
+            return;
+
+        template.CommunityListingDescription = NormalizeOptionalText(CurrentTemplateCommunityListingDescription);
+        _profileService.SaveTemplate(template);
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        var trimmed = (value ?? string.Empty).Trim();
+        return trimmed.Length == 0 ? null : trimmed;
+    }
 
     [ObservableProperty] private ComboHudPlacement comboHudPlacementSetting;
     partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value) => UpdateSetting(s => s.ComboHudPlacement = value.ToString());

@@ -1114,4 +1114,16 @@ This only removes your local copy.</value>
   <data name="CommunityUpload_MetadataHeader" xml:space="preserve">
     <value>Submission details</value>
   </data>
+  <data name="TemplateCommunityDescriptionLabel" xml:space="preserve">
+    <value>Community description</value>
+  </data>
+  <data name="TemplateCommunityDescriptionHudTitle" xml:space="preserve">
+    <value>Template usage description</value>
+  </data>
+  <data name="TemplateCommunityDescriptionHudHint" xml:space="preserve">
+    <value>This template's brief description:</value>
+  </data>
+  <data name="TemplateCommunityDescriptionToggleHint" xml:space="preserve">
+    <value>Expand or collapse description panel</value>
+  </data>
 </root>

@@ -49,6 +49,9 @@ public partial class ProfileOrchestrator : ObservableObject
     private string _currentTemplateCatalogFolder = string.Empty;
 
     [ObservableProperty]
+    private string _currentTemplateCommunityListingDescription = string.Empty;
+
+    [ObservableProperty]
     private string _templateTargetProcessName = string.Empty;
 
     [ObservableProperty]
@@ -100,6 +103,7 @@ public partial class ProfileOrchestrator : ObservableObject
         CurrentTemplateTemplateGroupId = template.TemplateGroupId ?? string.Empty;
         CurrentTemplateAuthor = template.Author ?? string.Empty;
         CurrentTemplateCatalogFolder = template.TemplateCatalogFolder ?? string.Empty;
+        CurrentTemplateCommunityListingDescription = template.CommunityListingDescription ?? string.Empty;
         ComboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
 
         var fromFile = (template.TargetProcessName ?? string.Empty).Trim();

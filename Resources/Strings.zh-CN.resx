@@ -1114,4 +1114,16 @@
   <data name="CommunityUpload_MetadataHeader" xml:space="preserve">
     <value>提交流水信息</value>
   </data>
+  <data name="TemplateCommunityDescriptionLabel" xml:space="preserve">
+    <value>社区说明</value>
+  </data>
+  <data name="TemplateCommunityDescriptionHudTitle" xml:space="preserve">
+    <value>模板使用说明</value>
+  </data>
+  <data name="TemplateCommunityDescriptionHudHint" xml:space="preserve">
+    <value>此模板的简述：</value>
+  </data>
+  <data name="TemplateCommunityDescriptionToggleHint" xml:space="preserve">
+    <value>展开或收起说明面板</value>
+  </data>
 </root>
