@@ -506,3 +506,4 @@ Scripts-Tests/
 Updates
 publish/updater
 publish/UPLOAD_API_KEY.txt
+publish/local-secrets.ps1
