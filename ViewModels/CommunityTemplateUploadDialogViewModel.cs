@@ -11,16 +11,21 @@ using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Models.Core.Community;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
 
 public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
 {
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
+    private readonly IReadOnlyList<CommunityTemplateInfo>? _publishedCommunityIndex;
 
-    public CommunityTemplateUploadDialogViewModel(ICommunityTemplateUploadComplianceService complianceService)
+    public CommunityTemplateUploadDialogViewModel(
+        ICommunityTemplateUploadComplianceService complianceService,
+        IReadOnlyList<CommunityTemplateInfo>? publishedCommunityIndex = null)
     {
         _complianceService = complianceService;
+        _publishedCommunityIndex = publishedCommunityIndex;
         if (Application.Current?.Resources["Loc"] is GamepadMapperGUI.Services.Infrastructure.TranslationService loc)
             loc.PropertyChanged += OnLocPropertyChanged;
     }
@@ -213,15 +218,35 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
             return false;
         }
 
+        string gameSeg;
+        string authorSeg;
         try
         {
-            TemplateStorageKey.ValidateSingleSegmentFolderForSave(game);
-            TemplateStorageKey.ValidateSingleSegmentFolderForSave(author);
+            gameSeg = TemplateStorageKey.ValidateSingleSegmentFolderForSave(game);
+            authorSeg = TemplateStorageKey.ValidateSingleSegmentFolderForSave(author);
         }
         catch (ArgumentException ex)
         {
             errorMessage = ex.Message;
             return false;
+        }
+
+        var catalogFolder = TemplateStorageKey.ValidateCatalogFolderPathForSave($"{gameSeg}/{authorSeg}");
+        if (_publishedCommunityIndex is not null)
+        {
+            var publishedPaths = CommunityTemplateUploadPathConflictChecker.BuildPublishedPathSet(_publishedCommunityIndex);
+            var conflicts = CommunityTemplateUploadPathConflictChecker.FindConflictingRelativePaths(
+                GetSelectedTemplates(),
+                catalogFolder,
+                publishedPaths);
+            if (conflicts.Count > 0)
+            {
+                var pathsText = string.Join(Environment.NewLine, conflicts);
+                var fmt = loc?["CommunityUpload_Error_PathAlreadyPublished"]
+                          ?? "These paths already exist in the community repository. Change the game folder, author folder, or profile id, then try again.\n\n{0}";
+                errorMessage = string.Format(CultureInfo.CurrentCulture, fmt, pathsText);
+                return false;
+            }
         }
 
         return true;

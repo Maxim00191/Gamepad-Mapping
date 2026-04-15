@@ -300,7 +300,22 @@ public class AppSettings
     public string CommunityProfilesRepoBranch { get; set; } = "main";
 
     /// <summary>
-    /// GitHub personal access token (<c>repo</c> scope for a public repo is enough) used only to create a branch, upload JSON, and open a PR.
+    /// HTTPS endpoint for the community upload Cloudflare Worker. When non-empty, uploads use this relay instead of
+    /// <see cref="CommunityProfilesUploadToken"/> (recommended for release builds).
+    /// </summary>
+    [JsonProperty("communityProfilesUploadWorkerUrl")]
+    public string CommunityProfilesUploadWorkerUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional shared secret matching the worker’s <c>UPLOAD_API_KEY</c>. The client sends it as
+    /// <c>Authorization: Bearer …</c> and <c>X-Custom-Auth-Key</c> so deployments that validate either style accept the request.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadWorkerApiKey")]
+    public string CommunityProfilesUploadWorkerApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// GitHub personal access token (<c>repo</c> scope for a public repo is enough) used only when
+    /// <see cref="CommunityProfilesUploadWorkerUrl"/> is empty: direct API access to create a branch, upload JSON, and open a PR.
     /// Configure via <c>local_settings.json</c>; do not ship real tokens in defaults.
     /// </summary>
     [JsonProperty("communityProfilesUploadToken")]

@@ -157,7 +157,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _communityTemplateComplianceService =
             communityTemplateComplianceService ?? new CommunityTemplateUploadComplianceService();
         _communityTemplateUploadService = communityTemplateUploadService
-            ?? new CommunityTemplatePullRequestUploadService(appSettings, null, _communityTemplateComplianceService);
+            ?? ResolveDefaultCommunityTemplateUploadService(appSettings, _communityTemplateComplianceService);
         _communityService = communityService ?? new CommunityTemplateService(
             _profileService,
             sharedGitHubContentService,
@@ -837,6 +837,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (App.LaunchUpdateSuccessArgs is not null)
             _uiOrchestrator.ShowToast(_settingsOrchestrator.Localize("UpdateSuccessToastTitle"), _settingsOrchestrator.FormatUpdateSuccessMessage(App.LaunchUpdateSuccessArgs.Value.ReleaseTag));
+    }
+
+    private static ICommunityTemplateUploadService ResolveDefaultCommunityTemplateUploadService(
+        AppSettings settings,
+        ICommunityTemplateUploadComplianceService compliance)
+    {
+        var workerUrl = (settings.CommunityProfilesUploadWorkerUrl ?? string.Empty).Trim();
+        if (workerUrl.Length > 0)
+            return new CommunityTemplateWorkerUploadService(settings, null, compliance);
+
+        return new CommunityTemplatePullRequestUploadService(settings, null, compliance);
     }
 }
 

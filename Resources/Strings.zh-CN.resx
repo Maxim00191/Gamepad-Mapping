@@ -1017,7 +1017,7 @@
     <value>列表说明</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>需要在 local_settings.json 中配置 communityProfilesUploadToken（具有仓库权限的 GitHub PAT）。仓库自动化会打开 PR；合并后将运行索引更新工作流。</value>
+    <value>推荐：在 local_settings.json 中设置 communityProfilesUploadWorkerUrl，通过中转上传（应用内无需 GitHub 令牌）。若 Worker 校验 UPLOAD_API_KEY，可填写 communityProfilesUploadWorkerApiKey。未配置 Worker 地址时的开发者回退：communityProfilesUploadToken（GitHub PAT，需 repo 权限）。仓库会打开 PR；合并后将运行索引更新工作流。</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>上传</value>
@@ -1042,5 +1042,10 @@
   </data>
   <data name="CommunityUpload_Error_InvalidInput" xml:space="preserve">
     <value>输入无效。</value>
+  </data>
+  <data name="CommunityUpload_Error_PathAlreadyPublished" xml:space="preserve">
+    <value>以下路径已在社区仓库中存在。请修改游戏文件夹、作者文件夹或配置文件 id 后再试。
+
+{0}</value>
   </data>
 </root>

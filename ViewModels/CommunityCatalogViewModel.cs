@@ -176,7 +176,8 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
-        var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService)
+        var publishedIndex = await _communityService.GetCommunityIndexSnapshotAsync().ConfigureAwait(true);
+        var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService, publishedIndex)
         {
             GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder),
             AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author,

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Services.Infrastructure;
@@ -75,32 +76,45 @@ public class CommunityTemplateService : ICommunityTemplateService
         }
         _lastRequestTime = DateTime.Now;
 
+        var list = await LoadCommunityIndexFromNetworkAsync(CancellationToken.None);
+        return list ?? [];
+    }
+
+    public Task<List<CommunityTemplateInfo>?> GetCommunityIndexSnapshotAsync(CancellationToken cancellationToken = default)
+        => LoadCommunityIndexFromNetworkAsync(cancellationToken);
+
+    private async Task<List<CommunityTemplateInfo>?> LoadCommunityIndexFromNetworkAsync(CancellationToken cancellationToken)
+    {
         try
         {
             App.Logger.Info("Fetching community index with fallback strategy...");
             var json = await DownloadStringWithFallbackAsync("index.json");
-            
+
             if (string.IsNullOrEmpty(json))
             {
                 App.Logger.Error("Failed to fetch community index from both GitHub and CDN.");
-                return new List<CommunityTemplateInfo>();
+                return null;
             }
 
             var templates = JsonConvert.DeserializeObject<List<CommunityTemplateInfo>>(json) ?? new List<CommunityTemplateInfo>();
-            
-            // 预处理下载链接，确保下载时也遵循降级逻辑
+
             foreach (var t in templates)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 t.DownloadUrl = GetEffectiveDownloadUrl(t.CatalogFolder, t.Id);
             }
 
             App.Logger.Info($"Successfully loaded {templates.Count} templates.");
             return templates;
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             App.Logger.Error("Unexpected error while fetching community index", ex);
-            return new List<CommunityTemplateInfo>();
+            return null;
         }
     }
 

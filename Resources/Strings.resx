@@ -1017,7 +1017,7 @@ Do you want to overwrite it?</value>
     <value>Listing description</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>Requires communityProfilesUploadToken in local_settings.json (GitHub PAT with repo scope). The repository automation opens a PR; merging runs the index update workflow.</value>
+    <value>Recommended: set communityProfilesUploadWorkerUrl in local_settings.json so uploads go through the relay (no GitHub token in the app). Optional: communityProfilesUploadWorkerApiKey if your worker checks UPLOAD_API_KEY. Developer fallback when the worker URL is empty: communityProfilesUploadToken (GitHub PAT, repo scope). The repository opens a PR; merging runs the index update workflow.</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>Upload</value>
@@ -1042,5 +1042,10 @@ Do you want to overwrite it?</value>
   </data>
   <data name="CommunityUpload_Error_InvalidInput" xml:space="preserve">
     <value>Invalid input.</value>
+  </data>
+  <data name="CommunityUpload_Error_PathAlreadyPublished" xml:space="preserve">
+    <value>These paths already exist in the community repository. Change the game folder, author folder, or profile id, then try again.
+
+{0}</value>
   </data>
 </root>

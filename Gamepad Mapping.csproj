@@ -36,6 +36,18 @@
     <ProjectReference Include="Updater\Updater.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <Target Name="GenerateCommunityUploadWorkerEmbeddedKey" BeforeTargets="BeforeCompile;CoreCompile">
+    <PropertyGroup>
+      <_CommunityUploadKeyGenPath>$(IntermediateOutputPath)CommunityUploadWorkerEmbeddedKey.g.cs</_CommunityUploadKeyGenPath>
+      <_EmitCommunityUploadKeyScript>$(MSBuildThisFileDirectory)publish\EmitCommunityUploadWorkerEmbeddedKey.ps1</_EmitCommunityUploadKeyScript>
+    </PropertyGroup>
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_EmitCommunityUploadKeyScript)&quot; -OutputPath &quot;$(_CommunityUploadKeyGenPath)&quot; -ApiKeyBase64 &quot;$(CommunityProfilesUploadWorkerApiKeyBase64)&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <ItemGroup>
+      <Compile Remove="$(_CommunityUploadKeyGenPath)" />
+      <Compile Include="$(_CommunityUploadKeyGenPath)" />
+    </ItemGroup>
+  </Target>
+
   <!-- Unit tests live under Tests/; default SDK glob would compile them into this executable. -->
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />

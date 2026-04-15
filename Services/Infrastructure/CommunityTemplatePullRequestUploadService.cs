@@ -47,7 +47,7 @@ public sealed class CommunityTemplatePullRequestUploadService : ICommunityTempla
             return new CommunityTemplateUploadResult(
                 false,
                 null,
-                "Missing GitHub token. Set communityProfilesUploadToken in local_settings.json (repo scope).");
+                "Missing upload credentials. Set communityProfilesUploadWorkerUrl (recommended) or communityProfilesUploadToken in local_settings.json (PAT needs repo scope).");
         }
 
         if (templates is null || templates.Count == 0)
