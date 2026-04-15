@@ -100,6 +100,16 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
 
         if (templates is null || templates.Count == 0)
             return new CommunityTemplateUploadResult(false, null, "No templates to upload.");
+        if (templates.Count > CommunityTemplateUploadConstraints.MaxFilesPerSubmission)
+        {
+            return new CommunityTemplateUploadResult(
+                false,
+                null,
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    "Upload accepts up to {0} template files per request.",
+                    CommunityTemplateUploadConstraints.MaxFilesPerSubmission));
+        }
 
         var desc = (communityListingDescription ?? string.Empty).Trim();
         if (desc.Length == 0)
@@ -171,7 +181,29 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         {
             var clone = CommunityTemplateSubmissionClone.CloneForSubmission(t, catalogFolder, authorTrimmed, desc);
             var relativePath = $"{catalogFolder.Replace('\\', '/')}/{clone.ProfileId.Trim()}.json";
+            if (!relativePath.EndsWith(CommunityTemplateUploadConstraints.RequiredFileExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                return new CommunityTemplateUploadResult(
+                    false,
+                    null,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Only {0} files can be uploaded.",
+                        CommunityTemplateUploadConstraints.RequiredFileExtension));
+            }
             var json = JsonConvert.SerializeObject(clone, Newtonsoft.Json.Formatting.Indented);
+            var jsonBytes = Encoding.UTF8.GetByteCount(json);
+            if (jsonBytes > CommunityTemplateUploadConstraints.MaxTemplateFileBytes)
+            {
+                return new CommunityTemplateUploadResult(
+                    false,
+                    null,
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        "Template file exceeds {0} bytes: {1}",
+                        CommunityTemplateUploadConstraints.MaxTemplateFileBytes,
+                        relativePath));
+            }
             files.Add(new CommunityTemplateWorkerSubmissionFile
             {
                 RelativePath = relativePath,

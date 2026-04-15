@@ -231,6 +231,90 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
     }
 
     [Fact]
+    public async Task SubmitBundleAsync_MoreThanMaxFiles_ReturnsValidationError()
+    {
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main",
+            CommunityProfilesUploadWorkerApiKey = "k"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        var templates = new List<GameProfileTemplate>();
+        for (var i = 0; i < CommunityTemplateUploadConstraints.MaxFilesPerSubmission + 1; i++)
+            templates.Add(new GameProfileTemplate { ProfileId = $"p{i}" });
+
+        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+
+        var r = await sut.SubmitBundleAsync(
+            templates,
+            "G",
+            "A",
+            "Description text here.");
+
+        Assert.False(r.Success);
+        Assert.Contains("up to", r.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            CommunityTemplateUploadConstraints.MaxFilesPerSubmission.ToString(),
+            r.ErrorMessage ?? string.Empty,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SubmitBundleAsync_TemplateLargerThanLimit_ReturnsValidationError()
+    {
+        var settings = new AppSettings
+        {
+            CommunityProfilesUploadWorkerUrl = "https://upload.example/submit",
+            CommunityProfilesRepoOwner = "o",
+            CommunityProfilesRepoName = "r",
+            CommunityProfilesRepoBranch = "main",
+            CommunityProfilesUploadWorkerApiKey = "k"
+        };
+
+        var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
+        compliance
+            .Setup(c => c.EvaluateSubmission(
+                It.IsAny<IReadOnlyList<CommunityTemplateBundleEntry>>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+            .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
+
+        var oversizedTemplate = new GameProfileTemplate
+        {
+            ProfileId = "p1",
+            DisplayName = new string('X', CommunityTemplateUploadConstraints.MaxTemplateFileBytes + 2048)
+        };
+
+        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+
+        var r = await sut.SubmitBundleAsync(
+            [oversizedTemplate],
+            "G",
+            "A",
+            "Description text here.");
+
+        Assert.False(r.Success);
+        Assert.Contains("exceeds", r.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            CommunityTemplateUploadConstraints.MaxTemplateFileBytes.ToString(),
+            r.ErrorMessage ?? string.Empty,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task SubmitBundleAsync_LockedStatusWithoutBody_ReturnsBusyFlag()
     {
         var handler = new DelegateHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Locked)

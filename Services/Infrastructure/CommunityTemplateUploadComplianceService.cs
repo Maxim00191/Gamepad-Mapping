@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Models.Core.Community;
 using GamepadMapperGUI.Services.Storage;
+using Newtonsoft.Json;
 
 namespace GamepadMapperGUI.Services.Infrastructure;
 
@@ -77,6 +79,13 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
                 "Select at least one template to upload.",
                 "CommunityUpload_Suggest_SelectTemplate"));
         }
+        else if (selectedEntries.Count > CommunityTemplateUploadConstraints.MaxFilesPerSubmission)
+        {
+            step2Issues.Add(new CommunityTemplateComplianceIssue(
+                string.Empty,
+                $"Select at most {CommunityTemplateUploadConstraints.MaxFilesPerSubmission} templates per upload.",
+                "CommunityUpload_Suggest_MaxFilesPerUpload"));
+        }
 
         var profileIds = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var e in selectedEntries)
@@ -125,6 +134,28 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
                     catalogFolder,
                     author,
                     desc);
+                var projectedRelativePath = $"{catalogFolder.Replace('\\', '/')}/{clone.ProfileId.Trim()}.json";
+                if (!projectedRelativePath.EndsWith(
+                        CommunityTemplateUploadConstraints.RequiredFileExtension,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    step3Issues.Add(new CommunityTemplateComplianceIssue(
+                        label,
+                        $"Only {CommunityTemplateUploadConstraints.RequiredFileExtension} files can be uploaded.",
+                        "CommunityUpload_Suggest_JsonOnlyUpload"));
+                    continue;
+                }
+
+                var projectedJson = JsonConvert.SerializeObject(clone, Newtonsoft.Json.Formatting.Indented);
+                var projectedBytes = Encoding.UTF8.GetByteCount(projectedJson);
+                if (projectedBytes > CommunityTemplateUploadConstraints.MaxTemplateFileBytes)
+                {
+                    step3Issues.Add(new CommunityTemplateComplianceIssue(
+                        label,
+                        $"Template exceeds the {CommunityTemplateUploadConstraints.MaxTemplateFileBytes} byte upload limit.",
+                        "CommunityUpload_Suggest_TemplateFileSizeLimit"));
+                    continue;
+                }
 
                 var v = ProfileValidator.Validate(clone);
                 foreach (var err in v.Errors)

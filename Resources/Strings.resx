@@ -1129,4 +1129,13 @@ This only removes your local copy.</value>
   <data name="CommunityUpload_Error_PipelineBusy" xml:space="preserve">
     <value>The community repository pipeline is currently busy processing another upload. Please try again in a moment.</value>
   </data>
+  <data name="CommunityUpload_Suggest_MaxFilesPerUpload" xml:space="preserve">
+    <value>Select up to 8 templates for a single upload request.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_JsonOnlyUpload" xml:space="preserve">
+    <value>Only .json template files can be uploaded.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TemplateFileSizeLimit" xml:space="preserve">
+    <value>Each template file must be 1 MB or smaller before upload.</value>
+  </data>
 </root>

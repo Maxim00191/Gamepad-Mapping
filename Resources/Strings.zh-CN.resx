@@ -1129,4 +1129,13 @@
   <data name="CommunityUpload_Error_PipelineBusy" xml:space="preserve">
     <value>社区仓库流水线当前正在处理其他上传，请稍后再试。</value>
   </data>
+  <data name="CommunityUpload_Suggest_MaxFilesPerUpload" xml:space="preserve">
+    <value>单次上传请求最多选择 8 个模板。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_JsonOnlyUpload" xml:space="preserve">
+    <value>仅允许上传 .json 模板文件。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TemplateFileSizeLimit" xml:space="preserve">
+    <value>每个模板文件上传前必须不超过 1 MB。</value>
+  </data>
 </root>

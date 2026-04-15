@@ -256,71 +256,78 @@ public partial class CommunityCatalogViewModel : ObservableObject
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
         var publishedIndex = await _communityService.GetCommunityIndexSnapshotAsync().ConfigureAwait(true);
         var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService, publishedIndex);
-        dialogVm.LoadBundle(bundleEntries);
-        if (_uploadDialogDraft is not null)
-        {
-            dialogVm.ApplyDraft(_uploadDialogDraft);
-        }
-        else
-        {
-            dialogVm.GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder);
-            dialogVm.AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author;
-            dialogVm.ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim();
-        }
-
-        var dialog = new CommunityTemplateUploadWindow
-        {
-            Owner = Application.Current?.MainWindow,
-            DataContext = dialogVm
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            _uploadDialogDraft = dialogVm.CaptureDraft();
-            return;
-        }
-
-        _uploadDialogDraft = dialogVm.CaptureDraft();
-
-        IsLoading = true;
-        UploadToCommunityCommand.NotifyCanExecuteChanged();
-        StatusMessage = "Uploading to GitHub…";
-
         try
         {
-            var result = await _uploadService.SubmitBundleAsync(
-                dialogVm.GetSelectedTemplates(),
-                dialogVm.GameFolderName,
-                dialogVm.AuthorName,
-                dialogVm.ListingDescription);
-
-            if (result.Success)
+            dialogVm.LoadBundle(bundleEntries);
+            if (_uploadDialogDraft is not null)
             {
-                StatusMessage = string.IsNullOrWhiteSpace(result.PullRequestHtmlUrl)
-                    ? "Pull request created."
-                    : $"Pull request: {result.PullRequestHtmlUrl}";
-                _uploadDialogDraft = null;
+                dialogVm.ApplyDraft(_uploadDialogDraft);
             }
             else
             {
-                var failureMessage = BuildUploadFailureMessage(result);
-                StatusMessage = failureMessage;
-                MessageBox.Show(
-                    failureMessage,
-                    Localize("CommunityUpload_WindowTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                dialogVm.GameFolderName = CommunityTemplateUploadDialogViewModel.GuessGameFolder(sel.CatalogSubfolder);
+                dialogVm.AuthorName = string.IsNullOrWhiteSpace(sel.Author) ? string.Empty : sel.Author;
+                dialogVm.ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim();
             }
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Upload failed: {ex.Message}";
-            MessageBox.Show(ex.Message, "Community upload", MessageBoxButton.OK, MessageBoxImage.Error);
+
+            var dialog = new CommunityTemplateUploadWindow
+            {
+                Owner = Application.Current?.MainWindow,
+                DataContext = dialogVm
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                _uploadDialogDraft = dialogVm.CaptureDraft();
+                return;
+            }
+
+            _uploadDialogDraft = dialogVm.CaptureDraft();
+
+            IsLoading = true;
+            UploadToCommunityCommand.NotifyCanExecuteChanged();
+            StatusMessage = "Uploading to GitHub…";
+
+            try
+            {
+                var result = await _uploadService.SubmitBundleAsync(
+                    dialogVm.GetSelectedTemplates(),
+                    dialogVm.GameFolderName,
+                    dialogVm.AuthorName,
+                    dialogVm.ListingDescription);
+
+                if (result.Success)
+                {
+                    StatusMessage = string.IsNullOrWhiteSpace(result.PullRequestHtmlUrl)
+                        ? "Pull request created."
+                        : $"Pull request: {result.PullRequestHtmlUrl}";
+                    _uploadDialogDraft = null;
+                }
+                else
+                {
+                    var failureMessage = BuildUploadFailureMessage(result);
+                    StatusMessage = failureMessage;
+                    MessageBox.Show(
+                        failureMessage,
+                        Localize("CommunityUpload_WindowTitle"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Upload failed: {ex.Message}";
+                MessageBox.Show(ex.Message, "Community upload", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+                UploadToCommunityCommand.NotifyCanExecuteChanged();
+            }
         }
         finally
         {
-            IsLoading = false;
-            UploadToCommunityCommand.NotifyCanExecuteChanged();
+            dialogVm.Dispose();
         }
     }
 

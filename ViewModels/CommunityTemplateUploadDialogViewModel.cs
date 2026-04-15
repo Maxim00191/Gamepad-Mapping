@@ -13,13 +13,17 @@ using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Models.Core.Community;
 using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
+using Gamepad_Mapping.Utils;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
+public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, IDisposable
 {
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly IReadOnlyList<CommunityTemplateInfo>? _publishedCommunityIndex;
+    private readonly Debouncer _complianceRefreshDebouncer = new(TimeSpan.FromMilliseconds(1000));
+    private readonly TranslationService? _loc;
+    private bool _isBulkUpdatingSelection;
 
     public CommunityTemplateUploadDialogViewModel(
         ICommunityTemplateUploadComplianceService complianceService,
@@ -27,8 +31,9 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
     {
         _complianceService = complianceService;
         _publishedCommunityIndex = publishedCommunityIndex;
-        if (Application.Current?.Resources["Loc"] is GamepadMapperGUI.Services.Infrastructure.TranslationService loc)
-            loc.PropertyChanged += OnLocPropertyChanged;
+        _loc = Application.Current?.Resources["Loc"] as TranslationService;
+        if (_loc is not null)
+            _loc.PropertyChanged += OnLocPropertyChanged;
     }
 
     [ObservableProperty]
@@ -55,19 +60,27 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
         if (draft is null)
             return;
 
-        GameFolderName = draft.GameFolderName ?? string.Empty;
-        AuthorName = draft.AuthorName ?? string.Empty;
-        ListingDescription = draft.ListingDescription ?? string.Empty;
+        _isBulkUpdatingSelection = true;
+        try
+        {
+            GameFolderName = draft.GameFolderName ?? string.Empty;
+            AuthorName = draft.AuthorName ?? string.Empty;
+            ListingDescription = draft.ListingDescription ?? string.Empty;
 
-        var included = new HashSet<string>(
-            draft.IncludedStorageKeys ?? [],
-            StringComparer.OrdinalIgnoreCase);
+            var included = new HashSet<string>(
+                draft.IncludedStorageKeys ?? [],
+                StringComparer.OrdinalIgnoreCase);
 
-        foreach (var item in BundleItems)
-            item.IsIncluded = included.Contains(item.StorageKey);
+            foreach (var item in BundleItems)
+                item.IsIncluded = included.Contains(item.StorageKey);
+        }
+        finally
+        {
+            _isBulkUpdatingSelection = false;
+        }
 
         UpdateSelectionSummary();
-        RefreshCompliance();
+        RequestComplianceRefresh(immediate: true);
     }
 
     public CommunityUploadDialogDraft CaptureDraft()
@@ -95,7 +108,7 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
         }
 
         UpdateSelectionSummary();
-        RefreshCompliance();
+        RequestComplianceRefresh(immediate: true);
     }
 
     private void OnLocPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -103,14 +116,14 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
         if (e.PropertyName is nameof(GamepadMapperGUI.Services.Infrastructure.TranslationService.Culture) or "Item[]")
         {
             UpdateSelectionSummary();
-            RefreshCompliance();
+            RequestComplianceRefresh(immediate: true);
         }
     }
 
     private void OnBundleItemChanged()
     {
         UpdateSelectionSummary();
-        RefreshCompliance();
+        RequestComplianceRefresh();
     }
 
     public IReadOnlyList<GameProfileTemplate> GetSelectedTemplates()
@@ -121,19 +134,37 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
     [RelayCommand]
     private void SelectAllTemplates()
     {
-        foreach (var item in BundleItems)
-            item.IsIncluded = true;
+        _isBulkUpdatingSelection = true;
+        try
+        {
+            foreach (var item in BundleItems)
+                item.IsIncluded = true;
+        }
+        finally
+        {
+            _isBulkUpdatingSelection = false;
+        }
+
         UpdateSelectionSummary();
-        RefreshCompliance();
+        RequestComplianceRefresh(immediate: true);
     }
 
     [RelayCommand]
     private void ClearTemplateSelection()
     {
-        foreach (var item in BundleItems)
-            item.IsIncluded = false;
+        _isBulkUpdatingSelection = true;
+        try
+        {
+            foreach (var item in BundleItems)
+                item.IsIncluded = false;
+        }
+        finally
+        {
+            _isBulkUpdatingSelection = false;
+        }
+
         UpdateSelectionSummary();
-        RefreshCompliance();
+        RequestComplianceRefresh(immediate: true);
     }
 
     private void UpdateSelectionSummary()
@@ -146,11 +177,26 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
             : string.Format(CultureInfo.CurrentCulture, loc["CommunityUpload_SelectionSummary"], n, t);
     }
 
-    partial void OnGameFolderNameChanged(string value) => RefreshCompliance();
+    partial void OnGameFolderNameChanged(string value) => RequestComplianceRefresh();
 
-    partial void OnAuthorNameChanged(string value) => RefreshCompliance();
+    partial void OnAuthorNameChanged(string value) => RequestComplianceRefresh();
 
-    partial void OnListingDescriptionChanged(string value) => RefreshCompliance();
+    partial void OnListingDescriptionChanged(string value) => RequestComplianceRefresh();
+
+    private void RequestComplianceRefresh(bool immediate = false)
+    {
+        if (_isBulkUpdatingSelection)
+            return;
+
+        if (immediate)
+        {
+            _complianceRefreshDebouncer.Cancel();
+            RefreshCompliance();
+            return;
+        }
+
+        _complianceRefreshDebouncer.Debounce(RefreshCompliance);
+    }
 
     private void RefreshCompliance()
     {
@@ -208,6 +254,7 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
     public bool TryCommit(out string? errorMessage)
     {
         errorMessage = null;
+        _complianceRefreshDebouncer.Cancel();
         RefreshCompliance();
         var loc = Application.Current?.Resources["Loc"] as GamepadMapperGUI.Services.Infrastructure.TranslationService;
 
@@ -290,5 +337,12 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject
     {
         var segments = TemplateStorageKey.SplitCatalogPathSegments(catalogSubfolder ?? string.Empty);
         return segments.Count > 0 ? segments[0] : string.Empty;
+    }
+
+    public void Dispose()
+    {
+        _complianceRefreshDebouncer.Cancel();
+        if (_loc is not null)
+            _loc.PropertyChanged -= OnLocPropertyChanged;
     }
 }
