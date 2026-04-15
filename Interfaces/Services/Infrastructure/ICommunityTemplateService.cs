@@ -15,7 +15,9 @@ public interface ICommunityTemplateService
     /// </summary>
     Task<List<CommunityTemplateInfo>?> GetCommunityIndexSnapshotAsync(CancellationToken cancellationToken = default);
 
+    Task<bool> IsTemplateDownloadedAsync(CommunityTemplateInfo template);
     Task<CommunityTemplateDownloadPrecheckResult> CheckLocalTemplateConflictAsync(CommunityTemplateInfo template);
+    Task<bool> DeleteLocalTemplateAsync(CommunityTemplateInfo template);
     Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template, bool allowOverwrite = true);
 }
 

@@ -1057,4 +1057,61 @@ Do you want to overwrite it?</value>
   <data name="CommunityCatalog_Download" xml:space="preserve">
     <value>Download</value>
   </data>
+  <data name="CommunityCatalog_Delete" xml:space="preserve">
+    <value>Delete local</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteTitle" xml:space="preserve">
+    <value>Overwrite existing template</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteWarning" xml:space="preserve">
+    <value>This template already exists in your local folder:
+
+{0}
+
+Downloading again may overwrite local changes. Continue?</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteWarningExact" xml:space="preserve">
+    <value>A local template with the same folder, id, and display name already exists:
+
+{0}
+
+Downloading again will overwrite it. Continue?</value>
+  </data>
+  <data name="CommunityCatalog_DeleteConfirmTitle" xml:space="preserve">
+    <value>Delete local template</value>
+  </data>
+  <data name="CommunityCatalog_DeleteConfirmMessage" xml:space="preserve">
+    <value>Delete this template from your local folder?
+
+{0}
+
+This only removes your local copy.</value>
+  </data>
+  <data name="CommunityCatalog_DownloadToastTitle" xml:space="preserve">
+    <value>Template downloaded</value>
+  </data>
+  <data name="CommunityCatalog_DownloadToastMessage" xml:space="preserve">
+    <value>Saved to local templates: {0}</value>
+  </data>
+  <data name="CommunityCatalog_DownloadFailedToastTitle" xml:space="preserve">
+    <value>Download failed</value>
+  </data>
+  <data name="CommunityCatalog_DownloadFailedToastMessage" xml:space="preserve">
+    <value>Could not download template: {0}</value>
+  </data>
+  <data name="CommunityCatalog_DeleteToastTitle" xml:space="preserve">
+    <value>Template deleted</value>
+  </data>
+  <data name="CommunityCatalog_DeleteToastMessage" xml:space="preserve">
+    <value>Removed local template: {0}</value>
+  </data>
+  <data name="CommunityCatalog_DeleteFailedToastTitle" xml:space="preserve">
+    <value>Delete failed</value>
+  </data>
+  <data name="CommunityCatalog_DeleteFailedToastMessage" xml:space="preserve">
+    <value>Could not delete local template: {0}</value>
+  </data>
+  <data name="CommunityUpload_MetadataHeader" xml:space="preserve">
+    <value>Submission details</value>
+  </data>
 </root>

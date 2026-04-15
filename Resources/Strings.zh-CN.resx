@@ -1057,4 +1057,61 @@
   <data name="CommunityCatalog_Download" xml:space="preserve">
     <value>下载</value>
   </data>
+  <data name="CommunityCatalog_Delete" xml:space="preserve">
+    <value>删除本地</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteTitle" xml:space="preserve">
+    <value>覆盖现有模板</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteWarning" xml:space="preserve">
+    <value>该模板已存在于本地目录：
+
+{0}
+
+再次下载可能会覆盖本地修改。是否继续？</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteWarningExact" xml:space="preserve">
+    <value>本地已存在同目录、同 profileId、同显示名的模板：
+
+{0}
+
+再次下载将覆盖它。是否继续？</value>
+  </data>
+  <data name="CommunityCatalog_DeleteConfirmTitle" xml:space="preserve">
+    <value>删除本地模板</value>
+  </data>
+  <data name="CommunityCatalog_DeleteConfirmMessage" xml:space="preserve">
+    <value>确定要从本地目录删除此模板吗？
+
+{0}
+
+此操作仅删除你的本地副本。</value>
+  </data>
+  <data name="CommunityCatalog_DownloadToastTitle" xml:space="preserve">
+    <value>模板已下载</value>
+  </data>
+  <data name="CommunityCatalog_DownloadToastMessage" xml:space="preserve">
+    <value>已保存到本地模板目录：{0}</value>
+  </data>
+  <data name="CommunityCatalog_DownloadFailedToastTitle" xml:space="preserve">
+    <value>下载失败</value>
+  </data>
+  <data name="CommunityCatalog_DownloadFailedToastMessage" xml:space="preserve">
+    <value>无法下载模板：{0}</value>
+  </data>
+  <data name="CommunityCatalog_DeleteToastTitle" xml:space="preserve">
+    <value>模板已删除</value>
+  </data>
+  <data name="CommunityCatalog_DeleteToastMessage" xml:space="preserve">
+    <value>已删除本地模板：{0}</value>
+  </data>
+  <data name="CommunityCatalog_DeleteFailedToastTitle" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="CommunityCatalog_DeleteFailedToastMessage" xml:space="preserve">
+    <value>无法删除本地模板：{0}</value>
+  </data>
+  <data name="CommunityUpload_MetadataHeader" xml:space="preserve">
+    <value>提交流水信息</value>
+  </data>
 </root>

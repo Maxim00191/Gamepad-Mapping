@@ -128,13 +128,34 @@
                                                                    FontSize="11"
                                                                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
                                                     </StackPanel>
-                                                    <Button Grid.Column="1"
-                                                            Content="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Download]}"
-                                                            Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                            CommandParameter="{Binding}"
-                                                            VerticalAlignment="Center"
-                                                            Padding="14,5"
-                                                            Margin="12,0,0,0" />
+                                                    <StackPanel Grid.Column="1"
+                                                                Orientation="Horizontal"
+                                                                Margin="12,0,0,0"
+                                                                VerticalAlignment="Center">
+                                                        <Button Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                VerticalAlignment="Center"
+                                                                Padding="14,5"
+                                                                ToolTipService.IsEnabled="False">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Download]}"
+                                                                           VerticalAlignment="Center" />
+                                                                <TextBlock Text="  ✓"
+                                                                           VerticalAlignment="Center"
+                                                                           Foreground="#2FA84F"
+                                                                           FontWeight="Bold"
+                                                                           Visibility="{Binding IsInstalledLocally, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button Content="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Delete]}"
+                                                                Command="{Binding DataContext.DeleteTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                VerticalAlignment="Center"
+                                                                Padding="12,5"
+                                                                Margin="8,0,0,0"
+                                                                ToolTipService.IsEnabled="False"
+                                                                Visibility="{Binding IsInstalledLocally, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                    </StackPanel>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

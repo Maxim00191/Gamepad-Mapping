@@ -135,6 +135,26 @@ public class CommunityTemplateService : ICommunityTemplateService
     public async Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template)
         => await DownloadTemplateAsync(template, allowOverwrite: true);
 
+    public Task<bool> IsTemplateDownloadedAsync(CommunityTemplateInfo template)
+    {
+        try
+        {
+            if (template is null || string.IsNullOrWhiteSpace(template.Id))
+                return Task.FromResult(false);
+
+            var candidatePath = ResolveLocalTemplatePath(template);
+            if (string.IsNullOrWhiteSpace(candidatePath))
+                return Task.FromResult(false);
+
+            return Task.FromResult(_localFileService.FileExists(candidatePath));
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Warning($"Local install check failed for template '{template?.Id}': {ex.Message}");
+            return Task.FromResult(false);
+        }
+    }
+
     public Task<CommunityTemplateDownloadPrecheckResult> CheckLocalTemplateConflictAsync(CommunityTemplateInfo template)
     {
         try
@@ -142,19 +162,14 @@ public class CommunityTemplateService : ICommunityTemplateService
             if (template is null || string.IsNullOrWhiteSpace(template.Id))
                 return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
 
-            var (catalogFolder, fileStem) = ResolveCatalogAndStem(template);
-            if (fileStem.Length == 0)
+            var candidatePath = ResolveLocalTemplatePath(template);
+            if (string.IsNullOrWhiteSpace(candidatePath))
                 return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
-
-            var templatesRoot = _profileService.LoadTemplateDirectory();
-            var candidatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
-                templatesRoot,
-                catalogFolder,
-                fileStem);
 
             if (!_localFileService.FileExists(candidatePath))
                 return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
 
+            var (_, fileStem) = ResolveCatalogAndStem(template);
             var existingJson = _localFileService.ReadAllText(candidatePath);
             var existingTemplate = JsonConvert.DeserializeObject<GameProfileTemplate>(existingJson);
             if (existingTemplate is null)
@@ -177,6 +192,33 @@ public class CommunityTemplateService : ICommunityTemplateService
         {
             App.Logger.Warning($"Local conflict precheck failed for template '{template?.Id}': {ex.Message}");
             return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
+        }
+    }
+
+    public Task<bool> DeleteLocalTemplateAsync(CommunityTemplateInfo template)
+    {
+        try
+        {
+            if (template is null || string.IsNullOrWhiteSpace(template.Id))
+                return Task.FromResult(false);
+
+            var candidatePath = ResolveLocalTemplatePath(template);
+            if (string.IsNullOrWhiteSpace(candidatePath) || !_localFileService.FileExists(candidatePath))
+                return Task.FromResult(false);
+
+            var (catalogFolder, fileStem) = ResolveCatalogAndStem(template);
+            if (string.IsNullOrWhiteSpace(fileStem))
+                return Task.FromResult(false);
+
+            var storageKey = TemplateStorageKey.Format(catalogFolder, fileStem);
+            _profileService.DeleteTemplate(storageKey);
+            _profileService.ReloadTemplates(fileStem);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Error($"Failed to delete local template {template?.DisplayName}", ex);
+            return Task.FromResult(false);
         }
     }
 
@@ -267,6 +309,19 @@ public class CommunityTemplateService : ICommunityTemplateService
         var fallbackStem = (template.Id ?? string.Empty).Trim();
         var fallbackFolder = NormalizeCatalogFolder(template.CatalogFolder);
         return (fallbackFolder.Length == 0 ? null : fallbackFolder, fallbackStem);
+    }
+
+    private string ResolveLocalTemplatePath(CommunityTemplateInfo template)
+    {
+        var (catalogFolder, fileStem) = ResolveCatalogAndStem(template);
+        if (fileStem.Length == 0)
+            return string.Empty;
+
+        var templatesRoot = _profileService.LoadTemplateDirectory();
+        return AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
+            templatesRoot,
+            catalogFolder,
+            fileStem);
     }
 
     private string ResolveRelativePath(CommunityTemplateInfo template)
