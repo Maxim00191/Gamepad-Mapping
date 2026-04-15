@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -101,7 +102,20 @@ public class CommunityTemplateService : ICommunityTemplateService
             foreach (var t in templates)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                t.DownloadUrl = GetEffectiveDownloadUrl(t.CatalogFolder, t.Id);
+                var relativePath = ResolveRelativePath(t);
+                if (!string.IsNullOrWhiteSpace(relativePath))
+                {
+                    t.RelativePath = relativePath;
+                    var (catalogFolder, fileName) = SplitRelativePath(relativePath);
+                    t.CatalogFolder = catalogFolder;
+                    t.FileName = fileName;
+                }
+                else if (!string.IsNullOrWhiteSpace(t.CatalogFolder) && !string.IsNullOrWhiteSpace(t.FileName))
+                {
+                    t.RelativePath = JoinCatalogAndFile(t.CatalogFolder, t.FileName);
+                }
+
+                t.DownloadUrl = GetEffectiveDownloadUrl(t);
             }
 
             App.Logger.Info($"Successfully loaded {templates.Count} templates.");
@@ -128,11 +142,15 @@ public class CommunityTemplateService : ICommunityTemplateService
             if (template is null || string.IsNullOrWhiteSpace(template.Id))
                 return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
 
+            var (catalogFolder, fileStem) = ResolveCatalogAndStem(template);
+            if (fileStem.Length == 0)
+                return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
+
             var templatesRoot = _profileService.LoadTemplateDirectory();
             var candidatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
                 templatesRoot,
-                template.CatalogFolder,
-                template.Id.Trim());
+                catalogFolder,
+                fileStem);
 
             if (!_localFileService.FileExists(candidatePath))
                 return Task.FromResult(new CommunityTemplateDownloadPrecheckResult(false, null));
@@ -144,7 +162,7 @@ public class CommunityTemplateService : ICommunityTemplateService
 
             var sameId = string.Equals(
                 (existingTemplate.ProfileId ?? string.Empty).Trim(),
-                template.Id.Trim(),
+                fileStem,
                 StringComparison.OrdinalIgnoreCase);
             var sameName = string.Equals(
                 (existingTemplate.DisplayName ?? string.Empty).Trim(),
@@ -168,7 +186,7 @@ public class CommunityTemplateService : ICommunityTemplateService
         {
             App.Logger.Info($"Downloading template: {template.DisplayName} using URL: {template.DownloadUrl}");
 
-            var request = CreateRequest(template.CatalogFolder, template.Id);
+            var request = CreateRequest(template);
             var result = await _gitHubContentService.GetTextWithRawCdnFallbackAsync(
                 request,
                 preferCdn: _useCdnPreferred,
@@ -182,7 +200,8 @@ public class CommunityTemplateService : ICommunityTemplateService
             var profileTemplate = JsonConvert.DeserializeObject<GameProfileTemplate>(json);
             if (profileTemplate == null) return false;
 
-            profileTemplate.TemplateCatalogFolder = template.CatalogFolder;
+            var (catalogFolder, _) = ResolveCatalogAndStem(template);
+            profileTemplate.TemplateCatalogFolder = catalogFolder;
             _profileService.SaveTemplate(profileTemplate, allowOverwrite);
             _profileService.ReloadTemplates(profileTemplate.ProfileId);
             
@@ -214,27 +233,129 @@ public class CommunityTemplateService : ICommunityTemplateService
         }
     }
 
-    private string GetEffectiveDownloadUrl(string? folder, string id)
-    {
-        return _useCdnPreferred ? GetCdnUrl(folder, id) : GetGitHubRawUrl(folder, id);
-    }
+    private string GetEffectiveDownloadUrl(CommunityTemplateInfo template)
+        => _useCdnPreferred ? GetCdnUrl(template) : GetGitHubRawUrl(template);
 
-    private GitHubRepositoryContentRequest CreateRequest(string? folder, string id)
+    private GitHubRepositoryContentRequest CreateRequest(CommunityTemplateInfo template)
     {
-        var stem = (id ?? string.Empty).Trim();
-        var folderPart = (folder ?? string.Empty).Replace('\\', '/').Trim('/');
-        var relativePath = folderPart.Length == 0 ? $"{stem}.json" : $"{folderPart}/{stem}.json";
+        var relativePath = ResolveRelativePath(template);
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            var (folder, stem) = ResolveCatalogAndStem(template);
+            relativePath = JoinCatalogAndFile(folder, $"{stem}.json");
+        }
         return new GitHubRepositoryContentRequest(RepoOwner, RepoName, Branch, relativePath);
     }
 
-    private string GetGitHubRawUrl(string? folder, string id)
+    private string GetGitHubRawUrl(CommunityTemplateInfo template) =>
+        _gitHubContentService.BuildRawUrl(CreateRequest(template));
+
+    private string GetCdnUrl(CommunityTemplateInfo template) =>
+        _gitHubContentService.BuildCdnUrl(CreateRequest(template));
+
+    private (string? catalogFolder, string fileStem) ResolveCatalogAndStem(CommunityTemplateInfo template)
     {
-        return _gitHubContentService.BuildRawUrl(CreateRequest(folder, id));
+        var relativePath = ResolveRelativePath(template);
+        if (!string.IsNullOrWhiteSpace(relativePath))
+        {
+            var (catalogFolder, fileName) = SplitRelativePath(relativePath);
+            var stem = Path.GetFileNameWithoutExtension(fileName)?.Trim() ?? string.Empty;
+            if (stem.Length > 0)
+                return (catalogFolder, stem);
+        }
+
+        var fallbackStem = (template.Id ?? string.Empty).Trim();
+        var fallbackFolder = NormalizeCatalogFolder(template.CatalogFolder);
+        return (fallbackFolder.Length == 0 ? null : fallbackFolder, fallbackStem);
     }
 
-    private string GetCdnUrl(string? folder, string id)
+    private string ResolveRelativePath(CommunityTemplateInfo template)
     {
-        return _gitHubContentService.BuildCdnUrl(CreateRequest(folder, id));
+        var explicitRelative = NormalizeRelativePath(template.RelativePath);
+        if (explicitRelative.Length > 0)
+            return explicitRelative;
+
+        var folder = NormalizeCatalogFolder(template.CatalogFolder);
+        var fileName = NormalizeFileName(template.FileName);
+        if (folder.Length > 0 && fileName.Length > 0)
+            return JoinCatalogAndFile(folder, fileName);
+
+        var id = (template.Id ?? string.Empty).Trim();
+        if (folder.Length > 0 && id.Length > 0)
+            return JoinCatalogAndFile(folder, $"{id}.json");
+
+        var fromUrl = ExtractRepoRelativePathFromUrl(template.DownloadUrl);
+        if (fromUrl.Length > 0)
+            return fromUrl;
+
+        return string.Empty;
+    }
+
+    private string ExtractRepoRelativePathFromUrl(string? rawUrl)
+    {
+        if (string.IsNullOrWhiteSpace(rawUrl) || !Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri))
+            return string.Empty;
+
+        var path = uri.AbsolutePath.Trim('/');
+        if (path.Length == 0)
+            return string.Empty;
+
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+            return string.Empty;
+
+        if (uri.Host.Contains("raw.githubusercontent.com", StringComparison.OrdinalIgnoreCase))
+        {
+            if (segments.Length < 4)
+                return string.Empty;
+            return NormalizeRelativePath(string.Join('/', segments, 3, segments.Length - 3));
+        }
+
+        if (uri.Host.Contains("jsdelivr.net", StringComparison.OrdinalIgnoreCase))
+        {
+            if (segments.Length < 4
+                || !string.Equals(segments[0], "gh", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            return NormalizeRelativePath(string.Join('/', segments, 3, segments.Length - 3));
+        }
+
+        return NormalizeRelativePath(path);
+    }
+
+    private static (string? catalogFolder, string fileName) SplitRelativePath(string relativePath)
+    {
+        var normalized = NormalizeRelativePath(relativePath);
+        var slash = normalized.LastIndexOf('/');
+        if (slash < 0)
+            return (null, normalized);
+
+        var folder = normalized[..slash].Trim();
+        var file = normalized[(slash + 1)..].Trim();
+        return (folder.Length == 0 ? null : folder, file);
+    }
+
+    private static string NormalizeRelativePath(string? raw)
+        => string.Join('/',
+            (raw ?? string.Empty)
+                .Replace('\\', '/')
+                .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private static string NormalizeCatalogFolder(string? raw)
+        => NormalizeRelativePath(raw);
+
+    private static string NormalizeFileName(string? raw)
+        => Path.GetFileName((raw ?? string.Empty).Trim())?.Trim() ?? string.Empty;
+
+    private static string JoinCatalogAndFile(string? catalogFolder, string fileName)
+    {
+        var folder = NormalizeCatalogFolder(catalogFolder);
+        var file = NormalizeFileName(fileName);
+        if (file.Length == 0)
+            return string.Empty;
+        return folder.Length == 0 ? file : $"{folder}/{file}";
     }
 }
 

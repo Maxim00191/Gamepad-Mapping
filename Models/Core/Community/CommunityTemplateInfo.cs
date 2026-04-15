@@ -26,6 +26,9 @@ public class CommunityTemplateInfo
     [JsonProperty("fileName")]
     public string? FileName { get; set; }
 
+    [JsonProperty("relativePath")]
+    public string? RelativePath { get; set; }
+
     [JsonProperty("tags")]
     public List<string>? Tags { get; set; }
 }

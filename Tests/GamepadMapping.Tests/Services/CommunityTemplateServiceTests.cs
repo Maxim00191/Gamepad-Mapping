@@ -104,6 +104,35 @@ public class CommunityTemplateServiceTests
         Assert.Equal("GitHub Template", result[0].DisplayName);
         Assert.Contains("raw.githubusercontent.com", result[0].DownloadUrl);
     }
+
+    [Fact]
+    public async Task GetTemplatesAsync_PreservesExplicitFileNameInNestedCatalogPath()
+    {
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var indexJson =
+            "[{\"id\":\"profile-id\",\"displayName\":\"Nested\",\"author\":\"Tester\",\"catalogFolder\":\"My Game/Alice\",\"fileName\":\"published-name.json\"}]";
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri != null && req.RequestUri.ToString().Contains("raw.githubusercontent.com")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(indexJson)
+            });
+
+        var httpClient = new HttpClient(handlerMock.Object);
+        var service = new CommunityTemplateService(_mockProfileService.Object, httpClient);
+
+        var result = await service.GetTemplatesAsync();
+
+        Assert.Single(result);
+        Assert.Equal("My Game/Alice/published-name.json", result[0].RelativePath);
+        Assert.EndsWith("/My%20Game/Alice/published-name.json", result[0].DownloadUrl, StringComparison.Ordinal);
+    }
 }
 
 
