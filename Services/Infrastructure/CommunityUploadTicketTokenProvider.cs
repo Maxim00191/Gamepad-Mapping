@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Utils;
 using GamepadMapperGUI.Views;
 using System.Windows;
 
@@ -12,10 +14,17 @@ namespace GamepadMapperGUI.Services.Infrastructure;
 public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketTokenProvider
 {
     private readonly AppSettings _settings;
+    private readonly IWebView2RuntimeAvailability _webView2Runtime;
+    private readonly Func<string, string> _localize;
 
-    public CommunityUploadTicketTokenProvider(AppSettings settings)
+    public CommunityUploadTicketTokenProvider(
+        AppSettings settings,
+        IWebView2RuntimeAvailability? webView2Runtime = null,
+        Func<string, string>? localizeString = null)
     {
         _settings = settings;
+        _webView2Runtime = webView2Runtime ?? new WebView2RuntimeAvailability();
+        _localize = localizeString ?? (k => k);
     }
 
     public Task<string?> GetTurnstileTokenAsync(CancellationToken cancellationToken = default)
@@ -124,12 +133,26 @@ public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketT
                || string.Equals(host, "[::1]", StringComparison.Ordinal);
     }
 
-    private static async Task<string?> GetTokenOnUiThreadAsync(Uri challengePageUri, CancellationToken cancellationToken)
+    private async Task<string?> GetTokenOnUiThreadAsync(Uri challengePageUri, CancellationToken cancellationToken)
     {
-        var owner = Application.Current?.MainWindow;
+        if (!_webView2Runtime.IsRuntimeInstalled())
+        {
+            var owner = Application.Current?.MainWindow;
+            var title = _localize("WebView2_RuntimeRequired_Title");
+            var message = _localize("WebView2_RuntimeRequired_Message");
+            var result = owner is not null
+                ? MessageBox.Show(owner, message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning)
+                : MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+                TryOpenWebView2DownloadPage();
+
+            return null;
+        }
+
+        var ownerWindow = Application.Current?.MainWindow;
         var challengeWindow = new TurnstileChallengeWindow(challengePageUri)
         {
-            Owner = owner
+            Owner = ownerWindow
         };
 
         using var registration = cancellationToken.Register(() =>
@@ -151,5 +174,21 @@ public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketT
 
         challengeWindow.Show();
         return await challengeWindow.WaitForTokenAsync().ConfigureAwait(true);
+    }
+
+    private static void TryOpenWebView2DownloadPage()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = WebView2RuntimeDownload.EvergreenBootstrapperFwLink,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Gamepad_Mapping.App.Logger.Warning($"Could not open WebView2 download link: {ex.Message}");
+        }
     }
 }

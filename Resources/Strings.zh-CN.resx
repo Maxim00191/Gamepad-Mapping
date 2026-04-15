@@ -1147,4 +1147,12 @@
   <data name="CommunityCatalog_RefreshCooldownTooltip" xml:space="preserve">
     <value>冷却中，请约 {0} 秒后再试。</value>
   </data>
+  <data name="WebView2_RuntimeRequired_Title" xml:space="preserve">
+    <value>需要 WebView2 运行时</value>
+  </data>
+  <data name="WebView2_RuntimeRequired_Message" xml:space="preserve">
+    <value>上传模板时的验证步骤需要 Microsoft Edge WebView2 运行时，但本机似乎尚未安装。
+
+是否打开 Microsoft 下载页面安装 Evergreen 运行时，安装完成后再重试？</value>
+  </data>
 </root>

@@ -1147,4 +1147,12 @@ This only removes your local copy.</value>
   <data name="CommunityCatalog_RefreshCooldownTooltip" xml:space="preserve">
     <value>Cooling down. Try again in {0} s.</value>
   </data>
+  <data name="WebView2_RuntimeRequired_Title" xml:space="preserve">
+    <value>WebView2 Runtime required</value>
+  </data>
+  <data name="WebView2_RuntimeRequired_Message" xml:space="preserve">
+    <value>Template upload verification needs the Microsoft Edge WebView2 Runtime. It does not appear to be installed on this PC.
+
+Open the Microsoft download page to install it (Evergreen Runtime), then try again?</value>
+  </data>
 </root>

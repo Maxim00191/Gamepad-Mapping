@@ -49,7 +49,16 @@ public sealed class TurnstileChallengeWindow : Window
             return;
 
         _initialized = true;
-        await _webView.EnsureCoreWebView2Async().ConfigureAwait(true);
+        try
+        {
+            await _webView.EnsureCoreWebView2Async().ConfigureAwait(true);
+        }
+        catch (WebView2RuntimeNotFoundException)
+        {
+            TryComplete(null);
+            return;
+        }
+
         _webView.CoreWebView2.NavigationStarting += OnNavigationStarting;
         _webView.CoreWebView2.Navigate(_challengePageUri.AbsoluteUri);
     }
