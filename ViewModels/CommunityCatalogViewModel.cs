@@ -11,7 +11,9 @@ using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Models.State;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
+using Gamepad_Mapping.Utils.Community;
 using Gamepad_Mapping.Views;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -40,6 +42,11 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _statusMessage;
+
+    [ObservableProperty]
+    private string _searchQuery = string.Empty;
+
+    private List<CommunityTemplateInfo>? _cachedCommunityIndex;
 
     public ObservableCollection<CommunityCatalogFolderGroupViewModel> FolderGroups { get; } = new();
 
@@ -82,6 +89,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         IsLoading = true;
         StatusMessage = "Loading community templates...";
         FolderGroups.Clear();
+        _cachedCommunityIndex = null;
         RefreshTemplatesCommand.NotifyCanExecuteChanged();
 
         try
@@ -96,30 +104,8 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 return;
             }
 
-            var groupedTemplates = templates
-                .GroupBy(static t => ResolveFolderName(t.CatalogFolder))
-                .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var folderGroup in groupedTemplates)
-            {
-                var authorGroups = new ObservableCollection<CommunityCatalogAuthorGroupViewModel>(
-                    folderGroup
-                        .GroupBy(static t => ResolveAuthorName(t.Author))
-                        .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase)
-                        .Select(static authorGroup =>
-                        {
-                            var templatesByName = new ObservableCollection<CommunityCatalogTemplateItemViewModel>(
-                                authorGroup
-                                    .OrderBy(static t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
-                                    .Select(static t => new CommunityCatalogTemplateItemViewModel(t)));
-                            return new CommunityCatalogAuthorGroupViewModel(authorGroup.Key, templatesByName);
-                        }));
-
-                FolderGroups.Add(new CommunityCatalogFolderGroupViewModel(folderGroup.Key, authorGroups));
-            }
-
-            await RefreshLocalInstallFlagsAsync();
-            StatusMessage = templates.Count > 0 ? null : Localize("CommunityCatalog_Empty");
+            _cachedCommunityIndex = templates;
+            await ApplySearchAndPopulateAsync();
         }
         catch
         {
@@ -130,6 +116,65 @@ public partial class CommunityCatalogViewModel : ObservableObject
             IsLoading = false;
             RefreshTemplatesCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    partial void OnSearchQueryChanged(string value)
+    {
+        if (IsLoading || _cachedCommunityIndex is null)
+            return;
+
+        _ = ApplySearchAndPopulateAsync();
+    }
+
+    private async Task ApplySearchAndPopulateAsync()
+    {
+        if (_cachedCommunityIndex is null)
+            return;
+
+        var filtered = CommunityTemplateIndexSearch.Filter(_cachedCommunityIndex, SearchQuery);
+        PopulateFolderGroupsFromTemplates(filtered);
+        await RefreshLocalInstallFlagsAsync();
+        UpdateCatalogStatusMessage(filtered.Count);
+    }
+
+    private void PopulateFolderGroupsFromTemplates(IReadOnlyList<CommunityTemplateInfo> templates)
+    {
+        FolderGroups.Clear();
+
+        var groupedTemplates = templates
+            .GroupBy(static t => ResolveFolderName(t.CatalogFolder))
+            .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var folderGroup in groupedTemplates)
+        {
+            var authorGroups = new ObservableCollection<CommunityCatalogAuthorGroupViewModel>(
+                folderGroup
+                    .GroupBy(static t => ResolveAuthorName(t.Author))
+                    .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(static authorGroup =>
+                    {
+                        var templatesByName = new ObservableCollection<CommunityCatalogTemplateItemViewModel>(
+                            authorGroup
+                                .OrderBy(static t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
+                                .Select(static t => new CommunityCatalogTemplateItemViewModel(t)));
+                        return new CommunityCatalogAuthorGroupViewModel(authorGroup.Key, templatesByName);
+                    }));
+
+            FolderGroups.Add(new CommunityCatalogFolderGroupViewModel(folderGroup.Key, authorGroups));
+        }
+    }
+
+    private void UpdateCatalogStatusMessage(int filteredCount)
+    {
+        if (_cachedCommunityIndex is null)
+            return;
+
+        if (_cachedCommunityIndex.Count == 0)
+            StatusMessage = Localize("CommunityCatalog_Empty");
+        else if (filteredCount == 0 && !string.IsNullOrWhiteSpace(SearchQuery))
+            StatusMessage = Localize("CommunityCatalog_SearchNoResults");
+        else
+            StatusMessage = null;
     }
 
     private bool CanRefreshTemplates() => !IsLoading && !IsRefreshCooldownActive;

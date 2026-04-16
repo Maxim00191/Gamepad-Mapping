@@ -1206,4 +1206,13 @@
   <data name="CommunityCatalog_UnknownAuthor" xml:space="preserve">
     <value>未知作者</value>
   </data>
+  <data name="CommunityCatalog_SearchPlaceholder" xml:space="preserve">
+    <value>按名称、作者、说明、文件夹、文件名、标签等搜索…</value>
+  </data>
+  <data name="CommunityCatalog_SearchNoResults" xml:space="preserve">
+    <value>没有符合搜索条件的模板。</value>
+  </data>
+  <data name="CommunityCatalog_SearchLabel" xml:space="preserve">
+    <value>搜索：</value>
+  </data>
 </root>

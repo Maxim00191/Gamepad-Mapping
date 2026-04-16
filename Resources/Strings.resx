@@ -1206,4 +1206,13 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityCatalog_UnknownAuthor" xml:space="preserve">
     <value>Unknown author</value>
   </data>
+  <data name="CommunityCatalog_SearchPlaceholder" xml:space="preserve">
+    <value>Search by name, author, description, folder, file name, tags…</value>
+  </data>
+  <data name="CommunityCatalog_SearchNoResults" xml:space="preserve">
+    <value>No templates match your search.</value>
+  </data>
+  <data name="CommunityCatalog_SearchLabel" xml:space="preserve">
+    <value>Search:</value>
+  </data>
 </root>
