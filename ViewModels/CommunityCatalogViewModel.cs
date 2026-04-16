@@ -102,11 +102,20 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
             foreach (var folderGroup in groupedTemplates)
             {
-                var groupedItems = new ObservableCollection<CommunityCatalogTemplateItemViewModel>(
+                var authorGroups = new ObservableCollection<CommunityCatalogAuthorGroupViewModel>(
                     folderGroup
-                        .OrderBy(static t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
-                        .Select(static t => new CommunityCatalogTemplateItemViewModel(t)));
-                FolderGroups.Add(new CommunityCatalogFolderGroupViewModel(folderGroup.Key, groupedItems));
+                        .GroupBy(static t => ResolveAuthorName(t.Author))
+                        .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase)
+                        .Select(static authorGroup =>
+                        {
+                            var templatesByName = new ObservableCollection<CommunityCatalogTemplateItemViewModel>(
+                                authorGroup
+                                    .OrderBy(static t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
+                                    .Select(static t => new CommunityCatalogTemplateItemViewModel(t)));
+                            return new CommunityCatalogAuthorGroupViewModel(authorGroup.Key, templatesByName);
+                        }));
+
+                FolderGroups.Add(new CommunityCatalogFolderGroupViewModel(folderGroup.Key, authorGroups));
             }
 
             await RefreshLocalInstallFlagsAsync();
@@ -450,7 +459,8 @@ public partial class CommunityCatalogViewModel : ObservableObject
     private async Task RefreshLocalInstallFlagsAsync()
     {
         var allTemplateItems = FolderGroups
-            .SelectMany(static g => g.Templates)
+            .SelectMany(static folder => folder.AuthorGroups)
+            .SelectMany(static author => author.Templates)
             .ToList();
 
         foreach (var templateItem in allTemplateItems)
@@ -480,7 +490,13 @@ public partial class CommunityCatalogViewModel : ObservableObject
     private static string ResolveFolderName(string? catalogFolder)
     {
         var normalized = catalogFolder?.Trim();
-        return string.IsNullOrWhiteSpace(normalized) ? "Uncategorized" : normalized;
+        return string.IsNullOrWhiteSpace(normalized) ? Localize("CommunityCatalog_UncategorizedFolder") : normalized;
+    }
+
+    private static string ResolveAuthorName(string? author)
+    {
+        var normalized = author?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? Localize("CommunityCatalog_UnknownAuthor") : normalized;
     }
 
     private static string BuildUploadFailureMessage(CommunityTemplateUploadResult result)

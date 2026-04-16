@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -6,13 +7,15 @@ public sealed class CommunityCatalogFolderGroupViewModel
 {
     public CommunityCatalogFolderGroupViewModel(
         string folderName,
-        ObservableCollection<CommunityCatalogTemplateItemViewModel> templates)
+        ObservableCollection<CommunityCatalogAuthorGroupViewModel> authorGroups)
     {
         FolderName = folderName;
-        Templates = templates;
+        AuthorGroups = authorGroups;
     }
 
     public string FolderName { get; }
 
-    public ObservableCollection<CommunityCatalogTemplateItemViewModel> Templates { get; }
+    public ObservableCollection<CommunityCatalogAuthorGroupViewModel> AuthorGroups { get; }
+
+    public int TemplateCount => AuthorGroups.Sum(static group => group.Templates.Count);
 }

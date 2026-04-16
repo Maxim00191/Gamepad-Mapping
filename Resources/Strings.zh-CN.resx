@@ -1200,4 +1200,10 @@
   <data name="CommunityUpload_Suggest_ListingDescriptionLength" xml:space="preserve">
     <value>请缩短列表说明，使其不超过输入框下方显示的字符上限。</value>
   </data>
+  <data name="CommunityCatalog_UncategorizedFolder" xml:space="preserve">
+    <value>未分类</value>
+  </data>
+  <data name="CommunityCatalog_UnknownAuthor" xml:space="preserve">
+    <value>未知作者</value>
+  </data>
 </root>

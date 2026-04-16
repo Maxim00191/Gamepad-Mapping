@@ -1200,4 +1200,10 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityUpload_Suggest_ListingDescriptionLength" xml:space="preserve">
     <value>Shorten the listing description to fit within the character limit shown under the field.</value>
   </data>
+  <data name="CommunityCatalog_UncategorizedFolder" xml:space="preserve">
+    <value>Uncategorized</value>
+  </data>
+  <data name="CommunityCatalog_UnknownAuthor" xml:space="preserve">
+    <value>Unknown author</value>
+  </data>
 </root>

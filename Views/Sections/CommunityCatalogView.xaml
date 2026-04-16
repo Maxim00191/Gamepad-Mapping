@@ -14,14 +14,15 @@
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
         </Style>
 
-        <Style x:Key="CommunityTemplateRowBorderStyle" TargetType="Border">
-            <Setter Property="Padding" Value="12,9" />
+        <Style x:Key="CommunityTemplateCardBorderStyle" TargetType="Border">
+            <Setter Property="Padding" Value="12" />
             <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Margin" Value="0,0,10,10" />
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppSeparatorBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Width" Value="300" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -102,78 +103,100 @@
                                                 Padding="8,2"
                                                 CornerRadius="10"
                                                 Background="{DynamicResource AppSelectionBrush}">
-                                            <TextBlock Text="{Binding Templates.Count}"
+                                            <TextBlock Text="{Binding TemplateCount}"
                                                        FontSize="11"
                                                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
                                         </Border>
                                     </Grid>
                                 </Expander.Header>
 
-                                <ItemsControl ItemsSource="{Binding Templates}">
+                                <ItemsControl ItemsSource="{Binding AuthorGroups}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource CommunityTemplateRowBorderStyle}"
-                                                    ToolTipService.ShowDuration="15000"
-                                                    ToolTipService.InitialShowDelay="120">
-                                                <Border.ToolTip>
-                                                    <ToolTip MaxWidth="380">
-                                                        <StackPanel>
-                                                            <TextBlock Text="{Binding DisplayName}"
-                                                                       FontWeight="SemiBold"
-                                                                       Margin="0,0,0,4" />
-                                                            <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
-                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
-                                                                       Margin="0,0,0,6" />
-                                                            <TextBlock Text="{Binding Description}"
-                                                                       TextWrapping="Wrap"
-                                                                       Foreground="{DynamicResource AppTextBrush}" />
-                                                        </StackPanel>
-                                                    </ToolTip>
-                                                </Border.ToolTip>
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0">
-                                                        <TextBlock Text="{Binding DisplayName}"
-                                                                   FontSize="13"
-                                                                   FontWeight="SemiBold" />
-                                                        <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
-                                                                   Margin="0,2,0,0"
-                                                                   FontSize="11"
-                                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1"
-                                                                Orientation="Horizontal"
-                                                                Margin="12,0,0,0"
-                                                                VerticalAlignment="Center">
-                                                        <Button Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                CommandParameter="{Binding}"
-                                                                VerticalAlignment="Center"
-                                                                Padding="14,5"
-                                                                ToolTipService.IsEnabled="False">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Download]}"
-                                                                           VerticalAlignment="Center" />
-                                                                <TextBlock Text="  ✓"
-                                                                           VerticalAlignment="Center"
-                                                                           Foreground="#2FA84F"
-                                                                           FontWeight="Bold"
-                                                                           Visibility="{Binding IsInstalledLocally, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                            </StackPanel>
-                                                        </Button>
-                                                        <Button Content="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Delete]}"
-                                                                Command="{Binding DataContext.DeleteTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                CommandParameter="{Binding}"
-                                                                VerticalAlignment="Center"
-                                                                Padding="12,5"
-                                                                Margin="8,0,0,0"
-                                                                ToolTipService.IsEnabled="False"
-                                                                Visibility="{Binding IsInstalledLocally, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
+                                            <StackPanel Margin="0,6,0,4">
+                                                <TextBlock Text="{Binding AuthorName}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                           Margin="2,0,0,8" />
+                                                <ItemsControl ItemsSource="{Binding Templates}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Style="{StaticResource CommunityTemplateCardBorderStyle}"
+                                                                    ToolTipService.ShowDuration="15000"
+                                                                    ToolTipService.InitialShowDelay="120">
+                                                                <Border.ToolTip>
+                                                                    <ToolTip MaxWidth="380">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                                       FontWeight="SemiBold"
+                                                                                       Margin="0,0,0,4" />
+                                                                            <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
+                                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                                       Margin="0,0,0,6" />
+                                                                            <TextBlock Text="{Binding Description}"
+                                                                                       TextWrapping="Wrap"
+                                                                                       Foreground="{DynamicResource AppTextBrush}" />
+                                                                        </StackPanel>
+                                                                    </ToolTip>
+                                                                </Border.ToolTip>
+                                                                <Grid>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="*" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                    </Grid.RowDefinitions>
+                                                                    <TextBlock Grid.Row="0"
+                                                                               Text="{Binding DisplayName}"
+                                                                               FontSize="13"
+                                                                               FontWeight="SemiBold"
+                                                                               TextWrapping="Wrap" />
+                                                                    <TextBlock Grid.Row="1"
+                                                                               Margin="0,2,0,0"
+                                                                               Text="{Binding Author, StringFormat='By: {0}'}"
+                                                                               FontSize="11"
+                                                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                                    <TextBlock Grid.Row="2"
+                                                                               Margin="0,8,0,10"
+                                                                               Text="{Binding Description}"
+                                                                               TextWrapping="Wrap"
+                                                                               Foreground="{DynamicResource AppTextBrush}" />
+                                                                    <StackPanel Grid.Row="3"
+                                                                                Orientation="Horizontal">
+                                                                        <Button Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Padding="14,5"
+                                                                                ToolTipService.IsEnabled="False">
+                                                                            <StackPanel Orientation="Horizontal">
+                                                                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Download]}"
+                                                                                           VerticalAlignment="Center" />
+                                                                                <TextBlock Text="  ✓"
+                                                                                           VerticalAlignment="Center"
+                                                                                           Foreground="#2FA84F"
+                                                                                           FontWeight="Bold"
+                                                                                           Visibility="{Binding IsInstalledLocally, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                                            </StackPanel>
+                                                                        </Button>
+                                                                        <Button Content="{Binding Source={StaticResource Loc}, Path=[CommunityCatalog_Delete]}"
+                                                                                Command="{Binding DataContext.DeleteTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Padding="12,5"
+                                                                                Margin="8,0,0,0"
+                                                                                ToolTipService.IsEnabled="False"
+                                                                                Visibility="{Binding IsInstalledLocally, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
