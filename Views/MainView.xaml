@@ -427,9 +427,9 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="7*" MinWidth="340" />
+                <ColumnDefinition Width="8*" MinWidth="340" />
                 <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="3*" MinWidth="280" />
+                <ColumnDefinition Width="2*" MinWidth="280" />
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Row="0"

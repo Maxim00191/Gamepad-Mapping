@@ -91,31 +91,31 @@
     <value> - 点击以映射</value>
   </data>
   <data name="LiveGamepadMonitor" xml:space="preserve">
-    <value>手柄实时监视器</value>
+    <value>实时手柄监视</value>
   </data>
   <data name="GamepadMonitorShow" xml:space="preserve">
-    <value>显示监视器</value>
+    <value>显示监视窗口</value>
   </data>
   <data name="GamepadMonitorHide" xml:space="preserve">
     <value>隐藏</value>
   </data>
   <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
-    <value>显示或隐藏实时监视器窗口。拖动窗口边缘调整宽度；宽度保存在应用设置中。</value>
+    <value>显示或隐藏实时监视窗口。拖动窗口边缘可调整宽度；宽度会保存在应用设置中。</value>
   </data>
   <data name="WorkspaceHeaderCollapseTooltip" xml:space="preserve">
-    <value>隐藏档案与模板工具栏，为映射与编辑区腾出更多垂直空间。此选项会保存在应用设置中。</value>
+    <value>隐藏配置与模板工具栏，为映射与编辑区腾出更多纵向空间。此选项会保存在应用设置中。</value>
   </data>
   <data name="WorkspaceHeaderExpandTooltip" xml:space="preserve">
-    <value>重新显示档案与模板工具栏。</value>
+    <value>重新显示配置与模板工具栏。</value>
   </data>
   <data name="WorkspaceHeaderExpandLabel" xml:space="preserve">
-    <value>显示档案工具栏</value>
+    <value>显示配置工具栏</value>
   </data>
   <data name="GamepadMonitorReaderOn" xml:space="preserve">
-    <value>读取中</value>
+    <value>监听中</value>
   </data>
   <data name="GamepadMonitorReaderOff" xml:space="preserve">
-    <value>已停止</value>
+    <value>未监听</value>
   </data>
   <data name="GamepadMonitorAnalogMetersHeader" xml:space="preserve">
     <value>摇杆与扳机</value>
@@ -160,13 +160,13 @@
     <value>HUD 外观设置</value>
   </data>
   <data name="StopReader" xml:space="preserve">
-    <value>停止读取</value>
+    <value>停止监听</value>
   </data>
   <data name="StartReader" xml:space="preserve">
-    <value>开始读取</value>
+    <value>开始监听</value>
   </data>
   <data name="ProcessTarget" xml:space="preserve">
-    <value>进程目标</value>
+    <value>目标进程</value>
   </data>
   <data name="Refresh" xml:space="preserve">
     <value>刷新</value>
@@ -208,7 +208,7 @@
     <value>已选映射详情</value>
   </data>
   <data name="NewMappingDetailsHeader" xml:space="preserve">
-    <value>新建映射 — 在下方填写详情</value>
+    <value>新建映射 — 请在下方填写详情</value>
   </data>
   <data name="Source" xml:space="preserve">
     <value>来源</value>
@@ -274,13 +274,13 @@
     <value>外死区</value>
   </data>
   <data name="AppSettingsHeader" xml:space="preserve">
-    <value>应用程序设置</value>
+    <value>应用设置</value>
   </data>
   <data name="AppSettingsButton" xml:space="preserve">
-    <value>应用程序设置</value>
+    <value>应用设置</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>语言、更新、输入/输出、手柄、映射与径向菜单/HUD 等全局选项。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+    <value>语言、更新、输入/输出、手柄、映射与转盘/HUD 等全局选项。设置保存在本地应用配置中（不包含在游戏配置 JSON 内）。</value>
   </data>
   <data name="AppSettingsTabGeneral" xml:space="preserve">
     <value>常规</value>
@@ -295,7 +295,22 @@
     <value>映射</value>
   </data>
   <data name="AppSettingsTabRadialHud" xml:space="preserve">
-    <value>径向菜单 / HUD</value>
+    <value>转盘 / HUD</value>
+  </data>
+  <data name="AppSettingsThemeSection" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="AppThemeLabel" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="UiThemeFollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="UiThemeLight" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="UiThemeDark" xml:space="preserve">
+    <value>深色</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>选择语言</value>
@@ -316,7 +331,7 @@
     <value>Input Injection (Windows 10+)</value>
   </data>
   <data name="HumanNoiseEnableLabel" xml:space="preserve">
-    <value>类人化时间抖动</value>
+    <value>拟人化抖动</value>
   </data>
   <data name="HumanNoiseEnableTooltip" xml:space="preserve">
     <value>对延迟、鼠标移动和键盘点按时长加入变化（在「键盘点按时长」设定值附近 ±10 毫秒）。</value>
@@ -352,10 +367,10 @@
     <value>模拟量与视角移动</value>
   </data>
   <data name="ModifierGraceLabel" xml:space="preserve">
-    <value>修饰键容限 / 组合 HUD 延迟（毫秒）</value>
+    <value>修饰键宽限期 / 组合键 HUD 延迟（毫秒）</value>
   </data>
   <data name="LeadSuppressLabel" xml:space="preserve">
-    <value>主导键长按抑制阈值（毫秒）</value>
+    <value>先导键长按抑制（毫秒）</value>
   </data>
   <data name="TapHoldLabel" xml:space="preserve">
     <value>键盘点按按住时长（毫秒）</value>
@@ -397,7 +412,7 @@
     <value>鼠标视角回弹抑制（0–1）</value>
   </data>
   <data name="MouseLookStickLayoutHint" xml:space="preserve">
-    <value>在同一支摇杆上同时映射视角与移动时，二者会共用该摇杆。若可以，建议一支摇杆负责视角、另一支负责移动，操作更直观。</value>
+    <value>在同一根摇杆上同时映射视角与移动时，二者会共用该摇杆。若可以，建议一根摇杆负责视角、另一根负责移动，操作更直观。</value>
   </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>摇杆变化灵敏度（ε）</value>
@@ -427,7 +442,7 @@
     <value>仅按键</value>
   </data>
   <data name="RadialHudScaleLabel" xml:space="preserve">
-    <value>径向转盘 HUD 缩放</value>
+    <value>转盘 HUD 缩放</value>
   </data>
   <data name="CatalogExpanderHeader" xml:space="preserve">
     <value>键盘动作与转盘（JSON 目录）</value>
@@ -505,7 +520,7 @@
     <value>标题（简体中文）</value>
   </data>
   <data name="CatalogColumnHudLabel" xml:space="preserve">
-    <value>HUD显示文本</value>
+    <value>HUD 显示文本</value>
   </data>
   <data name="CatalogColumnHudLabelKey" xml:space="preserve">
     <value>HUD 文案资源键</value>
@@ -679,7 +694,7 @@
     <value>请检查来源、LT/RT 组合时的扳机阈值以及动作配置。</value>
   </data>
   <data name="ComboHudGateHint" xml:space="preserve">
-    <value>组合键 HUD 预览已关闭：当前不允许键鼠输出（请检查目标进程、前台窗口或权限提升）。</value>
+    <value>组合键 HUD 预览已关闭：当前无法发送键鼠输出（请检查目标进程、前台窗口或是否以管理员身份运行）。</value>
   </data>
   <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
     <value>模板切换 HUD 显示时长（秒）</value>
@@ -700,7 +715,7 @@
     <value>配置切换</value>
   </data>
   <data name="ActionType_RadialMenu" xml:space="preserve">
-    <value>轮盘菜单</value>
+    <value>转盘菜单</value>
   </data>
   <data name="ActionType" xml:space="preserve">
     <value>按键类型</value>
@@ -858,7 +873,7 @@
     <value>检查更新</value>
   </data>
   <data name="UpdateQuotaDailyLimitBlocked" xml:space="preserve">
-    <value>今日{0}次数已达上限（{1} 次）。请明天再试。</value>
+    <value>「{0}」今日次数已达上限（每日 {1} 次）。请明天再试。</value>
   </data>
   <data name="UpdateSuccessToastTitle" xml:space="preserve">
     <value>更新已安装</value>
@@ -885,7 +900,7 @@
     <value>感谢使用。选择一个模板，映射按键后即可开始游戏。需要时可在「设置」中更改语言、检查更新等。</value>
   </data>
   <data name="ProfileMappingUnusedCatalogActionIdsHint" xml:space="preserve">
-    <value>提示：键盘目录中有 {0} 个操作 ID 未在任何映射或径向菜单中使用。</value>
+    <value>提示：键盘目录中有 {0} 个操作 ID 未在任何映射或转盘中使用。</value>
   </data>
   <data name="ProfileMappingUnusedCatalogActionIdsTooltipTitle" xml:space="preserve">
     <value>目录中未使用的操作 ID</value>
@@ -901,5 +916,303 @@
   </data>
   <data name="ProfileMappingValidationWarningsTooltipTitle" xml:space="preserve">
     <value>配置文件验证警告</value>
+  </data>
+  <data name="CommunityUpload_ChecksHeader" xml:space="preserve">
+    <value>仓库检查（实时）</value>
+  </data>
+  <data name="CommunityUpload_ChecksIntro" xml:space="preserve">
+    <value>下列检查与社区仓库校验脚本一致，每一步都会说明在发起拉取请求之前需要核对的内容。</value>
+  </data>
+  <data name="CommunityUpload_Step_Submission_Title" xml:space="preserve">
+    <value>1. 提交路径与必填项</value>
+  </data>
+  <data name="CommunityUpload_Step_Submission_Prompt" xml:space="preserve">
+    <value>确认已填写游戏文件夹、作者文件夹和列表说明，并能组合成将要写入 JSON 的有效目录路径。</value>
+  </data>
+  <data name="CommunityUpload_Step_Selection_Title" xml:space="preserve">
+    <value>3. 已选模板与 profileId</value>
+  </data>
+  <data name="CommunityUpload_Step_Selection_Prompt" xml:space="preserve">
+    <value>确认至少选中一个模板，且任意两个已选文件不能使用相同的 profileId（仓库要求每个文件唯一）。</value>
+  </data>
+  <data name="CommunityUpload_Step_Content_Title" xml:space="preserve">
+    <value>4. 模板 JSON 规则</value>
+  </data>
+  <data name="CommunityUpload_Step_Content_Prompt" xml:space="preserve">
+    <value>运行与本应用及社区 CI 脚本相同的检查：映射、转盘、操作引用，以及 actionId / holdActionId 的解析规则。</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Ok" xml:space="preserve">
+    <value>通过</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Warning" xml:space="preserve">
+    <value>警告（仍允许上传）</value>
+  </data>
+  <data name="CommunityUpload_SeveritySummary_Error" xml:space="preserve">
+    <value>已阻止 — 请先修复再上传</value>
+  </data>
+  <data name="CommunityUpload_SuggestionLabel" xml:space="preserve">
+    <value>建议</value>
+  </data>
+  <data name="CommunityUpload_Suggest_GameFolder" xml:space="preserve">
+    <value>输入单个游戏文件夹名称（字母、数字、点、下划线、连字符）。它将作为 GitHub 路径的第一段。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_AuthorFolder" xml:space="preserve">
+    <value>输入作者文件夹名称（单段，不能含斜杠）。模板将放在该游戏文件夹下。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ListingDescription" xml:space="preserve">
+    <value>为社区列表添加简短纯文本说明。将保存在模板 JSON 中。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_PathRules" xml:space="preserve">
+    <value>仅使用有效的单段名称：避免 / \\ : * ? &quot; &lt; &gt; | 与控制字符。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_SelectTemplate" xml:space="preserve">
+    <value>在上方列表中至少勾选一个模板；若不想上传则取消。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_DuplicateProfileId" xml:space="preserve">
+    <value>重命名其中一个配置文件使每个已选文件的 profileId 唯一，或从本次提交中排除多余项。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ProfileId" xml:space="preserve">
+    <value>在配置面板中打开模板，设置非空的 profile ID，并与文件名约定一致。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingsRequired" xml:space="preserve">
+    <value>确保 JSON 包含 mappings 数组。若是手改文件，可在应用中保存一次。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingInput" xml:space="preserve">
+    <value>每条映射都需要游戏输入（from.value 字段）。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MappingOutput" xml:space="preserve">
+    <value>添加键盘输出，或让映射引用定义了输出的 keyboardActions id。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_KeyboardCatalog" xml:space="preserve">
+    <value>使 keyboardActions 的 id 与映射上的 actionId / holdActionId 一致，去掉重复，并为每条目录项配置真实输出。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_CatalogFolderJson" xml:space="preserve">
+    <value>将 JSON 中的 templateCatalogFolder 改为合法的单段路径，或清空并由应用管理路径。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_RadialMenu" xml:space="preserve">
+    <value>检查转盘 id 以及条目的 actionId 是否引用已存在的 keyboardActions。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TemplateGroupId" xml:space="preserve">
+    <value>模板组 id 仅使用字母、数字、点、下划线与连字符。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ActionIdExclusive" xml:space="preserve">
+    <value>从该映射中移除内联的 itemCycle / templateToggle / radialMenu，或不要在同一行使用 actionId。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_WarningReview" xml:space="preserve">
+    <value>可选：处理警告以符合更严格的仓库设置（将警告视为错误）。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_Generic" xml:space="preserve">
+    <value>对照 Assets/Profiles/templates 中的可用模板，或按提示信息修正对应字段。</value>
+  </data>
+  <data name="CommunityUpload_FixIssuesBeforeUpload" xml:space="preserve">
+    <value>请先修复「仓库检查」下列出的问题，或取消上传。</value>
+  </data>
+  <data name="CommunityUpload_WindowTitle" xml:space="preserve">
+    <value>上传模板到社区</value>
+  </data>
+  <data name="CommunityUpload_Intro" xml:space="preserve">
+    <value>将当前模板以及通过模板切换关联的配置文件一并提交，由 GitHub 拉取请求审核。不需要纳入本次提交的可取消勾选。</value>
+  </data>
+  <data name="CommunityUpload_TemplatesToInclude" xml:space="preserve">
+    <value>要包含的模板</value>
+  </data>
+  <data name="CommunityUpload_SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="CommunityUpload_ClearSelection" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="CommunityUpload_GameFolderLabel" xml:space="preserve">
+    <value>游戏文件夹（仓库分组）</value>
+  </data>
+  <data name="CommunityUpload_AuthorFolderLabel" xml:space="preserve">
+    <value>作者文件夹</value>
+  </data>
+  <data name="CommunityUpload_ListingDescriptionLabel" xml:space="preserve">
+    <value>列表说明</value>
+  </data>
+  <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
+    <value>上传仅支持 Cloudflare Worker + Turnstile 握手。请在 local_settings.json 中配置 communityProfilesUploadWorkerUrl 与 Turnstile 相关设置。GitHub PAT 回退路径已移除。</value>
+  </data>
+  <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
+    <value>上传</value>
+  </data>
+  <data name="CommunityUpload_SelectionSummary" xml:space="preserve">
+    <value>已选择 {0} / {1} 个模板文件用于上传。</value>
+  </data>
+  <data name="CommunityUpload_Error_NoTemplatesInBundle" xml:space="preserve">
+    <value>包内没有模板。</value>
+  </data>
+  <data name="CommunityUpload_Error_SelectAtLeastOne" xml:space="preserve">
+    <value>请至少选择一个要上传的模板。</value>
+  </data>
+  <data name="CommunityUpload_Error_GameFolderRequired" xml:space="preserve">
+    <value>必须填写游戏文件夹名称。</value>
+  </data>
+  <data name="CommunityUpload_Error_AuthorRequired" xml:space="preserve">
+    <value>必须填写作者名称。</value>
+  </data>
+  <data name="CommunityUpload_Error_ListingDescriptionRequired" xml:space="preserve">
+    <value>必须填写列表说明。</value>
+  </data>
+  <data name="CommunityUpload_Error_InvalidInput" xml:space="preserve">
+    <value>输入无效。</value>
+  </data>
+  <data name="CommunityUpload_Error_PathAlreadyPublished" xml:space="preserve">
+    <value>以下路径已在社区仓库中存在。请修改游戏文件夹、作者文件夹或配置文件 id 后再试。
+
+{0}</value>
+  </data>
+  <data name="CommunityCatalog_Header" xml:space="preserve">
+    <value>社区模板</value>
+  </data>
+  <data name="CommunityCatalog_Upload" xml:space="preserve">
+    <value>上传…</value>
+  </data>
+  <data name="CommunityCatalog_Download" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="CommunityCatalog_Delete" xml:space="preserve">
+    <value>删除本地</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteTitle" xml:space="preserve">
+    <value>覆盖现有模板</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteWarning" xml:space="preserve">
+    <value>该模板已存在于本地目录：
+
+{0}
+
+再次下载可能会覆盖本地修改。是否继续？</value>
+  </data>
+  <data name="CommunityCatalog_OverwriteWarningExact" xml:space="preserve">
+    <value>本地已存在同目录、同 profileId、同显示名的模板：
+
+{0}
+
+再次下载将覆盖它。是否继续？</value>
+  </data>
+  <data name="CommunityCatalog_DeleteConfirmTitle" xml:space="preserve">
+    <value>删除本地模板</value>
+  </data>
+  <data name="CommunityCatalog_DeleteConfirmMessage" xml:space="preserve">
+    <value>确定要从本地目录删除此模板吗？
+
+{0}
+
+此操作仅删除你的本地副本。</value>
+  </data>
+  <data name="CommunityCatalog_DownloadToastTitle" xml:space="preserve">
+    <value>模板已下载</value>
+  </data>
+  <data name="CommunityCatalog_DownloadToastMessage" xml:space="preserve">
+    <value>已保存到本地模板目录：{0}</value>
+  </data>
+  <data name="CommunityCatalog_DownloadFailedToastTitle" xml:space="preserve">
+    <value>下载失败</value>
+  </data>
+  <data name="CommunityCatalog_DownloadFailedToastMessage" xml:space="preserve">
+    <value>无法下载模板：{0}</value>
+  </data>
+  <data name="CommunityCatalog_DeleteToastTitle" xml:space="preserve">
+    <value>模板已删除</value>
+  </data>
+  <data name="CommunityCatalog_DeleteToastMessage" xml:space="preserve">
+    <value>已删除本地模板：{0}</value>
+  </data>
+  <data name="CommunityCatalog_DeleteFailedToastTitle" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="CommunityCatalog_DeleteFailedToastMessage" xml:space="preserve">
+    <value>无法删除本地模板：{0}</value>
+  </data>
+  <data name="CommunityUpload_MetadataHeader" xml:space="preserve">
+    <value>提交详情</value>
+  </data>
+  <data name="TemplateCommunityDescriptionLabel" xml:space="preserve">
+    <value>社区说明</value>
+  </data>
+  <data name="TemplateCommunityDescriptionHudTitle" xml:space="preserve">
+    <value>模板使用说明</value>
+  </data>
+  <data name="TemplateCommunityDescriptionHudHint" xml:space="preserve">
+    <value>此模板的简述：</value>
+  </data>
+  <data name="TemplateCommunityDescriptionToggleHint" xml:space="preserve">
+    <value>展开或收起说明面板</value>
+  </data>
+  <data name="CommunityUpload_Error_PipelineBusy" xml:space="preserve">
+    <value>社区仓库流水线当前正在处理其他上传，请稍后再试。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_MaxFilesPerUpload" xml:space="preserve">
+    <value>单次上传请求最多选择 8 个模板。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_JsonOnlyUpload" xml:space="preserve">
+    <value>仅允许上传 .json 模板文件。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TemplateFileSizeLimit" xml:space="preserve">
+    <value>每个模板文件上传前必须不超过 1 MB。</value>
+  </data>
+  <data name="CommunityCatalog_LoadFailed" xml:space="preserve">
+    <value>无法加载社区模板。</value>
+  </data>
+  <data name="CommunityCatalog_Empty" xml:space="preserve">
+    <value>未找到模板。</value>
+  </data>
+  <data name="CommunityCatalog_RefreshCooldownTooltip" xml:space="preserve">
+    <value>刷新冷却中，请约 {0} 秒后再试。</value>
+  </data>
+  <data name="WebView2_RuntimeRequired_Title" xml:space="preserve">
+    <value>需要 WebView2 运行时</value>
+  </data>
+  <data name="WebView2_RuntimeRequired_Message" xml:space="preserve">
+    <value>上传模板时的验证步骤需要 Microsoft Edge WebView2 Runtime，但本机似乎尚未安装。
+
+是否打开 Microsoft 下载页面安装 Evergreen Runtime，安装完成后再重试？</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TextPolicyViolation" xml:space="preserve">
+    <value>请先移除提交信息或模板文本中的不文明用语。</value>
+  </data>
+  <data name="CommunityUpload_Step_TextPolicy_Title" xml:space="preserve">
+    <value>2. 文本内容审核</value>
+  </data>
+  <data name="CommunityUpload_Step_TextPolicy_Prompt" xml:space="preserve">
+    <value>请文明用语，否则会被拒绝上传。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_LinkOrDomainNotAllowed" xml:space="preserve">
+    <value>上传前请从提交信息与模板字段中移除网站链接、电子邮箱以及类似域名的内容。</value>
+  </data>
+  <data name="CommunityUpload_TextPolicy_FieldViolationDetail" xml:space="preserve">
+    <value>{0} 含有不允许用于社区上传的文本。</value>
+  </data>
+  <data name="CommunityUpload_Metadata_AuthorNameTooLong" xml:space="preserve">
+    <value>作者名称不能超过 {0} 个字符。</value>
+  </data>
+  <data name="CommunityUpload_Metadata_AuthorNameInvalidChars" xml:space="preserve">
+    <value>作者名称只能包含字母、数字、空格、连字符 (-)、下划线 (_) 和撇号 (')。</value>
+  </data>
+  <data name="CommunityUpload_Metadata_ListingDescriptionTooLong" xml:space="preserve">
+    <value>列表说明不能超过 {0} 个字符。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_AuthorNameRules" xml:space="preserve">
+    <value>请参考输入框下方的计数：不要超过上限，且除连字符、下划线和撇号外不要使用其他符号。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ListingDescriptionLength" xml:space="preserve">
+    <value>请缩短列表说明，使其不超过输入框下方显示的字符上限。</value>
+  </data>
+  <data name="CommunityCatalog_UncategorizedFolder" xml:space="preserve">
+    <value>未分类</value>
+  </data>
+  <data name="CommunityCatalog_UnknownAuthor" xml:space="preserve">
+    <value>未知作者</value>
+  </data>
+  <data name="CommunityCatalog_SearchPlaceholder" xml:space="preserve">
+    <value>按名称、作者、说明、文件夹、文件名、标签等搜索…</value>
+  </data>
+  <data name="CommunityCatalog_SearchNoResults" xml:space="preserve">
+    <value>没有符合搜索条件的模板。</value>
+  </data>
+  <data name="CommunityCatalog_SearchLabel" xml:space="preserve">
+    <value>搜索：</value>
   </data>
 </root>

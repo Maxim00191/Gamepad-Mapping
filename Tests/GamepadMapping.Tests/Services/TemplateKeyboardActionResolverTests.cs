@@ -90,6 +90,46 @@ public class TemplateKeyboardActionResolverTests
     }
 
     [Fact]
+    public void CollectResolutionErrors_EmptyCatalog_ActionAndHold_Reported()
+    {
+        var template = new GameProfileTemplate
+        {
+            Mappings =
+            [
+                new MappingEntry
+                {
+                    ActionId = "a",
+                    HoldActionId = "h",
+                    From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+                    Trigger = TriggerMoment.Pressed
+                }
+            ]
+        };
+
+        var errs = TemplateKeyboardActionResolver.CollectResolutionErrors(template);
+        Assert.Equal(2, errs.Count);
+        Assert.Contains(errs, e => e.Contains("actionId", StringComparison.Ordinal));
+        Assert.Contains(errs, e => e.Contains("holdActionId", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CollectResolutionErrors_MatchesApply_ForUnknownAction()
+    {
+        var template = new GameProfileTemplate
+        {
+            KeyboardActions = [new KeyboardActionDefinition { Id = "only", KeyboardKey = "X" }],
+            Mappings =
+            [
+                new MappingEntry { ActionId = "missing", From = new GamepadBinding(), Trigger = TriggerMoment.Pressed }
+            ]
+        };
+
+        var errs = TemplateKeyboardActionResolver.CollectResolutionErrors(template);
+        Assert.Single(errs);
+        Assert.Contains("unknown keyboardActions id 'missing'", errs[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Serialize_WithActionId_OmitsPrimaryKeyboardKeyProperty()
     {
         var entry = new MappingEntry

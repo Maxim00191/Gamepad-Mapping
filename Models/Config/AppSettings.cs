@@ -152,6 +152,10 @@ public class AppSettings
     [JsonProperty("uiCulture")]
     public string UiCulture { get; set; } = "zh-CN";
 
+    /// <summary>Application chrome: <see cref="UiThemeMode.FollowSystem"/>, <see cref="UiThemeMode.Light"/>, or <see cref="UiThemeMode.Dark"/>.</summary>
+    [JsonProperty("uiTheme")]
+    public string UiTheme { get; set; } = UiThemeMode.FollowSystem;
+
     /// <summary>ARGB alpha (0–255) for the on-screen combo HUD panel backing. Clamped in the app when applied.</summary>
     [JsonProperty("comboHudPanelAlpha")]
     public int ComboHudPanelAlpha { get; set; } = 96;
@@ -289,4 +293,47 @@ public class AppSettings
     /// <summary>When true, show secondary text such as <c>+N</c> for additional mappings on the same control.</summary>
     [JsonProperty("controllerMappingOverlayShowSecondary")]
     public bool ControllerMappingOverlayShowSecondary { get; set; } = true;
+
+    [JsonProperty("communityProfilesRepoOwner")]
+    public string CommunityProfilesRepoOwner { get; set; } = "Maxim00191";
+
+    [JsonProperty("communityProfilesRepoName")]
+    public string CommunityProfilesRepoName { get; set; } = "GamepadMapping-CommunityProfiles";
+
+    [JsonProperty("communityProfilesRepoBranch")]
+    public string CommunityProfilesRepoBranch { get; set; } = "main";
+
+    /// <summary>
+    /// Minimum interval between community catalog index refreshes (seconds). Set 0 to disable cooldown.
+    /// </summary>
+    [JsonProperty("communityCatalogRefreshCooldownSeconds")]
+    public int CommunityCatalogRefreshCooldownSeconds { get; set; } = 3;
+
+    /// <summary>
+    /// HTTPS URL of the community upload Cloudflare Worker (path usually ends with <c>/submit</c>). HTTP is allowed only for
+    /// loopback hosts (e.g. wrangler dev).
+    /// </summary>
+    [JsonProperty("communityProfilesUploadWorkerUrl")]
+    public string CommunityProfilesUploadWorkerUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Turnstile site key (public) used for the in-app WebView2 challenge. In Cloudflare, allow only the hostname that
+    /// serves the embed page (your Worker or custom domain), not end-user machines.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadTurnstileSiteKey")]
+    public string CommunityProfilesUploadTurnstileSiteKey { get; set; } = "0x4AAAAAAC98uX3YOdWxbOQk";
+
+    /// <summary>
+    /// Optional absolute HTTPS URL of the Turnstile embed page (must match an allowed hostname in Cloudflare).
+    /// When empty, the app uses <c>https://&lt;worker-host&gt;/turnstile-embed</c> derived from
+    /// <see cref="CommunityProfilesUploadWorkerUrl"/>.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadTurnstileHostPageUrl")]
+    public string CommunityProfilesUploadTurnstileHostPageUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Turnstile action used when rendering the challenge widget.
+    /// </summary>
+    [JsonProperty("communityProfilesUploadTurnstileAction")]
+    public string CommunityProfilesUploadTurnstileAction { get; set; } = "community_upload_ticket";
 }

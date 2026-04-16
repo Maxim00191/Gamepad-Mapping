@@ -8,7 +8,7 @@
         Title="Gamepad Mapping"
         Icon="pack://application:,,,/Assets/Icons/Gamepad%20Mapping.ico"
         Height="720"
-        Width="960"
+        Width="1280"
         MinHeight="560"
         MinWidth="680"
         ResizeMode="CanResize"

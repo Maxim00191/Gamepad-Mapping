@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="InputSimulatorPlus" Version="1.0.7" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3240.44" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Vortice.XInput" Version="3.8.3" />
     <PackageReference Include="SharpVectors.Wpf" Version="1.8.5" />
@@ -30,6 +31,15 @@
 
   <ItemGroup>
     <Resource Include="Assets\Icons\Gamepad Mapping.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Embedded\upload_text_policy.txt.gz">
+      <LogicalName>GamepadMapperGUI.UploadTextPolicy.txt.gz</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Embedded\upload_text_policy.xorkey">
+      <LogicalName>GamepadMapperGUI.UploadTextPolicy.xorkey</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

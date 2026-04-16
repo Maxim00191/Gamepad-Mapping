@@ -85,14 +85,32 @@ public class GitHubContentService : IGitHubContentService
         GitHubRepositoryContentRequest request,
         bool preferCdn,
         TimeSpan rawTimeout,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? requestQuerySuffix = null)
     {
+        var primary = BuildRawUrl(request);
+        var fallback = BuildCdnUrl(request);
+        if (!string.IsNullOrWhiteSpace(requestQuerySuffix))
+        {
+            var suffix = requestQuerySuffix.Trim();
+            if (suffix.StartsWith('?'))
+                suffix = suffix[1..];
+            primary = AppendQuery(primary, suffix);
+            fallback = AppendQuery(fallback, suffix);
+        }
+
         return await GetTextWithPrimaryFallbackAsync(
-            BuildRawUrl(request),
-            BuildCdnUrl(request),
+            primary,
+            fallback,
             preferCdn,
             rawTimeout,
             cancellationToken);
+    }
+
+    private static string AppendQuery(string url, string nameAndValue)
+    {
+        var sep = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+        return string.Concat(url, sep, nameAndValue);
     }
 
     public async Task<string> GetGitHubApiStringAsync(

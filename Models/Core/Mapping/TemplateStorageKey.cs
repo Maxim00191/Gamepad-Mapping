@@ -1,7 +1,9 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace GamepadMapperGUI.Models;
 
@@ -49,9 +51,6 @@ public static class TemplateStorageKey
         return fileStem.Length > 0 && !string.IsNullOrEmpty(catalogSubfolder);
     }
 
-    /// <summary>
-    /// Current product rule: one folder level under the templates root. Relaxing this check is the main knob for deeper trees later.
-    /// </summary>
     public static string ValidateSingleSegmentFolderForSave(string? raw)
     {
         var s = (raw ?? string.Empty).Trim();
@@ -68,5 +67,37 @@ public static class TemplateStorageKey
             throw new ArgumentException("Catalog folder contains invalid characters.", nameof(raw));
 
         return s;
+    }
+
+    /// <summary>
+    /// Validates a relative catalog path under the templates root (forward slashes in persisted JSON).
+    /// Each segment must be a single path component (no nested separators).
+    /// </summary>
+    public static string ValidateCatalogFolderPathForSave(string? raw)
+    {
+        var s = (raw ?? string.Empty).Trim();
+        if (s.Length == 0)
+            return string.Empty;
+
+        var segments = SplitCatalogPathSegments(s);
+        if (segments.Count == 0)
+            return string.Empty;
+
+        foreach (var seg in segments)
+            ValidateSingleSegmentFolderForSave(seg);
+
+        return string.Join(Separator, segments);
+    }
+
+    public static IReadOnlyList<string> SplitCatalogPathSegments(string raw)
+    {
+        var s = (raw ?? string.Empty).Trim();
+        if (s.Length == 0)
+            return [];
+
+        return s.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(static p => p.Trim())
+            .Where(static p => p.Length > 0)
+            .ToList();
     }
 }

@@ -26,6 +26,31 @@ public partial class VisualEditorViewModel : ObservableObject
     [ObservableProperty]
     private string? _selectedDisplayName;
 
+    [ObservableProperty]
+    private bool _isTemplateDescriptionExpanded = false;
+
+    public string TemplateCommunityListingDescription
+    {
+        get => _mainViewModel.CurrentTemplateCommunityListingDescription;
+        set => _mainViewModel.CurrentTemplateCommunityListingDescription = value;
+    }
+
+    public string TemplateCommunityListingDescriptionPreview
+    {
+        get
+        {
+            var normalized = (TemplateCommunityListingDescription ?? string.Empty).Trim();
+            if (normalized.Length == 0)
+                return string.Empty;
+
+            const int maxLength = 120;
+            return normalized.Length <= maxLength ? normalized : $"{normalized[..maxLength]}...";
+        }
+    }
+
+    public bool HasTemplateCommunityListingDescription =>
+        !string.IsNullOrWhiteSpace(TemplateCommunityListingDescription);
+
     public VisualLogicalControlMappingsViewModel LogicalControlMappings { get; }
 
     public bool ShowVisualCreateMappingCallout =>
@@ -78,6 +103,12 @@ public partial class VisualEditorViewModel : ObservableObject
             {
                 SyncFromGlobalSelection(_mainViewModel.SelectedMapping);
                 ControllerVisual.SelectedMapping = _mainViewModel.SelectedMapping;
+            }
+            else if (e.PropertyName == nameof(MainViewModel.CurrentTemplateCommunityListingDescription))
+            {
+                OnPropertyChanged(nameof(TemplateCommunityListingDescription));
+                OnPropertyChanged(nameof(TemplateCommunityListingDescriptionPreview));
+                OnPropertyChanged(nameof(HasTemplateCommunityListingDescription));
             }
         };
     }
@@ -172,4 +203,8 @@ public partial class VisualEditorViewModel : ObservableObject
     [RelayCommand]
     private void CreateMapping() =>
         LogicalControlMappings.AddMappingForSelectedControlCommand.Execute(null);
+
+    [RelayCommand]
+    private void ToggleTemplateDescriptionExpanded() =>
+        IsTemplateDescriptionExpanded = !IsTemplateDescriptionExpanded;
 }

@@ -76,7 +76,16 @@
                                    Margin="0,0,0,4" />
                         <TextBox MinHeight="28"
                                  VerticalContentAlignment="Center"
+                                 Margin="0,0,0,8"
                                  Text="{Binding CurrentTemplateCatalogFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateCommunityDescriptionLabel]}"
+                                   Margin="0,0,0,4" />
+                        <TextBox MinHeight="72"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding CurrentTemplateCommunityListingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     </StackPanel>
                 </Border>
             </Popup>

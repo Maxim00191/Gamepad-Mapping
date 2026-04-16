@@ -21,16 +21,96 @@
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition MinWidth="{DynamicResource VisualWorkspaceLogicalMappingsColumnMinWidth}"
-                              Width="*" />
+                              Width="1*" />
             <ColumnDefinition Width="{DynamicResource VisualWorkspaceVisualEditorSplitterColumnWidth}" />
             <ColumnDefinition MinWidth="{DynamicResource VisualWorkspaceVisualEditorCenterColumnMinWidth}"
-                              Width="2*" />
+                              Width="3*" />
         </Grid.ColumnDefinitions>
 
-        <sections:VisualLogicalControlMappingsView Grid.Row="0"
-                                                    Grid.Column="0"
-                                                    VerticalAlignment="Stretch"
-                                                    DataContext="{Binding LogicalControlMappings}" />
+        <Grid Grid.Row="0"
+              Grid.Column="0"
+              MinHeight="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <sections:VisualLogicalControlMappingsView Grid.Row="0"
+                                                        VerticalAlignment="Stretch"
+                                                        DataContext="{Binding LogicalControlMappings}" />
+
+            <Border Grid.Row="1"
+                    Margin="0,10,0,0"
+                    Padding="12,10"
+                    Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
+                    CornerRadius="4"
+                    BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}"
+                    BorderThickness="1">
+                <StackPanel>
+                    <ToggleButton x:Name="OverlaySettingsButton"
+                                  HorizontalAlignment="Stretch"
+                                  MinHeight="28"
+                                  Padding="10,4"
+                                  Style="{StaticResource ToolbarToggleButtonStyle}">
+                        <TextBlock FontWeight="SemiBold"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelSettingsHeader]}" />
+                    </ToggleButton>
+                    <ToggleButton x:Name="DescriptionOverlayButton"
+                                  Margin="0,8,0,0"
+                                  HorizontalAlignment="Stretch"
+                                  MinHeight="28"
+                                  Padding="10,4"
+                                  Style="{StaticResource ToolbarToggleButtonStyle}">
+                        <TextBlock FontWeight="SemiBold"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[TemplateCommunityDescriptionHudTitle]}" />
+                    </ToggleButton>
+                    <Popup Placement="Bottom"
+                           PlacementTarget="{Binding ElementName=OverlaySettingsButton}"
+                           StaysOpen="False"
+                           IsOpen="{Binding IsChecked, ElementName=OverlaySettingsButton, Mode=TwoWay}">
+                        <Border Style="{StaticResource SectionCardBorder}"
+                                MinWidth="320"
+                                DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=views:MainView}}">
+                            <StackPanel>
+                                <ComboBox MinHeight="28"
+                                          Width="{DynamicResource VisualWorkspaceOverlaySettingsComboWidth}"
+                                          SelectedIndex="{Binding ControllerMappingOverlayPrimaryLabelModeIndex, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModeActionSummary]}" />
+                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModePhysicalControl]}" />
+                                    <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModeActionAndPhysical]}" />
+                                </ComboBox>
+                                <CheckBox Margin="0,10,0,0"
+                                          VerticalAlignment="Center"
+                                          Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayShowSecondaryLabel]}"
+                                          IsChecked="{Binding ControllerMappingOverlayShowSecondary, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                    <Popup Placement="Bottom"
+                           PlacementTarget="{Binding ElementName=DescriptionOverlayButton}"
+                           StaysOpen="False"
+                           IsOpen="{Binding IsChecked, ElementName=DescriptionOverlayButton, Mode=TwoWay}">
+                        <Border Style="{StaticResource SectionCardBorder}"
+                                MinWidth="340">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TemplateCommunityDescriptionHudHint]}"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                           Margin="0,0,0,6"
+                                           FontSize="11"
+                                           TextWrapping="Wrap" />
+                                <TextBox MinHeight="84"
+                                         MaxHeight="220"
+                                         Padding="6,4"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Text="{Binding TemplateCommunityListingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <GridSplitter Grid.Row="0"
                       Grid.Column="1"
@@ -63,50 +143,16 @@
                     CornerRadius="4"
                     BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}"
                     BorderThickness="1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <TextBlock FontWeight="SemiBold"
-                                   Foreground="White"
-                                   Margin="0,0,0,8"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelSettingsHeader]}" />
-                        <StackPanel Orientation="Horizontal">
-                            <ComboBox MinHeight="28"
-                                      Width="{DynamicResource VisualWorkspaceOverlaySettingsComboWidth}"
-                                      SelectedIndex="{Binding DataContext.ControllerMappingOverlayPrimaryLabelModeIndex, RelativeSource={RelativeSource AncestorType=views:MainView}, Mode=TwoWay}">
-                                <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModeActionSummary]}" />
-                                <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModePhysicalControl]}" />
-                                <ComboBoxItem Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayLabelModeActionAndPhysical]}" />
-                            </ComboBox>
-                            <CheckBox Margin="15,0,0,0"
-                                      VerticalAlignment="Center"
-                                      Foreground="White"
-                                      Content="{Binding Source={StaticResource Loc}, Path=[ControllerOverlayShowSecondaryLabel]}"
-                                      IsChecked="{Binding DataContext.ControllerMappingOverlayShowSecondary, RelativeSource={RelativeSource AncestorType=views:MainView}, Mode=TwoWay}" />
-                        </StackPanel>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
-                        <Button MinWidth="100"
-                                Margin="0,0,10,0"
-                                VerticalAlignment="Center"
-                                Padding="12,6"
-                                Content="{Binding Source={StaticResource Loc}, Path=[VisualEditorDeselectController]}"
-                                Command="{Binding ClearVisualSelectionCommand}"
-                                Visibility="{Binding HasVisualElementSelection, Converter={StaticResource BoolToVis}}" />
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
                         <Button MinWidth="120"
                                 VerticalAlignment="Center"
                                 Padding="12,6"
                                 Content="{Binding Source={StaticResource Loc}, Path=[AddMapping]}"
                                 Command="{Binding CreateMappingCommand}"
                                 Visibility="{Binding ShowVisualCreateMappingCallout, Converter={StaticResource BoolToVis}}" />
-                    </StackPanel>
-                </Grid>
+                </StackPanel>
             </Border>
         </Grid>
 

@@ -70,6 +70,7 @@ public class SettingsService : ISettingsService
             var settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
             NormalizeTriggerDeadzones(settings);
             NormalizeUpdateInstallPolicy(settings);
+            settings.UiTheme = UiThemeMode.Normalize(settings.UiTheme);
             return settings;
         }
         catch (Exception ex)

@@ -2,48 +2,72 @@
 
 **简体中文:** [README_zh.md](README_zh.md)
 
-Gamepad Mapping is a Windows WPF app that converts **XInput-compatible controller input** into **keyboard and mouse output** through editable profile templates.  
-It is designed for games that do not have good native controller support, with optional foreground-process targeting to avoid accidental input in other windows.
+Gamepad Mapping is a Windows desktop app (WPF) that maps **XInput-compatible gamepad input** to **keyboard and mouse output** using editable JSON profile templates. It targets games that lack native controller support: you work in one workspace with an SVG **Visual Editor**, mapping lists, keyboard-action and radial-menu catalogs, optional **foreground process** targeting, **Community** template download and upload, and **in-app updates** from GitHub.
 
-## Latest release
+## Trust and network access
 
-- **Input stack options:** Choose how keyboard and mouse output is synthesized—classic Win32 **`SendInput`** or Windows **Input Injection** on supported builds—and tune how the app reads the controller.
-- **Analog and mouse feel:** Thumbstick **deadzone shape** (axial vs radial), **mouse-look** sensitivity and smoothing, and optional **human-like** mouse movement noise (configurable in settings).
-- **Keyboard chords in mappings:** Profile actions can emit **chord-style** shortcuts (for example modifier + key) in addition to single-key taps.
-- **UI:** Expanded **Settings**, a dedicated **Updates** panel, and a refined **gamepad monitor** window.
+> [!TIP]
+> **How this app uses the internet**
+>
+> - **Community templates (download):** Opening the **Community** tab and choosing **Refresh** downloads the public catalog index over HTTPS (GitHub Raw with a CDN fallback). Choosing **Download** on an entry fetches **JSON profile templates** into your local templates folder. The app parses that JSON locally; it does not execute remote code from those files.
+> - **Community templates (upload):** **Upload…** sends your bundle and metadata over HTTPS to the configured **Cloudflare Worker**, after a **Cloudflare Turnstile** verification step in the upload dialog. The Worker creates a **pull request** on GitHub; your GitHub account token is **not** stored in the app.
+> - **Application updates:** The **Updates** section contacts **GitHub** (release metadata and release assets) to check for new versions, optionally download the published installer, and verify package integrity before the install handoff.
 
-For the full list of changes, see [`CHANGELOG.md`](CHANGELOG.md).
+> [!WARNING]
+> **Third-party or modified installers**
+>
+> Unofficial mirrors, repackaged builds, or “portable” redistributions can **change how updating works**, **swap download URLs**, or bundle **malware**—including software that logs keystrokes or other input. The developers only support binaries that match the open-source tree. **Get the app from this repository’s [Releases](https://github.com/Maxim00191/Gamepad-Mapping/releases) or build it yourself** from a verified clone of this repo.
 
-## Highlights
+## Pricing and official distribution
 
-- **Deep controller workflows**: chords, combo leads, hold/tap thresholds, and on-controller **radial menus** with a customizable HUD—suited to games that expect many keyboard shortcuts.
-- **Template-first design**: mappings live in validated JSON you can edit, version, and share; optional **foreground process filter** keeps output scoped to the game you care about.
-- **Community-ready**: pull templates from the in-app catalog when you do not want to build a layout from scratch.
-- **Desktop-aware**: when targets run elevated, the app can help you relaunch with matching elevation so synthetic input is not blocked by UIPI.
-- **Flexible emulation**: pick an output backend that fits your environment; optional movement noise helps cursor motion look less robotic in edge cases.
+Gamepad Mapping is **free, open-source software** under the MIT License. Official releases are published on GitHub at no charge. The developers do not sell the app, license keys, or paid tiers through third-party stores, resellers, or paywalled download pages.
 
-## Core capabilities
+**If someone asks you to pay for downloads, activation, license keys, or “premium” access to this software, treat that as spam or a scam** and obtain installers only from this repository’s [Releases](https://github.com/Maxim00191/Gamepad-Mapping/releases) (or builds you compile yourself from source).
 
-- **Template-based mappings**: each profile is a JSON file under `Assets/Profiles/templates`.
-- **Button / trigger / stick bindings**: supports press, release, tap, hold, thresholds, and analog activation rules.
-- **Chord and combo handling**: combo-lead behavior, modifier grace windows, optional HUD hints, and **keyboard chord** output for shortcut-style actions.
-- **Radial menu actions**: trigger directional action selection from controller input.
-- **Foreground process filter**: map output only when a specific process is focused.
-- **Application settings**: centralized global settings saved to `Assets/Config/local_settings.json`, including **thumbstick deadzone shape**, **mouse-look** tuning, and **emulation backend** selection where applicable.
-- **Gamepad monitor**: live view of controller state with layout tuned for readability.
-- **Built-in self-update**: check new releases, download installer assets, and start installation from the dedicated **Updates** section in the app.
-- **Community templates**: browse and download user-contributed profiles from the in-app **Community** tab (next to keyboard actions and radial menus in the profile editor). The app loads a catalog from [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) via GitHub Raw, with automatic fallback to the jsDelivr CDN when needed.
+## Features
 
-## Self-update
+### Mapping and output
 
-Gamepad Mapping includes a GitHub-based update flow that can resolve the latest release assets, download packages with progress feedback, and trigger installation.  
-The update pipeline supports fallback handling for release metadata/network access and verifies package integrity before install handoff.
+- Read input from XInput-compatible controllers; synthesize keyboard and mouse via classic Win32 **`SendInput`** or, on supported builds, **Windows Input Injection** (configurable).
+- **Button, trigger, and stick** bindings: press, release, tap, hold, thresholds, and analog activation rules.
+- **Chords and combos:** combo-lead behavior, modifier grace windows, optional HUD hints, and **keyboard chord** output for shortcut-style actions.
+- **Radial menu actions:** directional action selection from controller input with a customizable HUD.
+- **Foreground process filter:** restrict mapping output to when a chosen process is focused.
+- **Feel tuning:** thumbstick **deadzone shape** (axial vs radial), **mouse-look** sensitivity and smoothing, and optional **human-like** cursor movement noise (in settings).
 
-## Community templates
+### Profile workspace
 
-Open a profile in the main window, then select the **Community** tab. Use **Refresh** to load the latest catalog from the network, then **Download** on an entry to save that template into your local templates folder (same JSON schema as built-in templates). After a successful download, the profile list updates so you can pick the new template.
+- **Template-based profiles:** each profile is a validated JSON file under `Assets/Profiles/templates`.
+- **Visual Editor (SVG):** interactive controller art with hit-tested regions, **pan/zoom**, optional **overlay labels** (action summary vs physical names), and a side panel listing mappings for the selected control.
+- **Mappings** tab plus built-in **keyboard actions** and **radial menu** catalogs.
+- **Gamepad monitor:** live controller state in a readable layout.
 
-Contributions and catalog rules live in the community repository; the app does not ship those JSON files—they are fetched at runtime. Very frequent refreshes are throttled to avoid hammering the index endpoint.
+### Community templates
+
+- **Browse and download** public templates from the in-app **Community** tab; the catalog is loaded from [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) (GitHub Raw, with jsDelivr CDN fallback when needed).
+- **Upload** your own layout: guided metadata, automated pre-submit checks, then submission through a **Cloudflare Worker** with **Turnstile**; on success, a **pull request** is opened for review (no personal GitHub token in the client). See [Community templates](#community-templates-workflow) below for steps and advanced configuration.
+
+### Updates, settings, and Windows integration
+
+- **In-app updates:** the **Updates** section resolves GitHub release metadata, downloads release assets with progress, verifies integrity, and hands off to installation (with sensible fallbacks for network issues).
+- **Elevation:** when targets run as administrator, the app can prompt to relaunch with matching elevation so synthetic input is not blocked by UIPI.
+- **Global settings** are stored in `Assets/Config/local_settings.json` (created on first run); factory defaults live in `Assets/Config/default_settings.json`.
+
+## Release notes
+
+Per-version changes are listed in [`CHANGELOG.md`](CHANGELOG.md). Installers and release assets are on **[GitHub Releases](https://github.com/Maxim00191/Gamepad-Mapping/releases)**.
+
+## Community templates workflow
+
+Open a profile in the main window, then select the **Community** tab.
+
+**Browse and install:** Use **Refresh** to load the latest catalog from the network, then **Download** on an entry to save that template into your local templates folder (same JSON schema as built-in templates). After a successful download, the profile list updates so you can pick the new template.
+
+**Share your layout:** Choose **Upload…** (with a template selected in the profile picker). The app collects linked templates in your bundle, walks you through **game folder**, **author**, and **listing description**, runs **compliance checks** (mappings, IDs, size limits, etc.), then submits through a **Cloudflare Worker** using a **Cloudflare Turnstile** ticket. On success, it opens a **pull request** against [`GamepadMapping-CommunityProfiles`](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) for developers to review—no personal GitHub token is required in the client.
+
+Contributions and catalog rules live in the community repository; the app does not ship catalog JSON—it is fetched at runtime. Very frequent refreshes are throttled to avoid hammering the index endpoint.
+
+**Advanced:** Default upload endpoint and Turnstile action live in `Assets/Config/default_settings.json` (`communityProfilesUploadWorkerUrl`, `communityProfilesUploadTurnstileAction`). Override them in `Assets/Config/local_settings.json` if you run your own Worker stack.
 
 ## Requirements
 
@@ -89,15 +113,14 @@ Each template generally includes:
 
 See examples in:
 
-- `Assets/Profiles/templates/default.json`
-- `Assets/Profiles/templates/flight_sim.json`
-- `Assets/Profiles/templates/roco-kingdom-world.json`
-- `Assets/Profiles/templates/roco-kingdom-world-fight.json`
+- `Assets/Profiles/templates/Elden Ring/default.json`
+- `Assets/Profiles/templates/Flight Sim/flight_sim.json`
+- `Assets/Profiles/templates/Roco Kingdom/roco-kingdom-world-radial.json`
+- `Assets/Profiles/templates/Roco Kingdom/roco-kingdom-world-fight-radial.json`
 
-## Elevation behavior
+## Elevation and UIPI
 
-Windows can block synthetic input when the target app runs as administrator (UIPI).  
-When needed, Gamepad Mapping can prompt to relaunch elevated so mappings continue to work against admin-level targets.
+Windows can block synthetic input when the target app runs as administrator (UIPI). When needed, Gamepad Mapping can prompt to relaunch elevated so mappings continue to work against admin-level targets.
 
 ## Tech stack
 
@@ -111,10 +134,6 @@ When needed, Gamepad Mapping can prompt to relaunch elevated so mappings continu
 
 [GitHub Actions](.github/workflows/build.yml) validates build/test on push and PR to `main`.  
 Tagging versions (`v*`) creates release artifacts (single-file and framework-dependent win-x64 packages) and publishes a GitHub Release.
-
-## Changelog
-
-See [`CHANGELOG.md`](CHANGELOG.md) for release history.
 
 ## License
 

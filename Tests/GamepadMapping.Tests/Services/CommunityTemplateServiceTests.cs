@@ -10,6 +10,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -102,6 +103,69 @@ public class CommunityTemplateServiceTests
         // Assert
         Assert.Single(result);
         Assert.Equal("GitHub Template", result[0].DisplayName);
+        Assert.Contains("raw.githubusercontent.com", result[0].DownloadUrl);
+    }
+
+    [Fact]
+    public async Task GetTemplatesAsync_PreservesExplicitFileNameInNestedCatalogPath()
+    {
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var indexJson =
+            "[{\"id\":\"profile-id\",\"displayName\":\"Nested\",\"author\":\"Tester\",\"catalogFolder\":\"My Game/Alice\",\"fileName\":\"published-name.json\"}]";
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri != null && req.RequestUri.ToString().Contains("raw.githubusercontent.com")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(indexJson)
+            });
+
+        var httpClient = new HttpClient(handlerMock.Object);
+        var service = new CommunityTemplateService(_mockProfileService.Object, httpClient);
+
+        var result = await service.GetTemplatesAsync();
+
+        Assert.Single(result);
+        Assert.Equal("My Game/Alice/published-name.json", result[0].RelativePath);
+        Assert.EndsWith("/My%20Game/Alice/published-name.json", result[0].DownloadUrl, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCommunityIndexSnapshotAsync_PreferFreshIndex_UsesGitHubApiRawEndpoint()
+    {
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var indexJson = "[{\"id\":\"fresh\",\"displayName\":\"Fresh\",\"author\":\"Tester\",\"catalogFolder\":\"Test\"}]";
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri != null
+                    && req.RequestUri.Host.Equals("api.github.com", StringComparison.OrdinalIgnoreCase)
+                    && req.RequestUri.AbsolutePath.Contains("/repos/Maxim00191/GamepadMapping-CommunityProfiles/contents/index.json", StringComparison.Ordinal)
+                    && req.RequestUri.Query.Contains("ref=main", StringComparison.Ordinal)),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(indexJson)
+            });
+
+        var httpClient = new HttpClient(handlerMock.Object);
+        var service = new CommunityTemplateService(_mockProfileService.Object, httpClient);
+
+        var result = await service.GetCommunityIndexSnapshotAsync(
+            fetchBehavior: CommunityIndexFetchBehavior.PreferFreshIndex);
+
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal("Fresh", result[0].DisplayName);
         Assert.Contains("raw.githubusercontent.com", result[0].DownloadUrl);
     }
 }

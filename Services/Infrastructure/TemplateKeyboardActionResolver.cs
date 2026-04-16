@@ -12,6 +12,94 @@ namespace GamepadMapperGUI.Services.Infrastructure;
 /// <summary>Resolves <see cref="MappingEntry.ActionId"/> using <see cref="GameProfileTemplate.KeyboardActions"/> after JSON load.</summary>
 public static class TemplateKeyboardActionResolver
 {
+    /// <summary>
+    /// Non-throwing checks aligned with the community <c>validate_templates.py</c> resolver pass
+    /// and <see cref="Apply"/> invariants.
+    /// </summary>
+    public static IReadOnlyList<string> CollectResolutionErrors(GameProfileTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        var errors = new List<string>();
+        if (template.Mappings is null)
+            return errors;
+
+        var mappings = template.Mappings;
+        var catalog = template.KeyboardActions;
+        if (catalog is null || catalog.Count == 0)
+        {
+            for (var i = 0; i < mappings.Count; i++)
+            {
+                var m = mappings[i];
+                var aid = (m.ActionId ?? string.Empty).Trim();
+                var hid = (m.HoldActionId ?? string.Empty).Trim();
+                if (aid.Length > 0)
+                {
+                    errors.Add(
+                        $"mappings[{i}]: references actionId '{aid}' but keyboardActions is missing or empty.");
+                }
+
+                if (hid.Length > 0)
+                {
+                    errors.Add(
+                        $"mappings[{i}]: references holdActionId '{hid}' but keyboardActions is missing or empty.");
+                }
+            }
+
+            return errors;
+        }
+
+        var idMap = new Dictionary<string, KeyboardActionDefinition>(StringComparer.OrdinalIgnoreCase);
+        for (var j = 0; j < catalog.Count; j++)
+        {
+            var a = catalog[j];
+            var aid = (a.Id ?? string.Empty).Trim();
+            if (aid.Length == 0)
+            {
+                errors.Add($"keyboardActions[{j}]: id is empty.");
+                continue;
+            }
+
+            if (!idMap.TryAdd(aid, a))
+                errors.Add($"Duplicate keyboardActions id '{aid}'.");
+        }
+
+        for (var i = 0; i < mappings.Count; i++)
+        {
+            var m = mappings[i];
+            var actionId = (m.ActionId ?? string.Empty).Trim();
+            var holdId = (m.HoldActionId ?? string.Empty).Trim();
+            if (actionId.Length == 0 && holdId.Length == 0)
+                continue;
+
+            if (actionId.Length > 0)
+            {
+                if (m.ItemCycle is not null || m.TemplateToggle is not null || m.RadialMenu is not null)
+                {
+                    errors.Add(
+                        $"mappings[{i}]: actionId cannot be used together with itemCycle, templateToggle, or radialMenu on the same mapping.");
+                }
+                else if (!idMap.TryGetValue(actionId, out var defn))
+                {
+                    errors.Add($"mappings[{i}]: unknown keyboardActions id '{actionId}'.");
+                }
+                else
+                {
+                    var k = (defn.KeyboardKey ?? string.Empty).Trim();
+                    if (k.Length == 0 && defn.TemplateToggle is null && defn.RadialMenu is null && defn.ItemCycle is null)
+                    {
+                        errors.Add(
+                            $"mappings[{i}]: keyboardActions id '{actionId}' has no keyboardKey, templateToggle, radialMenu, or itemCycle.");
+                    }
+                }
+            }
+
+            if (holdId.Length > 0 && !idMap.ContainsKey(holdId))
+                errors.Add($"mappings[{i}]: unknown keyboardActions id '{holdId}' (holdActionId).");
+        }
+
+        return errors;
+    }
+
     public static void Apply(GameProfileTemplate template)
     {
         ArgumentNullException.ThrowIfNull(template);

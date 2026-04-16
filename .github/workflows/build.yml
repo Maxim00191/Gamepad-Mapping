@@ -33,6 +33,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Refresh embedded upload text policy (gzip + XOR)
+        shell: pwsh
+        run: ./Resources/Embedded/gzip-policy.ps1
+
       - name: Restore and build
         run: |
           dotnet restore "Gamepad Mapping.csproj"
@@ -56,6 +60,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Refresh embedded upload text policy (gzip + XOR)
+        shell: pwsh
+        run: ./Resources/Embedded/gzip-policy.ps1
+
       - name: Restore solution
         run: dotnet restore "GamepadMapping.sln"
 
@@ -70,6 +78,9 @@ jobs:
             release_paths:
               - 'Updater/**'
               - 'publish/**'
+              - 'Resources/Embedded/**'
+              - 'Services/Infrastructure/CommunityUploadWorkerCredentials.cs'
+              - 'Services/Infrastructure/CommunityTemplateWorkerUploadService.cs'
               - '.github/workflows/build.yml'
               - 'Gamepad Mapping.csproj'
               - 'GamepadMapping.sln'
@@ -102,21 +113,32 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
+      - name: Refresh embedded upload text policy (gzip + XOR)
+        shell: pwsh
+        run: ./Resources/Embedded/gzip-policy.ps1
+
       - name: Publish single-file (win-x64, self-contained)
-        run: >
-          dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained true
-          -o publish-single
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
+        shell: pwsh
+        run: |
+          dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained true `
+            -o publish-single `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=none `
+            -p:DebugSymbols=false
 
       - name: Publish framework-dependent (win-x64, runtime not bundled)
-        run: >
-          dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false
-          -o publish-fx
+        shell: pwsh
+        run: |
+          dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false `
+            -o publish-fx `
+            -p:DebugType=none `
+            -p:DebugSymbols=false
 
       - name: Publish updater payload (win-x64, framework-dependent)
         run: >
           dotnet publish "Updater/Updater.csproj" -c Release -r win-x64 --self-contained false
+          -p:DebugType=none -p:DebugSymbols=false
           -o publish-updater
 
       - name: Copy release docs into publish output

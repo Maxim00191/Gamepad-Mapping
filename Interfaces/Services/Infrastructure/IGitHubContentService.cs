@@ -20,7 +20,8 @@ public interface IGitHubContentService
         GitHubRepositoryContentRequest request,
         bool preferCdn,
         TimeSpan rawTimeout,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? requestQuerySuffix = null);
     Task<string> GetGitHubApiStringAsync(
         string apiUrl,
         string accept,

@@ -96,13 +96,15 @@ public static class AppPaths
 
         public static string GetTemplateJsonPath(string templatesRoot, string? catalogSubfolder, string fileStem)
         {
-            var folder = TemplateStorageKey.NormalizeTrustedFolder(catalogSubfolder);
-            var dir = folder.Length == 0 ? templatesRoot : Path.Combine(templatesRoot, folder);
+            var normalized = TemplateStorageKey.ValidateCatalogFolderPathForSave(catalogSubfolder ?? string.Empty);
+            var dir = templatesRoot;
+            foreach (var seg in TemplateStorageKey.SplitCatalogPathSegments(normalized))
+                dir = Path.Combine(dir, seg);
             return Path.Combine(dir, $"{fileStem.Trim()}.json");
         }
 
         public static string NormalizeCatalogSubfolderForSave(string? raw) =>
-            TemplateStorageKey.ValidateSingleSegmentFolderForSave(raw);
+            TemplateStorageKey.ValidateCatalogFolderPathForSave(raw);
     }
 
     public static string GetLogsDirectory()

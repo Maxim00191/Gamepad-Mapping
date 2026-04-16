@@ -103,5 +103,39 @@ public class GitHubContentServiceTests
         Assert.Equal("cdn-content", result.Content);
         Assert.True(result.UsedCdn);
     }
+
+    [Fact]
+    public async Task GetTextWithRawCdnFallbackAsync_AppendsQuerySuffixToBothEndpoints()
+    {
+        var handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        var request = new GitHubRepositoryContentRequest("owner", "repo", "main", "index.json");
+        const string expectedSuffix = "gm_cb=42";
+
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri != null
+                    && req.RequestUri.Host.Contains("raw.githubusercontent.com", StringComparison.Ordinal)
+                    && req.RequestUri.Query.Contains("gm_cb=42", StringComparison.Ordinal)),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("fresh-index")
+            });
+
+        var service = new GitHubContentService(new HttpClient(handlerMock.Object));
+        var result = await service.GetTextWithRawCdnFallbackAsync(
+            request,
+            preferCdn: false,
+            rawTimeout: TimeSpan.FromSeconds(1),
+            cancellationToken: default,
+            requestQuerySuffix: expectedSuffix);
+
+        Assert.Equal("fresh-index", result.Content);
+        Assert.False(result.UsedCdn);
+    }
 }
 

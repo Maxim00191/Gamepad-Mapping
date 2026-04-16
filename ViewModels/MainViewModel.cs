@@ -56,6 +56,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool _suppressWorkspaceHeaderSettingsPersistence;
 
     private readonly ICommunityTemplateService _communityService;
+    private readonly ICommunityTemplateUploadComplianceService _communityTemplateComplianceService;
+    private readonly ICommunityTemplateUploadService _communityTemplateUploadService;
     private readonly IUpdateService _updateService;
     private readonly ILocalFileService _localFileService;
     private readonly IUpdateInstallerService _updateInstallerService;
@@ -72,6 +74,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerMappingOverlayLabelComposer _controllerMappingOverlayLabelComposer;
     private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
     private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
+    private readonly Debouncer _communityListingDescriptionDebouncer;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -100,6 +103,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IMappingEngine? mappingEngine = null,
         ISettingsService? settingsService = null,
         ICommunityTemplateService? communityService = null,
+        ICommunityTemplateUploadComplianceService? communityTemplateComplianceService = null,
+        ICommunityTemplateUploadService? communityTemplateUploadService = null,
         IUpdateService? updateService = null,
         IGitHubContentService? gitHubContentService = null,
         ILocalFileService? localFileService = null,
@@ -140,6 +145,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var appSettings = _settingsOrchestrator.Settings;
 
         _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
+        _communityListingDescriptionDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1200));
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
@@ -150,7 +156,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _localFileService = localFileService ?? new LocalFileService();
         var sharedGitHubContentService = gitHubContentService ?? new GitHubContentService();
         var resolvedUpdateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
-        _communityService = communityService ?? new CommunityTemplateService(_profileService, sharedGitHubContentService, _localFileService);
+        _communityTemplateComplianceService =
+            communityTemplateComplianceService ?? new CommunityTemplateUploadComplianceService();
+        _communityTemplateUploadService = communityTemplateUploadService
+            ?? ResolveDefaultCommunityTemplateUploadService(appSettings, _communityTemplateComplianceService);
+        _communityService = communityService ?? new CommunityTemplateService(
+            _profileService,
+            sharedGitHubContentService,
+            _localFileService,
+            appSettings);
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
@@ -547,6 +561,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public string CurrentTemplateTemplateGroupId { get => _profileOrchestrator.CurrentTemplateTemplateGroupId; set => _profileOrchestrator.CurrentTemplateTemplateGroupId = value; }
     public string CurrentTemplateAuthor { get => _profileOrchestrator.CurrentTemplateAuthor; set => _profileOrchestrator.CurrentTemplateAuthor = value; }
     public string CurrentTemplateCatalogFolder { get => _profileOrchestrator.CurrentTemplateCatalogFolder; set => _profileOrchestrator.CurrentTemplateCatalogFolder = value; }
+    public string CurrentTemplateCommunityListingDescription
+    {
+        get => _profileOrchestrator.CurrentTemplateCommunityListingDescription;
+        set
+        {
+            if (string.Equals(_profileOrchestrator.CurrentTemplateCommunityListingDescription, value, StringComparison.Ordinal))
+                return;
+
+            _profileOrchestrator.CurrentTemplateCommunityListingDescription = value;
+            _communityListingDescriptionDebouncer.Debounce(PersistCurrentTemplateCommunityListingDescription);
+            OnPropertyChanged();
+        }
+    }
     public IReadOnlyList<string>? ComboLeadButtonsPersist => _profileOrchestrator.ComboLeadButtonsPersist;
 
     [RelayCommand] private void StartGamepad() { _gamepadService.Start(); OnPropertyChanged(nameof(IsGamepadRunning)); GamepadMonitorPanel.IsGamepadRunning = true; }
@@ -554,6 +581,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _communityListingDescriptionDebouncer.Cancel();
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
             mappingNotify.PropertyChanged -= OnMappingManagerPropertyChanged;
         GamepadMonitorPanel.PropertyChanged -= OnGamepadMonitorPanelSettingsChanged;
@@ -583,6 +611,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
     public UiLanguageOption? SelectedUiLanguage { get => _settingsOrchestrator.SelectedUiLanguage; set => _settingsOrchestrator.SelectedUiLanguage = value; }
+
+    public ObservableCollection<UiThemeOption> AvailableUiThemes => _settingsOrchestrator.AvailableUiThemes;
+    public UiThemeOption? SelectedUiTheme { get => _settingsOrchestrator.SelectedUiTheme; set => _settingsOrchestrator.SelectedUiTheme = value; }
 
     private void OnComboHud(ComboHudContent? content)
     {
@@ -711,6 +742,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private static float ResolveStickDeadzone(float specific, float shared) => specific > 0f ? Math.Clamp(specific, 0f, 0.9f) : Math.Clamp(shared, 0f, 0.9f);
 
+    private void PersistCurrentTemplateCommunityListingDescription()
+    {
+        var selected = SelectedTemplate;
+        if (selected is null)
+            return;
+
+        var template = _profileService.LoadSelectedTemplate(selected);
+        if (template is null)
+            return;
+
+        template.CommunityListingDescription = NormalizeOptionalText(CurrentTemplateCommunityListingDescription);
+        _profileService.SaveTemplate(template);
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        var trimmed = (value ?? string.Empty).Trim();
+        return trimmed.Length == 0 ? null : trimmed;
+    }
+
     [ObservableProperty] private ComboHudPlacement comboHudPlacementSetting;
     partial void OnComboHudPlacementSettingChanged(ComboHudPlacement value) => UpdateSetting(s => s.ComboHudPlacement = value.ToString());
 
@@ -773,7 +824,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ProfileTemplatePanel = new ProfileTemplatePanelViewModel(this);
         NewBindingPanel = new NewBindingPanelViewModel(this);
         CatalogPanel = new ProfileCatalogPanelViewModel(this);
-        CommunityCatalogPanel = new CommunityCatalogViewModel(this, _communityService);
+        CommunityCatalogPanel = new CommunityCatalogViewModel(
+            this,
+            _communityService,
+            _communityTemplateUploadService,
+            _communityTemplateComplianceService,
+            _appToastService,
+            s.CommunityCatalogRefreshCooldownSeconds);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
@@ -821,6 +878,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (App.LaunchUpdateSuccessArgs is not null)
             _uiOrchestrator.ShowToast(_settingsOrchestrator.Localize("UpdateSuccessToastTitle"), _settingsOrchestrator.FormatUpdateSuccessMessage(App.LaunchUpdateSuccessArgs.Value.ReleaseTag));
+    }
+
+    private ICommunityTemplateUploadService ResolveDefaultCommunityTemplateUploadService(
+        AppSettings settings,
+        ICommunityTemplateUploadComplianceService compliance)
+    {
+        var ticketProvider = new CommunityUploadTicketTokenProvider(
+            settings,
+            new WebView2RuntimeAvailability(),
+            _settingsOrchestrator.Localize);
+        return new CommunityTemplateWorkerUploadService(settings, null, compliance, ticketProvider);
     }
 }
 
