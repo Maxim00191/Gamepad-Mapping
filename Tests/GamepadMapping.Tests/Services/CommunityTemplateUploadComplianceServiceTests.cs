@@ -64,4 +64,57 @@ public sealed class CommunityTemplateUploadComplianceServiceTests
             contentStep.Issues,
             issue => issue.SuggestionKey == "CommunityUpload_Suggest_TemplateFileSizeLimit");
     }
+
+    [Fact]
+    public void EvaluateSubmission_ListingMatchesPolicy_AddsTextPolicyStepError()
+    {
+        var pattern = new UploadTextPolicyPattern
+        {
+            Id = "test",
+            Match = "___policy_test_marker___",
+            Mode = "contains"
+        };
+        var evaluator = new UploadTextPolicyEvaluator([pattern]);
+        var sut = new CommunityTemplateUploadComplianceService(evaluator);
+        var selected = new List<CommunityTemplateBundleEntry>
+        {
+            new("game/author/p1", new GameProfileTemplate { ProfileId = "p1" })
+        };
+
+        var result = sut.EvaluateSubmission(
+            selected,
+            "Game",
+            "Author",
+            "Hello ___policy_test_marker___ world");
+
+        Assert.False(result.ReadyToSubmit);
+        var textPolicyStep = Assert.Single(result.Steps, step => step.TitleKey == CommunityTemplateUploadComplianceStepKeys.TextPolicyTitle);
+        Assert.Equal(CommunityTemplateComplianceSeverity.Error, textPolicyStep.Severity);
+        Assert.Contains(
+            textPolicyStep.Issues,
+            issue => issue.SuggestionKey == "CommunityUpload_Suggest_TextPolicyViolation");
+    }
+
+    [Fact]
+    public void EvaluateSubmission_ListingContainsUrl_UsesLinkSuggestionKey()
+    {
+        var sut = new CommunityTemplateUploadComplianceService();
+        var selected = new List<CommunityTemplateBundleEntry>
+        {
+            new("game/author/p1", new GameProfileTemplate { ProfileId = "p1" })
+        };
+
+        var result = sut.EvaluateSubmission(
+            selected,
+            "Game",
+            "Author",
+            "Read more at https://example.com please");
+
+        Assert.False(result.ReadyToSubmit);
+        var textPolicyStep = Assert.Single(result.Steps,
+            step => step.TitleKey == CommunityTemplateUploadComplianceStepKeys.TextPolicyTitle);
+        Assert.Contains(
+            textPolicyStep.Issues,
+            issue => issue.SuggestionKey == "CommunityUpload_Suggest_LinkOrDomainNotAllowed");
+    }
 }

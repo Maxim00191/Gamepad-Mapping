@@ -2,6 +2,7 @@
 <#
 .SYNOPSIS
     Builds the same win-x64 publish outputs and zips as .github/workflows/build.yml (release job).
+    Refreshes Resources/Embedded/upload_text_policy.txt.gz (gzip + XOR) via gzip-policy.ps1 before publish.
     Writes build outputs under this folder (publish/single, publish/fx, publish/*.zip).
 
 .PARAMETER Tag
@@ -26,6 +27,13 @@ $csproj = Join-Path $repoRoot "Gamepad Mapping.csproj"
 if (-not (Test-Path -LiteralPath $csproj)) {
     throw "Project not found: $csproj (keep this script in the publish/ folder at the repo root)."
 }
+
+$gzipPolicyScript = Join-Path $repoRoot "Resources\Embedded\gzip-policy.ps1"
+if (-not (Test-Path -LiteralPath $gzipPolicyScript)) {
+    throw "gzip-policy.ps1 not found: $gzipPolicyScript"
+}
+Write-Host "Refreshing embedded upload text policy (gzip)..." -ForegroundColor Cyan
+& $gzipPolicyScript
 
 $updaterManifestPath = Join-Path $publishRoot "updater-required-files.txt"
 if (-not (Test-Path -LiteralPath $updaterManifestPath)) {

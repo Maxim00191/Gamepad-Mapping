@@ -924,19 +924,19 @@ Do you want to overwrite it?</value>
     <value>These checks mirror the community repository validator. Each step explains what we verify before your pull request is opened.</value>
   </data>
   <data name="CommunityUpload_Step_Submission_Title" xml:space="preserve">
-    <value>1. Submission paths and listing text</value>
+    <value>1. Submission paths and required fields</value>
   </data>
   <data name="CommunityUpload_Step_Submission_Prompt" xml:space="preserve">
     <value>We confirm the game folder, author folder, and listing description are filled in and combine into a valid catalog path for the JSON we will commit.</value>
   </data>
   <data name="CommunityUpload_Step_Selection_Title" xml:space="preserve">
-    <value>2. Selected templates and profile IDs</value>
+    <value>3. Selected templates and profile IDs</value>
   </data>
   <data name="CommunityUpload_Step_Selection_Prompt" xml:space="preserve">
     <value>We verify at least one template is selected and that no two selected files share the same profileId (the repository requires unique ids per file).</value>
   </data>
   <data name="CommunityUpload_Step_Content_Title" xml:space="preserve">
-    <value>3. Template JSON rules</value>
+    <value>4. Template JSON rules</value>
   </data>
   <data name="CommunityUpload_Step_Content_Prompt" xml:space="preserve">
     <value>We run the same profile and keyboard-action catalog checks as the app and the community CI script: mappings, radial menus, action references, and resolver rules for actionId / holdActionId.</value>
@@ -1169,5 +1169,20 @@ This only removes your local copy.</value>
     <value>Template upload verification needs the Microsoft Edge WebView2 Runtime. It does not appear to be installed on this PC.
 
 Open the Microsoft download page to install it (Evergreen Runtime), then try again?</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TextPolicyViolation" xml:space="preserve">
+    <value>Remove disallowed wording from submission or template text before uploading.</value>
+  </data>
+  <data name="CommunityUpload_Step_TextPolicy_Title" xml:space="preserve">
+    <value>2. Text content review</value>
+  </data>
+  <data name="CommunityUpload_Step_TextPolicy_Prompt" xml:space="preserve">
+    <value>Please use polite language and avoid offensive words. Otherwise, it will be rejected.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_LinkOrDomainNotAllowed" xml:space="preserve">
+    <value>Remove website links, email addresses, and domain-like text from submission and template fields before uploading.</value>
+  </data>
+  <data name="CommunityUpload_TextPolicy_FieldViolationDetail" xml:space="preserve">
+    <value>{0} contains text that is not allowed for community uploads.</value>
   </data>
 </root>

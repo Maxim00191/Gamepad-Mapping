@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace GamepadMapperGUI.Models.Core.Community;
 
 public enum CommunityTemplateComplianceSeverity
@@ -10,7 +12,9 @@ public enum CommunityTemplateComplianceSeverity
 public sealed record CommunityTemplateComplianceIssue(
     string TemplateLabel,
     string Detail,
-    string? SuggestionKey);
+    string? SuggestionKey,
+    string? DetailResourceKey = null,
+    IReadOnlyList<object?>? DetailFormatArguments = null);
 
 public sealed record CommunityTemplateComplianceStepResult(
     string TitleKey,

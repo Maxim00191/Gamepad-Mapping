@@ -183,6 +183,20 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
 
     partial void OnListingDescriptionChanged(string value) => RequestComplianceRefresh();
 
+    private static string FormatComplianceIssueDetail(
+        CommunityTemplateComplianceIssue issue,
+        GamepadMapperGUI.Services.Infrastructure.TranslationService loc)
+    {
+        if (string.IsNullOrEmpty(issue.DetailResourceKey))
+            return issue.Detail;
+
+        var fmt = loc[issue.DetailResourceKey!];
+        if (issue.DetailFormatArguments is { Count: > 0 })
+            return string.Format(CultureInfo.CurrentCulture, fmt, issue.DetailFormatArguments.ToArray());
+
+        return fmt;
+    }
+
     private void RequestComplianceRefresh(bool immediate = false)
     {
         if (_isBulkUpdatingSelection)
@@ -226,9 +240,10 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
             var items = new ObservableCollection<CommunityTemplateComplianceIssueViewModel>();
             foreach (var issue in step.Issues)
             {
+                var detail = FormatComplianceIssueDetail(issue, loc);
                 var line = string.IsNullOrEmpty(issue.TemplateLabel)
-                    ? issue.Detail
-                    : $"{issue.TemplateLabel}: {issue.Detail}";
+                    ? detail
+                    : $"{issue.TemplateLabel}: {detail}";
                 var sug = string.IsNullOrEmpty(issue.SuggestionKey)
                     ? null
                     : loc[issue.SuggestionKey!];

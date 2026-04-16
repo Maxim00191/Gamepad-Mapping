@@ -924,19 +924,19 @@
     <value>下列检查与社区仓库校验脚本一致，每一步都会说明在发起拉取请求之前需要核对的内容。</value>
   </data>
   <data name="CommunityUpload_Step_Submission_Title" xml:space="preserve">
-    <value>1. 提交路径与列表说明</value>
+    <value>1. 提交路径与必填项</value>
   </data>
   <data name="CommunityUpload_Step_Submission_Prompt" xml:space="preserve">
     <value>确认已填写游戏文件夹、作者文件夹和列表说明，并能组合成将要写入 JSON 的有效目录路径。</value>
   </data>
   <data name="CommunityUpload_Step_Selection_Title" xml:space="preserve">
-    <value>2. 已选模板与 profileId</value>
+    <value>3. 已选模板与 profileId</value>
   </data>
   <data name="CommunityUpload_Step_Selection_Prompt" xml:space="preserve">
     <value>确认至少选中一个模板，且任意两个已选文件不能使用相同的 profileId（仓库要求每个文件唯一）。</value>
   </data>
   <data name="CommunityUpload_Step_Content_Title" xml:space="preserve">
-    <value>3. 模板 JSON 规则</value>
+    <value>4. 模板 JSON 规则</value>
   </data>
   <data name="CommunityUpload_Step_Content_Prompt" xml:space="preserve">
     <value>运行与本应用及社区 CI 脚本相同的检查：映射、转盘、操作引用，以及 actionId / holdActionId 的解析规则。</value>
@@ -1166,8 +1166,23 @@
     <value>需要 WebView2 运行时</value>
   </data>
   <data name="WebView2_RuntimeRequired_Message" xml:space="preserve">
-    <value>上传模板时的验证步骤需要 Microsoft Edge WebView2 运行时，但本机似乎尚未安装。
+    <value>上传模板时的验证步骤需要 Microsoft Edge WebView2 Runtime，但本机似乎尚未安装。
 
-是否打开 Microsoft 下载页面安装 Evergreen 运行时，安装完成后再重试？</value>
+是否打开 Microsoft 下载页面安装 Evergreen Runtime，安装完成后再重试？</value>
+  </data>
+  <data name="CommunityUpload_Suggest_TextPolicyViolation" xml:space="preserve">
+    <value>请先移除提交信息或模板文本中的不文明用语。</value>
+  </data>
+  <data name="CommunityUpload_Step_TextPolicy_Title" xml:space="preserve">
+    <value>2. 文本内容审核</value>
+  </data>
+  <data name="CommunityUpload_Step_TextPolicy_Prompt" xml:space="preserve">
+    <value>请文明用语，否则会被拒绝上传。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_LinkOrDomainNotAllowed" xml:space="preserve">
+    <value>上传前请从提交信息与模板字段中移除网站链接、电子邮箱以及类似域名的内容。</value>
+  </data>
+  <data name="CommunityUpload_TextPolicy_FieldViolationDetail" xml:space="preserve">
+    <value>{0} 含有不允许用于社区上传的文本。</value>
   </data>
 </root>

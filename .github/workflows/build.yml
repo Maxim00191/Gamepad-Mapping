@@ -33,6 +33,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Refresh embedded upload text policy (gzip + XOR)
+        shell: pwsh
+        run: ./Resources/Embedded/gzip-policy.ps1
+
       - name: Restore and build
         run: |
           dotnet restore "Gamepad Mapping.csproj"
@@ -56,6 +60,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Refresh embedded upload text policy (gzip + XOR)
+        shell: pwsh
+        run: ./Resources/Embedded/gzip-policy.ps1
+
       - name: Restore solution
         run: dotnet restore "GamepadMapping.sln"
 
@@ -70,6 +78,7 @@ jobs:
             release_paths:
               - 'Updater/**'
               - 'publish/**'
+              - 'Resources/Embedded/**'
               - 'Services/Infrastructure/CommunityUploadWorkerCredentials.cs'
               - 'Services/Infrastructure/CommunityTemplateWorkerUploadService.cs'
               - '.github/workflows/build.yml'
@@ -103,6 +112,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
+
+      - name: Refresh embedded upload text policy (gzip + XOR)
+        shell: pwsh
+        run: ./Resources/Embedded/gzip-policy.ps1
 
       - name: Publish single-file (win-x64, self-contained)
         shell: pwsh

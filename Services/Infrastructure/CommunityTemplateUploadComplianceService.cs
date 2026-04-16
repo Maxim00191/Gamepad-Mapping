@@ -14,6 +14,15 @@ namespace GamepadMapperGUI.Services.Infrastructure;
 public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplateUploadComplianceService
 {
     private static readonly ProfileValidator ProfileValidator = new();
+    private readonly ITextContentViolationEvaluator _textPolicy;
+
+    public CommunityTemplateUploadComplianceService(
+        ITextContentViolationEvaluator? textContentViolationEvaluator = null)
+    {
+        _textPolicy = textContentViolationEvaluator ?? new CompositeTextContentViolationEvaluator(
+            new UploadLinkPatternViolationEvaluator(),
+            new UploadTextPolicyEvaluator());
+    }
 
     public CommunityTemplateUploadComplianceResult EvaluateSubmission(
         IReadOnlyList<CommunityTemplateBundleEntry> selectedEntries,
@@ -71,6 +80,44 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
             ? CommunityTemplateComplianceSeverity.Error
             : CommunityTemplateComplianceSeverity.Ok;
 
+        var textPolicyIssues = new List<CommunityTemplateComplianceIssue>();
+        var allTextFields = new List<TextContentInspectionField>();
+        CommunityTemplateUploadFreeTextCollector.CollectSubmissionFields(game, author, desc, allTextFields);
+        if (selectedEntries.Count > 0)
+        {
+            foreach (var entry in selectedEntries)
+            {
+                var label = FormatTemplateLabel(entry);
+                var textModel = catalogFolder is not null
+                    ? CommunityTemplateSubmissionClone.CloneForSubmission(
+                        entry.Template,
+                        catalogFolder,
+                        author,
+                        desc)
+                    : entry.Template;
+                CommunityTemplateUploadFreeTextCollector.CollectTemplateFields(textModel, label, allTextFields);
+            }
+        }
+
+        foreach (var hit in _textPolicy.Evaluate(allTextFields))
+        {
+            var suggestionKey = string.IsNullOrEmpty(hit.SuggestionResourceKey)
+                ? "CommunityUpload_Suggest_TextPolicyViolation"
+                : hit.SuggestionResourceKey;
+            var caption = hit.FieldCaption ?? string.Empty;
+            var detail = $"{caption} contains text that is not allowed for community uploads.";
+            textPolicyIssues.Add(new CommunityTemplateComplianceIssue(
+                hit.ContextLabel,
+                detail,
+                suggestionKey,
+                CommunityTemplateComplianceDetailKeys.TextPolicyFieldViolation,
+                [caption]));
+        }
+
+        var textPolicySeverity = textPolicyIssues.Count > 0
+            ? CommunityTemplateComplianceSeverity.Error
+            : CommunityTemplateComplianceSeverity.Ok;
+
         var step2Issues = new List<CommunityTemplateComplianceIssue>();
         if (selectedEntries.Count == 0)
         {
@@ -122,9 +169,7 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
         var step3Issues = new List<CommunityTemplateComplianceIssue>();
         var step3Warnings = new List<CommunityTemplateComplianceIssue>();
 
-        if (step1Severity == CommunityTemplateComplianceSeverity.Ok
-            && step2Severity == CommunityTemplateComplianceSeverity.Ok
-            && catalogFolder is not null)
+        if (step2Severity == CommunityTemplateComplianceSeverity.Ok && catalogFolder is not null)
         {
             foreach (var entry in selectedEntries)
             {
@@ -195,24 +240,30 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
         step3All.AddRange(step3Warnings);
 
         var ready = step1Severity == CommunityTemplateComplianceSeverity.Ok
+                    && textPolicySeverity == CommunityTemplateComplianceSeverity.Ok
                     && step2Severity == CommunityTemplateComplianceSeverity.Ok
                     && step3Severity != CommunityTemplateComplianceSeverity.Error;
 
         var steps = new[]
         {
             new CommunityTemplateComplianceStepResult(
-                "CommunityUpload_Step_Submission_Title",
-                "CommunityUpload_Step_Submission_Prompt",
+                CommunityTemplateUploadComplianceStepKeys.SubmissionTitle,
+                CommunityTemplateUploadComplianceStepKeys.SubmissionPrompt,
                 step1Severity,
                 step1Issues),
             new CommunityTemplateComplianceStepResult(
-                "CommunityUpload_Step_Selection_Title",
-                "CommunityUpload_Step_Selection_Prompt",
+                CommunityTemplateUploadComplianceStepKeys.TextPolicyTitle,
+                CommunityTemplateUploadComplianceStepKeys.TextPolicyPrompt,
+                textPolicySeverity,
+                textPolicyIssues),
+            new CommunityTemplateComplianceStepResult(
+                CommunityTemplateUploadComplianceStepKeys.SelectionTitle,
+                CommunityTemplateUploadComplianceStepKeys.SelectionPrompt,
                 step2Severity,
                 step2Issues),
             new CommunityTemplateComplianceStepResult(
-                "CommunityUpload_Step_Content_Title",
-                "CommunityUpload_Step_Content_Prompt",
+                CommunityTemplateUploadComplianceStepKeys.ContentTitle,
+                CommunityTemplateUploadComplianceStepKeys.ContentPrompt,
                 step3Severity,
                 step3All)
         };
