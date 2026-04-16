@@ -110,17 +110,22 @@ jobs:
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained true `
             -o publish-single `
             -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=none `
+            -p:DebugSymbols=false
 
       - name: Publish framework-dependent (win-x64, runtime not bundled)
         shell: pwsh
         run: |
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false `
-            -o publish-fx
+            -o publish-fx `
+            -p:DebugType=none `
+            -p:DebugSymbols=false
 
       - name: Publish updater payload (win-x64, framework-dependent)
         run: >
           dotnet publish "Updater/Updater.csproj" -c Release -r win-x64 --self-contained false
+          -p:DebugType=none -p:DebugSymbols=false
           -o publish-updater
 
       - name: Copy release docs into publish output

@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "uiTheme": "followSystem",
   "templatesDirectory": "Assets/Profiles/templates",
   "defaultProfileId": "default",
   "githubMirrorBaseUrl": "",
@@ -20,9 +21,5 @@
   "communityProfilesRepoBranch": "main",
   "communityCatalogRefreshCooldownSeconds": 10,
   "communityProfilesUploadWorkerUrl": "https://gamepad-mapping-template-community-repo.w202810388s.workers.dev/submit",
-  "communityProfilesUploadTurnstileToken": "",
-  "communityProfilesUploadTurnstileSiteKey": "",
-  "communityProfilesUploadTurnstileHostPageUrl": "",
-  "communityProfilesUploadTurnstileAction": "community_upload_ticket",
-  "communityProfilesUploadToken": ""
+  "communityProfilesUploadTurnstileAction": "community_upload_ticket"
 }

@@ -91,31 +91,31 @@
     <value> - 点击以映射</value>
   </data>
   <data name="LiveGamepadMonitor" xml:space="preserve">
-    <value>手柄实时监视器</value>
+    <value>实时手柄监视</value>
   </data>
   <data name="GamepadMonitorShow" xml:space="preserve">
-    <value>显示监视器</value>
+    <value>显示监视窗口</value>
   </data>
   <data name="GamepadMonitorHide" xml:space="preserve">
     <value>隐藏</value>
   </data>
   <data name="GamepadMonitorToolbarTooltip" xml:space="preserve">
-    <value>显示或隐藏实时监视器窗口。拖动窗口边缘调整宽度；宽度保存在应用设置中。</value>
+    <value>显示或隐藏实时监视窗口。拖动窗口边缘可调整宽度；宽度会保存在应用设置中。</value>
   </data>
   <data name="WorkspaceHeaderCollapseTooltip" xml:space="preserve">
-    <value>隐藏档案与模板工具栏，为映射与编辑区腾出更多垂直空间。此选项会保存在应用设置中。</value>
+    <value>隐藏配置与模板工具栏，为映射与编辑区腾出更多纵向空间。此选项会保存在应用设置中。</value>
   </data>
   <data name="WorkspaceHeaderExpandTooltip" xml:space="preserve">
-    <value>重新显示档案与模板工具栏。</value>
+    <value>重新显示配置与模板工具栏。</value>
   </data>
   <data name="WorkspaceHeaderExpandLabel" xml:space="preserve">
-    <value>显示档案工具栏</value>
+    <value>显示配置工具栏</value>
   </data>
   <data name="GamepadMonitorReaderOn" xml:space="preserve">
-    <value>读取中</value>
+    <value>监听中</value>
   </data>
   <data name="GamepadMonitorReaderOff" xml:space="preserve">
-    <value>已停止</value>
+    <value>未监听</value>
   </data>
   <data name="GamepadMonitorAnalogMetersHeader" xml:space="preserve">
     <value>摇杆与扳机</value>
@@ -160,13 +160,13 @@
     <value>HUD 外观设置</value>
   </data>
   <data name="StopReader" xml:space="preserve">
-    <value>停止读取</value>
+    <value>停止监听</value>
   </data>
   <data name="StartReader" xml:space="preserve">
-    <value>开始读取</value>
+    <value>开始监听</value>
   </data>
   <data name="ProcessTarget" xml:space="preserve">
-    <value>进程目标</value>
+    <value>目标进程</value>
   </data>
   <data name="Refresh" xml:space="preserve">
     <value>刷新</value>
@@ -208,7 +208,7 @@
     <value>已选映射详情</value>
   </data>
   <data name="NewMappingDetailsHeader" xml:space="preserve">
-    <value>新建映射 — 在下方填写详情</value>
+    <value>新建映射 — 请在下方填写详情</value>
   </data>
   <data name="Source" xml:space="preserve">
     <value>来源</value>
@@ -274,13 +274,13 @@
     <value>外死区</value>
   </data>
   <data name="AppSettingsHeader" xml:space="preserve">
-    <value>应用程序设置</value>
+    <value>应用设置</value>
   </data>
   <data name="AppSettingsButton" xml:space="preserve">
-    <value>应用程序设置</value>
+    <value>应用设置</value>
   </data>
   <data name="AppSettingsTooltip" xml:space="preserve">
-    <value>语言、更新、输入/输出、手柄、映射与径向菜单/HUD 等全局选项。值保存在本地配置文件中（不包含在游戏配置 JSON 内）。</value>
+    <value>语言、更新、输入/输出、手柄、映射与转盘/HUD 等全局选项。设置保存在本地应用配置中（不包含在游戏配置 JSON 内）。</value>
   </data>
   <data name="AppSettingsTabGeneral" xml:space="preserve">
     <value>常规</value>
@@ -295,7 +295,22 @@
     <value>映射</value>
   </data>
   <data name="AppSettingsTabRadialHud" xml:space="preserve">
-    <value>径向菜单 / HUD</value>
+    <value>转盘 / HUD</value>
+  </data>
+  <data name="AppSettingsThemeSection" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="AppThemeLabel" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="UiThemeFollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="UiThemeLight" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="UiThemeDark" xml:space="preserve">
+    <value>深色</value>
   </data>
   <data name="AppSettingsLanguageSection" xml:space="preserve">
     <value>选择语言</value>
@@ -316,7 +331,7 @@
     <value>Input Injection (Windows 10+)</value>
   </data>
   <data name="HumanNoiseEnableLabel" xml:space="preserve">
-    <value>类人化时间抖动</value>
+    <value>拟人化抖动</value>
   </data>
   <data name="HumanNoiseEnableTooltip" xml:space="preserve">
     <value>对延迟、鼠标移动和键盘点按时长加入变化（在「键盘点按时长」设定值附近 ±10 毫秒）。</value>
@@ -352,10 +367,10 @@
     <value>模拟量与视角移动</value>
   </data>
   <data name="ModifierGraceLabel" xml:space="preserve">
-    <value>修饰键容限 / 组合 HUD 延迟（毫秒）</value>
+    <value>修饰键宽限期 / 组合键 HUD 延迟（毫秒）</value>
   </data>
   <data name="LeadSuppressLabel" xml:space="preserve">
-    <value>主导键长按抑制阈值（毫秒）</value>
+    <value>先导键长按抑制（毫秒）</value>
   </data>
   <data name="TapHoldLabel" xml:space="preserve">
     <value>键盘点按按住时长（毫秒）</value>
@@ -397,7 +412,7 @@
     <value>鼠标视角回弹抑制（0–1）</value>
   </data>
   <data name="MouseLookStickLayoutHint" xml:space="preserve">
-    <value>在同一支摇杆上同时映射视角与移动时，二者会共用该摇杆。若可以，建议一支摇杆负责视角、另一支负责移动，操作更直观。</value>
+    <value>在同一根摇杆上同时映射视角与移动时，二者会共用该摇杆。若可以，建议一根摇杆负责视角、另一根负责移动，操作更直观。</value>
   </data>
   <data name="AnalogEpsilonLabel" xml:space="preserve">
     <value>摇杆变化灵敏度（ε）</value>
@@ -427,7 +442,7 @@
     <value>仅按键</value>
   </data>
   <data name="RadialHudScaleLabel" xml:space="preserve">
-    <value>径向转盘 HUD 缩放</value>
+    <value>转盘 HUD 缩放</value>
   </data>
   <data name="CatalogExpanderHeader" xml:space="preserve">
     <value>键盘动作与转盘（JSON 目录）</value>
@@ -505,7 +520,7 @@
     <value>标题（简体中文）</value>
   </data>
   <data name="CatalogColumnHudLabel" xml:space="preserve">
-    <value>HUD显示文本</value>
+    <value>HUD 显示文本</value>
   </data>
   <data name="CatalogColumnHudLabelKey" xml:space="preserve">
     <value>HUD 文案资源键</value>
@@ -679,7 +694,7 @@
     <value>请检查来源、LT/RT 组合时的扳机阈值以及动作配置。</value>
   </data>
   <data name="ComboHudGateHint" xml:space="preserve">
-    <value>组合键 HUD 预览已关闭：当前不允许键鼠输出（请检查目标进程、前台窗口或权限提升）。</value>
+    <value>组合键 HUD 预览已关闭：当前无法发送键鼠输出（请检查目标进程、前台窗口或是否以管理员身份运行）。</value>
   </data>
   <data name="TemplateSwitchHudDurationHeader" xml:space="preserve">
     <value>模板切换 HUD 显示时长（秒）</value>
@@ -700,7 +715,7 @@
     <value>配置切换</value>
   </data>
   <data name="ActionType_RadialMenu" xml:space="preserve">
-    <value>轮盘菜单</value>
+    <value>转盘菜单</value>
   </data>
   <data name="ActionType" xml:space="preserve">
     <value>按键类型</value>
@@ -858,7 +873,7 @@
     <value>检查更新</value>
   </data>
   <data name="UpdateQuotaDailyLimitBlocked" xml:space="preserve">
-    <value>今日{0}次数已达上限（{1} 次）。请明天再试。</value>
+    <value>「{0}」今日次数已达上限（每日 {1} 次）。请明天再试。</value>
   </data>
   <data name="UpdateSuccessToastTitle" xml:space="preserve">
     <value>更新已安装</value>
@@ -885,7 +900,7 @@
     <value>感谢使用。选择一个模板，映射按键后即可开始游戏。需要时可在「设置」中更改语言、检查更新等。</value>
   </data>
   <data name="ProfileMappingUnusedCatalogActionIdsHint" xml:space="preserve">
-    <value>提示：键盘目录中有 {0} 个操作 ID 未在任何映射或径向菜单中使用。</value>
+    <value>提示：键盘目录中有 {0} 个操作 ID 未在任何映射或转盘中使用。</value>
   </data>
   <data name="ProfileMappingUnusedCatalogActionIdsTooltipTitle" xml:space="preserve">
     <value>目录中未使用的操作 ID</value>
@@ -906,7 +921,7 @@
     <value>仓库检查（实时）</value>
   </data>
   <data name="CommunityUpload_ChecksIntro" xml:space="preserve">
-    <value>以下检查与社区仓库校验脚本一致。每一步都会说明在发起拉取请求之前要验证的内容。</value>
+    <value>下列检查与社区仓库校验脚本一致，每一步都会说明在发起拉取请求之前需要核对的内容。</value>
   </data>
   <data name="CommunityUpload_Step_Submission_Title" xml:space="preserve">
     <value>1. 提交路径与列表说明</value>
@@ -924,7 +939,7 @@
     <value>3. 模板 JSON 规则</value>
   </data>
   <data name="CommunityUpload_Step_Content_Prompt" xml:space="preserve">
-    <value>运行与本应用及社区 CI 脚本相同的检查：映射、径向菜单、操作引用，以及 actionId / holdActionId 的解析规则。</value>
+    <value>运行与本应用及社区 CI 脚本相同的检查：映射、转盘、操作引用，以及 actionId / holdActionId 的解析规则。</value>
   </data>
   <data name="CommunityUpload_SeveritySummary_Ok" xml:space="preserve">
     <value>通过</value>
@@ -975,7 +990,7 @@
     <value>将 JSON 中的 templateCatalogFolder 改为合法的单段路径，或清空并由应用管理路径。</value>
   </data>
   <data name="CommunityUpload_Suggest_RadialMenu" xml:space="preserve">
-    <value>检查径向菜单 id 以及条目的 actionId 是否引用已存在的 keyboardActions。</value>
+    <value>检查转盘 id 以及条目的 actionId 是否引用已存在的 keyboardActions。</value>
   </data>
   <data name="CommunityUpload_Suggest_TemplateGroupId" xml:space="preserve">
     <value>模板组 id 仅使用字母、数字、点、下划线与连字符。</value>
@@ -1112,7 +1127,7 @@
     <value>无法删除本地模板：{0}</value>
   </data>
   <data name="CommunityUpload_MetadataHeader" xml:space="preserve">
-    <value>提交流水信息</value>
+    <value>提交详情</value>
   </data>
   <data name="TemplateCommunityDescriptionLabel" xml:space="preserve">
     <value>社区说明</value>
@@ -1145,7 +1160,7 @@
     <value>未找到模板。</value>
   </data>
   <data name="CommunityCatalog_RefreshCooldownTooltip" xml:space="preserve">
-    <value>冷却中，请约 {0} 秒后再试。</value>
+    <value>刷新冷却中，请约 {0} 秒后再试。</value>
   </data>
   <data name="WebView2_RuntimeRequired_Title" xml:space="preserve">
     <value>需要 WebView2 运行时</value>

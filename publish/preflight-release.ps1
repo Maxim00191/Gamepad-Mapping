@@ -64,7 +64,10 @@ try {
     New-Item -ItemType Directory -Path $tempPublish | Out-Null
 
     Write-Host "Publishing updater for preflight validation..." -ForegroundColor Cyan
-    & dotnet publish $updaterProject -c $Configuration -r $RuntimeIdentifier --self-contained false -o $tempPublish
+    & dotnet publish $updaterProject -c $Configuration -r $RuntimeIdentifier --self-contained false `
+        -o $tempPublish `
+        -p:DebugType=none `
+        -p:DebugSymbols=false
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet publish failed for updater preflight validation."
     }

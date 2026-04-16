@@ -80,17 +80,23 @@ Write-Host "dotnet publish: single-file, self-contained win-x64 -> publish\singl
 & dotnet publish $csproj -c Release -r win-x64 --self-contained true `
     -o $publishSingle `
     -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:DebugType=none `
+    -p:DebugSymbols=false
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "dotnet publish: framework-dependent win-x64 -> publish\fx" -ForegroundColor Cyan
 & dotnet publish $csproj -c Release -r win-x64 --self-contained false `
-    -o $publishFx
+    -o $publishFx `
+    -p:DebugType=none `
+    -p:DebugSymbols=false
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "dotnet publish: updater payload (win-x64, framework-dependent) -> publish\\updater" -ForegroundColor Cyan
 & dotnet publish (Join-Path $repoRoot "Updater\Updater.csproj") -c Release -r win-x64 --self-contained false `
-    -o $publishUpdater
+    -o $publishUpdater `
+    -p:DebugType=none `
+    -p:DebugSymbols=false
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $docFiles = @('README.md', 'README_zh.md', 'CHANGELOG.md', 'RELEASE_NOTES.md')

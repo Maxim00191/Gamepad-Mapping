@@ -612,6 +612,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages => _settingsOrchestrator.AvailableUiLanguages;
     public UiLanguageOption? SelectedUiLanguage { get => _settingsOrchestrator.SelectedUiLanguage; set => _settingsOrchestrator.SelectedUiLanguage = value; }
 
+    public ObservableCollection<UiThemeOption> AvailableUiThemes => _settingsOrchestrator.AvailableUiThemes;
+    public UiThemeOption? SelectedUiTheme { get => _settingsOrchestrator.SelectedUiTheme; set => _settingsOrchestrator.SelectedUiTheme = value; }
+
     private void OnComboHud(ComboHudContent? content)
     {
         void Apply()

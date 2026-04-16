@@ -152,6 +152,10 @@ public class AppSettings
     [JsonProperty("uiCulture")]
     public string UiCulture { get; set; } = "zh-CN";
 
+    /// <summary>Application chrome: <see cref="UiThemeMode.FollowSystem"/>, <see cref="UiThemeMode.Light"/>, or <see cref="UiThemeMode.Dark"/>.</summary>
+    [JsonProperty("uiTheme")]
+    public string UiTheme { get; set; } = UiThemeMode.FollowSystem;
+
     /// <summary>ARGB alpha (0–255) for the on-screen combo HUD panel backing. Clamped in the app when applied.</summary>
     [JsonProperty("comboHudPanelAlpha")]
     public int ComboHudPanelAlpha { get; set; } = 96;

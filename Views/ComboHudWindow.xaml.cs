@@ -6,6 +6,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using GamepadMapperGUI.Models;
 using Gamepad_Mapping.Utils;
+using Gamepad_Mapping.Utils.Theme;
 
 namespace Gamepad_Mapping.Views;
 
@@ -33,18 +34,10 @@ public partial class ComboHudWindow : Window
         panelAlpha = (byte)Math.Clamp((int)panelAlpha, 24, 220);
         shadowOpacity = Math.Clamp(shadowOpacity, 0.08, 0.60);
 
-        if (App.UsesLightTheme)
-        {
-            RootBorder.Background = new SolidColorBrush(Color.FromArgb(panelAlpha, 0xFC, 0xFC, 0xFE));
-            var borderA = (byte)Math.Clamp(panelAlpha / 3 + 24, 44, 100);
-            RootBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(borderA, 0x28, 0x28, 0x34));
-        }
-        else
-        {
-            RootBorder.Background = new SolidColorBrush(Color.FromArgb(panelAlpha, 0x1C, 0x1C, 0x1E));
-            var borderA = (byte)Math.Clamp(panelAlpha / 2 + 28, 32, 100);
-            RootBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(borderA, 0, 0, 0));
-        }
+        var chrome = App.UsesLightTheme ? AppChromeTheme.Light : AppChromeTheme.Dark;
+        AppChromeTheme.ApplyHudChrome(App.UsesLightTheme, chrome, panelAlpha, out var panel, out var border);
+        RootBorder.Background = new SolidColorBrush(panel);
+        RootBorder.BorderBrush = new SolidColorBrush(border);
 
         if (RootBorder.Effect is DropShadowEffect dse)
             dse.Opacity = shadowOpacity;

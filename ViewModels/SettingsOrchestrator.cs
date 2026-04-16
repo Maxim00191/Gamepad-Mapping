@@ -9,6 +9,7 @@ using GamepadMapperGUI.Interfaces.Services.Storage;
 using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
@@ -19,6 +20,8 @@ using GamepadMapperGUI.Services.Radial;
 namespace Gamepad_Mapping.ViewModels;
 
 public record UiLanguageOption(string CultureName, string DisplayName);
+
+public record UiThemeOption(string Key, string DisplayName);
 
 /// <summary>
 /// Orchestrates application settings, persistence, and UI localization.
@@ -35,12 +38,19 @@ public partial class SettingsOrchestrator : ObservableObject
     private readonly AppSettings _appSettings;
     private readonly ISettingsService _settingsService;
     private bool _isInitializingUiLanguageSelection;
+    private bool _isInitializingUiThemeSelection;
 
     [ObservableProperty]
     private ObservableCollection<UiLanguageOption> _availableUiLanguages;
 
     [ObservableProperty]
     private UiLanguageOption? _selectedUiLanguage;
+
+    [ObservableProperty]
+    private ObservableCollection<UiThemeOption> _availableUiThemes;
+
+    [ObservableProperty]
+    private UiThemeOption? _selectedUiTheme;
 
     public AppSettings Settings => _appSettings;
 
@@ -50,7 +60,21 @@ public partial class SettingsOrchestrator : ObservableObject
         _appSettings = _settingsService.LoadSettings();
         
         AvailableUiLanguages = new ObservableCollection<UiLanguageOption>(SupportedUiLanguages);
-        
+
+        AvailableUiThemes = new ObservableCollection<UiThemeOption>(
+        [
+            new(UiThemeMode.FollowSystem, Localize("UiThemeFollowSystem")),
+            new(UiThemeMode.Light, Localize("UiThemeLight")),
+            new(UiThemeMode.Dark, Localize("UiThemeDark"))
+        ]);
+
+        _isInitializingUiThemeSelection = true;
+        var themeKey = UiThemeMode.Normalize(_appSettings.UiTheme);
+        SelectedUiTheme =
+            AvailableUiThemes.FirstOrDefault(x => string.Equals(x.Key, themeKey, StringComparison.Ordinal))
+            ?? AvailableUiThemes[0];
+        _isInitializingUiThemeSelection = false;
+
         _isInitializingUiLanguageSelection = true;
         SelectedUiLanguage = 
             AvailableUiLanguages.FirstOrDefault(x => string.Equals(x.CultureName, _appSettings.UiCulture, StringComparison.OrdinalIgnoreCase))
@@ -68,6 +92,22 @@ public partial class SettingsOrchestrator : ObservableObject
     {
         if (value == null) return;
         ApplyUiLanguage(value.CultureName, persist: !_isInitializingUiLanguageSelection);
+    }
+
+    partial void OnSelectedUiThemeChanged(UiThemeOption? value)
+    {
+        if (value == null) return;
+        var normalized = UiThemeMode.Normalize(value.Key);
+        if (!_isInitializingUiThemeSelection)
+        {
+            if (!string.Equals(_appSettings.UiTheme, normalized, StringComparison.Ordinal))
+            {
+                _appSettings.UiTheme = normalized;
+                SaveSettings();
+            }
+
+            App.RequestApplyChromeTheme();
+        }
     }
 
     public void ApplyUiLanguage(string cultureName, bool persist)

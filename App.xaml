@@ -11,36 +11,46 @@
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <services:TranslationService x:Key="Loc" />
-        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFF7F7F7" />
-        <SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="AppBorderBrush" Color="#FF333333" />
-        <SolidColorBrush x:Key="AppTextBrush" Color="#FF111111" />
-        <SolidColorBrush x:Key="AppSecondaryTextBrush" Color="#FF555555" />
-        <SolidColorBrush x:Key="AppAccentTextBrush" Color="#FFCC3300" />
-        <SolidColorBrush x:Key="AppControlSurfaceBrush" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="AppControlSurfaceAltBrush" Color="#FFF1F1F1" />
-        <SolidColorBrush x:Key="AppControlHoverBrush" Color="#FFE8E8E8" />
-        <SolidColorBrush x:Key="AppControlPressedBrush" Color="#FFDCDCDC" />
-        <SolidColorBrush x:Key="AppAccentBrush" Color="#FF1C418A" />
-        <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#FF163473" />
-        <SolidColorBrush x:Key="AppSelectionBrush" Color="#FFE1EBFF" />
-        <SolidColorBrush x:Key="AppSelectionTextBrush" Color="#FF111111" />
-        <SolidColorBrush x:Key="AppScrollTrackBrush" Color="#FFE5E5E5" />
-        <SolidColorBrush x:Key="AppScrollThumbBrush" Color="#FFB8B8B8" />
-        <SolidColorBrush x:Key="AppScrollThumbHoverBrush" Color="#FF9A9A9A" />
-        <SolidColorBrush x:Key="AppSeparatorBrush" Color="#FFDADAE0" />
-        <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFC8C8D2" />
-        <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FF1C418A" />
-        <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF1A1A1E" />
-        <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF4B4E5A" />
-        <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#E8FFFFFF" />
-        <SolidColorBrush x:Key="VisualWorkspacePanelBackgroundBrush" Color="#FF252526" />
-        <SolidColorBrush x:Key="VisualWorkspacePanelBorderBrush" Color="#FF3F3F46" />
-        <SolidColorBrush x:Key="VisualWorkspaceListItemBackgroundBrush" Color="#FF2D2D30" />
-        <SolidColorBrush x:Key="VisualWorkspaceListItemSelectedBackgroundBrush" Color="#FF2A3F5A" />
-        <SolidColorBrush x:Key="VisualWorkspaceListAccentBrush" Color="#FF007ACC" />
-        <SolidColorBrush x:Key="VisualWorkspaceListItemHoverBorderBrush" Color="#FF505050" />
-        <SolidColorBrush x:Key="VisualWorkspaceControllerBackgroundBrush" Color="#FF1E1E1E" />
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFE6E3DC" />
+        <SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFEDEAE3" />
+        <SolidColorBrush x:Key="AppBorderBrush" Color="#FF504C46" />
+        <SolidColorBrush x:Key="AppTextBrush" Color="#FF24221E" />
+        <SolidColorBrush x:Key="AppSecondaryTextBrush" Color="#FF736E66" />
+        <SolidColorBrush x:Key="AppAccentTextBrush" Color="#FF8A6018" />
+        <SolidColorBrush x:Key="AppControlSurfaceBrush" Color="#FFEDEAE3" />
+        <SolidColorBrush x:Key="AppControlSurfaceAltBrush" Color="#FFE0DBD2" />
+        <SolidColorBrush x:Key="AppControlHoverBrush" Color="#FFD5D0C6" />
+        <SolidColorBrush x:Key="AppControlPressedBrush" Color="#FFC9C3B8" />
+        <SolidColorBrush x:Key="AppAccentBrush" Color="#FF2A4A7A" />
+        <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#FF223C66" />
+        <SolidColorBrush x:Key="AppSelectionBrush" Color="#FFDDD4C4" />
+        <SolidColorBrush x:Key="AppSelectionTextBrush" Color="#FF24221E" />
+        <SolidColorBrush x:Key="AppScrollTrackBrush" Color="#FFD4D1C9" />
+        <SolidColorBrush x:Key="AppScrollThumbBrush" Color="#FFA8A298" />
+        <SolidColorBrush x:Key="AppScrollThumbHoverBrush" Color="#FF8A847A" />
+        <SolidColorBrush x:Key="AppSeparatorBrush" Color="#FFC9C3B8" />
+        <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFBCB5AA" />
+        <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FFB89428" />
+        <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
+        <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
+        <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
+        <SolidColorBrush x:Key="VisualWorkspacePanelBackgroundBrush" Color="#FFD4CEC4" />
+        <SolidColorBrush x:Key="VisualWorkspacePanelBorderBrush" Color="#FF8F887E" />
+        <SolidColorBrush x:Key="VisualWorkspaceListItemBackgroundBrush" Color="#FFDFD9D0" />
+        <SolidColorBrush x:Key="VisualWorkspaceListItemSelectedBackgroundBrush" Color="#FFB8C8E0" />
+        <SolidColorBrush x:Key="VisualWorkspaceListAccentBrush" Color="#FF2A4A7A" />
+        <SolidColorBrush x:Key="VisualWorkspaceListItemHoverBorderBrush" Color="#FF7A7369" />
+        <SolidColorBrush x:Key="VisualWorkspaceControllerBackgroundBrush" Color="#FFC9C2B6" />
+        <SolidColorBrush x:Key="VisualWorkspaceHintBarBackgroundBrush" Color="#CCBEB6A8" />
+        <SolidColorBrush x:Key="VisualWorkspaceHintBarBorderBrush" Color="#FF8F887E" />
+        <SolidColorBrush x:Key="VisualWorkspaceHintBarPrimaryForegroundBrush" Color="#FF24221E" />
+        <SolidColorBrush x:Key="VisualWorkspaceHintBarSecondaryForegroundBrush" Color="#FF736E66" />
+        <SolidColorBrush x:Key="VisualWorkspaceOverlayLeaderMutedStrokeBrush" Color="#66302C26" />
+        <SolidColorBrush x:Key="VisualWorkspaceOverlayLabelDotBrush" Color="#44302C26" />
+        <SolidColorBrush x:Key="VisualWorkspacePathHoverFillBrush" Color="#28000000" />
+        <SolidColorBrush x:Key="VisualWorkspacePathSelectedFillBrush" Color="#45000000" />
+        <SolidColorBrush x:Key="VisualWorkspaceChordPartFillBrush" Color="#402A4A7A" />
+        <SolidColorBrush x:Key="VisualWorkspaceStrongAccentBorderBrush" Color="#CC2A4A7A" />
         <sys:Double x:Key="VisualWorkspaceLogicalMappingsColumnMinWidth">200</sys:Double>
         <sys:Double x:Key="VisualWorkspaceVisualEditorCenterColumnMinWidth">260</sys:Double>
         <sys:Double x:Key="VisualWorkspaceVisualEditorSplitterWidth">6</sys:Double>

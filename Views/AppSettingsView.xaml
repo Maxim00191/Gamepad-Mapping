@@ -23,6 +23,19 @@
                               HorizontalScrollBarVisibility="Disabled"
                               MaxHeight="440">
                     <StackPanel>
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsThemeSection]}"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,6" />
+                        <UniformGrid Columns="2" Margin="0,0,0,8">
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppThemeLabel]}"
+                                       Margin="0,0,8,0"
+                                       TextWrapping="Wrap" />
+                            <ComboBox Width="180"
+                                      HorizontalAlignment="Left"
+                                      ItemsSource="{Binding AvailableUiThemes}"
+                                      SelectedItem="{Binding SelectedUiTheme, Mode=TwoWay}"
+                                      DisplayMemberPath="DisplayName" />
+                        </UniformGrid>
                         <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[AppSettingsLanguageSection]}"
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,6" />

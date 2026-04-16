@@ -15,7 +15,7 @@
                         Visibility="{Binding HasUnusedActionIds, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="&#xE946;"
                            FontFamily="Segoe MDL2 Assets"
-                           Foreground="#007ACC"
+                           Foreground="{DynamicResource VisualWorkspaceListAccentBrush}"
                            VerticalAlignment="Center"
                            Margin="0,0,8,0" />
                 <TextBlock Text="{Binding UnusedActionIdsHint}"
