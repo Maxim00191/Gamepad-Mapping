@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -20,17 +22,25 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, IDisposable
 {
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
-    private readonly IReadOnlyList<CommunityTemplateInfo>? _publishedCommunityIndex;
+    private readonly Func<CancellationToken, Task<List<CommunityTemplateInfo>?>>? _refreshPublishedIndexBeforeCommitAsync;
+    private IReadOnlyList<CommunityTemplateInfo>? _publishedCommunityIndex;
     private readonly Debouncer _complianceRefreshDebouncer = new(TimeSpan.FromMilliseconds(1000));
     private readonly TranslationService? _loc;
     private bool _isBulkUpdatingSelection;
 
+    /// <param name="publishedCommunityIndex">Initial snapshot when the dialog opens (may be stale until commit).</param>
+    /// <param name="refreshPublishedIndexBeforeCommitAsync">
+    /// When set, invoked immediately before validating the upload so path conflicts use the latest index.json
+    /// (for example after fetching with prefer-fresh behavior).
+    /// </param>
     public CommunityTemplateUploadDialogViewModel(
         ICommunityTemplateUploadComplianceService complianceService,
-        IReadOnlyList<CommunityTemplateInfo>? publishedCommunityIndex = null)
+        IReadOnlyList<CommunityTemplateInfo>? publishedCommunityIndex = null,
+        Func<CancellationToken, Task<List<CommunityTemplateInfo>?>>? refreshPublishedIndexBeforeCommitAsync = null)
     {
         _complianceService = complianceService;
         _publishedCommunityIndex = publishedCommunityIndex;
+        _refreshPublishedIndexBeforeCommitAsync = refreshPublishedIndexBeforeCommitAsync;
         _loc = Application.Current?.Resources["Loc"] as TranslationService;
         if (_loc is not null)
             _loc.PropertyChanged += OnLocPropertyChanged;
@@ -288,18 +298,37 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
         }
     }
 
-    public bool TryCommit(out string? errorMessage)
+    /// <summary>
+    /// Validates the dialog and refreshes the published index when a refresh delegate was supplied at construction.
+    /// </summary>
+    public async Task<(bool Success, string? ErrorMessage)> TryCommitAsync(CancellationToken cancellationToken = default)
     {
-        errorMessage = null;
+        if (_refreshPublishedIndexBeforeCommitAsync is not null)
+        {
+            var fresh = await _refreshPublishedIndexBeforeCommitAsync(cancellationToken).ConfigureAwait(true);
+            if (fresh is null)
+            {
+                var locRefresh = Application.Current?.Resources["Loc"] as TranslationService;
+                return (false, locRefresh?["CommunityUpload_Error_IndexRefreshFailed"]
+                                  ?? "Could not load the latest community catalog. Check your connection and try again.");
+            }
+
+            _publishedCommunityIndex = fresh;
+        }
+
+        return TryCommitCore();
+    }
+
+    private (bool Success, string? ErrorMessage) TryCommitCore()
+    {
         _complianceRefreshDebouncer.Cancel();
         RefreshCompliance();
-        var loc = Application.Current?.Resources["Loc"] as GamepadMapperGUI.Services.Infrastructure.TranslationService;
+        var loc = Application.Current?.Resources["Loc"] as TranslationService;
 
         if (!ComplianceReady)
         {
-            errorMessage = loc?["CommunityUpload_FixIssuesBeforeUpload"]
-                           ?? "Fix the issues listed under Repository checks before uploading, or cancel.";
-            return false;
+            return (false, loc?["CommunityUpload_FixIssuesBeforeUpload"]
+                          ?? "Fix the issues listed under Repository checks before uploading, or cancel.");
         }
 
         var game = (GameFolderName ?? string.Empty).Trim();
@@ -307,34 +336,19 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
         var desc = (ListingDescription ?? string.Empty).Trim();
 
         if (BundleItems.Count == 0)
-        {
-            errorMessage = loc?["CommunityUpload_Error_NoTemplatesInBundle"] ?? "No templates in bundle.";
-            return false;
-        }
+            return (false, loc?["CommunityUpload_Error_NoTemplatesInBundle"] ?? "No templates in bundle.");
 
         if (!BundleItems.Any(static i => i.IsIncluded))
-        {
-            errorMessage = loc?["CommunityUpload_Error_SelectAtLeastOne"] ?? "Select at least one template to upload.";
-            return false;
-        }
+            return (false, loc?["CommunityUpload_Error_SelectAtLeastOne"] ?? "Select at least one template to upload.");
 
         if (game.Length == 0)
-        {
-            errorMessage = loc?["CommunityUpload_Error_GameFolderRequired"] ?? "Game folder name is required.";
-            return false;
-        }
+            return (false, loc?["CommunityUpload_Error_GameFolderRequired"] ?? "Game folder name is required.");
 
         if (author.Length == 0)
-        {
-            errorMessage = loc?["CommunityUpload_Error_AuthorRequired"] ?? "Author name is required.";
-            return false;
-        }
+            return (false, loc?["CommunityUpload_Error_AuthorRequired"] ?? "Author name is required.");
 
         if (desc.Length == 0)
-        {
-            errorMessage = loc?["CommunityUpload_Error_ListingDescriptionRequired"] ?? "Listing description is required.";
-            return false;
-        }
+            return (false, loc?["CommunityUpload_Error_ListingDescriptionRequired"] ?? "Listing description is required.");
 
         string gameSeg;
         string authorSeg;
@@ -345,8 +359,7 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
         }
         catch (ArgumentException ex)
         {
-            errorMessage = ex.Message;
-            return false;
+            return (false, ex.Message);
         }
 
         var catalogFolder = TemplateStorageKey.ValidateCatalogFolderPathForSave($"{gameSeg}/{authorSeg}");
@@ -362,12 +375,11 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
                 var pathsText = string.Join(Environment.NewLine, conflicts);
                 var fmt = loc?["CommunityUpload_Error_PathAlreadyPublished"]
                           ?? "These paths already exist in the community repository. Change the game folder, author folder, or profile id, then try again.\n\n{0}";
-                errorMessage = string.Format(CultureInfo.CurrentCulture, fmt, pathsText);
-                return false;
+                return (false, string.Format(CultureInfo.CurrentCulture, fmt, pathsText));
             }
         }
 
-        return true;
+        return (true, null);
     }
 
     public static string GuessGameFolder(string? catalogSubfolder)

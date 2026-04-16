@@ -1215,4 +1215,7 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityCatalog_SearchLabel" xml:space="preserve">
     <value>Search:</value>
   </data>
+  <data name="CommunityUpload_Error_IndexRefreshFailed" xml:space="preserve">
+    <value>Could not load the latest community catalog. Check your connection and try again.</value>
+  </data>
 </root>

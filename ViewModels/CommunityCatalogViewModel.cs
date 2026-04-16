@@ -417,9 +417,14 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
-        var publishedIndex = await _communityService.GetCommunityIndexSnapshotAsync().ConfigureAwait(true);
+        var publishedIndex = await _communityService
+            .GetCommunityIndexSnapshotAsync(CancellationToken.None, CommunityIndexFetchBehavior.PreferFreshIndex)
+            .ConfigureAwait(true);
         var bundleFingerprint = CommunityUploadBundleFingerprint.Compute(bundleEntries);
-        var dialogVm = new CommunityTemplateUploadDialogViewModel(_complianceService, publishedIndex);
+        var dialogVm = new CommunityTemplateUploadDialogViewModel(
+            _complianceService,
+            publishedIndex,
+            ct => _communityService.GetCommunityIndexSnapshotAsync(ct, CommunityIndexFetchBehavior.PreferFreshIndex));
         try
         {
             dialogVm.LoadBundle(bundleEntries);

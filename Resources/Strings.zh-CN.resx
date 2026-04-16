@@ -1215,4 +1215,7 @@
   <data name="CommunityCatalog_SearchLabel" xml:space="preserve">
     <value>搜索：</value>
   </data>
+  <data name="CommunityUpload_Error_IndexRefreshFailed" xml:space="preserve">
+    <value>无法获取最新的社区模板目录。请检查网络连接后重试。</value>
+  </data>
 </root>
