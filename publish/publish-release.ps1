@@ -2,7 +2,8 @@
 <#
 .SYNOPSIS
     Builds the same win-x64 publish outputs and zips as .github/workflows/build.yml (release job).
-    Refreshes Resources/Embedded/upload_text_policy.txt.gz (gzip + XOR) via gzip-policy.ps1 before publish.
+    Refreshes Resources/Embedded/upload_text_policy.txt.gz (gzip + XOR) via gzip-policy.ps1 before publish
+    (same PowerShell host as CI when started via publish-release.bat, which prefers pwsh).
     Writes build outputs under this folder (publish/single, publish/fx, publish/*.zip).
 
 .PARAMETER Tag
