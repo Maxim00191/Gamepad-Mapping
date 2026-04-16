@@ -61,6 +61,37 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
                 "CommunityUpload_Suggest_ListingDescription"));
         }
 
+        if (author.Length > 0
+            && author.Length > CommunityTemplateUploadConstraints.MaxAuthorDisplayNameLength)
+        {
+            step1Issues.Add(new CommunityTemplateComplianceIssue(
+                string.Empty,
+                string.Empty,
+                "CommunityUpload_Suggest_AuthorNameRules",
+                CommunityTemplateComplianceDetailKeys.AuthorNameTooLong,
+                [CommunityTemplateUploadConstraints.MaxAuthorDisplayNameLength]));
+        }
+        else if (author.Length > 0
+                 && !CommunityTemplateUploadMetadataValidator.IsAuthorNameCharactersAllowed(author))
+        {
+            step1Issues.Add(new CommunityTemplateComplianceIssue(
+                string.Empty,
+                string.Empty,
+                "CommunityUpload_Suggest_AuthorNameRules",
+                CommunityTemplateComplianceDetailKeys.AuthorNameInvalidCharacters));
+        }
+
+        if (desc.Length > 0
+            && desc.Length > CommunityTemplateUploadConstraints.MaxListingDescriptionCharacters)
+        {
+            step1Issues.Add(new CommunityTemplateComplianceIssue(
+                string.Empty,
+                string.Empty,
+                "CommunityUpload_Suggest_ListingDescriptionLength",
+                CommunityTemplateComplianceDetailKeys.ListingDescriptionTooLong,
+                [CommunityTemplateUploadConstraints.MaxListingDescriptionCharacters]));
+        }
+
         if (step1Issues.Count == 0)
         {
             try

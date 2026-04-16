@@ -1185,4 +1185,19 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityUpload_TextPolicy_FieldViolationDetail" xml:space="preserve">
     <value>{0} contains text that is not allowed for community uploads.</value>
   </data>
+  <data name="CommunityUpload_Metadata_AuthorNameTooLong" xml:space="preserve">
+    <value>Author name must be {0} characters or fewer.</value>
+  </data>
+  <data name="CommunityUpload_Metadata_AuthorNameInvalidChars" xml:space="preserve">
+    <value>Author name can only include letters, numbers, spaces, hyphen (-), underscore (_), and apostrophe (').</value>
+  </data>
+  <data name="CommunityUpload_Metadata_ListingDescriptionTooLong" xml:space="preserve">
+    <value>Listing description must be {0} characters or fewer.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_AuthorNameRules" xml:space="preserve">
+    <value>Use the counter under the field: stay within the limit and avoid symbols other than hyphen, underscore, and apostrophe.</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ListingDescriptionLength" xml:space="preserve">
+    <value>Shorten the listing description to fit within the character limit shown under the field.</value>
+  </data>
 </root>

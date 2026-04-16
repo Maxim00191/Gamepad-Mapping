@@ -55,6 +55,20 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
 
     public ObservableCollection<CommunityTemplateComplianceStepViewModel> ComplianceSteps { get; } = new();
 
+    public string AuthorNameCounterText =>
+        string.Format(
+            CultureInfo.CurrentCulture,
+            "{0}/{1}",
+            AuthorName.Length,
+            CommunityTemplateUploadConstraints.MaxAuthorDisplayNameLength);
+
+    public string ListingDescriptionCounterText =>
+        string.Format(
+            CultureInfo.CurrentCulture,
+            "{0}/{1}",
+            ListingDescription.Length,
+            CommunityTemplateUploadConstraints.MaxListingDescriptionCharacters);
+
     public void ApplyDraft(CommunityUploadDialogDraft draft)
     {
         if (draft is null)
@@ -179,9 +193,17 @@ public partial class CommunityTemplateUploadDialogViewModel : ObservableObject, 
 
     partial void OnGameFolderNameChanged(string value) => RequestComplianceRefresh();
 
-    partial void OnAuthorNameChanged(string value) => RequestComplianceRefresh();
+    partial void OnAuthorNameChanged(string value)
+    {
+        OnPropertyChanged(nameof(AuthorNameCounterText));
+        RequestComplianceRefresh();
+    }
 
-    partial void OnListingDescriptionChanged(string value) => RequestComplianceRefresh();
+    partial void OnListingDescriptionChanged(string value)
+    {
+        OnPropertyChanged(nameof(ListingDescriptionCounterText));
+        RequestComplianceRefresh();
+    }
 
     private static string FormatComplianceIssueDetail(
         CommunityTemplateComplianceIssue issue,

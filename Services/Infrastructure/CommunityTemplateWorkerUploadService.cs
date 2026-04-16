@@ -118,13 +118,17 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         if (desc.Length == 0)
             return new CommunityTemplateUploadResult(false, null, "Listing description is required.");
 
+        var authorTrimmedEarly = (authorDisplayName ?? string.Empty).Trim();
+        if (!CommunityTemplateUploadMetadataValidator.IsMetadataValidForSubmission(authorTrimmedEarly, desc, out var metadataError))
+            return new CommunityTemplateUploadResult(false, null, metadataError);
+
         var owner = (_settings.CommunityProfilesRepoOwner ?? string.Empty).Trim();
         var repo = (_settings.CommunityProfilesRepoName ?? string.Empty).Trim();
         var baseBranch = (_settings.CommunityProfilesRepoBranch ?? string.Empty).Trim();
         if (owner.Length == 0 || repo.Length == 0 || baseBranch.Length == 0)
             return new CommunityTemplateUploadResult(false, null, "Community repository settings are incomplete.");
 
-        var authorTrimmed = (authorDisplayName ?? string.Empty).Trim();
+        var authorTrimmed = authorTrimmedEarly;
 
         string gameSeg;
         string authorSeg;

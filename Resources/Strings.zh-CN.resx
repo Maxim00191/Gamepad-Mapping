@@ -1185,4 +1185,19 @@
   <data name="CommunityUpload_TextPolicy_FieldViolationDetail" xml:space="preserve">
     <value>{0} 含有不允许用于社区上传的文本。</value>
   </data>
+  <data name="CommunityUpload_Metadata_AuthorNameTooLong" xml:space="preserve">
+    <value>作者名称不能超过 {0} 个字符。</value>
+  </data>
+  <data name="CommunityUpload_Metadata_AuthorNameInvalidChars" xml:space="preserve">
+    <value>作者名称只能包含字母、数字、空格、连字符 (-)、下划线 (_) 和撇号 (')。</value>
+  </data>
+  <data name="CommunityUpload_Metadata_ListingDescriptionTooLong" xml:space="preserve">
+    <value>列表说明不能超过 {0} 个字符。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_AuthorNameRules" xml:space="preserve">
+    <value>请参考输入框下方的计数：不要超过上限，且除连字符、下划线和撇号外不要使用其他符号。</value>
+  </data>
+  <data name="CommunityUpload_Suggest_ListingDescriptionLength" xml:space="preserve">
+    <value>请缩短列表说明，使其不超过输入框下方显示的字符上限。</value>
+  </data>
 </root>

@@ -117,4 +117,44 @@ public sealed class CommunityTemplateUploadComplianceServiceTests
             textPolicyStep.Issues,
             issue => issue.SuggestionKey == "CommunityUpload_Suggest_LinkOrDomainNotAllowed");
     }
+
+    [Fact]
+    public void EvaluateSubmission_AuthorTooLong_AddsSubmissionError()
+    {
+        var sut = new CommunityTemplateUploadComplianceService();
+        var selected = new List<CommunityTemplateBundleEntry>
+        {
+            new("game/author/p1", new GameProfileTemplate { ProfileId = "p1" })
+        };
+        var longAuthor = new string('a', CommunityTemplateUploadConstraints.MaxAuthorDisplayNameLength + 1);
+
+        var result = sut.EvaluateSubmission(selected, "Game", longAuthor, "Description");
+
+        Assert.False(result.ReadyToSubmit);
+        var step = Assert.Single(result.Steps, s => s.TitleKey == CommunityTemplateUploadComplianceStepKeys.SubmissionTitle);
+        Assert.Equal(CommunityTemplateComplianceSeverity.Error, step.Severity);
+        Assert.Contains(
+            step.Issues,
+            i => i.DetailResourceKey == CommunityTemplateComplianceDetailKeys.AuthorNameTooLong);
+    }
+
+    [Fact]
+    public void EvaluateSubmission_ListingTooLong_AddsSubmissionError()
+    {
+        var sut = new CommunityTemplateUploadComplianceService();
+        var selected = new List<CommunityTemplateBundleEntry>
+        {
+            new("game/author/p1", new GameProfileTemplate { ProfileId = "p1" })
+        };
+        var longListing = new string('x', CommunityTemplateUploadConstraints.MaxListingDescriptionCharacters + 1);
+
+        var result = sut.EvaluateSubmission(selected, "Game", "Author", longListing);
+
+        Assert.False(result.ReadyToSubmit);
+        var step = Assert.Single(result.Steps, s => s.TitleKey == CommunityTemplateUploadComplianceStepKeys.SubmissionTitle);
+        Assert.Equal(CommunityTemplateComplianceSeverity.Error, step.Severity);
+        Assert.Contains(
+            step.Issues,
+            i => i.DetailResourceKey == CommunityTemplateComplianceDetailKeys.ListingDescriptionTooLong);
+    }
 }
