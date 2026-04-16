@@ -37,7 +37,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
                 It.IsAny<string>()))
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
-        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            new HttpClient(),
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "a" }],
@@ -54,7 +58,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
     {
         var settings = new AppSettings { CommunityProfilesUploadWorkerUrl = "" };
         var compliance = new Mock<ICommunityTemplateUploadComplianceService>();
-        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            new HttpClient(),
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "a" }],
@@ -117,7 +125,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://ignored/") };
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            http,
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "my-profile" }],
@@ -133,7 +145,7 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
         Assert.Equal("ticket-1", capturedTicketId);
         Assert.Equal("proof-1", capturedTicketProof);
         Assert.NotNull(capturedTicketBody);
-        Assert.DoesNotContain("\"turnstileToken\":", capturedTicketBody!, StringComparison.Ordinal);
+        Assert.Contains("\"turnstileToken\":\"turnstile-token-123\"", capturedTicketBody!, StringComparison.Ordinal);
 
         Assert.NotNull(capturedBody);
         Assert.Contains("\"schemaVersion\":1", capturedBody!, StringComparison.Ordinal);
@@ -175,7 +187,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler);
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            http,
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "p1" }],
@@ -226,7 +242,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler);
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            http,
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "p1" }],
@@ -274,7 +294,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler);
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            http,
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "p1" }],
@@ -311,7 +335,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
         for (var i = 0; i < CommunityTemplateUploadConstraints.MaxFilesPerSubmission + 1; i++)
             templates.Add(new GameProfileTemplate { ProfileId = $"p{i}" });
 
-        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            new HttpClient(),
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             templates,
@@ -353,7 +381,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             DisplayName = new string('X', CommunityTemplateUploadConstraints.MaxTemplateFileBytes + 2048)
         };
 
-        var sut = new CommunityTemplateWorkerUploadService(settings, new HttpClient(), compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            new HttpClient(),
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [oversizedTemplate],
@@ -401,7 +433,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler);
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            http,
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "p1" }],
@@ -446,7 +482,11 @@ public sealed class CommunityTemplateWorkerUploadServiceTests
             .Returns(new CommunityTemplateUploadComplianceResult(true, Array.Empty<CommunityTemplateComplianceStepResult>()));
 
         using var http = new HttpClient(handler);
-        var sut = new CommunityTemplateWorkerUploadService(settings, http, compliance.Object);
+        var sut = new CommunityTemplateWorkerUploadService(
+            settings,
+            http,
+            compliance.Object,
+            new FixedTicketTokenProvider("turnstile-token-123"));
 
         var r = await sut.SubmitBundleAsync(
             [new GameProfileTemplate { ProfileId = "p1" }],

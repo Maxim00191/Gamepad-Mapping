@@ -311,18 +311,10 @@ public class AppSettings
 
     /// <summary>
     /// HTTPS URL of the community upload Cloudflare Worker (path usually ends with <c>/submit</c>). HTTP is allowed only for
-    /// loopback hosts (e.g. wrangler dev). When non-empty, uploads use this relay instead of
-    /// <see cref="CommunityProfilesUploadToken"/> (recommended for release builds).
+    /// loopback hosts (e.g. wrangler dev).
     /// </summary>
     [JsonProperty("communityProfilesUploadWorkerUrl")]
     public string CommunityProfilesUploadWorkerUrl { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Debug-only: optional Turnstile token for the worker ticket endpoint (automation). Ignored in release builds; use the
-    /// in-app challenge via <see cref="CommunityProfilesUploadTurnstileSiteKey"/> instead.
-    /// </summary>
-    [JsonProperty("communityProfilesUploadTurnstileToken")]
-    public string CommunityProfilesUploadTurnstileToken { get; set; } = string.Empty;
 
     /// <summary>
     /// Turnstile site key (public) used for the in-app WebView2 challenge. In Cloudflare, allow only the hostname that
@@ -344,12 +336,4 @@ public class AppSettings
     /// </summary>
     [JsonProperty("communityProfilesUploadTurnstileAction")]
     public string CommunityProfilesUploadTurnstileAction { get; set; } = "community_upload_ticket";
-
-    /// <summary>
-    /// GitHub personal access token (<c>repo</c> scope for a public repo is enough) used only when
-    /// <see cref="CommunityProfilesUploadWorkerUrl"/> is empty: direct API access to create a branch, upload JSON, and open a PR.
-    /// Configure via <c>local_settings.json</c>; do not ship real tokens in defaults.
-    /// </summary>
-    [JsonProperty("communityProfilesUploadToken")]
-    public string CommunityProfilesUploadToken { get; set; } = string.Empty;
 }

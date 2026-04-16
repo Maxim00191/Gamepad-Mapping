@@ -1032,7 +1032,7 @@
     <value>列表说明</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>推荐：在 local_settings.json 中设置 communityProfilesUploadWorkerUrl，通过中转票据握手上传（应用内无需 GitHub 令牌或共享 Worker 密钥）。未配置 Worker 地址时的开发者回退：communityProfilesUploadToken（GitHub PAT，需 repo 权限）。仓库会打开 PR；合并后将运行索引更新工作流。</value>
+    <value>上传仅支持 Cloudflare Worker + Turnstile 握手。请在 local_settings.json 中配置 communityProfilesUploadWorkerUrl 与 Turnstile 相关设置。GitHub PAT 回退路径已移除。</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>上传</value>

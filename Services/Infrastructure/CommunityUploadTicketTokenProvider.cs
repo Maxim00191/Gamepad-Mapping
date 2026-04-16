@@ -29,12 +29,6 @@ public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketT
 
     public Task<string?> GetTurnstileTokenAsync(CancellationToken cancellationToken = default)
     {
-#if DEBUG
-        var manualToken = (_settings.CommunityProfilesUploadTurnstileToken ?? string.Empty).Trim();
-        if (manualToken.Length > 0)
-            return Task.FromResult<string?>(manualToken);
-#endif
-
         var siteKey = (_settings.CommunityProfilesUploadTurnstileSiteKey ?? string.Empty).Trim();
         if (siteKey.Length == 0)
             return Task.FromResult<string?>(null);

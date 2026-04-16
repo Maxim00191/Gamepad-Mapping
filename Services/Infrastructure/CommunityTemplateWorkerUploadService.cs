@@ -329,11 +329,18 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
         CancellationToken cancellationToken)
     {
         var ticketEndpoint = BuildTicketEndpoint(endpointUri);
+        var turnstileToken = (await _ticketTokenProvider.GetTurnstileTokenAsync(cancellationToken).ConfigureAwait(false) ?? string.Empty).Trim();
+        if (turnstileToken.Length == 0)
+        {
+            throw new HttpRequestException(
+                "Turnstile verification did not complete. Complete the challenge and try uploading again.");
+        }
+
         var ticketPayload = new CommunityTemplateWorkerTicketRequest
         {
             PayloadSha256 = payloadSha256,
             SubmitPath = endpointUri.PathAndQuery,
-            TurnstileToken = await _ticketTokenProvider.GetTurnstileTokenAsync(cancellationToken).ConfigureAwait(false)
+            TurnstileToken = turnstileToken
         };
         var ticketBody = StjJsonSerializer.Serialize(ticketPayload, SerializerOptions);
 

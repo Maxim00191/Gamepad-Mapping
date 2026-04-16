@@ -884,17 +884,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         AppSettings settings,
         ICommunityTemplateUploadComplianceService compliance)
     {
-        var workerUrl = (settings.CommunityProfilesUploadWorkerUrl ?? string.Empty).Trim();
-        if (workerUrl.Length > 0)
-        {
-            var ticketProvider = new CommunityUploadTicketTokenProvider(
-                settings,
-                new WebView2RuntimeAvailability(),
-                _settingsOrchestrator.Localize);
-            return new CommunityTemplateWorkerUploadService(settings, null, compliance, ticketProvider);
-        }
-
-        return new CommunityTemplatePullRequestUploadService(settings, null, compliance);
+        var ticketProvider = new CommunityUploadTicketTokenProvider(
+            settings,
+            new WebView2RuntimeAvailability(),
+            _settingsOrchestrator.Localize);
+        return new CommunityTemplateWorkerUploadService(settings, null, compliance, ticketProvider);
     }
 }
 
