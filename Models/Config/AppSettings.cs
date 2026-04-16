@@ -304,10 +304,10 @@ public class AppSettings
     public string CommunityProfilesRepoBranch { get; set; } = "main";
 
     /// <summary>
-    /// Minimum interval between community catalog index refreshes (seconds). Clamped when applied in the community catalog UI.
+    /// Minimum interval between community catalog index refreshes (seconds). Set 0 to disable cooldown.
     /// </summary>
     [JsonProperty("communityCatalogRefreshCooldownSeconds")]
-    public int CommunityCatalogRefreshCooldownSeconds { get; set; } = 10;
+    public int CommunityCatalogRefreshCooldownSeconds { get; set; } = 3;
 
     /// <summary>
     /// HTTPS URL of the community upload Cloudflare Worker (path usually ends with <c>/submit</c>). HTTP is allowed only for

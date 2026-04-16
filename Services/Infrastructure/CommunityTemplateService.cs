@@ -258,6 +258,13 @@ public class CommunityTemplateService : ICommunityTemplateService
     {
         try
         {
+            if (fetchBehavior == CommunityIndexFetchBehavior.PreferFreshIndex)
+            {
+                var freshFromApi = await TryDownloadFreshIndexFromGitHubApiAsync(relativePath, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(freshFromApi))
+                    return freshFromApi;
+            }
+
             var request = new GitHubRepositoryContentRequest(RepoOwner, RepoName, Branch, relativePath);
             var preferForRequest = fetchBehavior == CommunityIndexFetchBehavior.PreferFreshIndex
                 ? false
@@ -279,6 +286,37 @@ public class CommunityTemplateService : ICommunityTemplateService
             App.Logger.Error("Community fetch failed on both GitHub Raw and CDN.", ex);
             return null;
         }
+    }
+
+    private async Task<string?> TryDownloadFreshIndexFromGitHubApiAsync(
+        string relativePath,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(relativePath, "index.json", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        try
+        {
+            var encodedPath = EncodeRelativePathForApi(relativePath);
+            var apiUrl =
+                $"https://api.github.com/repos/{RepoOwner}/{RepoName}/contents/{encodedPath}?ref={Uri.EscapeDataString(Branch)}";
+            return await _gitHubContentService.GetGitHubApiStringAsync(
+                apiUrl,
+                "application/vnd.github.raw+json",
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            App.Logger.Warning($"Fresh GitHub API index fetch failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static string EncodeRelativePathForApi(string relativePath)
+    {
+        var normalized = NormalizeRelativePath(relativePath);
+        var parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join('/', Array.ConvertAll(parts, Uri.EscapeDataString));
     }
 
     private string GetEffectiveDownloadUrl(CommunityTemplateInfo template)

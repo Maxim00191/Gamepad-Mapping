@@ -56,7 +56,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         _uploadService = uploadService;
         _complianceService = complianceService;
         _appToastService = appToastService;
-        var seconds = Math.Clamp(communityCatalogRefreshCooldownSeconds, 1, 600);
+        var seconds = Math.Clamp(communityCatalogRefreshCooldownSeconds, 0, 600);
         _refreshCooldownDuration = TimeSpan.FromSeconds(seconds);
     }
 
@@ -70,11 +70,14 @@ public partial class CommunityCatalogViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanRefreshTemplates))]
     public async Task RefreshTemplatesAsync()
     {
-        if (DateTime.UtcNow < _refreshCooldownEndsUtc)
+        if (IsRefreshCooldownEnabled && DateTime.UtcNow < _refreshCooldownEndsUtc)
             return;
 
-        _refreshCooldownEndsUtc = DateTime.UtcNow.Add(_refreshCooldownDuration);
-        StartRefreshCooldownTimer();
+        if (IsRefreshCooldownEnabled)
+        {
+            _refreshCooldownEndsUtc = DateTime.UtcNow.Add(_refreshCooldownDuration);
+            StartRefreshCooldownTimer();
+        }
 
         IsLoading = true;
         StatusMessage = "Loading community templates...";
@@ -121,6 +124,8 @@ public partial class CommunityCatalogViewModel : ObservableObject
     }
 
     private bool CanRefreshTemplates() => !IsLoading && !IsRefreshCooldownActive;
+
+    private bool IsRefreshCooldownEnabled => _refreshCooldownDuration > TimeSpan.Zero;
 
     private void StartRefreshCooldownTimer()
     {
