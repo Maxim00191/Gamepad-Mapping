@@ -1,3 +1,43 @@
+## Changelog v2.3.0-beta - 2026-04-17
+
+### Note
+
+- **Pre-release (beta):** This build is intended for early feedback on the visual mapping workspace and community template submissions. Expect further polish before a stable release.
+
+### Added
+
+- **Visual Editor workspace:** New **Visual Editor** tab at the front of the profile workspace with a resizable split layout: a **logical control → mappings** list on the left and an interactive **controller diagram** on the right. Select inputs on the diagram to inspect or edit related mappings; the view shows **mapping overlays** on the controller art with configurable primary labels (action summary, physical control, or both) and optional secondary labels.
+- **Controller diagram interaction:** Pan and zoom the controller SVG for comfortable editing on different displays; hover and click hit-testing map diagram regions to logical controls.
+- **Visual overlay & listing tools:** From the visual panel, open **overlay label** settings and a **community listing description** editor (with HUD preview affordances) without leaving the visual workflow.
+- **Community template submission:** From the **Community** catalog, **Upload to community** opens a guided dialog to submit the selected template bundle (including linked templates), with **game folder**, **author**, **listing description**, and per-template inclusion. Submissions are validated locally, then sent through a **Cloudflare Worker** (Turnstile-backed upload ticket + JSON payload) to open a **GitHub pull request** against [GamepadMapping-CommunityProfiles](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) for review.
+- **Upload compliance pipeline:** `CommunityTemplateUploadComplianceService` runs multi-step checks (required metadata, profile validation, text policy including link and content rules, bundle/path sanity, and conflict hints against the published community index) before upload is allowed.
+- **Settings for community upload:** Advanced settings expose the community repository (`owner` / `name` / `branch`), **worker URL**, and **Turnstile** site key / host page / action so installs can point at the correct upload endpoint.
+
+### Changed
+
+- **Profile workspace tabs:** The mapping editor tabs are extended with the Visual Editor as the default-first tab; list/radial/community workflows remain alongside it.
+
+## 更新日志 v2.3.0-beta - 2026-04-17
+
+### 说明
+
+- **预发布（beta）：** 本版本用于收集可视化映射工作区与社区模板提交功能的早期反馈，稳定版发布前仍可能继续调整与打磨。
+
+### 新增
+
+- **可视化编辑工作区：** 在配置工作区最前新增 **Visual Editor** 标签页，采用可拖拽分栏布局：左侧为 **逻辑控制 → 映射** 列表，右侧为可交互的 **手柄示意图**。在示意图上点选输入即可查看或编辑相关映射；示意图上叠加 **映射标签**，主标签可在「动作摘要 / 物理键位 / 两者」之间切换，并可选显示副标签。
+- **示意图交互：** 支持对手柄 SVG **平移与缩放**，便于不同分辨率下编辑；通过悬停与点击命中区域将图示区域映射到逻辑控制。
+- **叠加层与上架文案工具：** 在可视化面板中可直接打开 **叠加标签** 设置与 **社区上架描述** 编辑（含 HUD 预览相关能力），无需离开可视化流程。
+- **社区模板提交：** 在 **Community** 目录中选择 **Upload to community** 打开引导对话框，可提交所选模板包（含关联模板），填写 **游戏目录**、**作者**、**上架描述** 并选择包含的模板。本地校验通过后，经 **Cloudflare Worker**（Turnstile 签发上传票据 + JSON 载荷）在 [GamepadMapping-CommunityProfiles](https://github.com/Maxim00191/GamepadMapping-CommunityProfiles) 仓库创建 **GitHub Pull Request** 供审核合并。
+- **上传合规管线：** `CommunityTemplateUploadComplianceService` 执行多步检查（必填元数据、配置校验、文本策略含链接与内容规则、包路径合理性、与已发布社区索引的冲突提示等），通过后才允许上传。
+- **社区上传相关设置：** 高级设置中可配置社区仓库（`owner` / `name` / `branch`）、**Worker 地址** 以及 **Turnstile** 站点密钥 / 宿主页 / action，以便不同安装环境指向正确上传端点。
+
+### 更改
+
+- **配置工作区标签：** 扩展映射编辑区标签页，将 Visual Editor 作为默认首位标签；列表 / 轮盘 / 社区等流程仍并列保留。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.2.0...v2.3.0-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.2.0...v2.3.0-beta)
+
 ## Changelog v2.2.0 - 2026-04-14
 ### Added
 - **Human-like keyboard noise:** Introduced `HumanizingKeyboardEmulator` to apply Perlin-based jitter to keyboard tap-hold durations (±10ms), enhancing anti-detection and natural input feel.
