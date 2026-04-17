@@ -72,6 +72,45 @@ public class SettingsServiceTests
         Assert.Contains("https://worker.example/submit", persistedLocal, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void LoadSettings_LocalEmptyStringForWorkerUrl_InheritsFromDefaultAndPersists()
+    {
+        var mockFs = new MockFileSystem();
+        var mockPath = new MockPathProvider();
+        var service = new SettingsService(mockFs, mockPath);
+        var root = mockPath.GetContentRoot();
+        var configDir = Path.Combine(root, "Assets", "Config");
+        mockFs.CreateDirectory(configDir);
+        var defaultPath = Path.Combine(configDir, "default_settings.json");
+        var localPath = Path.Combine(configDir, "local_settings.json");
+
+        mockFs.WriteAllText(
+            defaultPath,
+            /*lang=json,strict*/ """
+            {
+              "communityProfilesUploadWorkerUrl": "https://worker.example/submit",
+              "defaultProfileId": "from-shipped-default"
+            }
+            """,
+            System.Text.Encoding.UTF8);
+
+        mockFs.WriteAllText(
+            localPath,
+            /*lang=json,strict*/ """
+            {
+              "communityProfilesUploadWorkerUrl": "",
+              "defaultProfileId": "from-user-local"
+            }
+            """,
+            System.Text.Encoding.UTF8);
+
+        var settings = service.LoadSettingsInternal();
+
+        Assert.Equal("https://worker.example/submit", settings.CommunityProfilesUploadWorkerUrl);
+        Assert.True(mockFs.Files.TryGetValue(localPath, out var persistedLocal));
+        Assert.Contains("https://worker.example/submit", persistedLocal, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(-0.1f, 0.5f, 0.0f, 0.5f)]
     [InlineData(0.99f, 1.0f, 0.98f, 1.0f)]
