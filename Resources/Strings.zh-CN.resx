@@ -1218,4 +1218,13 @@
   <data name="CommunityUpload_Error_IndexRefreshFailed" xml:space="preserve">
     <value>无法获取最新的社区模板目录。请检查网络连接后重试。</value>
   </data>
+  <data name="CommunityCatalog_DownloadRateLimitedToastTitle" xml:space="preserve">
+    <value>下载已暂缓</value>
+  </data>
+  <data name="CommunityCatalog_DownloadRateLimitedMinInterval" xml:space="preserve">
+    <value>请等待 {0} 秒后再下载下一个社区模板。</value>
+  </data>
+  <data name="CommunityCatalog_DownloadRateLimitedHourly" xml:space="preserve">
+    <value>已达到本小时社区模板下载上限。请约 {0} 分钟后再试。</value>
+  </data>
 </root>

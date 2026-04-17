@@ -164,7 +164,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _profileService,
             sharedGitHubContentService,
             _localFileService,
-            appSettings);
+            appSettings,
+            new CommunityTemplateDownloadThrottle());
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();

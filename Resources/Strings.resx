@@ -1218,4 +1218,13 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityUpload_Error_IndexRefreshFailed" xml:space="preserve">
     <value>Could not load the latest community catalog. Check your connection and try again.</value>
   </data>
+  <data name="CommunityCatalog_DownloadRateLimitedToastTitle" xml:space="preserve">
+    <value>Download paused</value>
+  </data>
+  <data name="CommunityCatalog_DownloadRateLimitedMinInterval" xml:space="preserve">
+    <value>Please wait {0} seconds before downloading another community template.</value>
+  </data>
+  <data name="CommunityCatalog_DownloadRateLimitedHourly" xml:space="preserve">
+    <value>You reached the hourly download limit for community templates. Try again in about {0} minutes.</value>
+  </data>
 </root>

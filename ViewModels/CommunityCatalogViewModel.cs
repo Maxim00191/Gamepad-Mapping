@@ -284,8 +284,8 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 }
             }
 
-            var success = await _communityService.DownloadTemplateAsync(template, allowOverwrite: true);
-            if (success)
+            var outcome = await _communityService.DownloadTemplateAsync(template, allowOverwrite: true);
+            if (outcome.Success)
             {
                 StatusMessage = $"Successfully downloaded {template.DisplayName}.";
                 templateItem.IsInstalledLocally = true;
@@ -294,6 +294,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 ShowToast(
                     Localize("CommunityCatalog_DownloadToastTitle"),
                     string.Format(Localize("CommunityCatalog_DownloadToastMessage"), template.DisplayName));
+            }
+            else if (outcome.ThrottleReason != CommunityTemplateDownloadThrottleReason.None)
+            {
+                var waitMinutes = Math.Max(1, (outcome.RetryAfterSeconds + 59) / 60);
+                var message = outcome.ThrottleReason == CommunityTemplateDownloadThrottleReason.HourlyDownloadQuota
+                    ? string.Format(Localize("CommunityCatalog_DownloadRateLimitedHourly"), waitMinutes)
+                    : string.Format(
+                        Localize("CommunityCatalog_DownloadRateLimitedMinInterval"),
+                        Math.Max(1, outcome.RetryAfterSeconds));
+                StatusMessage = message;
+                ShowToast(Localize("CommunityCatalog_DownloadRateLimitedToastTitle"), message);
             }
             else
             {

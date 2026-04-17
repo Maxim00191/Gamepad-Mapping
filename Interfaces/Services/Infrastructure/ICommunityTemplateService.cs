@@ -21,6 +21,6 @@ public interface ICommunityTemplateService
     Task<bool> IsTemplateDownloadedAsync(CommunityTemplateInfo template);
     Task<CommunityTemplateDownloadPrecheckResult> CheckLocalTemplateConflictAsync(CommunityTemplateInfo template);
     Task<bool> DeleteLocalTemplateAsync(CommunityTemplateInfo template);
-    Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template, bool allowOverwrite = true);
+    Task<CommunityTemplateDownloadResult> DownloadTemplateAsync(CommunityTemplateInfo template, bool allowOverwrite = true);
 }
 

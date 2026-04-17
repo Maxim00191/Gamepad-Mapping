@@ -81,10 +81,16 @@ public partial class App : Application
             ToastService = appToastService;
             var xinputService = new XInputService();
             var gamepadSource = new XInputSource(xinputService);
+            var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
             var mainViewModel = new MainViewModel(
                 profileService: profileService,
                 gitHubContentService: gitHubContentService,
-                communityService: new CommunityTemplateService(profileService, gitHubContentService, localFileService, appSettings),
+                communityService: new CommunityTemplateService(
+                    profileService,
+                    gitHubContentService,
+                    localFileService,
+                    appSettings,
+                    communityDownloadThrottle),
                 updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
                 localFileService: localFileService,
                 updateInstallerService: updateInstallerService,

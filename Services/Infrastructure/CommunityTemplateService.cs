@@ -28,6 +28,7 @@ public class CommunityTemplateService : ICommunityTemplateService
     private readonly IProfileService _profileService;
     private readonly ILocalFileService _localFileService;
     private readonly AppSettings _communityRepoSettings;
+    private readonly ICommunityTemplateDownloadThrottle? _downloadThrottle;
 
     private static readonly TimeSpan FallbackTimeout = TimeSpan.FromSeconds(4);
 
@@ -38,16 +39,18 @@ public class CommunityTemplateService : ICommunityTemplateService
         IProfileService profileService,
         IGitHubContentService? gitHubContentService = null,
         ILocalFileService? localFileService = null,
-        AppSettings? communityRepoSettings = null)
+        AppSettings? communityRepoSettings = null,
+        ICommunityTemplateDownloadThrottle? downloadThrottle = null)
     {
         _profileService = profileService;
         _gitHubContentService = gitHubContentService ?? new GitHubContentService();
         _localFileService = localFileService ?? new LocalFileService();
         _communityRepoSettings = communityRepoSettings ?? new AppSettings();
+        _downloadThrottle = downloadThrottle;
     }
 
     public CommunityTemplateService(IProfileService profileService, HttpClient httpClient)
-        : this(profileService, new GitHubContentService(httpClient), new LocalFileService(), null)
+        : this(profileService, new GitHubContentService(httpClient), new LocalFileService(), null, null)
     {
     }
 
@@ -127,8 +130,8 @@ public class CommunityTemplateService : ICommunityTemplateService
         }
     }
 
-    public async Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template)
-        => await DownloadTemplateAsync(template, allowOverwrite: true);
+    public Task<CommunityTemplateDownloadResult> DownloadTemplateAsync(CommunityTemplateInfo template)
+        => DownloadTemplateAsync(template, allowOverwrite: true);
 
     public Task<bool> IsTemplateDownloadedAsync(CommunityTemplateInfo template)
     {
@@ -217,10 +220,17 @@ public class CommunityTemplateService : ICommunityTemplateService
         }
     }
 
-    public async Task<bool> DownloadTemplateAsync(CommunityTemplateInfo template, bool allowOverwrite = true)
+    public async Task<CommunityTemplateDownloadResult> DownloadTemplateAsync(CommunityTemplateInfo template, bool allowOverwrite = true)
     {
         try
         {
+            if (_downloadThrottle is not null)
+            {
+                var blocked = _downloadThrottle.TryBeginDownloadAttempt(_communityRepoSettings);
+                if (blocked.HasValue)
+                    return blocked.Value;
+            }
+
             App.Logger.Info($"Downloading template: {template.DisplayName} using URL: {template.DownloadUrl}");
 
             var request = CreateRequest(template);
@@ -232,22 +242,24 @@ public class CommunityTemplateService : ICommunityTemplateService
             var json = result.Content;
 
             if (string.IsNullOrWhiteSpace(json))
-                return false;
+                return new CommunityTemplateDownloadResult(false);
 
             var profileTemplate = JsonConvert.DeserializeObject<GameProfileTemplate>(json);
-            if (profileTemplate == null) return false;
+            if (profileTemplate == null)
+                return new CommunityTemplateDownloadResult(false);
 
             var (catalogFolder, _) = ResolveCatalogAndStem(template);
             profileTemplate.TemplateCatalogFolder = catalogFolder;
             _profileService.SaveTemplate(profileTemplate, allowOverwrite);
             _profileService.ReloadTemplates(profileTemplate.ProfileId);
-            
-            return true;
+
+            _downloadThrottle?.RegisterSuccessfulDownload(_communityRepoSettings);
+            return new CommunityTemplateDownloadResult(true);
         }
         catch (Exception ex)
         {
             App.Logger.Error($"Failed to download template {template.DisplayName}", ex);
-            return false;
+            return new CommunityTemplateDownloadResult(false);
         }
     }
 

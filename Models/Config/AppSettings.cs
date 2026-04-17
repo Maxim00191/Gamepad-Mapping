@@ -310,6 +310,18 @@ public class AppSettings
     public int CommunityCatalogRefreshCooldownSeconds { get; set; } = 3;
 
     /// <summary>
+    /// Minimum seconds between community template download attempts (spacing). 0 disables this guard.
+    /// </summary>
+    [JsonProperty("communityTemplateDownloadMinIntervalSeconds")]
+    public int CommunityTemplateDownloadMinIntervalSeconds { get; set; } = 2;
+
+    /// <summary>
+    /// Maximum successful community template downloads per rolling hour (client-side). 0 means no hourly cap.
+    /// </summary>
+    [JsonProperty("communityTemplateDownloadMaxPerHour")]
+    public int CommunityTemplateDownloadMaxPerHour { get; set; } = 90;
+
+    /// <summary>
     /// HTTPS URL of the community upload Cloudflare Worker (path usually ends with <c>/submit</c>). HTTP is allowed only for
     /// loopback hosts (e.g. wrangler dev).
     /// </summary>
