@@ -15,6 +15,7 @@ using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Utils;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace GamepadMapperGUI.Services.Storage;
 
@@ -58,26 +59,86 @@ public class SettingsService : ISettingsService
             }
         }
 
-        var pathToLoad = _fileSystem.FileExists(localPath) ? localPath : defaultPath;
-        if (!_fileSystem.FileExists(pathToLoad))
+        if (!_fileSystem.FileExists(defaultPath) && !_fileSystem.FileExists(localPath))
         {
+            return new AppSettings();
+        }
+
+        string? defaultJson = null;
+        string? localJson = null;
+        try
+        {
+            if (_fileSystem.FileExists(defaultPath))
+                defaultJson = _fileSystem.ReadAllText(defaultPath, Encoding.UTF8);
+            if (_fileSystem.FileExists(localPath))
+                localJson = _fileSystem.ReadAllText(localPath, Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to read settings files: {ex.Message}");
+            return new AppSettings();
+        }
+
+        // Preserve legacy behavior: a present but invalid local_settings.json is not silently replaced by defaults.
+        if (localJson is not null && AppSettingsJsonMerger.TryParseObject(localJson) is null)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to parse local settings JSON at {localPath}.");
             return new AppSettings();
         }
 
         try
         {
-            var json = _fileSystem.ReadAllText(pathToLoad, Encoding.UTF8);
+            var json = AppSettingsJsonMerger.MergeToJsonString(defaultJson, localJson);
             var settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
             NormalizeTriggerDeadzones(settings);
             NormalizeUpdateInstallPolicy(settings);
             settings.UiTheme = UiThemeMode.Normalize(settings.UiTheme);
+
+            // Self-update replaces default_settings.json but preserves local_settings.json. When defaults gain new keys,
+            // merge them into the in-memory model and persist so local_settings.json matches (user overrides kept).
+            if (ShouldPersistMergedLocalSnapshot(defaultJson, localJson))
+            {
+                try
+                {
+                    SaveSettingsInternal(settings);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Could not sync local_settings.json from default_settings.json: {ex.Message}");
+                }
+            }
+
             return settings;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to load settings from {pathToLoad}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to load merged settings: {ex.Message}");
             return new AppSettings();
         }
+    }
+
+    /// <summary>
+    /// True when merged(default, local) differs from the current local JSON so we should write the merged snapshot to disk.
+    /// </summary>
+    private static bool ShouldPersistMergedLocalSnapshot(string? defaultJson, string? localJson)
+    {
+        if (AppSettingsJsonMerger.TryParseObject(defaultJson) is null)
+            return false;
+
+        var merged = AppSettingsJsonMerger.TryParseObject(
+            AppSettingsJsonMerger.MergeToJsonString(defaultJson, localJson));
+        if (merged is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(localJson))
+            return true;
+
+        var local = AppSettingsJsonMerger.TryParseObject(localJson);
+        if (local is null)
+            return false;
+
+        return !JToken.DeepEquals(merged, local);
     }
 
     public void SaveSettingsInternal(AppSettings settings)

@@ -81,7 +81,7 @@ public sealed class CommunityTemplateWorkerUploadService : ICommunityTemplateUpl
             return new CommunityTemplateUploadResult(
                 false,
                 null,
-                "Missing upload worker URL. Set communityProfilesUploadWorkerUrl in local_settings.json.");
+                "Missing upload worker URL. Remove communityProfilesUploadWorkerUrl from local_settings.json to use the value from default_settings.json, or set it explicitly in local_settings.json.");
         }
 
         if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri)
