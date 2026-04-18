@@ -508,6 +508,7 @@ publish/updater
 publish/UPLOAD_API_KEY.txt
 publish/local-secrets.ps1
 Resources/Embedded/upload_text_policy.txt
+Resources/Embedded/upload_text_policy.symkey
 Resources/Embedded/zh-utf8.txt
 Resources/Embedded/wordlist-to-upload-policy.ps1
 Resources/Embedded/utils

@@ -11,4 +11,9 @@ public static class CommunityTemplateUploadConstraints
 
     /// <summary>Maximum length for the trimmed community listing / summary text (multi-line).</summary>
     public const int MaxListingDescriptionCharacters = 1500;
+
+    /// <summary>
+    /// Maximum characters of a inspected field shown in a compliance error line (prevents pathological payloads from freezing the UI).
+    /// </summary>
+    public const int MaxComplianceIssueFieldDisplayCharacters = 16_384;
 }

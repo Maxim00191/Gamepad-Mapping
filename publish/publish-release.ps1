@@ -2,8 +2,10 @@
 <#
 .SYNOPSIS
     Builds the same win-x64 publish outputs and zips as .github/workflows/build.yml (release job).
-    Refreshes Resources/Embedded/upload_text_policy.txt.gz (gzip + XOR) via gzip-policy.ps1 before publish
+    Refreshes Resources/Embedded/upload_text_policy.payload (gzip + AES-256-GCM) via gzip-policy.ps1 before publish
     (same PowerShell host as CI when started via publish-release.bat, which prefers pwsh).
+    Requires Resources/Embedded/upload_text_policy.symkey (32 bytes, gitignored). Optional: set env
+    UPLOAD_TEXT_POLICY_SYMKEY_B64 (same Base64 as GitHub environment "release" secret) to materialize the file.
     Writes build outputs under this folder (publish/single, publish/fx, publish/*.zip).
 
 .PARAMETER Tag
@@ -27,6 +29,11 @@ Set-Location -LiteralPath $repoRoot
 $csproj = Join-Path $repoRoot "Gamepad Mapping.csproj"
 if (-not (Test-Path -LiteralPath $csproj)) {
     throw "Project not found: $csproj (keep this script in the publish/ folder at the repo root)."
+}
+
+$materializeSymKey = Join-Path $repoRoot "Resources\Embedded\materialize-upload-text-policy-symkey.ps1"
+if (Test-Path -LiteralPath $materializeSymKey) {
+    & $materializeSymKey $repoRoot
 }
 
 $gzipPolicyScript = Join-Path $repoRoot "Resources\Embedded\gzip-policy.ps1"
@@ -91,14 +98,16 @@ Write-Host "dotnet publish: single-file, self-contained win-x64 -> publish\singl
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:DebugType=none `
-    -p:DebugSymbols=false
+    -p:DebugSymbols=false `
+    -p:ObfuscateUploadTextPolicyPayload=true
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "dotnet publish: framework-dependent win-x64 -> publish\fx" -ForegroundColor Cyan
 & dotnet publish $csproj -c Release -r win-x64 --self-contained false `
     -o $publishFx `
     -p:DebugType=none `
-    -p:DebugSymbols=false
+    -p:DebugSymbols=false `
+    -p:ObfuscateUploadTextPolicyPayload=true
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "dotnet publish: updater payload (win-x64, framework-dependent) -> publish\\updater" -ForegroundColor Cyan

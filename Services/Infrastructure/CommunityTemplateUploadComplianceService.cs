@@ -136,13 +136,20 @@ public sealed class CommunityTemplateUploadComplianceService : ICommunityTemplat
                 ? "CommunityUpload_Suggest_TextPolicyViolation"
                 : hit.SuggestionResourceKey;
             var caption = hit.FieldCaption ?? string.Empty;
-            var detail = $"{caption} contains text that is not allowed for community uploads.";
+            var hasDisplayText = !string.IsNullOrEmpty(hit.ViolatingFieldText);
+            var detailKey = hasDisplayText
+                ? CommunityTemplateComplianceDetailKeys.TextPolicyFieldViolationWithFieldText
+                : CommunityTemplateComplianceDetailKeys.TextPolicyFieldViolation;
+            IReadOnlyList<object?> fmtArgs = hasDisplayText
+                ? new object?[] { caption, hit.ViolatingFieldText! }
+                : new object?[] { caption };
+
             textPolicyIssues.Add(new CommunityTemplateComplianceIssue(
                 hit.ContextLabel,
-                detail,
+                string.Empty,
                 suggestionKey,
-                CommunityTemplateComplianceDetailKeys.TextPolicyFieldViolation,
-                [caption]));
+                detailKey,
+                fmtArgs));
         }
 
         var textPolicySeverity = textPolicyIssues.Count > 0

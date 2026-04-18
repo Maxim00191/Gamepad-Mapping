@@ -49,5 +49,7 @@ public sealed class CompositeTextContentViolationEvaluatorTests
         var hit = Assert.Single(r);
         Assert.Equal("w", hit.PatternId);
         Assert.Null(hit.SuggestionResourceKey);
+        Assert.Equal("blocked", hit.MatchedSegmentHint);
+        Assert.Equal("prefix blocked suffix", hit.ViolatingFieldText);
     }
 }

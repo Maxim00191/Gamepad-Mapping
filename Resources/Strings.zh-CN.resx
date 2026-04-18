@@ -1227,4 +1227,7 @@
   <data name="CommunityCatalog_DownloadRateLimitedHourly" xml:space="preserve">
     <value>已达到本小时社区模板下载上限。请约 {0} 分钟后再试。</value>
   </data>
+  <data name="CommunityUpload_TextPolicy_FieldViolationWithFieldText" xml:space="preserve">
+    <value>{0} 含有不允许用于社区上传的文本。字段内容：{1}</value>
+  </data>
 </root>

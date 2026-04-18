@@ -16,6 +16,7 @@ public sealed class UploadFreeTextLinkDetectorTests
     [InlineData("bare subdomain foo.bar.example.com here")]
     [InlineData("telegram t.me/somechannel")]
     [InlineData("shortener bit.ly/abc123")]
+    [InlineData("bypass 123bit.ly/abc123")]
     [InlineData("Chinese short dwz.cn/xyz")]
     [InlineData("sale cheap.top/deal")]
     [InlineData("spam cheap.xyz/path")]
@@ -31,6 +32,12 @@ public sealed class UploadFreeTextLinkDetectorTests
     [InlineData("link url.cn/x")]
     [InlineData("cloud https://pan.baidu.com/s/1abc")]
     [InlineData("share pan.quark.cn/s/xyz")]
+    [InlineData("fullwidth scheme ｈｔｔｐｓ：／／ｅｘａｍｐｌｅ．ｃｏｍ／a")]
+    [InlineData("accented bypass h\u00E8tps://ex\u00E1mple.com/path")]
+    [InlineData("mixed width + accent ｈt\u00E9p\uFF53://\uFF57\uFF57\uFF57.\u00E9xample.com")]
+    [InlineData("obfuscated ip 132.155.xxx.xxx")]
+    [InlineData("ipv6 bracket [2001:0db8:85a3::8a2e:0370:7334]")]
+    [InlineData("ipv6 bare 2001:db8::1")]
     public void ContainsBlockedContent_Positive(string text) =>
         Assert.True(UploadFreeTextLinkDetector.ContainsBlockedContent(text));
 
@@ -40,6 +47,8 @@ public sealed class UploadFreeTextLinkDetectorTests
     [InlineData("profile.json")]
     [InlineData("some.template.file")]
     [InlineData("cont.me")]
+    [InlineData("ability")]
+    [InlineData("clock 12:34:56")]
     [InlineData("")]
     public void ContainsBlockedContent_Negative(string text) =>
         Assert.False(UploadFreeTextLinkDetector.ContainsBlockedContent(text));

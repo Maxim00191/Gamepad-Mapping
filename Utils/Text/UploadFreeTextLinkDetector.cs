@@ -2,6 +2,8 @@
 
 using System;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
 namespace GamepadMapperGUI.Utils.Text;
@@ -47,30 +49,35 @@ internal static class UploadFreeTextLinkDetector
     ];
 
     private static readonly Regex Combined = Build();
+    private static readonly Regex ObfuscatedIpv4 = BuildObfuscatedIpv4();
 
     public static bool ContainsBlockedContent(string? text)
     {
-        if (string.IsNullOrEmpty(text))
+        var normalizedText = UploadLinkTextNormalizer.NormalizeForLinkDetection(text);
+        if (normalizedText.Length == 0)
             return false;
 
-        if (ContainsExplicitShortenerHost(text))
+        if (ContainsExplicitShortenerHost(normalizedText))
             return true;
 
-        if (text.Length > MaxCharsForFullRegexScan)
+        if (ContainsIpAddressToken(normalizedText))
+            return true;
+
+        if (normalizedText.Length > MaxCharsForFullRegexScan)
         {
-            if (ContainsLikelyBlockedLinkLinear(text))
+            if (ContainsLikelyBlockedLinkLinear(normalizedText))
                 return true;
 
             const int edge = 65_536;
-            var head = text.AsSpan(0, edge);
+            var head = normalizedText.AsSpan(0, edge);
             if (Combined.IsMatch(head))
                 return true;
 
-            var tail = text.AsSpan(text.Length - edge);
+            var tail = normalizedText.AsSpan(normalizedText.Length - edge);
             return Combined.IsMatch(tail);
         }
 
-        return Combined.IsMatch(text);
+        return Combined.IsMatch(normalizedText);
     }
 
     private static bool ContainsExplicitShortenerHost(string text)
@@ -83,7 +90,8 @@ internal static class UploadFreeTextLinkDetector
                 if (idx < 0)
                     break;
 
-                if (idx == 0 || !IsAsciiLetterOrDigit(text[idx - 1]))
+                if (IsHostStartBoundary(text, idx)
+                    && IsHostTerminalAfterMatch(text, idx + host.Length))
                     return true;
 
                 idx++;
@@ -93,8 +101,27 @@ internal static class UploadFreeTextLinkDetector
         return false;
     }
 
-    private static bool IsAsciiLetterOrDigit(char c) =>
-        c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9');
+    private static bool IsHostStartBoundary(string text, int indexOfHost)
+    {
+        if (indexOfHost <= 0)
+            return true;
+
+        return !IsAsciiLetter(text[indexOfHost - 1]);
+    }
+
+    private static bool IsAsciiLetter(char c) =>
+        c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z');
+
+    private static bool IsHostTerminalAfterMatch(string text, int indexAfterHost)
+    {
+        if (indexAfterHost >= text.Length)
+            return true;
+
+        var c = text[indexAfterHost];
+        return c is '/' or '\\' or ':' or '?' or '#' or '&' or '=' or '%'
+            or '.' or ',' or ';' or '!' or ')' or ']' or '}' or '"' or '\'' or '>'
+            || char.IsWhiteSpace(c);
+    }
 
     private static bool ContainsLikelyBlockedLinkLinear(string text)
     {
@@ -156,5 +183,96 @@ internal static class UploadFreeTextLinkDetector
             pattern,
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
             TimeSpan.FromMilliseconds(500));
+    }
+
+    private static Regex BuildObfuscatedIpv4()
+    {
+        const string seg = @"(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d|x{1,3})";
+        const string pattern = $"^{seg}\\.{seg}\\.{seg}\\.{seg}$";
+        return new Regex(
+            pattern,
+            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking,
+            TimeSpan.FromMilliseconds(100));
+    }
+
+    private static bool ContainsIpAddressToken(string text)
+    {
+        var start = -1;
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (IsIpTokenDelimiter(text[i]))
+            {
+                if (start >= 0 && IsBlockedIpToken(text.AsSpan(start, i - start)))
+                    return true;
+                start = -1;
+                continue;
+            }
+
+            if (start < 0)
+                start = i;
+        }
+
+        return start >= 0 && IsBlockedIpToken(text.AsSpan(start));
+    }
+
+    private static bool IsIpTokenDelimiter(char c) =>
+        char.IsWhiteSpace(c) || c is '<' or '>' or '"' or '\'' or '(' or ')' or '{' or '}' or ',' or ';' or '!' or '?' or '\\' or '/';
+
+    private static bool IsBlockedIpToken(ReadOnlySpan<char> token)
+    {
+        token = TrimBoundaryPunctuation(token);
+        if (token.Length < 3)
+            return false;
+
+        if (token[0] == '[' && token[^1] == ']')
+            token = token.Slice(1, token.Length - 2);
+        if (token.Length < 3)
+            return false;
+
+        var candidate = token.ToString();
+        if (candidate.IndexOf(':') >= 0)
+        {
+            return IPAddress.TryParse(candidate, out var ipv6) && ipv6.AddressFamily == AddressFamily.InterNetworkV6;
+        }
+
+        if (candidate.IndexOf('.') >= 0)
+        {
+            var dotCount = CountChar(candidate, '.');
+            if (dotCount != 3)
+                return false;
+
+            if (IPAddress.TryParse(candidate, out var ipv4) && ipv4.AddressFamily == AddressFamily.InterNetwork)
+                return true;
+
+            return ObfuscatedIpv4.IsMatch(candidate);
+        }
+
+        return false;
+    }
+
+    private static ReadOnlySpan<char> TrimBoundaryPunctuation(ReadOnlySpan<char> token)
+    {
+        var start = 0;
+        var end = token.Length - 1;
+        while (start <= end && IsTrimBoundary(token[start]))
+            start++;
+        while (end >= start && IsTrimBoundary(token[end]))
+            end--;
+
+        return start > end ? ReadOnlySpan<char>.Empty : token.Slice(start, end - start + 1);
+    }
+
+    private static bool IsTrimBoundary(char c) => c is '.' or ',' or ';' or '!' or '?' or ')' or ']' or '}' or '"' or '\'' or '(' or '[' or '{';
+
+    private static int CountChar(string s, char value)
+    {
+        var count = 0;
+        for (var i = 0; i < s.Length; i++)
+        {
+            if (s[i] == value)
+                count++;
+        }
+
+        return count;
     }
 }

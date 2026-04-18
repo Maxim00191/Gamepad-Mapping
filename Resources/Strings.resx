@@ -1227,4 +1227,7 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityCatalog_DownloadRateLimitedHourly" xml:space="preserve">
     <value>You reached the hourly download limit for community templates. Try again in about {0} minutes.</value>
   </data>
+  <data name="CommunityUpload_TextPolicy_FieldViolationWithFieldText" xml:space="preserve">
+    <value>{0} contains text that is not allowed for community uploads. Field content: {1}</value>
+  </data>
 </root>

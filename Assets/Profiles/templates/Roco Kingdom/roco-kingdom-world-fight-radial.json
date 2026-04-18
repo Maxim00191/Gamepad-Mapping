@@ -9,8 +9,8 @@
   "mappings": [
     {"from": {"type": "LeftThumbstick", "value": "Left"}, "trigger": "Pressed", "analogThreshold": 0.25, "actionId": "a--battle-move-select-left-a"},
     {"from": {"type": "LeftThumbstick", "value": "Right"}, "trigger": "Pressed", "analogThreshold": 0.25, "actionId": "d--battle-move-select-right-d"},
-    {"from": {"type": "RightThumbstick", "value": "X"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "mousex--camera-horizontal"},
-    {"from": {"type": "RightThumbstick", "value": "Y"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "mousey--camera-vertical"},
+    {"from": {"type": "RightThumbstick", "value": "X"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "mousex--rotate-camera-horizontal"},
+    {"from": {"type": "RightThumbstick", "value": "Y"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "mousey--rotate-camera-vertical"},
     {"from": {"type": "Button", "value": "A"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "space--battle-confirm-selection-space"},
     {"from": {"type": "Button", "value": "B"}, "trigger": "Pressed", "analogThreshold": null, "actionId": "escape--battle-back-cancel-esc"},
     {"from": {"type": "Button", "value": "DPadUp"}, "keyboardKey": "", "description": "Battle: select(previous)", "descriptions": {"zh-CN": "战斗：循环选择(上一个)"}, "trigger": "Pressed", "analogThreshold": null, "itemCycle": {"direction": "Previous", "slotCount": 6}},
@@ -34,8 +34,8 @@
   "keyboardActions": [
     {"id": "a--battle-move-select-left-a", "keyboardKey": "A", "description": "Battle: move/select left (A)", "descriptions": {"zh-CN": "战斗：向左选择(A)"}},
     {"id": "d--battle-move-select-right-d", "keyboardKey": "D", "description": "Battle: move/select right (D)", "descriptions": {"zh-CN": "战斗：向右选择(D)"}},
-    {"id": "mousex--camera-horizontal", "keyboardKey": "MouseX", "description": "Camera: horizontal", "descriptions": {"zh-CN": "视角：水平"}},
-    {"id": "mousey--camera-vertical", "keyboardKey": "MouseY", "description": "Camera: vertical", "descriptions": {"zh-CN": "视角：垂直"}},
+    {"id": "mousex--rotate-camera-horizontal", "keyboardKey": "MouseX", "description": "Camera: horizontal", "descriptions": {"zh-CN": "视角：水平"}},
+    {"id": "mousey--rotate-camera-vertical", "keyboardKey": "MouseY", "description": "Camera: vertical", "descriptions": {"zh-CN": "视角：垂直"}},
     {"id": "space--battle-confirm-selection-space", "keyboardKey": "Space", "description": "Battle: confirm selection (Space)", "descriptions": {"zh-CN": "战斗：确认选择(空格)"}},
     {"id": "escape--battle-back-cancel-esc", "keyboardKey": "Escape", "description": "Battle: back / cancel (Esc)", "descriptions": {"zh-CN": "战斗：返回/取消(Esc)"}},
     {"id": "d1--battle-act-1", "keyboardKey": "D1", "description": "Battle: act 1 (1)", "descriptions": {"zh-CN": "战斗：行为1 (1)"}},

@@ -26,7 +26,8 @@ public sealed class UploadLinkPatternViolationEvaluator : ITextContentViolationE
                 field.ContextLabel,
                 field.FieldCaption,
                 UploadFreeTextLinkDetector.BlockedPatternId,
-                SuggestionResourceKey));
+                SuggestionResourceKey,
+                ViolatingFieldText: UploadComplianceViolatingFieldText.PrepareForDisplay(field.Value)));
         }
 
         return results;

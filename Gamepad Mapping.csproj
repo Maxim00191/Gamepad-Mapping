@@ -9,6 +9,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <StartupObject>Gamepad_Mapping.Program</StartupObject>
     <ApplicationIcon>Assets\Icons\Gamepad Mapping.ico</ApplicationIcon>
   </PropertyGroup>
@@ -34,15 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Embedded\upload_text_policy.txt.gz">
-      <LogicalName>GamepadMapperGUI.UploadTextPolicy.txt.gz</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\Embedded\upload_text_policy.xorkey">
-      <LogicalName>GamepadMapperGUI.UploadTextPolicy.xorkey</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="UploadTextPolicyPayload\GamepadMapperGUI.UploadTextPolicyPayload.csproj" />
     <ProjectReference Include="Updater\Updater.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
@@ -50,6 +44,8 @@
   <ItemGroup>
     <Compile Remove="Tests\**\*.cs" />
     <Compile Remove="Updater\**\*.cs" />
+    <!-- Sibling folder is a separate class library; SDK **\*.cs glob would otherwise compile it into this WPF app. -->
+    <Compile Remove="UploadTextPolicyPayload\**\*.cs" />
   </ItemGroup>
 
   <Target Name="CopyUpdaterExecutable" AfterTargets="Build">

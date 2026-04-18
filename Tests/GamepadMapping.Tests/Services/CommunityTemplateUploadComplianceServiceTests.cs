@@ -71,7 +71,7 @@ public sealed class CommunityTemplateUploadComplianceServiceTests
         var pattern = new UploadTextPolicyPattern
         {
             Id = "test",
-            Match = "___policy_test_marker___",
+            Match = "DistinctivePolicyTokenX7",
             Mode = "contains"
         };
         var evaluator = new UploadTextPolicyEvaluator([pattern]);
@@ -85,14 +85,18 @@ public sealed class CommunityTemplateUploadComplianceServiceTests
             selected,
             "Game",
             "Author",
-            "Hello ___policy_test_marker___ world");
+            "Hello DistinctivePolicyTokenX7 world");
 
         Assert.False(result.ReadyToSubmit);
         var textPolicyStep = Assert.Single(result.Steps, step => step.TitleKey == CommunityTemplateUploadComplianceStepKeys.TextPolicyTitle);
         Assert.Equal(CommunityTemplateComplianceSeverity.Error, textPolicyStep.Severity);
+        // Listing text is also copied onto templates as CommunityListingDescription, so the same hit can
+        // appear for more than one field.
         Assert.Contains(
             textPolicyStep.Issues,
-            issue => issue.SuggestionKey == "CommunityUpload_Suggest_TextPolicyViolation");
+            issue => issue.SuggestionKey == "CommunityUpload_Suggest_TextPolicyViolation"
+                     && issue.DetailResourceKey == CommunityTemplateComplianceDetailKeys.TextPolicyFieldViolationWithFieldText
+                     && issue.DetailFormatArguments is ["Listing description", "Hello DistinctivePolicyTokenX7 world"]);
     }
 
     [Fact]

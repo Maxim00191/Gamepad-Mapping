@@ -19,6 +19,7 @@ jobs:
     name: Build
     runs-on: windows-latest
     timeout-minutes: 20
+    environment: release # UPLOAD_TEXT_POLICY_SYMKEY_B64 is an environment secret on "release"
     steps:
       - uses: actions/checkout@v4
 
@@ -33,7 +34,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Refresh embedded upload text policy (gzip + XOR)
+      - name: Materialize upload text policy symkey
+        shell: pwsh
+        env:
+          UPLOAD_TEXT_POLICY_SYMKEY_B64: ${{ secrets.UPLOAD_TEXT_POLICY_SYMKEY_B64 }}
+        run: ./Resources/Embedded/materialize-upload-text-policy-symkey.ps1
+
+      - name: Refresh embedded upload text policy (gzip + AES-GCM)
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
 
@@ -46,6 +53,7 @@ jobs:
     name: Quality gates
     runs-on: windows-latest
     timeout-minutes: 20
+    environment: release # symkey secret lives on this environment
     steps:
       - uses: actions/checkout@v4
 
@@ -60,15 +68,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Refresh embedded upload text policy (gzip + XOR)
+      - name: Materialize upload text policy symkey
+        shell: pwsh
+        env:
+          UPLOAD_TEXT_POLICY_SYMKEY_B64: ${{ secrets.UPLOAD_TEXT_POLICY_SYMKEY_B64 }}
+        run: ./Resources/Embedded/materialize-upload-text-policy-symkey.ps1
+
+      - name: Refresh embedded upload text policy (gzip + AES-GCM)
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
 
       - name: Restore solution
         run: dotnet restore "GamepadMapping.sln"
 
+      # Match release publish: obfuscate GamepadMapperGUI.UploadTextPolicyPayload so CI exercises the same IL as shipped builds.
       - name: Run tests
-        run: dotnet test "GamepadMapping.sln" -c Release --no-restore --nologo
+        run: dotnet test "GamepadMapping.sln" -c Release --no-restore --nologo -p:ObfuscateUploadTextPolicyPayload=true
 
       - name: Detect release-related changes
         id: changed
@@ -84,6 +99,7 @@ jobs:
               - '.github/workflows/build.yml'
               - 'Gamepad Mapping.csproj'
               - 'GamepadMapping.sln'
+              - 'UploadTextPolicyPayload/**'
 
       - name: Updater release preflight
         if: steps.changed.outputs.release_paths == 'true'
@@ -113,7 +129,13 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Refresh embedded upload text policy (gzip + XOR)
+      - name: Materialize upload text policy symkey
+        shell: pwsh
+        env:
+          UPLOAD_TEXT_POLICY_SYMKEY_B64: ${{ secrets.UPLOAD_TEXT_POLICY_SYMKEY_B64 }}
+        run: ./Resources/Embedded/materialize-upload-text-policy-symkey.ps1
+
+      - name: Refresh embedded upload text policy (gzip + AES-GCM)
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
 
@@ -125,7 +147,8 @@ jobs:
             -p:PublishSingleFile=true `
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:DebugType=none `
-            -p:DebugSymbols=false
+            -p:DebugSymbols=false `
+            -p:ObfuscateUploadTextPolicyPayload=true
 
       - name: Publish framework-dependent (win-x64, runtime not bundled)
         shell: pwsh
@@ -133,7 +156,8 @@ jobs:
           dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false `
             -o publish-fx `
             -p:DebugType=none `
-            -p:DebugSymbols=false
+            -p:DebugSymbols=false `
+            -p:ObfuscateUploadTextPolicyPayload=true
 
       - name: Publish updater payload (win-x64, framework-dependent)
         run: >

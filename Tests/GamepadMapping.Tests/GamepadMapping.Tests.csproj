@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Gamepad Mapping.csproj" />
+    <ProjectReference Include="..\..\UploadTextPolicyPayload\GamepadMapperGUI.UploadTextPolicyPayload.csproj" />
   </ItemGroup>
 
 </Project>

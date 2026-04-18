@@ -31,6 +31,18 @@ public sealed class UploadTextPolicyMatchNormalizerTests
         Assert.Equal("this bad here", UploadTextPolicyMatchNormalizer.NormalizeForPolicyMatch("this bad here"));
     }
 
+    [Theory]
+    [InlineData("+q", "+q")]
+    [InlineData("+Q", "+q")]
+    [InlineData("+wechat", "+wechat")]
+    [InlineData("$v", "$v")]
+    [InlineData("q：", "q：")] // fullwidth colon — must not collapse to "q"
+    [InlineData("q:", "q:")]
+    public void NormalizeForPolicyMatch_PreservesContactStyleSymbols(string input, string expected)
+    {
+        Assert.Equal(expected, UploadTextPolicyMatchNormalizer.NormalizeForPolicyMatch(input));
+    }
+
     [Fact]
     public void IsWordContentRune_IsFalseForSpace()
     {

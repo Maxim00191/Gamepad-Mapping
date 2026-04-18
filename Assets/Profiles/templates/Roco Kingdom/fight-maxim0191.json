@@ -33,7 +33,7 @@
       }
     },
     {
-      "id": "mousex--camera-horizontal",
+      "id": "mousex--rotate-camera-horizontal",
       "keyboardKey": "MouseX",
       "description": "视角：水平",
       "descriptions": {
@@ -41,7 +41,7 @@
       }
     },
     {
-      "id": "mousey--camera-vertical",
+      "id": "mousey--rotate-camera-vertical",
       "keyboardKey": "MouseY",
       "description": "视角：垂直",
       "descriptions": {
@@ -346,7 +346,7 @@
         "type": "RightThumbstick",
         "value": "X"
       },
-      "actionId": "mousex--camera-horizontal",
+      "actionId": "mousex--rotate-camera-horizontal",
       "description": "视角：水平",
       "trigger": "Pressed",
       "analogThreshold": null,
@@ -358,7 +358,7 @@
         "type": "RightThumbstick",
         "value": "Y"
       },
-      "actionId": "mousey--camera-vertical",
+      "actionId": "mousey--rotate-camera-vertical",
       "description": "视角：垂直",
       "trigger": "Pressed",
       "analogThreshold": null,

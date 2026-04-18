@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GamepadMapperGUI.UploadTextPolicyPayload</AssemblyName>
+    <RootNamespace>GamepadMapperGUI.UploadTextPolicy</RootNamespace>
+    <!-- Flows from dotnet publish -p:ObfuscateUploadTextPolicyPayload=true; default is off so Release tests/build stay unobfuscated. -->
+    <ObfuscateUploadTextPolicyPayload Condition="'$(ObfuscateUploadTextPolicyPayload)' == ''">false</ObfuscateUploadTextPolicyPayload>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GamepadMapping.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\Resources\Embedded\upload_text_policy.payload">
+      <LogicalName>GamepadMapperGUI.UploadTextPolicy.payload</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Resources\Embedded\upload_text_policy.symkey">
+      <LogicalName>GamepadMapperGUI.UploadTextPolicy.symkey</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Obfuscar" Version="2.2.49" GeneratePathProperty="true">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="ObfuscateUploadTextPolicyPayload" AfterTargets="AfterBuild"
+          Condition="'$(Configuration)' == 'Release' and '$(ObfuscateUploadTextPolicyPayload)' == 'true'">
+    <PropertyGroup>
+      <_ObfuscarConfigPath>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'UploadTextPolicy.obfuscar.xml'))))</_ObfuscarConfigPath>
+      <_ObfuscarExe>$([System.IO.Path]::Combine($(PkgObfuscar), 'tools', 'Obfuscar.Console.exe'))</_ObfuscarExe>
+    </PropertyGroup>
+    <Exec
+      Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$([System.IO.Path]::Combine($(MSBuildProjectDirectory), 'GenerateObfuscarConfig.ps1'))&quot; -TargetDir &quot;$(TargetDir.TrimEnd('\'))&quot; -TargetFileName &quot;$(TargetFileName)&quot; -OutputConfigPath &quot;$(_ObfuscarConfigPath)&quot;"
+      WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(_ObfuscarExe)')" Text="Obfuscar not found at '$(_ObfuscarExe)'. Restore NuGet packages." />
+    <Exec Command="&quot;$(_ObfuscarExe)&quot; &quot;$(_ObfuscarConfigPath)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <ItemGroup>
+      <_ObfuscatedPayload Include="$(TargetDir)obfuscated\$(TargetFileName)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ObfuscatedPayload)" DestinationFolder="$(TargetDir)" OverwriteReadOnlyFiles="true" />
+    <RemoveDir Directories="$(TargetDir)obfuscated" Condition="Exists('$(TargetDir)obfuscated')" />
+  </Target>
+
+</Project>

@@ -25,6 +25,8 @@ public sealed class UploadTextPolicyEvaluatorTests
 
         var hit = Assert.Single(r);
         Assert.Equal("x", hit.PatternId);
+        Assert.Equal("badphrase", hit.MatchedSegmentHint);
+        Assert.Equal("Prefix badphrase suffix", hit.ViolatingFieldText);
     }
 
     [Fact]
@@ -80,6 +82,8 @@ public sealed class UploadTextPolicyEvaluatorTests
         var r = sut.Evaluate(fields);
         var hit = Assert.Single(r);
         Assert.Equal("seg", hit.PatternId);
+        Assert.Equal("badphrase", hit.MatchedSegmentHint);
+        Assert.Equal("prefix b.a.d.p.h.r.a.s.e suffix", hit.ViolatingFieldText);
     }
 
     [Fact]
@@ -90,5 +94,66 @@ public sealed class UploadTextPolicyEvaluatorTests
         var fields = new[] { new TextContentInspectionField("", "Field", "this bad here") };
 
         Assert.Single(sut.Evaluate(fields));
+    }
+
+    [Fact]
+    public void Evaluate_ContainsMode_PlusPrefixPhrase_IsNotReducedToSingleLetter()
+    {
+        var p = new UploadTextPolicyPattern { Id = "contact", Match = "+q", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        var fields = new[] { new TextContentInspectionField("", "Field", "suffix q prefix") };
+
+        Assert.Empty(sut.Evaluate(fields));
+    }
+
+    [Fact]
+    public void Evaluate_ContainsMode_PlusPrefixPhrase_MatchesLiteral()
+    {
+        var p = new UploadTextPolicyPattern { Id = "contact", Match = "+q", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        // Leading "+q" is preserved; a "+" between word letters may be stripped as evasion punctuation.
+        var fields = new[] { new TextContentInspectionField("", "Field", "+q reach me today") };
+
+        var hit = Assert.Single(sut.Evaluate(fields));
+        Assert.Equal("contact", hit.PatternId);
+        Assert.Equal("+q", hit.MatchedSegmentHint);
+    }
+
+    [Fact]
+    public void Evaluate_ContainsMode_FullwidthColonSuffix_IsNotReducedToSingleLetter()
+    {
+        var p = new UploadTextPolicyPattern { Id = "suffix", Match = "q：", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        var fields = new[] { new TextContentInspectionField("", "Field", "only q here") };
+
+        Assert.Empty(sut.Evaluate(fields));
+    }
+
+    [Fact]
+    public void Evaluate_ContainsMode_FullwidthColonSuffix_MatchesLiteral()
+    {
+        var p = new UploadTextPolicyPattern { Id = "suffix", Match = "q：", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        // Trailing fullwidth colon is kept; one between two word tokens may be stripped as evasion punctuation.
+        var fields = new[] { new TextContentInspectionField("", "Field", "label q：") };
+
+        var hit = Assert.Single(sut.Evaluate(fields));
+        Assert.Equal("suffix", hit.PatternId);
+        Assert.Equal("q：", hit.MatchedSegmentHint);
+        Assert.Equal("label q：", hit.ViolatingFieldText);
+    }
+
+    [Fact]
+    public void Evaluate_ViolatingFieldText_TruncatesWhenAboveDisplayLimit()
+    {
+        var p = new UploadTextPolicyPattern { Id = "x", Match = "BAD", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        var pad = new string('a', CommunityTemplateUploadConstraints.MaxComplianceIssueFieldDisplayCharacters);
+        var fields = new[] { new TextContentInspectionField("", "Field", pad + "BAD") };
+
+        var hit = Assert.Single(sut.Evaluate(fields));
+        Assert.Equal(
+            CommunityTemplateUploadConstraints.MaxComplianceIssueFieldDisplayCharacters + 1,
+            hit.ViolatingFieldText!.Length);
     }
 }

@@ -2,19 +2,22 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models.Core.Community;
+using GamepadMapperGUI.UploadTextPolicy;
 using GamepadMapperGUI.Utils.Text;
 
 namespace GamepadMapperGUI.Services.Infrastructure;
 
 public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
 {
+    /// <summary>
+    /// Caps UI-facing excerpts so long phrase matches do not overwhelm the compliance list.
+    /// </summary>
+    private const int MaxMatchedSegmentHintChars = 160;
+
     private readonly IReadOnlyList<UploadTextPolicyPattern> _patterns;
     private readonly string[] _normalizedNeedles;
     private readonly AhoCorasickMatcher? _aho;
@@ -51,6 +54,11 @@ public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
                 continue;
 
             var matched = new bool[_patterns.Count];
+            var segStart = new int[_patterns.Count];
+            var segEndExclusive = new int[_patterns.Count];
+            for (var z = 0; z < segStart.Length; z++)
+                segStart[z] = -1;
+
             _aho.Search(haystack, (patternIndex, endExclusive) =>
             {
                 var len = _normalizedNeedles[patternIndex].Length;
@@ -66,6 +74,11 @@ public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
                 }
 
                 matched[patternIndex] = true;
+                if (segStart[patternIndex] < 0 || start < segStart[patternIndex])
+                {
+                    segStart[patternIndex] = start;
+                    segEndExclusive[patternIndex] = endExclusive;
+                }
             });
 
             for (var i = 0; i < matched.Length; i++)
@@ -73,10 +86,16 @@ public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
                 if (!matched[i])
                     continue;
 
+                var hint = segStart[i] >= 0
+                    ? TruncateMatchedSegmentHint(haystack.AsSpan(segStart[i], segEndExclusive[i] - segStart[i]))
+                    : string.Empty;
+
                 results.Add(new TextContentViolationMatch(
                     field.ContextLabel,
                     field.FieldCaption,
-                    _patterns[i].Id));
+                    _patterns[i].Id,
+                    MatchedSegmentHint: hint.Length > 0 ? hint : null,
+                    ViolatingFieldText: UploadComplianceViolatingFieldText.PrepareForDisplay(value)));
                 break;
             }
         }
@@ -84,40 +103,27 @@ public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
         return results;
     }
 
+    private static string TruncateMatchedSegmentHint(ReadOnlySpan<char> segment)
+    {
+        if (segment.Length <= MaxMatchedSegmentHintChars)
+            return segment.ToString();
+
+        return string.Concat(segment.Slice(0, MaxMatchedSegmentHintChars).ToString(), "\u2026");
+    }
+
     private static IReadOnlyList<UploadTextPolicyPattern> LoadEmbeddedPatterns()
     {
+        if (!UploadTextPolicyEmbeddedReader.TryReadPlaintextPolicyUtf8(out var text) || string.IsNullOrEmpty(text))
+            return [];
+
         try
         {
-            var asm = Assembly.GetExecutingAssembly();
-            using var keyStream = asm.GetManifestResourceStream(UploadTextPolicyPayloadCodec.XorKeyResourceName);
-            using var payloadStream = asm.GetManifestResourceStream(UploadTextPolicyPayloadCodec.ObfuscatedGzipResourceName);
-            if (keyStream is null || payloadStream is null)
-                return [];
-
-            var key = ReadAllBytes(keyStream);
-            if (key.Length == 0)
-                return [];
-
-            var obfuscated = ReadAllBytes(payloadStream);
-            UploadTextPolicyPayloadCodec.ApplyXor(obfuscated, key);
-
-            using var ms = new MemoryStream(obfuscated, writable: false);
-            using var gz = new GZipStream(ms, CompressionMode.Decompress);
-            using var reader = new StreamReader(gz, Encoding.UTF8);
-            var text = reader.ReadToEnd();
             return NormalizePatterns(UploadTextPolicyTextParser.Parse(text));
         }
         catch
         {
             return [];
         }
-    }
-
-    private static byte[] ReadAllBytes(Stream stream)
-    {
-        using var copy = new MemoryStream();
-        stream.CopyTo(copy);
-        return copy.ToArray();
     }
 
     private static string[] BuildNormalizedNeedles(IReadOnlyList<UploadTextPolicyPattern> patterns) =>
