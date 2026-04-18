@@ -19,7 +19,7 @@ jobs:
     name: Build
     runs-on: windows-latest
     timeout-minutes: 20
-    environment: release # UPLOAD_TEXT_POLICY_SYMKEY_B64 is an environment secret on "release"
+    environment: release
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +53,7 @@ jobs:
     name: Quality gates
     runs-on: windows-latest
     timeout-minutes: 20
-    environment: release # symkey secret lives on this environment
+    environment: release
     steps:
       - uses: actions/checkout@v4
 
