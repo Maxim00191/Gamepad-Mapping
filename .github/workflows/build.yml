@@ -19,7 +19,6 @@ jobs:
     name: Build
     runs-on: windows-latest
     timeout-minutes: 20
-    environment: release
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +52,6 @@ jobs:
     name: Quality gates
     runs-on: windows-latest
     timeout-minutes: 20
-    environment: release
     steps:
       - uses: actions/checkout@v4
 
