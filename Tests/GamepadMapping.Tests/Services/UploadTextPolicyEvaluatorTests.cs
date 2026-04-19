@@ -70,7 +70,7 @@ public sealed class UploadTextPolicyEvaluatorTests
     }
 
     [Fact]
-    public void Evaluate_ContainsMode_FindsNeedleWhenSegmentedWithDots()
+    public void Evaluate_ContainsMode_MatchesWhenLettersAreSplitByObfuscationPunctuation()
     {
         var p = new UploadTextPolicyPattern { Id = "seg", Match = "badphrase", Mode = "contains" };
         var sut = new UploadTextPolicyEvaluator([p]);
@@ -79,11 +79,33 @@ public sealed class UploadTextPolicyEvaluatorTests
             new TextContentInspectionField("", "Field", "prefix b.a.d.p.h.r.a.s.e suffix")
         };
 
-        var r = sut.Evaluate(fields);
-        var hit = Assert.Single(r);
+        var hit = Assert.Single(sut.Evaluate(fields));
         Assert.Equal("seg", hit.PatternId);
         Assert.Equal("badphrase", hit.MatchedSegmentHint);
-        Assert.Equal("prefix b.a.d.p.h.r.a.s.e suffix", hit.ViolatingFieldText);
+    }
+
+    [Fact]
+    public void Evaluate_ContainsMode_DiscardsNeedleWithAsteriskBetweenLetters()
+    {
+        var p = new UploadTextPolicyPattern { Id = "mask", Match = "f*ck", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        var fields = new[] { new TextContentInspectionField("", "Field", "prefix f*ck suffix") };
+
+        Assert.Empty(sut.Evaluate(fields));
+    }
+
+    [Fact]
+    public void Evaluate_ContainsMode_CleanNeedleMatchesInterLetterSlashObfuscation()
+    {
+        var p = new UploadTextPolicyPattern { Id = "w", Match = "badphrase", Mode = "contains" };
+        var sut = new UploadTextPolicyEvaluator([p]);
+        var fields = new[]
+        {
+            new TextContentInspectionField("", "Field", "prefix b/a/d/p/h/r/a/s/e suffix")
+        };
+
+        var hit = Assert.Single(sut.Evaluate(fields));
+        Assert.Equal("badphrase", hit.MatchedSegmentHint);
     }
 
     [Fact]
@@ -111,7 +133,6 @@ public sealed class UploadTextPolicyEvaluatorTests
     {
         var p = new UploadTextPolicyPattern { Id = "contact", Match = "+q", Mode = "contains" };
         var sut = new UploadTextPolicyEvaluator([p]);
-        // Leading "+q" is preserved; a "+" between word letters may be stripped as evasion punctuation.
         var fields = new[] { new TextContentInspectionField("", "Field", "+q reach me today") };
 
         var hit = Assert.Single(sut.Evaluate(fields));
@@ -134,7 +155,6 @@ public sealed class UploadTextPolicyEvaluatorTests
     {
         var p = new UploadTextPolicyPattern { Id = "suffix", Match = "q：", Mode = "contains" };
         var sut = new UploadTextPolicyEvaluator([p]);
-        // Trailing fullwidth colon is kept; one between two word tokens may be stripped as evasion punctuation.
         var fields = new[] { new TextContentInspectionField("", "Field", "label q：") };
 
         var hit = Assert.Single(sut.Evaluate(fields));

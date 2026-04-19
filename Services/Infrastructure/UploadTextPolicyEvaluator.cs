@@ -134,9 +134,23 @@ public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
         if (raw.Count == 0)
             return raw;
 
-        var filtered = raw.Where(p => Normalize(p.Match).Length > 0).ToList();
+        var filtered = raw.Where(p => ShouldKeepPattern(p.Match)).ToList();
         return filtered.Count == raw.Count ? raw : filtered;
     }
+
+    private static bool ShouldKeepPattern(string match)
+    {
+        var n = UploadTextPolicyMatchNormalizer.NormalizeForPolicyMatch(match);
+        if (UploadTextPolicyInterLetterNormalizer.ShouldDiscardPatternDueToInterLetterAsterisk(n))
+            return false;
+        return NormalizeFromPolicyNormalized(n).Length > 0;
+    }
+
+    private static string Normalize(string s) =>
+        NormalizeFromPolicyNormalized(UploadTextPolicyMatchNormalizer.NormalizeForPolicyMatch(s));
+
+    private static string NormalizeFromPolicyNormalized(string policyNormalized) =>
+        UploadTextPolicyInterLetterNormalizer.CollapseInterLetterObfuscation(policyNormalized);
 
     private static List<UploadTextPolicyPattern> NormalizePatterns(IEnumerable<UploadTextPolicyPattern> raw)
     {
@@ -157,9 +171,6 @@ public sealed class UploadTextPolicyEvaluator : ITextContentViolationEvaluator
 
         return list;
     }
-
-    private static string Normalize(string s) =>
-        UploadTextPolicyMatchNormalizer.NormalizeForPolicyMatch(s);
 
     private static bool IsWholeWordMode(UploadTextPolicyPattern pattern) =>
         (pattern.Mode ?? string.Empty).Trim().Equals("wholeWord", StringComparison.OrdinalIgnoreCase);

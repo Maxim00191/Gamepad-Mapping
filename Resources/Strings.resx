@@ -1032,7 +1032,7 @@ Do you want to overwrite it?</value>
     <value>Listing description</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>Uploads use Cloudflare Worker + Turnstile handshake only. Shipped defaults in default_settings.json are merged with local_settings.json (your file overrides). Add communityProfilesUploadWorkerUrl or Turnstile keys to local_settings.json only if you need to override. GitHub PAT upload fallback has been removed.</value>
+    <value>Uploads use Cloudflare Worker + Turnstile handshake only. If the relevant configuration does not exist, you need to fill in the communityProfilesUploadWorkerUrl or Turnstile information in local_settings.json.</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>Upload</value>

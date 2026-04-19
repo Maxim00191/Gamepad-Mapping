@@ -1032,7 +1032,7 @@
     <value>列表说明</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
-    <value>上传仅支持 Cloudflare Worker + Turnstile 握手。应用会将 default_settings.json 中的默认项与 local_settings.json 合并（本地文件优先）。仅在需要覆盖时，再在 local_settings.json 中填写 communityProfilesUploadWorkerUrl 或 Turnstile 相关设置。GitHub PAT 回退路径已移除。</value>
+    <value>上传仅支持 Cloudflare Worker + Turnstile 握手。如不存在相关配置，则需在 local_settings.json 中填写 communityProfilesUploadWorkerUrl 或 Turnstile 相关信息。</value>
   </data>
   <data name="CommunityUpload_ButtonUpload" xml:space="preserve">
     <value>上传</value>
