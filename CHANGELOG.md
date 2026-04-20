@@ -1,3 +1,49 @@
+## Changelog v2.3.1-beta - 2026-04-20
+
+### Added
+
+- **Profile rule clipboard workflow:** Added a dedicated clipboard toolbar and view model for mapping rules, enabling copy/paste and reuse flows across compatible editor surfaces.
+- **Workspace edit history behaviors:** Introduced workspace mutation watchers and edit-history behaviors to improve undo/redo consistency for profile and mapping editing operations.
+- **Localized catalog description infrastructure:** Added `CatalogDescriptionLocalizer`, `CultureKeyedTextResolver`, and related display resolvers to better support culture-aware community/catalog text rendering.
+- **Inter-letter text normalization for upload policy:** Added `UploadTextPolicyInterLetterNormalizer` and expanded tests so upload text checks better detect obfuscated terms split by punctuation/spacing patterns.
+- **Upload payload key-derivation hardening:** Added deterministic key-derivation helpers for offline payload encode/decode paths and strengthened codec test coverage for safer policy payload handling.
+
+### Changed
+
+- **Template editing UX:** Improved mapping editor and template panel interaction behaviors, including selection synchronization and keyboard/radial editor flow polish.
+- **Roco Kingdom templates:** Refreshed bundled `explore` and `fight` templates under `Assets/Profiles/templates/Roco Kingdom`, and removed legacy radial JSON files.
+- **README package guidance:** Clarified release package installation instructions and template examples in both `README.md` and `README_zh.md`.
+- **Embedded upload policy artifact:** Regenerated `upload_text_policy.payload` to keep embedded policy data aligned with evaluator/runtime updates.
+
+### Fixed
+
+- **Startup diagnostics metadata:** Corrected startup diagnostics logger metadata usage to keep crash/environment reports accurate.
+- **Upload policy codec reliability:** Fixed edge cases in payload decoding/encoding and embedded payload reader handling verified by updated codec tests.
+
+## 更新日志 v2.3.1-beta - 2026-04-20
+
+### 新增
+
+- **配置规则剪贴板流程：** 新增映射规则专用剪贴板工具栏与视图模型，支持在兼容编辑界面中复制/粘贴并复用规则。
+- **工作区编辑历史行为：** 引入工作区变更观察与编辑历史行为，提升配置与映射编辑场景中的撤销/重做一致性。
+- **目录描述本地化基础设施：** 新增 `CatalogDescriptionLocalizer`、`CultureKeyedTextResolver` 及相关显示解析器，更好支持社区/目录文本的按文化显示。
+- **上传文本策略的跨字符归一化：** 新增 `UploadTextPolicyInterLetterNormalizer` 并扩展测试，使文本策略更易识别由标点/空白分隔的混淆词。
+- **上传载荷密钥派生加固：** 为离线载荷编解码路径新增确定性密钥派生辅助逻辑，并补强 codec 测试覆盖，提升策略载荷处理稳健性。
+
+### 更改
+
+- **模板编辑体验：** 改进映射编辑器与模板面板的交互行为，包括选择同步与键盘/轮盘编辑流程优化。
+- **Roco Kingdom 模板：** 更新 `Assets/Profiles/templates/Roco Kingdom` 下的 `explore` 与 `fight` 内置模板，并移除旧版轮盘 JSON 文件。
+- **README 安装说明：** 在 `README.md` 与 `README_zh.md` 中完善发布包安装指引与模板示例说明。
+- **内置上传策略产物：** 重新生成 `upload_text_policy.payload`，确保内置策略数据与评估器/运行时更新保持一致。
+
+### 修复
+
+- **启动诊断元数据：** 修正启动诊断日志的元数据使用，保证崩溃/环境报告信息准确。
+- **上传策略 codec 稳定性：** 修复载荷编解码与内置载荷读取中的边界场景问题，并由更新后的 codec 测试验证。
+
+**Full Changelog**: [https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.3.0-beta...v2.3.1-beta](https://github.com/Maxim00191/Gamepad-Mapping/compare/v2.3.0-beta...v2.3.1-beta)
+
 ## Changelog v2.3.0-beta - 2026-04-17
 
 ### Note
