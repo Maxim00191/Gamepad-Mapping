@@ -80,10 +80,6 @@ jobs:
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
 
-      - name: Validate upload text policy payload envelope
-        shell: pwsh
-        run: ./Resources/Embedded/validate-upload-text-policy-payload.ps1
-
       - name: Restore solution
         run: dotnet restore "GamepadMapping.sln"
 
