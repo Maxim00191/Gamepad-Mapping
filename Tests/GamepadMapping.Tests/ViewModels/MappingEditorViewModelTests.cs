@@ -60,11 +60,11 @@ public class MappingEditorViewModelTests
         _mainViewModel.Mappings.Add(b);
 
         _mainViewModel.SelectedMapping = a;
-        Assert.Equal("RowA", vm.EditBindingDescription);
+        Assert.Equal("RowA", vm.EditBindingDescriptionPrimary);
         Assert.Equal("A", vm.InputTrigger.EditBindingFromButton);
 
         _mainViewModel.SelectedMapping = b;
-        Assert.Equal("RowB", vm.EditBindingDescription);
+        Assert.Equal("RowB", vm.EditBindingDescriptionPrimary);
         Assert.Equal("B", vm.InputTrigger.EditBindingFromButton);
     }
 
@@ -85,7 +85,7 @@ public class MappingEditorViewModelTests
         Assert.Equal("A", vm.InputTrigger.EditBindingFromButton);
         Assert.Equal("Space", (vm.CurrentActionEditor as KeyboardActionEditorViewModel)?.KeyboardKey);
         Assert.Equal(TriggerMoment.Tap, vm.EditBindingTrigger);
-        Assert.Equal("Jump", vm.EditBindingDescription);
+        Assert.Equal("Jump", vm.EditBindingDescriptionPrimary);
     }
 
     [Fact]

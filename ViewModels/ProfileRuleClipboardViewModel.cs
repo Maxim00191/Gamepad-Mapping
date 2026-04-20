@@ -308,6 +308,7 @@ public partial class ProfileRuleClipboardViewModel : ObservableObject
 
             _main.CatalogPanel.SelectedKeyboardAction = last;
             _main.RefreshMappingEngineDefinitions();
+            _main.RefreshAfterRulePastedFromClipboard();
             return;
         }
 
@@ -322,6 +323,7 @@ public partial class ProfileRuleClipboardViewModel : ObservableObject
         _main.KeyboardActions.Add(single);
         _main.CatalogPanel.SelectedKeyboardAction = single;
         _main.RefreshMappingEngineDefinitions();
+        _main.RefreshAfterRulePastedFromClipboard();
     }
 
     private void PasteRadialMenu(string payloadJson)
@@ -359,6 +361,7 @@ public partial class ProfileRuleClipboardViewModel : ObservableObject
 
             _main.CatalogPanel.SelectedRadialMenu = last;
             _main.RefreshMappingEngineDefinitions();
+            _main.RefreshAfterRulePastedFromClipboard();
             return;
         }
 
@@ -374,6 +377,7 @@ public partial class ProfileRuleClipboardViewModel : ObservableObject
         _main.RadialMenus.Add(single);
         _main.CatalogPanel.SelectedRadialMenu = single;
         _main.RefreshMappingEngineDefinitions();
+        _main.RefreshAfterRulePastedFromClipboard();
     }
 
     private static void NormalizeRadialItems(RadialMenuDefinition menu)

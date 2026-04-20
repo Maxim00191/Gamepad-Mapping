@@ -59,7 +59,8 @@
                                     Binding="{Binding KeyboardKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     Width="*" />
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnDescription]}"
-                                    Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Binding="{Binding ResolvedCatalogDescription, Mode=OneWay}"
+                                    IsReadOnly="True"
                                     Width="1.4*" />
             </DataGrid.Columns>
         </DataGrid>

@@ -478,7 +478,10 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <Path Data="M1,21H23L12,2L1,21ZM13,18H11V16H13V18ZM13,14H11V10H13V14Z"
                                   Fill="#F2994A" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Validation Warnings" Foreground="#F2994A" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileCatalogValidationWarningsTitle]}"
+                                       Foreground="#F2994A"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding CatalogPanel.ValidationWarnings}">
                             <ItemsControl.ItemTemplate>
@@ -512,7 +515,7 @@
                             SelectedIndex="{Binding ProfileListTabIndex, Mode=TwoWay}">
                     <TabItem>
                         <TabItem.Header>
-                            <TextBlock Text="Visual Editor" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabVisualEditor]}" />
                         </TabItem.Header>
                         <Grid Margin="12"
                               VerticalAlignment="Stretch">
@@ -566,7 +569,7 @@
                     </TabItem>
                     <TabItem>
                         <TabItem.Header>
-                            <TextBlock Text="Community" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabCommunity]}" />
                         </TabItem.Header>
                         <Grid Margin="12"
                               VerticalAlignment="Stretch">

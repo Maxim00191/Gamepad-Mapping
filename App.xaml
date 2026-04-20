@@ -864,6 +864,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:InverseBooleanConverter x:Key="InverseBooleanConverter" />
         <utils:StringHasContentToVisibilityConverter x:Key="StringHasContentToVisibilityConverter" />
+        <utils:KeyboardActionPickerLabelConverter x:Key="KeyboardActionPickerLabelConverter" />
         
         <Style x:Key="AppAccentButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />

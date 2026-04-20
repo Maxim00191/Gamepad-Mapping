@@ -26,16 +26,15 @@
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="{Binding Id}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Id}" Value="">
-                                                <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource KeyboardActionPickerLabelConverter}">
+                                        <Binding Path="Id" />
+                                        <Binding Path="ResolvedCatalogDescription" />
+                                        <Binding Source="{StaticResource Loc}" Path="[KeyboardActionPicker_OptionFormat]" />
+                                        <Binding Source="{StaticResource Loc}" Path="[MappingActionIdManual]" />
+                                        <Binding Path="KeyboardKey" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
                             </TextBlock>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
@@ -354,7 +353,21 @@
                     <ContentControl Content="{Binding CurrentActionEditor}" Margin="0,8,0,0" />
 
                     <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[Description]}" Margin="0,8,0,4" />
-                    <TextBox Text="{Binding EditBindingDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Text="{Binding EditBindingDescriptionPrimary, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             MinHeight="56"
+                             VerticalScrollBarVisibility="Auto" />
+                    <TextBlock Text="{Binding DataContext.DescriptionOptionalLanguageCaption, RelativeSource={RelativeSource AncestorType=local:MainView}}"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,4" />
+                    <TextBox Text="{Binding EditBindingDescriptionSecondary, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             MinHeight="48"
+                             VerticalScrollBarVisibility="Auto" />
                 </StackPanel>
             </ScrollViewer>
 

@@ -265,10 +265,12 @@ internal sealed class RadialMenuController : IRadialMenuController
                 var action = _catalog?.GetAction(item.ActionId)
                              ?? _keyboardActions?.FirstOrDefault(a =>
                                  string.Equals(a.Id, item.ActionId, StringComparison.OrdinalIgnoreCase));
-                var hudLine = (item.Label ?? string.Empty).Trim();
+                var hudLine = (item.ResolvedLabel ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(hudLine))
+                    hudLine = (item.Label ?? string.Empty).Trim();
                 if (string.IsNullOrEmpty(hudLine))
                 {
-                    hudLine = (action?.Description ?? string.Empty).Trim();
+                    hudLine = (action?.ResolvedCatalogDescription ?? action?.Description ?? string.Empty).Trim();
                     if (string.IsNullOrEmpty(hudLine))
                         hudLine = item.ActionId;
                 }
@@ -283,7 +285,9 @@ internal sealed class RadialMenuController : IRadialMenuController
                 };
             }).ToList();
 
-            displayName = definition.DisplayName;
+            displayName = !string.IsNullOrWhiteSpace(definition.ResolvedDisplayName)
+                ? definition.ResolvedDisplayName.Trim()
+                : (definition.DisplayName ?? string.Empty).Trim();
             _registerActiveAction(this);
         }
 

@@ -98,7 +98,7 @@ public partial class ProfileOrchestrator : ObservableObject
             return;
         }
 
-        CurrentTemplateDisplayName = template.DisplayName;
+        CurrentTemplateDisplayName = ResolveWorkspaceTemplateDisplayName(template);
         CurrentTemplateProfileId = template.ProfileId;
         CurrentTemplateTemplateGroupId = template.TemplateGroupId ?? string.Empty;
         CurrentTemplateAuthor = template.Author ?? string.Empty;
@@ -152,6 +152,38 @@ public partial class ProfileOrchestrator : ObservableObject
         OnPropertyChanged(nameof(AvailableTemplates));
         if (reselected is not null)
             SelectedTemplate = reselected;
+    }
+
+    /// <summary>Updates the identity header from the picker row and current UI language (after language change).</summary>
+    public void RefreshCurrentIdentityDisplayNameForCulture(TranslationService ts)
+    {
+        if (SelectedTemplate is null)
+            return;
+
+        var baseline = (SelectedTemplate.DisplayNameBaseline ?? string.Empty).Trim();
+        if (baseline.Length == 0)
+            baseline = (SelectedTemplate.ProfileId ?? string.Empty).Trim();
+
+        CurrentTemplateDisplayName = TemplateCatalogDisplayResolver.Resolve(
+            baseline,
+            SelectedTemplate.DisplayNames,
+            string.IsNullOrWhiteSpace(SelectedTemplate.DisplayNameKey) ? null : SelectedTemplate.DisplayNameKey,
+            ts);
+    }
+
+    private static string ResolveWorkspaceTemplateDisplayName(GameProfileTemplate template)
+    {
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+        {
+            var baseline = string.IsNullOrWhiteSpace(template.DisplayName) ? template.ProfileId.Trim() : template.DisplayName.Trim();
+            return TemplateCatalogDisplayResolver.Resolve(
+                baseline,
+                template.DisplayNames,
+                string.IsNullOrWhiteSpace(template.DisplayNameKey) ? null : template.DisplayNameKey,
+                ts);
+        }
+
+        return string.IsNullOrWhiteSpace(template.DisplayName) ? template.ProfileId : template.DisplayName.Trim();
     }
 }
 

@@ -1272,4 +1272,106 @@
   <data name="ProfileRuleClipboard_RedoTooltip" xml:space="preserve">
     <value>重做一项已撤销的更改（Ctrl+Shift+Z）。</value>
   </data>
+  <data name="KeyboardActionPicker_OptionFormat" xml:space="preserve">
+    <value>{0}（{1}）</value>
+  </data>
+  <data name="CatalogDescriptionOptionalEnglish" xml:space="preserve">
+    <value>英文简介（选填）</value>
+  </data>
+  <data name="CatalogDescriptionOptionalChinese" xml:space="preserve">
+    <value>中文简介（选填）</value>
+  </data>
+  <data name="CatalogColumnHudLabelChinese" xml:space="preserve">
+    <value>HUD显示（中文）</value>
+  </data>
+  <data name="CatalogColumnHudLabelEnglish" xml:space="preserve">
+    <value>HUD显示（英文，选填）</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_MappingOutput" xml:space="preserve">
+    <value>请按下映射输出键（Esc 取消）。</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_MappingHoldOutput" xml:space="preserve">
+    <value>请按下长按（HOLD）输出键（Esc 取消）。</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_CatalogActionOutput" xml:space="preserve">
+    <value>请按下该动作的输出键（Esc 取消）。</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_ItemCycleForward" xml:space="preserve">
+    <value>请按下正向循环输出键（Esc 取消）。</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_ItemCycleBackward" xml:space="preserve">
+    <value>请按下反向循环输出键（Esc 取消）。</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_NewBindingOutput" xml:space="preserve">
+    <value>请按下新按键映射的输出键（Esc 取消）。</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_NewBindingHoldOutput" xml:space="preserve">
+    <value>请按下新映射的长按（HOLD）输出键（Esc 取消）。</value>
+  </data>
+  <data name="ProfileTabVisualEditor" xml:space="preserve">
+    <value>可视化编辑</value>
+  </data>
+  <data name="ProfileTabCommunity" xml:space="preserve">
+    <value>社区</value>
+  </data>
+  <data name="ProfileCatalogValidationWarningsTitle" xml:space="preserve">
+    <value>验证警告</value>
+  </data>
+  <data name="CommunityCatalog_AuthorByLine" xml:space="preserve">
+    <value>作者：{0}</value>
+  </data>
+  <data name="CommunityCatalog_LoadingTemplates" xml:space="preserve">
+    <value>正在加载社区模板…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloading" xml:space="preserve">
+    <value>正在下载「{0}」…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadCanceled" xml:space="preserve">
+    <value>已取消下载「{0}」。</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloaded" xml:space="preserve">
+    <value>已成功下载「{0}」。</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadFailed" xml:space="preserve">
+    <value>下载「{0}」失败。</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadError" xml:space="preserve">
+    <value>下载「{0}」时出错。</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleting" xml:space="preserve">
+    <value>正在删除「{0}」…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleted" xml:space="preserve">
+    <value>已删除「{0}」。</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleteNotFound" xml:space="preserve">
+    <value>本地未找到模板：{0}</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleteError" xml:space="preserve">
+    <value>删除「{0}」时出错。</value>
+  </data>
+  <data name="CommunityCatalog_UploadSelectTemplateFirst" xml:space="preserve">
+    <value>请先在侧栏配置文件中选择一个模板再上传。</value>
+  </data>
+  <data name="CommunityCatalog_UploadCollectFailed" xml:space="preserve">
+    <value>无法收集模板：{0}</value>
+  </data>
+  <data name="CommunityCatalog_UploadNoTemplates" xml:space="preserve">
+    <value>没有可上传的模板。</value>
+  </data>
+  <data name="CommunityCatalog_StatusUploading" xml:space="preserve">
+    <value>正在上传…</value>
+  </data>
+  <data name="CommunityCatalog_StatusPullRequestCreated" xml:space="preserve">
+    <value>已创建拉取请求。</value>
+  </data>
+  <data name="CommunityCatalog_StatusPullRequestWithUrl" xml:space="preserve">
+    <value>拉取请求：{0}</value>
+  </data>
+  <data name="CommunityCatalog_StatusUploadFailed" xml:space="preserve">
+    <value>上传失败：{0}</value>
+  </data>
+  <data name="CommunityUpload_Error_UploadFailedGeneric" xml:space="preserve">
+    <value>上传失败。</value>
+  </data>
 </root>

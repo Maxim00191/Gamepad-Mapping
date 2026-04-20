@@ -56,7 +56,8 @@
                                     Binding="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     Width="*" />
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnDisplayName]}"
-                                    Binding="{Binding DisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Binding="{Binding ResolvedDisplayName, Mode=OneWay}"
+                                    IsReadOnly="True"
                                     Width="1.2*" />
                 <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnJoystick]}"
                                         Width="*">

@@ -6,6 +6,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
@@ -32,6 +33,16 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         _keyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
         _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
+        if (AppUiLocalization.TryTranslationService() is { } loc)
+            loc.PropertyChanged += CatalogTranslationServiceOnPropertyChanged;
+    }
+
+    private void CatalogTranslationServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TranslationService.Culture))
+            return;
+        PullKeyboardCatalogDescriptionPair();
+        PullRadialMenuDisplayNamePair();
     }
 
     public ObservableCollection<TemplateOption> AvailableProfileTemplates => _main.AvailableTemplates;
@@ -89,7 +100,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (SelectedKeyboardAction is null) return;
 
         _keyboardCaptureService.BeginCapture(
-            "Press a key for the action output (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.CatalogActionOutput),
             key => SelectedKeyboardAction.KeyboardKey = key.ToString());
     }
 
@@ -98,7 +109,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedKeyboardAction?.ItemCycle is null) return;
         _keyboardCaptureService.BeginCapture(
-            "Press the loop-forward output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleForward),
             key => SelectedKeyboardAction.ItemCycle.LoopForwardKey = key.ToString());
     }
 
@@ -107,7 +118,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedKeyboardAction?.ItemCycle is null) return;
         _keyboardCaptureService.BeginCapture(
-            "Press the loop-back output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleBackward),
             key => SelectedKeyboardAction.ItemCycle.LoopBackwardKey = key.ToString());
     }
 
@@ -270,6 +281,106 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     [ObservableProperty]
     private RadialMenuItem? selectedRadialSlot;
 
+    [ObservableProperty]
+    private string keyboardCatalogDescriptionPrimary = string.Empty;
+
+    [ObservableProperty]
+    private string keyboardCatalogDescriptionSecondary = string.Empty;
+
+    private bool _syncingKeyboardDescriptionPair;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNamePrimary = string.Empty;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNameSecondary = string.Empty;
+
+    private bool _syncingRadialDisplayNamePair;
+
+    partial void OnKeyboardCatalogDescriptionPrimaryChanged(string value) => PushKeyboardCatalogDescriptionPair();
+
+    partial void OnKeyboardCatalogDescriptionSecondaryChanged(string value) => PushKeyboardCatalogDescriptionPair();
+
+    partial void OnRadialMenuDisplayNamePrimaryChanged(string value) => PushRadialMenuDisplayNamePair();
+
+    partial void OnRadialMenuDisplayNameSecondaryChanged(string value) => PushRadialMenuDisplayNamePair();
+
+    private void PullKeyboardCatalogDescriptionPair()
+    {
+        _syncingKeyboardDescriptionPair = true;
+        try
+        {
+            if (SelectedKeyboardAction is null)
+            {
+                KeyboardCatalogDescriptionPrimary = string.Empty;
+                KeyboardCatalogDescriptionSecondary = string.Empty;
+                return;
+            }
+
+            var ui = AppUiLocalization.EditorUiCulture();
+            var a = SelectedKeyboardAction;
+            KeyboardCatalogDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(a.Descriptions, a.Description, ui);
+            KeyboardCatalogDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(a.Descriptions, a.Description, ui);
+        }
+        finally
+        {
+            _syncingKeyboardDescriptionPair = false;
+        }
+    }
+
+    private void PushKeyboardCatalogDescriptionPair()
+    {
+        if (_syncingKeyboardDescriptionPair || SelectedKeyboardAction is null)
+            return;
+
+        var a = SelectedKeyboardAction;
+        var d = a.Descriptions;
+        var b = a.Description;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), KeyboardCatalogDescriptionPrimary, KeyboardCatalogDescriptionSecondary);
+        a.Descriptions = d;
+        a.Description = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyKeyboardAction(a, ts);
+    }
+
+    private void PullRadialMenuDisplayNamePair()
+    {
+        _syncingRadialDisplayNamePair = true;
+        try
+        {
+            if (SelectedRadialMenu is null)
+            {
+                RadialMenuDisplayNamePrimary = string.Empty;
+                RadialMenuDisplayNameSecondary = string.Empty;
+                return;
+            }
+
+            var ui = AppUiLocalization.EditorUiCulture();
+            var rm = SelectedRadialMenu;
+            RadialMenuDisplayNamePrimary = UiCultureDescriptionPair.ReadPrimary(rm.DisplayNames, rm.DisplayName, ui);
+            RadialMenuDisplayNameSecondary = UiCultureDescriptionPair.ReadSecondary(rm.DisplayNames, rm.DisplayName, ui);
+        }
+        finally
+        {
+            _syncingRadialDisplayNamePair = false;
+        }
+    }
+
+    private void PushRadialMenuDisplayNamePair()
+    {
+        if (_syncingRadialDisplayNamePair || SelectedRadialMenu is null)
+            return;
+
+        var rm = SelectedRadialMenu;
+        var d = rm.DisplayNames;
+        var b = rm.DisplayName;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), RadialMenuDisplayNamePrimary, RadialMenuDisplayNameSecondary);
+        rm.DisplayNames = d;
+        rm.DisplayName = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyRadialMenu(rm, ts);
+    }
+
     partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value)
     {
         if (!_workspaceKeyboardSelectionSync)
@@ -288,6 +399,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         }
 
         SyncCatalogOutputKindFromSelection();
+        PullKeyboardCatalogDescriptionPair();
         _main.RefreshRightPanelSurface();
         ValidateCurrentState();
         _main.RuleClipboard?.RefreshCommandStates();
@@ -323,6 +435,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
             }
         }
 
+        PullRadialMenuDisplayNamePair();
         _main.RefreshRightPanelSurface();
         ValidateCurrentState();
         _main.RuleClipboard?.RefreshCommandStates();

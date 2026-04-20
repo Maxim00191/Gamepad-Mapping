@@ -159,7 +159,7 @@
                                                                             <TextBlock Text="{Binding DisplayName}"
                                                                                        FontWeight="SemiBold"
                                                                                        Margin="0,0,0,4" />
-                                                                            <TextBlock Text="{Binding Author, StringFormat='By: {0}'}"
+                                                                            <TextBlock Text="{Binding AuthorCreditLine}"
                                                                                        Foreground="{DynamicResource AppSecondaryTextBrush}"
                                                                                        Margin="0,0,0,6" />
                                                                             <TextBlock Text="{Binding Description}"
@@ -182,7 +182,7 @@
                                                                                TextWrapping="Wrap" />
                                                                     <TextBlock Grid.Row="1"
                                                                                Margin="0,2,0,0"
-                                                                               Text="{Binding Author, StringFormat='By: {0}'}"
+                                                                               Text="{Binding AuthorCreditLine}"
                                                                                FontSize="11"
                                                                                Foreground="{DynamicResource AppSecondaryTextBrush}" />
                                                                     <TextBlock Grid.Row="2"

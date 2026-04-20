@@ -164,16 +164,15 @@
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding Id}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Id}" Value="">
-                                                            <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource KeyboardActionPickerLabelConverter}">
+                                                    <Binding Path="Id" />
+                                                    <Binding Path="ResolvedCatalogDescription" />
+                                                    <Binding Source="{StaticResource Loc}" Path="[KeyboardActionPicker_OptionFormat]" />
+                                                    <Binding Source="{StaticResource Loc}" Path="[MappingActionIdManual]" />
+                                                    <Binding Path="KeyboardKey" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
                                         </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
@@ -192,7 +191,8 @@
                                     Binding="{Binding HoldThresholdMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     Width="0.8*" />
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[Description]}"
-                                    Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Binding="{Binding ResolvedCatalogDescription, Mode=OneWay}"
+                                    IsReadOnly="True"
                                     Width="1.6*" />
                 <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Width="*">
                     <DataGridTemplateColumn.CellTemplate>

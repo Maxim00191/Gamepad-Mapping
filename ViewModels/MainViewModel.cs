@@ -249,6 +249,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _profileOrchestrator.PropertyChanged += OnProfileOrchestratorPropertyChanged;
         _settingsOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
 
+        if (Application.Current?.Resources["Loc"] is TranslationService catalogTranslationService)
+            catalogTranslationService.PropertyChanged += OnCatalogTranslationServicePropertyChanged;
+
         _profileOrchestrator.LoadSelectedTemplate();
         StartGamepad();
         RefreshRightPanelSurface();
@@ -598,8 +601,45 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand] private void StartGamepad() { _gamepadService.Start(); OnPropertyChanged(nameof(IsGamepadRunning)); GamepadMonitorPanel.IsGamepadRunning = true; }
     [RelayCommand] private void StopGamepad() { _gamepadService.Stop(); _mappingManager.ForceReleaseOutputs(); OnPropertyChanged(nameof(IsGamepadRunning)); GamepadMonitorPanel.IsGamepadRunning = false; }
 
+    private void OnCatalogTranslationServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TranslationService.Culture))
+            return;
+        if (Application.Current?.Resources["Loc"] is not TranslationService ts)
+            return;
+        CatalogDescriptionLocalizer.ApplyOpenTemplateCollections(KeyboardActions, Mappings, RadialMenus, ts);
+        CatalogDescriptionLocalizer.ApplyTemplateCatalogPicker(_profileOrchestrator.AvailableTemplates, ts);
+        _profileOrchestrator.RefreshCurrentIdentityDisplayNameForCulture(ts);
+        UpdateTemplateToggleDisplayNames();
+        OnPropertyChanged(nameof(IsChinesePrimaryDescriptionCulture));
+        OnPropertyChanged(nameof(DescriptionOptionalLanguageCaption));
+        OnPropertyChanged(nameof(RadialSlotHudLinePrimaryColumnHeader));
+        OnPropertyChanged(nameof(RadialSlotHudLineSecondaryColumnHeader));
+        RefreshControllerVisualOverlays();
+    }
+
+    /// <summary>When true, the primary description field in editors is Chinese and the optional field is English.</summary>
+    public bool IsChinesePrimaryDescriptionCulture =>
+        AppUiLocalization.TryTranslationService() is { } ts &&
+        UiCultureDescriptionPair.IsChinesePrimaryUi(ts.Culture);
+
+    /// <summary>Localized label for the optional bilingual description field (the language that is not the UI language).</summary>
+    public string DescriptionOptionalLanguageCaption =>
+        AppUiLocalization.OptionalAlternateLanguageDescriptionCaption();
+
+    /// <summary>Radial slot grid: primary HUD line column (same idea as <see cref="KeyboardActionEditorPanelView"/> description field).</summary>
+    public string RadialSlotHudLinePrimaryColumnHeader =>
+        AppUiLocalization.GetString("CatalogColumnDescription");
+
+    /// <summary>Radial slot grid: secondary HUD line column (alternate language).</summary>
+    public string RadialSlotHudLineSecondaryColumnHeader =>
+        AppUiLocalization.OptionalAlternateLanguageDescriptionCaption();
+
     public void Dispose()
     {
+        if (Application.Current?.Resources["Loc"] is TranslationService catalogTranslationService)
+            catalogTranslationService.PropertyChanged -= OnCatalogTranslationServicePropertyChanged;
+
         _communityListingDescriptionDebouncer.Cancel();
         _templateEditHistory.HistoryChanged -= OnTemplateEditHistoryChanged;
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
@@ -766,9 +806,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Refreshes dependent UI after pasting a mapping from the in-app rule clipboard.</summary>
     public void RefreshAfterRulePastedFromClipboard()
     {
+        RefreshCatalogLocalizedDescriptions();
         UpdateTemplateToggleDisplayNames();
         RefreshControllerVisualOverlays();
         RefreshRightPanelSurface();
+    }
+
+    /// <summary>
+    /// Applies <see cref="CatalogDescriptionLocalizer"/> to in-memory catalog rows (keyboard actions, mapping descriptions, radial menus).
+    /// Call after clipboard paste or whenever raw JSON leaves <see cref="KeyboardActionDefinition.Description"/> unset while <c>descriptions</c> maps exist.
+    /// </summary>
+    private void RefreshCatalogLocalizedDescriptions()
+    {
+        if (Application.Current?.Resources["Loc"] is not TranslationService ts)
+            return;
+        CatalogDescriptionLocalizer.ApplyOpenTemplateCollections(KeyboardActions, Mappings, RadialMenus, ts);
     }
 
     public IProfileTemplateEditHistoryService TemplateEditHistory => _templateEditHistory;

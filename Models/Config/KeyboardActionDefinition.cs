@@ -48,11 +48,21 @@ public sealed class KeyboardActionDefinition : ObservableObject
     }
 
     private string _description = string.Empty;
+    private string _resolvedCatalogDescription = string.Empty;
+
     [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
     public string Description
     {
         get => _description;
         set => SetProperty(ref _description, value);
+    }
+
+    /// <summary>UI string for the current app language; does not replace serialized <see cref="Description"/>.</summary>
+    [JsonIgnore]
+    public string ResolvedCatalogDescription
+    {
+        get => _resolvedCatalogDescription;
+        set => SetProperty(ref _resolvedCatalogDescription, value);
     }
 
     private string? _descriptionKey;

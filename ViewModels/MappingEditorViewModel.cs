@@ -62,7 +62,7 @@ public partial class MappingEditorViewModel : ObservableObject
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
 
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
-        if (Application.Current?.Resources["Loc"] is TranslationService translationService)
+        if (AppUiLocalization.TryTranslationService() is { } translationService)
             translationService.PropertyChanged += TranslationServiceOnPropertyChanged;
         _mainViewModel.KeyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
@@ -145,7 +145,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (HasUnusedActionIds)
         {
             UnusedActionIdsHint = string.Format(CultureInfo.CurrentUICulture,
-                Loc("ProfileMappingUnusedCatalogActionIdsHint"), unused.Count);
+                AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsHint"), unused.Count);
             UnusedActionIdsTooltip = string.Join(Environment.NewLine,
                 unused.Select(a => $"{a.Id}: {a.Description}"));
         }
@@ -251,7 +251,10 @@ public partial class MappingEditorViewModel : ObservableObject
     private TriggerMoment editBindingTrigger = TriggerMoment.Tap;
 
     [ObservableProperty]
-    private string editBindingDescription = string.Empty;
+    private string editBindingDescriptionPrimary = string.Empty;
+
+    [ObservableProperty]
+    private string editBindingDescriptionSecondary = string.Empty;
 
     /// <summary>Trigger match threshold for LT/RT chords (0–1, exclusive of 0); shown when <see cref="InputTriggerViewModel.SourceInvolvesTrigger"/> is true.</summary>
     [ObservableProperty]
@@ -329,7 +332,17 @@ public partial class MappingEditorViewModel : ObservableObject
 
         InputTrigger.SyncFrom(value ?? new MappingEntry());
         EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
-        EditBindingDescription = value?.Description ?? string.Empty;
+        if (value is not null)
+        {
+            var ui = AppUiLocalization.EditorUiCulture();
+            EditBindingDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(value.Descriptions, value.Description, ui);
+            EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(value.Descriptions, value.Description, ui);
+        }
+        else
+        {
+            EditBindingDescriptionPrimary = string.Empty;
+            EditBindingDescriptionSecondary = string.Empty;
+        }
         EditAnalogThresholdText = value?.AnalogThreshold is { } t
             ? t.ToString("G", CultureInfo.InvariantCulture)
             : string.Empty;
@@ -476,6 +489,8 @@ public partial class MappingEditorViewModel : ObservableObject
             m.TemplateToggle = null;
             m.RadialMenu = null;
             m.ApplyKeyboardCatalogDefinition(def);
+            if (AppUiLocalization.TryTranslationService() is { } ts)
+                CatalogDescriptionLocalizer.ApplyMappingDescription(m, ts);
             if (ReferenceEquals(m, SelectedMapping))
                 SyncFromSelection(m);
             ConfigurationChanged?.Invoke(this, EventArgs.Empty);
@@ -494,7 +509,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
         InputTrigger.Clear();
         EditBindingTrigger = TriggerMoment.Tap;
-        EditBindingDescription = string.Empty;
+        EditBindingDescriptionPrimary = string.Empty;
+        EditBindingDescriptionSecondary = string.Empty;
         EditAnalogThresholdText = string.Empty;
 
         SelectedActionType = MappingActionType.Keyboard;
@@ -508,12 +524,15 @@ public partial class MappingEditorViewModel : ObservableObject
         if (!TryBuildMappingFromEditorFields(out var entry, out var messageKey))
         {
             MessageBox.Show(
-                Loc(messageKey ?? "MappingEditorSaveFailedGeneric"),
-                Loc("MappingEditorSaveFailedTitle"),
+                AppUiLocalization.GetString(messageKey ?? "MappingEditorSaveFailedGeneric"),
+                AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
         }
+
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
 
         _mainViewModel.RecordTemplateWorkspaceCheckpoint();
         _mainViewModel.Mappings.Add(entry);
@@ -541,7 +560,7 @@ public partial class MappingEditorViewModel : ObservableObject
         }
 
         entry.Trigger = EditBindingTrigger;
-        entry.Description = (EditBindingDescription ?? string.Empty).Trim();
+        ApplyDescriptionPairToMapping(entry);
 
         if (!TryApplyAnalogThreshold(entry))
         {
@@ -609,13 +628,6 @@ public partial class MappingEditorViewModel : ObservableObject
         return true;
     }
 
-    private static string Loc(string key)
-    {
-        if (Application.Current?.Resources["Loc"] is TranslationService loc)
-            return loc[key];
-        return key;
-    }
-
     private void UpdateSelectedBinding()
     {
         if (SelectedMapping is null)
@@ -629,15 +641,15 @@ public partial class MappingEditorViewModel : ObservableObject
         if (!TryApplyAnalogThreshold(SelectedMapping))
         {
             MessageBox.Show(
-                Loc("TriggerChordThresholdRequiredMessage"),
-                Loc("MappingEditorSaveFailedTitle"),
+                AppUiLocalization.GetString("TriggerChordThresholdRequiredMessage"),
+                AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             return;
         }
 
         SelectedMapping.Trigger = EditBindingTrigger;
-        SelectedMapping.Description = (EditBindingDescription ?? string.Empty).Trim();
+        ApplyDescriptionPairToMapping(SelectedMapping);
 
         if (CurrentActionEditor?.ApplyTo(SelectedMapping) != true)
             return;
@@ -666,7 +678,31 @@ public partial class MappingEditorViewModel : ObservableObject
     private void TranslationServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(TranslationService.Culture))
+        {
             UpdateUnusedActionIds();
+            RefreshMappingDescriptionEditFields();
+        }
+    }
+
+    private void RefreshMappingDescriptionEditFields()
+    {
+        if (IsCreatingNewMapping || SelectedMapping is null)
+            return;
+        var ui = AppUiLocalization.EditorUiCulture();
+        EditBindingDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(SelectedMapping.Descriptions, SelectedMapping.Description, ui);
+        EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(SelectedMapping.Descriptions, SelectedMapping.Description, ui);
+    }
+
+    private void ApplyDescriptionPairToMapping(MappingEntry entry)
+    {
+        var ui = AppUiLocalization.EditorUiCulture();
+        var d = entry.Descriptions;
+        var b = entry.Description;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, ui, EditBindingDescriptionPrimary, EditBindingDescriptionSecondary);
+        entry.Descriptions = d;
+        entry.Description = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
     }
 
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)

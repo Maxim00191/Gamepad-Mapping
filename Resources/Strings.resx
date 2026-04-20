@@ -1272,4 +1272,106 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="ProfileRuleClipboard_RedoTooltip" xml:space="preserve">
     <value>Redo a change to this template (Ctrl+Shift+Z).</value>
   </data>
+  <data name="KeyboardActionPicker_OptionFormat" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="CatalogDescriptionOptionalEnglish" xml:space="preserve">
+    <value>English description (optional)</value>
+  </data>
+  <data name="CatalogDescriptionOptionalChinese" xml:space="preserve">
+    <value>Chinese description (optional)</value>
+  </data>
+  <data name="CatalogColumnHudLabelChinese" xml:space="preserve">
+    <value>HUD line (Chinese)</value>
+  </data>
+  <data name="CatalogColumnHudLabelEnglish" xml:space="preserve">
+    <value>HUD line (English, optional)</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_MappingOutput" xml:space="preserve">
+    <value>Press a key for the mapping output (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_MappingHoldOutput" xml:space="preserve">
+    <value>Press the HOLD output key (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_CatalogActionOutput" xml:space="preserve">
+    <value>Press a key for the action output (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_ItemCycleForward" xml:space="preserve">
+    <value>Press the loop-forward output key (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_ItemCycleBackward" xml:space="preserve">
+    <value>Press the loop-back output key (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_NewBindingOutput" xml:space="preserve">
+    <value>Press a key for the new key binding (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_NewBindingHoldOutput" xml:space="preserve">
+    <value>Press the HOLD output key for the new binding (Esc to cancel).</value>
+  </data>
+  <data name="ProfileTabVisualEditor" xml:space="preserve">
+    <value>Visual editor</value>
+  </data>
+  <data name="ProfileTabCommunity" xml:space="preserve">
+    <value>Community</value>
+  </data>
+  <data name="ProfileCatalogValidationWarningsTitle" xml:space="preserve">
+    <value>Validation warnings</value>
+  </data>
+  <data name="CommunityCatalog_AuthorByLine" xml:space="preserve">
+    <value>By {0}</value>
+  </data>
+  <data name="CommunityCatalog_LoadingTemplates" xml:space="preserve">
+    <value>Loading community templates…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloading" xml:space="preserve">
+    <value>Downloading {0}…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadCanceled" xml:space="preserve">
+    <value>Download canceled for {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloaded" xml:space="preserve">
+    <value>Successfully downloaded {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadFailed" xml:space="preserve">
+    <value>Failed to download {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadError" xml:space="preserve">
+    <value>Error downloading {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleting" xml:space="preserve">
+    <value>Deleting {0}…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleted" xml:space="preserve">
+    <value>Deleted {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleteNotFound" xml:space="preserve">
+    <value>Template not found locally: {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleteError" xml:space="preserve">
+    <value>Error deleting {0}.</value>
+  </data>
+  <data name="CommunityCatalog_UploadSelectTemplateFirst" xml:space="preserve">
+    <value>Select a template in the profile panel before uploading.</value>
+  </data>
+  <data name="CommunityCatalog_UploadCollectFailed" xml:space="preserve">
+    <value>Could not collect templates: {0}</value>
+  </data>
+  <data name="CommunityCatalog_UploadNoTemplates" xml:space="preserve">
+    <value>No templates to upload.</value>
+  </data>
+  <data name="CommunityCatalog_StatusUploading" xml:space="preserve">
+    <value>Uploading…</value>
+  </data>
+  <data name="CommunityCatalog_StatusPullRequestCreated" xml:space="preserve">
+    <value>Pull request created.</value>
+  </data>
+  <data name="CommunityCatalog_StatusPullRequestWithUrl" xml:space="preserve">
+    <value>Pull request: {0}</value>
+  </data>
+  <data name="CommunityCatalog_StatusUploadFailed" xml:space="preserve">
+    <value>Upload failed: {0}</value>
+  </data>
+  <data name="CommunityUpload_Error_UploadFailedGeneric" xml:space="preserve">
+    <value>Upload failed.</value>
+  </data>
 </root>

@@ -5,7 +5,6 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
@@ -55,7 +54,7 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
         _query = query;
         _visualService = visualService;
 
-        if (Application.Current?.Resources["Loc"] is TranslationService loc)
+        if (AppUiLocalization.TryTranslationService() is { } loc)
         {
             _translationService = loc;
             loc.PropertyChanged += OnTranslationServicePropertyChanged;
@@ -68,7 +67,10 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
     private void OnTranslationServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(TranslationService.Culture) or "Item[]")
+        {
             OnPropertyChanged(nameof(MappingsCountSummary));
+            RebuildItems();
+        }
     }
 
     public void SetElementContext(string? elementId)

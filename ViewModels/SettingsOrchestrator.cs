@@ -135,6 +135,34 @@ public partial class SettingsOrchestrator : ObservableObject
             _appSettings.UiCulture = culture.Name;
             SaveSettings();
         }
+
+        RefreshLocalizedUiThemeOptions();
+    }
+
+    /// <summary>
+    /// Rebuilds localized display names for theme choices (Follow system / Light / Dark) after UI language changes.
+    /// </summary>
+    public void RefreshLocalizedUiThemeOptions()
+    {
+        var themeKey = UiThemeMode.Normalize(_appSettings.UiTheme);
+        _isInitializingUiThemeSelection = true;
+        try
+        {
+            AvailableUiThemes.Clear();
+            AvailableUiThemes.Add(new UiThemeOption(UiThemeMode.FollowSystem, Localize("UiThemeFollowSystem")));
+            AvailableUiThemes.Add(new UiThemeOption(UiThemeMode.Light, Localize("UiThemeLight")));
+            AvailableUiThemes.Add(new UiThemeOption(UiThemeMode.Dark, Localize("UiThemeDark")));
+            SelectedUiTheme =
+                AvailableUiThemes.FirstOrDefault(x => string.Equals(x.Key, themeKey, StringComparison.Ordinal))
+                ?? AvailableUiThemes[0];
+        }
+        finally
+        {
+            _isInitializingUiThemeSelection = false;
+        }
+
+        OnPropertyChanged(nameof(AvailableUiThemes));
+        OnPropertyChanged(nameof(SelectedUiTheme));
     }
 
     public void SaveSettings()

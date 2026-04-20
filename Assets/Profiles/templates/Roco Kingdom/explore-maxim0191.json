@@ -1,10 +1,13 @@
-﻿{
+{
   "schemaVersion": 1,
   "profileId": "explore-maxim0191",
   "templateGroupId": "roco-kingdom-world-maxim0191",
   "EffectiveTemplateGroupId": "roco-kingdom-world-maxim0191",
   "templateCatalogFolder": "Roco Kingdom",
-  "displayName": "洛克王国世界·探索 - maxim0191",
+  "displayName": "Roco Kingdom World · Exploration – maxim0191",
+  "displayNames": {
+    "zh-CN": "洛克王国世界·探索 - maxim0191"
+  },
   "author": "Maxim0191",
   "displayNameKey": "",
   "targetProcessName": "NRC-Win64-Shipping",
@@ -16,7 +19,7 @@
     {
       "id": "w--move-wasd-forward",
       "keyboardKey": "W",
-      "description": "向前移动",
+      "description": "Move forward",
       "descriptions": {
         "zh-CN": "向前移动"
       }
@@ -24,7 +27,7 @@
     {
       "id": "s--move-wasd-backward",
       "keyboardKey": "S",
-      "description": "向后移动",
+      "description": "Move backward",
       "descriptions": {
         "zh-CN": "向后移动"
       }
@@ -32,7 +35,7 @@
     {
       "id": "a--move-wasd-left",
       "keyboardKey": "A",
-      "description": "向左移动",
+      "description": "Move left",
       "descriptions": {
         "zh-CN": "向左移动"
       }
@@ -40,7 +43,7 @@
     {
       "id": "d--move-wasd-right",
       "keyboardKey": "D",
-      "description": "向右移动",
+      "description": "Move right",
       "descriptions": {
         "zh-CN": "向右移动"
       }
@@ -48,7 +51,7 @@
     {
       "id": "mousex--rotate-camera-horizontally",
       "keyboardKey": "MouseX",
-      "description": "水平旋转视角",
+      "description": "Camera: yaw",
       "descriptions": {
         "zh-CN": "水平旋转视角"
       }
@@ -56,7 +59,7 @@
     {
       "id": "mousey--rotate-camera-vertically",
       "keyboardKey": "MouseY",
-      "description": "垂直旋转视角",
+      "description": "Camera: pitch",
       "descriptions": {
         "zh-CN": "垂直旋转视角"
       }
@@ -64,7 +67,7 @@
     {
       "id": "leftclick--enter-aiming-mode",
       "keyboardKey": "LeftClick",
-      "description": "进入瞄准模式",
+      "description": "Enter aim mode",
       "descriptions": {
         "zh-CN": "进入瞄准模式"
       }
@@ -72,7 +75,7 @@
     {
       "id": "r--use-mount-skill-mount-or-dismoun",
       "keyboardKey": "R",
-      "description": "骑乘技能；上下坐骑；对自己施法",
+      "description": "Mount skill; mount/dismount; self-target cast",
       "descriptions": {
         "zh-CN": "骑乘技能；上下坐骑；对自己施法"
       }
@@ -80,7 +83,7 @@
     {
       "id": "rightclick--exit-aiming-mode",
       "keyboardKey": "RightClick",
-      "description": "退出瞄准模式",
+      "description": "Exit aim mode",
       "descriptions": {
         "zh-CN": "退出瞄准模式"
       }
@@ -88,7 +91,7 @@
     {
       "id": "wheelup--mouse-wheel-up-one-notch",
       "keyboardKey": "WheelUp",
-      "description": "鼠标滚轮向上",
+      "description": "Mouse wheel up",
       "descriptions": {
         "zh-CN": "鼠标滚轮向上"
       }
@@ -96,7 +99,7 @@
     {
       "id": "wheeldown--mouse-wheel-down-one-notch",
       "keyboardKey": "WheelDown",
-      "description": "鼠标滚轮向下",
+      "description": "Mouse wheel down",
       "descriptions": {
         "zh-CN": "鼠标滚轮向下"
       }
@@ -104,7 +107,7 @@
     {
       "id": "space--jump",
       "keyboardKey": "Space",
-      "description": "跳跃",
+      "description": "Jump",
       "descriptions": {
         "zh-CN": "跳跃"
       }
@@ -112,7 +115,7 @@
     {
       "id": "f--interact-pick-up",
       "keyboardKey": "F",
-      "description": "交互/拾取",
+      "description": "Interact / pick up",
       "descriptions": {
         "zh-CN": "交互/拾取"
       }
@@ -120,7 +123,7 @@
     {
       "id": "x--cancel-mount-climbing-companion-",
       "keyboardKey": "X",
-      "description": "取消骑乘/攀爬/同行/特殊状态",
+      "description": "Cancel mount, climb, follow, or special state",
       "descriptions": {
         "zh-CN": "取消骑乘/攀爬/同行/特殊状态"
       }
@@ -128,7 +131,7 @@
     {
       "id": "e--switch-to-spirit-ball--use-in-home",
       "keyboardKey": "E",
-      "description": "切换至精灵球模式；家园：装备食物/种植种子",
+      "description": "Spirit orb mode; home: equip food or plant seeds",
       "descriptions": {
         "zh-CN": "切换至精灵球模式；家园：装备食物/种植种子"
       }
@@ -136,7 +139,7 @@
     {
       "id": "d1--select-item-1",
       "keyboardKey": "D1",
-      "description": "选择物品1",
+      "description": "Select item 1",
       "descriptions": {
         "zh-CN": "选择物品1"
       }
@@ -144,7 +147,7 @@
     {
       "id": "d2--select-item-2",
       "keyboardKey": "D2",
-      "description": "选择物品2",
+      "description": "Select item 2",
       "descriptions": {
         "zh-CN": "选择物品2"
       }
@@ -152,7 +155,7 @@
     {
       "id": "d3--select-item-3",
       "keyboardKey": "D3",
-      "description": "选择物品3",
+      "description": "Select item 3",
       "descriptions": {
         "zh-CN": "选择物品3"
       }
@@ -160,7 +163,7 @@
     {
       "id": "d4--select-item-4",
       "keyboardKey": "D4",
-      "description": "选择物品4",
+      "description": "Select item 4",
       "descriptions": {
         "zh-CN": "选择物品4"
       }
@@ -168,7 +171,7 @@
     {
       "id": "d5--select-item-5",
       "keyboardKey": "D5",
-      "description": "选择物品5",
+      "description": "Select item 5",
       "descriptions": {
         "zh-CN": "选择物品5"
       }
@@ -176,7 +179,7 @@
     {
       "id": "d6--select-item-6",
       "keyboardKey": "D6",
-      "description": "选择物品6",
+      "description": "Select item 6",
       "descriptions": {
         "zh-CN": "选择物品6"
       }
@@ -184,7 +187,7 @@
     {
       "id": "f1--open-season-interface-quick-chat",
       "keyboardKey": "F1",
-      "description": "赛季界面/快捷发言聊天频道",
+      "description": "Season UI / quick chat channel",
       "descriptions": {
         "zh-CN": "赛季界面/快捷发言聊天频道"
       }
@@ -192,7 +195,7 @@
     {
       "id": "f2--open-events-screen",
       "keyboardKey": "F2",
-      "description": "活动",
+      "description": "Events",
       "descriptions": {
         "zh-CN": "活动"
       }
@@ -200,7 +203,7 @@
     {
       "id": "f3--open-magic-handbook",
       "keyboardKey": "F3",
-      "description": "魔法手册",
+      "description": "Magic handbook",
       "descriptions": {
         "zh-CN": "魔法手册"
       }
@@ -208,7 +211,7 @@
     {
       "id": "f4--open-compendium",
       "keyboardKey": "F4",
-      "description": "图鉴",
+      "description": "Compendium",
       "descriptions": {
         "zh-CN": "图鉴"
       }
@@ -216,7 +219,7 @@
     {
       "id": "f5--open-shop",
       "keyboardKey": "F5",
-      "description": "商店",
+      "description": "Shop",
       "descriptions": {
         "zh-CN": "商店"
       }
@@ -224,7 +227,7 @@
     {
       "id": "f6--open-pika-shop",
       "keyboardKey": "F6",
-      "description": "皮卡商店",
+      "description": "Pika Shop",
       "descriptions": {
         "zh-CN": "皮卡商店"
       }
@@ -232,7 +235,7 @@
     {
       "id": "f7--open-furniture-compendium",
       "keyboardKey": "F7",
-      "description": "家具图鉴",
+      "description": "Furniture codex",
       "descriptions": {
         "zh-CN": "家具图鉴"
       }
@@ -240,7 +243,7 @@
     {
       "id": "f8--open-decoration-mode",
       "keyboardKey": "F8",
-      "description": "装饰模式",
+      "description": "Decoration",
       "descriptions": {
         "zh-CN": "装饰模式"
       }
@@ -248,7 +251,7 @@
     {
       "id": "f9--go-back",
       "keyboardKey": "F9",
-      "description": "返回",
+      "description": "Back",
       "descriptions": {
         "zh-CN": "返回"
       }
@@ -256,7 +259,7 @@
     {
       "id": "f10--replay",
       "keyboardKey": "F10",
-      "description": "重播",
+      "description": "Replay",
       "descriptions": {
         "zh-CN": "重播"
       }
@@ -264,7 +267,7 @@
     {
       "id": "f11--none",
       "keyboardKey": "F11",
-      "description": "暂无",
+      "description": "Unassigned",
       "descriptions": {
         "zh-CN": "暂无"
       }
@@ -272,7 +275,7 @@
     {
       "id": "f12--exit",
       "keyboardKey": "F12",
-      "description": "退出",
+      "description": "Exit",
       "descriptions": {
         "zh-CN": "退出"
       }
@@ -280,7 +283,7 @@
     {
       "id": "leftshift--sprint-use-mount-skill",
       "keyboardKey": "LeftShift",
-      "description": "冲刺/骑乘技能",
+      "description": "Sprint / mount skill",
       "descriptions": {
         "zh-CN": "冲刺/骑乘技能"
       }
@@ -288,7 +291,7 @@
     {
       "id": "leftctrl--toggle-walk-run-state",
       "keyboardKey": "LeftCtrl",
-      "description": "行走/跑步",
+      "description": "Walk / run",
       "descriptions": {
         "zh-CN": "行走/跑步"
       }
@@ -296,7 +299,7 @@
     {
       "id": "c--crouch-stand-in-grass-call-in-ho",
       "keyboardKey": "C",
-      "description": "草丛中蹲下/站起；家园中呼唤；农场中铲除作物",
+      "description": "Crouch in grass; home: call NPCs; farm: remove crops",
       "descriptions": {
         "zh-CN": "草丛中蹲下/站起；家园中呼唤；农场中铲除作物"
       }
@@ -304,7 +307,7 @@
     {
       "id": "m--open-map",
       "keyboardKey": "M",
-      "description": "地图",
+      "description": "Map",
       "descriptions": {
         "zh-CN": "地图"
       }
@@ -312,7 +315,7 @@
     {
       "id": "escape--show-unlock-cursor",
       "keyboardKey": "Escape",
-      "description": "显示光标",
+      "description": "Show cursor",
       "descriptions": {
         "zh-CN": "显示光标"
       }
@@ -320,7 +323,7 @@
     {
       "id": "enter--open-scene-bubble-chat",
       "keyboardKey": "Enter",
-      "description": "场景气泡聊天",
+      "description": "Scene bubble chat",
       "descriptions": {
         "zh-CN": "场景气泡聊天"
       }
@@ -328,7 +331,7 @@
     {
       "id": "v--view-quest-details",
       "keyboardKey": "V",
-      "description": "查看任务详情",
+      "description": "Quest details",
       "descriptions": {
         "zh-CN": "查看任务详情"
       }
@@ -336,7 +339,7 @@
     {
       "id": "tab--open-roleplay-interface",
       "keyboardKey": "Tab",
-      "description": "RolePlay界面",
+      "description": "Role-play panel",
       "descriptions": {
         "zh-CN": "RolePlay界面"
       }
@@ -344,7 +347,7 @@
     {
       "id": "b--open-bag",
       "keyboardKey": "B",
-      "description": "背包",
+      "description": "Bag",
       "descriptions": {
         "zh-CN": "背包"
       }
@@ -352,7 +355,7 @@
     {
       "id": "q--switch-to-star-magic",
       "keyboardKey": "Q",
-      "description": "切换至星星魔法",
+      "description": "Star magic",
       "descriptions": {
         "zh-CN": "切换至星星魔法"
       }
@@ -360,7 +363,7 @@
     {
       "id": "j--open-quest-interface",
       "keyboardKey": "J",
-      "description": "任务界面",
+      "description": "Quests",
       "descriptions": {
         "zh-CN": "任务界面"
       }
@@ -368,7 +371,7 @@
     {
       "id": "leftclick--mouse-click",
       "keyboardKey": "LeftClick",
-      "description": "主要操作（鼠标左键单击）",
+      "description": "Primary click (left mouse button)",
       "descriptions": {
         "zh-CN": "主要操作（鼠标左键单击）"
       }
@@ -376,7 +379,7 @@
     {
       "id": "p--open-spirit-interface",
       "keyboardKey": "P",
-      "description": "精灵界面",
+      "description": "Spirits",
       "descriptions": {
         "zh-CN": "精灵界面"
       }
@@ -384,7 +387,7 @@
     {
       "id": "o--open-friends-interface",
       "keyboardKey": "O",
-      "description": "好友",
+      "description": "Friends",
       "descriptions": {
         "zh-CN": "好友"
       }
@@ -392,7 +395,7 @@
     {
       "id": "k--open-quick-wardrobe",
       "keyboardKey": "K",
-      "description": "便捷换装",
+      "description": "Quick outfit",
       "descriptions": {
         "zh-CN": "便捷换装"
       }
@@ -400,7 +403,7 @@
     {
       "id": "i--enter-photo-mode",
       "keyboardKey": "I",
-      "description": "拍照模式",
+      "description": "Photo mode",
       "descriptions": {
         "zh-CN": "拍照模式"
       }
@@ -408,7 +411,7 @@
     {
       "id": "u--open-visitor-management-popup",
       "keyboardKey": "U",
-      "description": "互访管理弹窗",
+      "description": "Co-op visits",
       "descriptions": {
         "zh-CN": "互访管理弹窗"
       }
@@ -416,7 +419,7 @@
     {
       "id": "g--check-new-messages-first-unlock-",
       "keyboardKey": "G",
-      "description": "查看新信息",
+      "description": "New messages",
       "descriptions": {
         "zh-CN": "查看新信息"
       }
@@ -424,7 +427,7 @@
     {
       "id": "leftalt--reveal-cursor",
       "keyboardKey": "LeftAlt",
-      "description": "显示光标",
+      "description": "Show cursor",
       "descriptions": {
         "zh-CN": "显示光标"
       }
@@ -434,7 +437,7 @@
       "templateToggle": {
         "alternateProfileId": "fight-maxim0191"
       },
-      "description": "切换至战斗模式",
+      "description": "Switch to battle (instance)",
       "descriptions": {
         "zh-CN": "切换至战斗模式"
       }
@@ -443,7 +446,7 @@
   "radialMenus": [
     {
       "id": "f_keys_wheel",
-      "displayName": "F1 - F8",
+      "displayName": "F1–F8",
       "displayNames": {
         "zh-CN": "F1 - F8"
       },
@@ -451,56 +454,56 @@
       "items": [
         {
           "actionId": "f1--open-season-interface-quick-chat",
-          "label": "赛季界面",
+          "label": "Season",
           "labels": {
             "zh-CN": "赛季界面"
           }
         },
         {
           "actionId": "f2--open-events-screen",
-          "label": "活动",
+          "label": "Events",
           "labels": {
             "zh-CN": "活动"
           }
         },
         {
           "actionId": "f3--open-magic-handbook",
-          "label": "魔法手册",
+          "label": "Magic handbook",
           "labels": {
             "zh-CN": "魔法手册"
           }
         },
         {
           "actionId": "f4--open-compendium",
-          "label": "图鉴",
+          "label": "Compendium",
           "labels": {
             "zh-CN": "图鉴"
           }
         },
         {
           "actionId": "f5--open-shop",
-          "label": "商店",
+          "label": "Shop",
           "labels": {
             "zh-CN": "商店"
           }
         },
         {
           "actionId": "f6--open-pika-shop",
-          "label": "皮卡商店",
+          "label": "Pika Shop",
           "labels": {
             "zh-CN": "皮卡商店"
           }
         },
         {
           "actionId": "f7--open-furniture-compendium",
-          "label": "家具图鉴",
+          "label": "Furniture codex",
           "labels": {
             "zh-CN": "家具图鉴"
           }
         },
         {
           "actionId": "f8--open-decoration-mode",
-          "label": "装饰模式",
+          "label": "Decoration",
           "labels": {
             "zh-CN": "装饰模式"
           }
@@ -509,7 +512,7 @@
     },
     {
       "id": "submenu_wheel",
-      "displayName": "界面入口",
+      "displayName": "UI shortcuts",
       "displayNames": {
         "zh-CN": "界面入口"
       },
@@ -517,56 +520,56 @@
       "items": [
         {
           "actionId": "b--open-bag",
-          "label": "背包",
+          "label": "Bag",
           "labels": {
             "zh-CN": "背包"
           }
         },
         {
           "actionId": "k--open-quick-wardrobe",
-          "label": "便捷换装",
+          "label": "Quick outfit",
           "labels": {
             "zh-CN": "便捷换装"
           }
         },
         {
           "actionId": "p--open-spirit-interface",
-          "label": "精灵界面",
+          "label": "Spirits",
           "labels": {
             "zh-CN": "精灵界面"
           }
         },
         {
           "actionId": "o--open-friends-interface",
-          "label": "好友",
+          "label": "Friends",
           "labels": {
             "zh-CN": "好友"
           }
         },
         {
           "actionId": "m--open-map",
-          "label": "地图",
+          "label": "Map",
           "labels": {
             "zh-CN": "地图"
           }
         },
         {
           "actionId": "tab--open-roleplay-interface",
-          "label": "RolePlay界面",
+          "label": "Role-play panel",
           "labels": {
             "zh-CN": "RolePlay界面"
           }
         },
         {
           "actionId": "j--open-quest-interface",
-          "label": "任务界面",
+          "label": "Quests",
           "labels": {
             "zh-CN": "任务界面"
           }
         },
         {
           "actionId": "i--enter-photo-mode",
-          "label": "拍照模式",
+          "label": "Photo mode",
           "labels": {
             "zh-CN": "拍照模式"
           }
@@ -575,7 +578,7 @@
     },
     {
       "id": "exploration_tools",
-      "displayName": "探索工具",
+      "displayName": "Exploration tools",
       "displayNames": {
         "zh-CN": "探索工具"
       },
@@ -583,56 +586,56 @@
       "items": [
         {
           "actionId": "q--switch-to-star-magic",
-          "label": "星星魔法",
+          "label": "Star magic",
           "labels": {
             "zh-CN": "星星魔法"
           }
         },
         {
           "actionId": "e--switch-to-spirit-ball--use-in-home",
-          "label": "精灵球",
+          "label": "Spirit orb",
           "labels": {
             "zh-CN": "精灵球"
           }
         },
         {
           "actionId": "d1--select-item-1",
-          "label": "物品1",
+          "label": "Item 1",
           "labels": {
             "zh-CN": "物品1"
           }
         },
         {
           "actionId": "d2--select-item-2",
-          "label": "物品2",
+          "label": "Item 2",
           "labels": {
             "zh-CN": "物品2"
           }
         },
         {
           "actionId": "d3--select-item-3",
-          "label": "物品3",
+          "label": "Item 3",
           "labels": {
             "zh-CN": "物品3"
           }
         },
         {
           "actionId": "d4--select-item-4",
-          "label": "物品4",
+          "label": "Item 4",
           "labels": {
             "zh-CN": "物品4"
           }
         },
         {
           "actionId": "d5--select-item-5",
-          "label": "物品5",
+          "label": "Item 5",
           "labels": {
             "zh-CN": "物品5"
           }
         },
         {
           "actionId": "d6--select-item-6",
-          "label": "物品6",
+          "label": "Item 6",
           "labels": {
             "zh-CN": "物品6"
           }
@@ -647,11 +650,14 @@
         "value": "Up"
       },
       "actionId": "w--move-wasd-forward",
-      "description": "向前移动",
+      "description": "Move forward",
       "trigger": "Pressed",
       "analogThreshold": 0.25,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "向前移动"
+      }
     },
     {
       "from": {
@@ -659,11 +665,14 @@
         "value": "Down"
       },
       "actionId": "s--move-wasd-backward",
-      "description": "向后移动",
+      "description": "Move backward",
       "trigger": "Pressed",
       "analogThreshold": 0.25,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "向后移动"
+      }
     },
     {
       "from": {
@@ -671,11 +680,14 @@
         "value": "Left"
       },
       "actionId": "a--move-wasd-left",
-      "description": "向左移动",
+      "description": "Move left",
       "trigger": "Pressed",
       "analogThreshold": 0.25,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "向左移动"
+      }
     },
     {
       "from": {
@@ -683,11 +695,14 @@
         "value": "Right"
       },
       "actionId": "d--move-wasd-right",
-      "description": "向右移动",
+      "description": "Move right",
       "trigger": "Pressed",
       "analogThreshold": 0.25,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "向右移动"
+      }
     },
     {
       "from": {
@@ -695,11 +710,14 @@
         "value": "X"
       },
       "actionId": "mousex--rotate-camera-horizontally",
-      "description": "水平旋转视角",
+      "description": "Camera: yaw",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "水平旋转视角"
+      }
     },
     {
       "from": {
@@ -707,11 +725,14 @@
         "value": "Y"
       },
       "actionId": "mousey--rotate-camera-vertically",
-      "description": "垂直旋转视角",
+      "description": "Camera: pitch",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "垂直旋转视角"
+      }
     },
     {
       "from": {
@@ -719,11 +740,14 @@
         "value": "RightTrigger"
       },
       "actionId": "leftclick--enter-aiming-mode",
-      "description": "进入瞄准模式",
+      "description": "Enter aim mode",
       "trigger": "Pressed",
       "analogThreshold": 0.35,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "进入瞄准模式"
+      }
     },
     {
       "from": {
@@ -731,11 +755,14 @@
         "value": "LeftTrigger"
       },
       "actionId": "r--use-mount-skill-mount-or-dismoun",
-      "description": "骑乘技能；上下坐骑；对自己施法",
+      "description": "Mount skill; mount/dismount; self-target cast",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "骑乘技能；上下坐骑；对自己施法"
+      }
     },
     {
       "from": {
@@ -743,11 +770,14 @@
         "value": "RightTrigger + B"
       },
       "actionId": "rightclick--exit-aiming-mode",
-      "description": "退出瞄准模式",
+      "description": "Exit aim mode",
       "trigger": "Pressed",
       "analogThreshold": 0.35,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "退出瞄准模式"
+      }
     },
     {
       "from": {
@@ -755,11 +785,14 @@
         "value": "RightTrigger + B"
       },
       "actionId": "rightclick--exit-aiming-mode",
-      "description": "退出瞄准模式",
+      "description": "Exit aim mode",
       "trigger": "Released",
       "analogThreshold": 0.35,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "退出瞄准模式"
+      }
     },
     {
       "from": {
@@ -767,11 +800,14 @@
         "value": "RightTrigger + DPadLeft"
       },
       "actionId": "wheelup--mouse-wheel-up-one-notch",
-      "description": "鼠标滚轮向上",
+      "description": "Mouse wheel up",
       "trigger": "Pressed",
       "analogThreshold": 0.35,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "鼠标滚轮向上"
+      }
     },
     {
       "from": {
@@ -779,11 +815,14 @@
         "value": "RightTrigger + DPadRight"
       },
       "actionId": "wheeldown--mouse-wheel-down-one-notch",
-      "description": "鼠标滚轮向下",
+      "description": "Mouse wheel down",
       "trigger": "Pressed",
       "analogThreshold": 0.35,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "鼠标滚轮向下"
+      }
     },
     {
       "from": {
@@ -791,11 +830,14 @@
         "value": "A"
       },
       "actionId": "space--jump",
-      "description": "跳跃",
+      "description": "Jump",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "跳跃"
+      }
     },
     {
       "from": {
@@ -803,11 +845,14 @@
         "value": "Y"
       },
       "actionId": "f--interact-pick-up",
-      "description": "交互/拾取",
+      "description": "Interact / pick up",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "交互/拾取"
+      }
     },
     {
       "from": {
@@ -815,11 +860,14 @@
         "value": "B"
       },
       "actionId": "x--cancel-mount-climbing-companion-",
-      "description": "取消骑乘/攀爬/同行/特殊状态",
+      "description": "Cancel mount, climb, follow, or special state",
       "trigger": "Tap",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "取消骑乘/攀爬/同行/特殊状态"
+      }
     },
     {
       "from": {
@@ -827,11 +875,14 @@
         "value": "X"
       },
       "actionId": "e--switch-to-spirit-ball--use-in-home",
-      "description": "切换至精灵球模式；家园：装备食物/种植种子",
+      "description": "Spirit orb mode; home: equip food or plant seeds",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "切换至精灵球模式；家园：装备食物/种植种子"
+      }
     },
     {
       "from": {
@@ -839,11 +890,14 @@
         "value": "LeftThumb"
       },
       "actionId": "leftshift--sprint-use-mount-skill",
-      "description": "冲刺/骑乘技能",
+      "description": "Sprint / mount skill",
       "trigger": "Tap",
       "analogThreshold": null,
       "holdKeyboardKey": "LeftCtrl",
-      "holdThresholdMs": 300
+      "holdThresholdMs": 300,
+      "descriptions": {
+        "zh-CN": "冲刺/骑乘技能"
+      }
     },
     {
       "from": {
@@ -851,11 +905,14 @@
         "value": "RightThumb"
       },
       "actionId": "c--crouch-stand-in-grass-call-in-ho",
-      "description": "草丛中蹲下/站起；家园中呼唤；农场中铲除作物",
+      "description": "Crouch in grass; home: call NPCs; farm: remove crops",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "草丛中蹲下/站起；家园中呼唤；农场中铲除作物"
+      }
     },
     {
       "from": {
@@ -863,11 +920,14 @@
         "value": "Start"
       },
       "actionId": "m--open-map",
-      "description": "地图",
+      "description": "Map",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "地图"
+      }
     },
     {
       "from": {
@@ -875,11 +935,14 @@
         "value": "Back"
       },
       "actionId": "escape--show-unlock-cursor",
-      "description": "显示光标",
+      "description": "Show cursor",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "显示光标"
+      }
     },
     {
       "from": {
@@ -887,11 +950,14 @@
         "value": "Back"
       },
       "actionId": "escape--show-unlock-cursor",
-      "description": "显示光标",
+      "description": "Show cursor",
       "trigger": "Released",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "显示光标"
+      }
     },
     {
       "from": {
@@ -899,11 +965,14 @@
         "value": "Start + Back"
       },
       "actionId": "switch-to-battle",
-      "description": "切换至战斗模式",
+      "description": "Switch to battle (instance)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "切换至战斗模式"
+      }
     },
     {
       "from": {
@@ -911,9 +980,9 @@
         "value": "DPadUp"
       },
       "keyboardKey": "",
-      "description": "循环选择精灵/魔法槽位（下一个，1–6）",
+      "description": "Cycle pet/spell slots (previous, 1–6)",
       "descriptions": {
-        "zh-CN": "循环选择精灵/魔法槽位（下一个，1–6）"
+        "zh-CN": "循环选择精灵/魔法槽位（上一个，1–6）"
       },
       "trigger": "Pressed",
       "analogThreshold": null,
@@ -930,9 +999,9 @@
         "value": "DPadDown"
       },
       "keyboardKey": "",
-      "description": "循环选择精灵/魔法槽位（上一个，1–6）",
+      "description": "Cycle pet/spell slots (next, 1–6)",
       "descriptions": {
-        "zh-CN": "循环选择精灵/魔法槽位（上一个，1–6）"
+        "zh-CN": "循环选择精灵/魔法槽位（下一个，1–6）"
       },
       "trigger": "Pressed",
       "analogThreshold": null,
@@ -948,11 +1017,14 @@
         "value": "DPadRight"
       },
       "actionId": "v--view-quest-details",
-      "description": "查看任务详情",
+      "description": "Quest details",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "查看任务详情"
+      }
     },
     {
       "from": {
@@ -960,11 +1032,14 @@
         "value": "RightShoulder"
       },
       "actionId": "leftclick--mouse-click",
-      "description": "主要操作（鼠标左键单击）",
+      "description": "Primary click (left mouse button)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "主要操作（鼠标左键单击）"
+      }
     },
     {
       "from": {
@@ -972,11 +1047,14 @@
         "value": "Start + DPadUp"
       },
       "actionId": "u--open-visitor-management-popup",
-      "description": "互访管理弹窗",
+      "description": "Co-op visits",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "互访管理弹窗"
+      }
     },
     {
       "from": {
@@ -984,11 +1062,14 @@
         "value": "Start + DPadDown"
       },
       "actionId": "g--check-new-messages-first-unlock-",
-      "description": "查看新信息",
+      "description": "New messages",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "查看新信息"
+      }
     },
     {
       "from": {
@@ -996,7 +1077,7 @@
         "value": "LeftShoulder"
       },
       "keyboardKey": "",
-      "description": "界面入口",
+      "description": "UI shortcuts",
       "descriptions": {
         "zh-CN": "界面入口"
       },
@@ -1014,7 +1095,7 @@
         "value": "RightShoulder"
       },
       "keyboardKey": "",
-      "description": "探索工具",
+      "description": "Exploration tools",
       "descriptions": {
         "zh-CN": "探索工具"
       },
@@ -1032,7 +1113,7 @@
         "value": "DPadLeft"
       },
       "keyboardKey": "",
-      "description": "快捷菜单 (F1-F8)",
+      "description": "Quick menu (F1–F8)",
       "descriptions": {
         "zh-CN": "快捷菜单 (F1-F8)"
       },
