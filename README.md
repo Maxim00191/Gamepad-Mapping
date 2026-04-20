@@ -110,13 +110,13 @@ Each template generally includes:
 - `targetProcessName` (optional)
 - `comboLeadButtons` (optional)
 - `mappings` collection with input source + output action definitions
+- `keyboardActions` is where all in-game key bindings (actions) are defined
+- `radialMenus` defines bindings for radial (wheel) menus
 
 See examples in:
 
-- `Assets/Profiles/templates/Elden Ring/default.json`
-- `Assets/Profiles/templates/Flight Sim/flight_sim.json`
-- `Assets/Profiles/templates/Roco Kingdom/roco-kingdom-world-radial.json`
-- `Assets/Profiles/templates/Roco Kingdom/roco-kingdom-world-fight-radial.json`
+- `Assets/Profiles/templates/Roco Kingdom/explore-maxim0191.json`
+- `Assets/Profiles/templates/Roco Kingdom/fight-maxim0191.json`
 
 ## Elevation and UIPI
 

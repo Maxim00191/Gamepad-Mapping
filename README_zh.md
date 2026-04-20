@@ -14,9 +14,9 @@ Gamepad Mapping 是一款 Windows 桌面应用（WPF），通过可编辑的 JSO
 > - **应用更新：** **Updates** 区域会访问 **GitHub**（发布信息与安装包资源）以检查新版本、可选地下载官方发布的安装包，并在安装前进行**完整性校验**。
 
 > [!WARNING]
-> **非官方下载渠道或二次打包的安装包**
+> **关于安装包获取渠道的提醒**
 >
-> 第三方镜像、二次打包或所谓「绿色版」可能**篡改自动更新逻辑**、**替换下载地址**或捆绑**恶意程序**（包括记录键盘等输入的软件）。开发者仅支持与本开源仓库一致的构建。**请从本仓库 [Releases](https://github.com/Maxim00191/Gamepad-Mapping/releases) 获取安装包，或自行从可信源码克隆后编译。**
+> 请避免从第三方网站、非官方镜像或所谓的「绿色版」获取本软件，这些版本有可能被更改了自动更新机制、修改了下载源，甚至可能被植入恶意程序（例如记录键盘的工具等）。开发者只对本仓库原版发布的构建提供支持。**建议始终通过本仓库的 [Releases](https://github.com/Maxim00191/Gamepad-Mapping/releases) 下载，或直接从可信源码自行编译安装包。**
 
 ## 付费说明与官方分发
 
@@ -110,13 +110,13 @@ dotnet test "GamepadMapping.sln" -c Release
 - `targetProcessName`（可选）
 - `comboLeadButtons`（可选）
 - 包含输入源和输出操作定义的 `mappings` 集合
+- `keyboardActions` 用于定义全部的游戏内的按键（动作）
+- `radialMenus` 用于定义轮盘菜单的相关绑定
 
 参考示例：
 
-- `Assets/Profiles/templates/Elden Ring/default.json`
-- `Assets/Profiles/templates/Flight Sim/flight_sim.json`
-- `Assets/Profiles/templates/Roco Kingdom/roco-kingdom-world-radial.json`
-- `Assets/Profiles/templates/Roco Kingdom/roco-kingdom-world-fight-radial.json`
+- `Assets/Profiles/templates/Roco Kingdom/explore-maxim0191.json`
+- `Assets/Profiles/templates/Roco Kingdom/fight-maxim0191.json`
 
 ## 提权与 UIPI
 
