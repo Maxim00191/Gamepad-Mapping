@@ -114,47 +114,18 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (SelectedTemplate is null)
             return;
 
-        try
+        if (!_mainViewModel.TryPersistWorkspaceTemplateToDisk(out var err))
         {
-            List<string>? comboLeads = null;
-            if (_mainViewModel.ComboLeadButtonsPersist is not null)
-                comboLeads = new List<string>(_mainViewModel.ComboLeadButtonsPersist);
-
-            var targetProc = (_mainViewModel.TemplateTargetProcessName ?? string.Empty).Trim();
-            var catalogFolder = (CurrentTemplateCatalogFolder ?? string.Empty).Trim();
-            var template = new GameProfileTemplate
-            {
-                SchemaVersion = 1,
-                ProfileId = CurrentTemplateProfileId,
-                TemplateGroupId = string.IsNullOrWhiteSpace(CurrentTemplateTemplateGroupId)
-                    ? null
-                    : CurrentTemplateTemplateGroupId.Trim(),
-                TemplateCatalogFolder = string.IsNullOrEmpty(catalogFolder) ? null : catalogFolder,
-                DisplayName = CurrentTemplateDisplayName,
-                Author = NormalizeOptionalAuthor(CurrentTemplateAuthor),
-                CommunityListingDescription = NormalizeOptionalAuthor(CurrentTemplateCommunityListingDescription),
-                TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
-                ComboLeadButtons = comboLeads,
-                KeyboardActions = _mainViewModel.KeyboardActions.Count == 0 ? null : _mainViewModel.KeyboardActions.ToList(),
-                RadialMenus = _mainViewModel.RadialMenus.Count == 0 ? null : _mainViewModel.RadialMenus.ToList(),
-                Mappings = _mainViewModel.Mappings.ToList()
-            };
-
-            var originalStorageKey = SelectedTemplate.StorageKey;
-            _profileService.SaveTemplate(template);
-
-            var newStorageKey = TemplateStorageKey.Format(template.TemplateCatalogFolder, template.ProfileId);
-
-            if (!string.Equals(originalStorageKey, newStorageKey, StringComparison.OrdinalIgnoreCase))
-                _profileService.DeleteTemplate(originalStorageKey);
-
-            _mainViewModel.RefreshTemplates(newStorageKey);
-            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+            var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
+            MessageBox.Show(
+                string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err ?? string.Empty),
+                title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
         }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Failed to save profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -190,6 +161,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
     [RelayCommand]
     private void RefreshTemplatesFromDisk()
     {
+        if (!_mainViewModel.ConfirmDiscardOrSaveBeforeTemplateMetadataRefresh())
+            return;
+
         try
         {
             var keepId = SelectedTemplate?.StorageKey;
@@ -257,6 +231,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
     private void ReloadTemplate()
     {
         if (SelectedTemplate is null)
+            return;
+
+        if (!_mainViewModel.ConfirmDiscardOrSaveBeforeReloadFromDisk())
             return;
 
         _mainViewModel.ReloadSelectedTemplate();

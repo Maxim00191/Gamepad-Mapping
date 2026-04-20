@@ -22,6 +22,12 @@ internal static class WorkspaceEditHistoryRecorder
             main.RecordTemplateWorkspaceCheckpoint();
     }
 
+    public static void RefreshWorkspaceDirtyIfPossible(DependencyObject? scopeForLookup)
+    {
+        if (TryFindMainViewModel(scopeForLookup, out var main))
+            main.ScheduleTemplateWorkspaceDirtyRefresh();
+    }
+
     public static bool TryFindMainViewModel(DependencyObject? start, out MainViewModel main)
     {
         main = null!;
@@ -80,6 +86,7 @@ public static class DataGridWorkspaceEditHistoryBehavior
     private sealed class Bridge
     {
         public EventHandler<DataGridBeginningEditEventArgs>? BeginningEditHandler;
+        public EventHandler<DataGridCellEditEndingEventArgs>? CellEditEndingHandler;
     }
 
     private static readonly ConditionalWeakTable<DataGrid, Bridge> Bridges = new();
@@ -115,6 +122,9 @@ public static class DataGridWorkspaceEditHistoryBehavior
 
         bridge.BeginningEditHandler = (_, _) => WorkspaceEditHistoryRecorder.RecordCheckpointIfPossible(grid);
         grid.BeginningEdit += bridge.BeginningEditHandler;
+
+        bridge.CellEditEndingHandler = (_, _) => WorkspaceEditHistoryRecorder.RefreshWorkspaceDirtyIfPossible(grid);
+        grid.CellEditEnding += bridge.CellEditEndingHandler;
     }
 
     private static void Detach(DataGrid grid)
@@ -124,6 +134,9 @@ public static class DataGridWorkspaceEditHistoryBehavior
 
         if (bridge.BeginningEditHandler is not null)
             grid.BeginningEdit -= bridge.BeginningEditHandler;
+
+        if (bridge.CellEditEndingHandler is not null)
+            grid.CellEditEnding -= bridge.CellEditEndingHandler;
 
         Bridges.Remove(grid);
     }
@@ -138,6 +151,7 @@ public static class FrameworkElementWorkspaceEditHistoryBehavior
     private sealed class Bridge
     {
         public KeyboardFocusChangedEventHandler? FocusHandler;
+        public KeyboardFocusChangedEventHandler? LostFocusHandler;
     }
 
     private static readonly ConditionalWeakTable<FrameworkElement, Bridge> Bridges = new();
@@ -173,6 +187,9 @@ public static class FrameworkElementWorkspaceEditHistoryBehavior
 
         bridge.FocusHandler = (_, e) => OnPreviewGotKeyboardFocus(scope, e);
         scope.PreviewGotKeyboardFocus += bridge.FocusHandler;
+
+        bridge.LostFocusHandler = (_, e) => OnPreviewLostKeyboardFocus(scope, e);
+        scope.PreviewLostKeyboardFocus += bridge.LostFocusHandler;
     }
 
     private static void Detach(FrameworkElement scope)
@@ -182,6 +199,9 @@ public static class FrameworkElementWorkspaceEditHistoryBehavior
 
         if (bridge.FocusHandler is not null)
             scope.PreviewGotKeyboardFocus -= bridge.FocusHandler;
+
+        if (bridge.LostFocusHandler is not null)
+            scope.PreviewLostKeyboardFocus -= bridge.LostFocusHandler;
 
         Bridges.Remove(scope);
     }
@@ -195,5 +215,16 @@ public static class FrameworkElementWorkspaceEditHistoryBehavior
             return;
 
         WorkspaceEditHistoryRecorder.RecordCheckpointIfPossible(scope);
+    }
+
+    private static void OnPreviewLostKeyboardFocus(FrameworkElement scope, KeyboardFocusChangedEventArgs e)
+    {
+        var oldIn = WorkspaceEditHistoryRecorder.IsAssociatedWithSubtree(scope, e.OldFocus as DependencyObject);
+        var newIn = WorkspaceEditHistoryRecorder.IsAssociatedWithSubtree(scope, e.NewFocus as DependencyObject);
+
+        if (!oldIn || newIn)
+            return;
+
+        WorkspaceEditHistoryRecorder.RefreshWorkspaceDirtyIfPossible(scope);
     }
 }

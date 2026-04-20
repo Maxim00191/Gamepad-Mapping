@@ -72,5 +72,13 @@ public partial class TemplateOption : ObservableObject
     public bool MatchesLocation(TemplateStorageLocation location) =>
         new TemplateStorageLocation(CatalogSubfolder, ProfileId).SameFileAs(location);
 
+    /// <summary>True when both refer to the same on-disk template file (including both null).</summary>
+    public static bool MatchesStorageKey(TemplateOption? a, TemplateOption? b)
+    {
+        if (a is null && b is null) return true;
+        if (a is null || b is null) return false;
+        return string.Equals(a.StorageKey, b.StorageKey, StringComparison.OrdinalIgnoreCase);
+    }
+
     public override string ToString() => ResolvedDisplayName;
 }

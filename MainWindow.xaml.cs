@@ -1,9 +1,11 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Reflection;
 using Gamepad_Mapping.ViewModels;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping;
 
@@ -103,6 +105,42 @@ public partial class MainWindow : Window
 
         var version = assembly.GetName().Version;
         return version is null ? "unknown" : version.ToString();
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_viewModel.IsTemplateWorkspaceDirty)
+        {
+            var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
+            var message = AppUiLocalization.GetString("WorkspaceUnsavedExitPrompt");
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    if (!_viewModel.TryPersistWorkspaceTemplateToDisk(out var err))
+                    {
+                        if (!string.IsNullOrWhiteSpace(err))
+                        {
+                            MessageBox.Show(
+                                string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
+                                title,
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        }
+
+                        e.Cancel = true;
+                    }
+
+                    break;
+                case MessageBoxResult.No:
+                    break;
+                default:
+                    e.Cancel = true;
+                    break;
+            }
+        }
+
+        base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)

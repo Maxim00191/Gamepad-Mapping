@@ -1374,4 +1374,53 @@
   <data name="CommunityUpload_Error_UploadFailedGeneric" xml:space="preserve">
     <value>上传失败。</value>
   </data>
+  <data name="WorkspaceUnsavedChangesTitle" xml:space="preserve">
+    <value>未保存的更改</value>
+  </data>
+  <data name="WorkspaceUnsavedIndicatorShort" xml:space="preserve">
+    <value>未保存</value>
+  </data>
+  <data name="WorkspaceUnsavedIndicator" xml:space="preserve">
+    <value>当前模板有未保存的更改，请点击「保存配置」后再切换或退出。</value>
+  </data>
+  <data name="WorkspaceUnsavedSwitchPrompt" xml:space="preserve">
+    <value>当前模板有未保存的更改。切换到其他模板前是否保存？
+
+是 — 保存并继续
+否 — 放弃更改并继续
+取消 — 留在当前模板</value>
+  </data>
+  <data name="WorkspaceUnsavedReloadPrompt" xml:space="preserve">
+    <value>从磁盘重新加载此模板并放弃编辑器中未保存的修改？
+
+是 — 先保存到磁盘，再重新加载
+否 — 放弃未保存修改并重新加载
+取消 — 继续编辑</value>
+  </data>
+  <data name="WorkspaceUnsavedRefreshTemplatesListPrompt" xml:space="preserve">
+    <value>从磁盘刷新模板列表。除非先保存，否则当前模板未保存的编辑可能会丢失。
+
+是 — 先保存当前模板
+否 — 放弃未保存修改并刷新列表
+取消 — 不刷新</value>
+  </data>
+  <data name="WorkspaceUnsavedExitPrompt" xml:space="preserve">
+    <value>退出应用程序？当前模板有未保存的更改。
+
+是 — 保存并退出
+否 — 不保存并退出
+取消 — 继续编辑</value>
+  </data>
+  <data name="WorkspaceSave_NoTemplateSelected" xml:space="preserve">
+    <value>未选择模板。</value>
+  </data>
+  <data name="WorkspaceSave_BuildSnapshotFailed" xml:space="preserve">
+    <value>无法构建模板快照。</value>
+  </data>
+  <data name="WorkspaceSave_FailedMessage" xml:space="preserve">
+    <value>无法保存：{0}</value>
+  </data>
+  <data name="WorkspaceSave_ErrorTitle" xml:space="preserve">
+    <value>保存失败</value>
+  </data>
 </root>

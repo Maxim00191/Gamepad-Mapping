@@ -17,6 +17,7 @@ using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
+using Newtonsoft.Json;
 using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
@@ -34,7 +35,7 @@ using Gamepad_Mapping.Services.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class MainViewModel : ObservableObject, IDisposable
+public partial class MainViewModel : ObservableObject, IDisposable, IProfileSelectionInterlock
 {
     private readonly Dispatcher _dispatcher;
     private readonly IUiSynchronization _uiSync;
@@ -75,7 +76,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
     private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
     private readonly Debouncer _communityListingDescriptionDebouncer;
+    private readonly Debouncer _workspaceDirtyDebouncer;
     private readonly IProfileTemplateEditHistoryService _templateEditHistory;
+    private WorkspaceObservableMutationWatcher? _workspaceMutationWatcher;
+    private string? _workspacePersistenceBaselineJson;
+    private bool _suppressProfileSelectionInterlock;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -147,6 +152,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
         _communityListingDescriptionDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1200));
+        _workspaceDirtyDebouncer = new Debouncer(TimeSpan.FromMilliseconds(80));
 
         _templateEditHistory = new ProfileTemplateEditHistoryService(
             BuildWorkspaceTemplateSnapshot,
@@ -155,7 +161,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
-        _profileOrchestrator = new ProfileOrchestrator(_profileService, _processTargetService);
+        _profileOrchestrator = new ProfileOrchestrator(_profileService, _processTargetService)
+        {
+            SelectionInterlock = this
+        };
         _profileOrchestrator.TemplateLoaded += OnTemplateLoaded;
         _profileOrchestrator.TemplateSwitchRequested += ShowTemplateSwitchHud;
 
@@ -227,6 +236,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             OnPropertyChanged(nameof(MappingCount));
             OnPropertyChanged(nameof(Mappings));
+            ScheduleTemplateWorkspaceDirtyRefresh();
         };
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
             mappingNotify.PropertyChanged += OnMappingManagerPropertyChanged;
@@ -282,6 +292,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private int _profileListTabIndex;
+
+    /// <summary>True when the in-memory template workspace differs from the last saved or loaded baseline.</summary>
+    [ObservableProperty]
+    private bool _isTemplateWorkspaceDirty;
 
     [ObservableProperty]
     private bool _isVisualMode;
@@ -345,17 +359,35 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(e.PropertyName);
         if (e.PropertyName == nameof(ProfileOrchestrator.SelectedTemplate))
             RuleClipboard.RefreshCommandStates();
+
+        if (e.PropertyName is nameof(ProfileOrchestrator.CurrentTemplateDisplayName)
+            or nameof(ProfileOrchestrator.CurrentTemplateProfileId)
+            or nameof(ProfileOrchestrator.CurrentTemplateTemplateGroupId)
+            or nameof(ProfileOrchestrator.CurrentTemplateAuthor)
+            or nameof(ProfileOrchestrator.CurrentTemplateCatalogFolder)
+            or nameof(ProfileOrchestrator.CurrentTemplateCommunityListingDescription)
+            or nameof(ProfileOrchestrator.TemplateTargetProcessName)
+            or nameof(ProfileOrchestrator.ComboLeadButtonsPersist))
+            ScheduleTemplateWorkspaceDirtyRefresh();
     }
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
     {
         _templateEditHistory.Clear();
-        if (template is null) return;
+        if (template is null)
+        {
+            _workspacePersistenceBaselineJson = null;
+            IsTemplateWorkspaceDirty = false;
+            return;
+        }
+
         _mappingManager.LoadTemplate(template);
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
         CatalogPanel.ResetSelection();
         RefreshRightPanelSurface();
+        CaptureWorkspacePersistenceBaseline();
+        RefreshTemplateWorkspaceDirtyState();
     }
 
     private void ApplyDeclaredProcessTarget()
@@ -641,6 +673,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             catalogTranslationService.PropertyChanged -= OnCatalogTranslationServicePropertyChanged;
 
         _communityListingDescriptionDebouncer.Cancel();
+        _workspaceDirtyDebouncer.Cancel();
+        _workspaceMutationWatcher?.Dispose();
         _templateEditHistory.HistoryChanged -= OnTemplateEditHistoryChanged;
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
             mappingNotify.PropertyChanged -= OnMappingManagerPropertyChanged;
@@ -828,6 +862,166 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Captures the current template workspace for undo/redo (mappings, catalogs, combo leads).</summary>
     public void RecordTemplateWorkspaceCheckpoint() => _templateEditHistory.RecordCheckpoint();
 
+    /// <summary>Coalesces dirty checks after rapid mutations (grid cells, collections, undo stack).</summary>
+    public void ScheduleTemplateWorkspaceDirtyRefresh() =>
+        _workspaceDirtyDebouncer.Debounce(RefreshTemplateWorkspaceDirtyState);
+
+    private void CaptureWorkspacePersistenceBaseline() =>
+        _workspacePersistenceBaselineJson = SerializeWorkspacePersistencePayload();
+
+    private string? SerializeWorkspacePersistencePayload()
+    {
+        var snap = BuildWorkspaceTemplateSnapshot();
+        return snap is null ? null : JsonConvert.SerializeObject(snap);
+    }
+
+    /// <summary>Recomputes <see cref="IsTemplateWorkspaceDirty"/> from the current workspace vs last baseline.</summary>
+    public void RefreshTemplateWorkspaceDirtyState()
+    {
+        if (SelectedTemplate is null)
+        {
+            if (IsTemplateWorkspaceDirty)
+                IsTemplateWorkspaceDirty = false;
+            return;
+        }
+
+        var json = SerializeWorkspacePersistencePayload();
+        var dirty = !string.Equals(json, _workspacePersistenceBaselineJson, StringComparison.Ordinal);
+        if (dirty == IsTemplateWorkspaceDirty)
+            return;
+
+        IsTemplateWorkspaceDirty = dirty;
+    }
+
+    /// <summary>Persists the current workspace template using the same payload as the profile panel Save action.</summary>
+    public bool TryPersistWorkspaceTemplateToDisk(out string? errorMessage)
+    {
+        errorMessage = null;
+        if (SelectedTemplate is null)
+        {
+            errorMessage = AppUiLocalization.GetString("WorkspaceSave_NoTemplateSelected");
+            return false;
+        }
+
+        try
+        {
+            _suppressProfileSelectionInterlock = true;
+
+            var template = BuildWorkspaceTemplateSnapshot();
+            if (template is null)
+            {
+                errorMessage = AppUiLocalization.GetString("WorkspaceSave_BuildSnapshotFailed");
+                return false;
+            }
+
+            var originalStorageKey = SelectedTemplate.StorageKey;
+            _profileService.SaveTemplate(template);
+
+            var newStorageKey = TemplateStorageKey.Format(template.TemplateCatalogFolder, template.ProfileId);
+
+            if (!string.Equals(originalStorageKey, newStorageKey, StringComparison.OrdinalIgnoreCase))
+                _profileService.DeleteTemplate(originalStorageKey);
+
+            RefreshTemplates(newStorageKey);
+            CaptureWorkspacePersistenceBaseline();
+            RefreshTemplateWorkspaceDirtyState();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            _suppressProfileSelectionInterlock = false;
+        }
+    }
+
+    /// <summary>Reload from disk without changing the selected template row (discard in-memory edits).</summary>
+    public bool ConfirmDiscardOrSaveBeforeReloadFromDisk()
+    {
+        if (!IsTemplateWorkspaceDirty)
+            return true;
+
+        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
+        var message = AppUiLocalization.GetString("WorkspaceUnsavedReloadPrompt");
+        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        switch (result)
+        {
+            case MessageBoxResult.Yes:
+                return TryPersistWorkspaceTemplateToDisk(out _);
+            case MessageBoxResult.No:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Confirm before refreshing the template list from disk while the editor may have unsaved edits.</summary>
+    public bool ConfirmDiscardOrSaveBeforeTemplateMetadataRefresh()
+    {
+        if (!IsTemplateWorkspaceDirty)
+            return true;
+
+        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
+        var message = AppUiLocalization.GetString("WorkspaceUnsavedRefreshTemplatesListPrompt");
+        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        switch (result)
+        {
+            case MessageBoxResult.Yes:
+                return TryPersistWorkspaceTemplateToDisk(out _);
+            case MessageBoxResult.No:
+                ReloadSelectedTemplate();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool IProfileSelectionInterlock.AllowSelectTemplate(TemplateOption? current, TemplateOption? proposed)
+    {
+        if (_suppressProfileSelectionInterlock)
+            return true;
+        if (!IsTemplateWorkspaceDirty)
+            return true;
+
+        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
+        var message = AppUiLocalization.GetString("WorkspaceUnsavedSwitchPrompt");
+        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        switch (result)
+        {
+            case MessageBoxResult.Yes:
+                if (!TryPersistWorkspaceTemplateToDisk(out var err))
+                {
+                    if (!string.IsNullOrWhiteSpace(err))
+                    {
+                        MessageBox.Show(
+                            string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
+                            title,
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+
+                    return false;
+                }
+
+                return true;
+            case MessageBoxResult.No:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void IProfileSelectionInterlock.NotifySelectedTemplateBindingRefresh()
+    {
+        if (_dispatcher.CheckAccess())
+            OnPropertyChanged(nameof(SelectedTemplate));
+        else
+            _dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(SelectedTemplate)));
+    }
+
     private GameProfileTemplate? BuildWorkspaceTemplateSnapshot()
     {
         if (SelectedTemplate is null)
@@ -869,7 +1063,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         RuleClipboard.RefreshCommandStates();
     }
 
-    private void OnTemplateEditHistoryChanged(object? sender, EventArgs e) => RuleClipboard?.RefreshCommandStates();
+    private void OnTemplateEditHistoryChanged(object? sender, EventArgs e)
+    {
+        RuleClipboard?.RefreshCommandStates();
+        ScheduleTemplateWorkspaceDirtyRefresh();
+    }
 
     private static string? NormalizeWorkspaceOptionalField(string? value)
     {
@@ -975,6 +1173,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var clipboardService = new ProfileRuleClipboardService();
         RuleClipboard = new ProfileRuleClipboardViewModel(this, clipboardService, _appToastService, _templateEditHistory);
         _templateEditHistory.HistoryChanged += OnTemplateEditHistoryChanged;
+        _workspaceMutationWatcher = new WorkspaceObservableMutationWatcher(
+            Mappings,
+            KeyboardActions,
+            RadialMenus,
+            ScheduleTemplateWorkspaceDirtyRefresh);
         MappingEditorPanel.PropertyChanged += OnMappingEditorClipboardRelatedPropertyChanged;
         CatalogPanel.PropertyChanged += OnCatalogPanelClipboardRelatedPropertyChanged;
         RefreshControllerVisualOverlays();

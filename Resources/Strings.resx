@@ -1374,4 +1374,53 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityUpload_Error_UploadFailedGeneric" xml:space="preserve">
     <value>Upload failed.</value>
   </data>
+  <data name="WorkspaceUnsavedChangesTitle" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="WorkspaceUnsavedIndicatorShort" xml:space="preserve">
+    <value>Unsaved</value>
+  </data>
+  <data name="WorkspaceUnsavedIndicator" xml:space="preserve">
+    <value>You have unsaved changes — click Save profile to keep them.</value>
+  </data>
+  <data name="WorkspaceUnsavedSwitchPrompt" xml:space="preserve">
+    <value>The current template has unsaved changes. Save before switching to another template?
+
+Yes — Save and continue
+No — Discard changes and continue
+Cancel — Stay on this template</value>
+  </data>
+  <data name="WorkspaceUnsavedReloadPrompt" xml:space="preserve">
+    <value>Reload this template from disk and discard unsaved edits in the editor?
+
+Yes — Save to disk first, then reload
+No — Discard unsaved edits and reload
+Cancel — Keep editing</value>
+  </data>
+  <data name="WorkspaceUnsavedRefreshTemplatesListPrompt" xml:space="preserve">
+    <value>Refresh the template list from disk. Unsaved edits in the current template may be lost unless you save.
+
+Yes — Save the current template first
+No — Discard unsaved edits, then refresh the list
+Cancel — Do not refresh</value>
+  </data>
+  <data name="WorkspaceUnsavedExitPrompt" xml:space="preserve">
+    <value>Quit without saving changes to the current template?
+
+Yes — Save and exit
+No — Exit and discard changes
+Cancel — Keep working</value>
+  </data>
+  <data name="WorkspaceSave_NoTemplateSelected" xml:space="preserve">
+    <value>No template is selected.</value>
+  </data>
+  <data name="WorkspaceSave_BuildSnapshotFailed" xml:space="preserve">
+    <value>Could not build a template snapshot.</value>
+  </data>
+  <data name="WorkspaceSave_FailedMessage" xml:space="preserve">
+    <value>Could not save: {0}</value>
+  </data>
+  <data name="WorkspaceSave_ErrorTitle" xml:space="preserve">
+    <value>Save failed</value>
+  </data>
 </root>

@@ -27,11 +27,47 @@ public partial class ProfileOrchestrator : ObservableObject
     private readonly IProcessTargetService _processTargetService;
     private string? _lastLoadedTemplateGroupIdForTargetInherit;
 
+    /// <summary>Optional gate for template switches (unsaved workspace prompts).</summary>
+    public IProfileSelectionInterlock? SelectionInterlock { get; set; }
+
     [ObservableProperty]
     private ObservableCollection<TemplateOption> _availableTemplates;
 
-    [ObservableProperty]
     private TemplateOption? _selectedTemplate;
+
+    public TemplateOption? SelectedTemplate
+    {
+        get => _selectedTemplate;
+        set
+        {
+            if (TemplateOption.MatchesStorageKey(_selectedTemplate, value))
+            {
+                if (!ReferenceEquals(_selectedTemplate, value) && value is not null)
+                    SetProperty(ref _selectedTemplate, value);
+                return;
+            }
+
+            if (SelectionInterlock?.AllowSelectTemplate(_selectedTemplate, value) == false)
+            {
+                SelectionInterlock.NotifySelectedTemplateBindingRefresh();
+                return;
+            }
+
+            if (!SetProperty(ref _selectedTemplate, value))
+                return;
+
+            try
+            {
+                App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.StorageKey})");
+                LoadSelectedTemplate();
+                _profileService.PersistLastSelectedTemplateProfileId(_selectedTemplate?.StorageKey);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
+            }
+        }
+    }
 
     [ObservableProperty]
     private string _currentTemplateDisplayName = string.Empty;
@@ -67,20 +103,6 @@ public partial class ProfileOrchestrator : ObservableObject
         AvailableTemplates = _profileService.AvailableTemplates;
         
         SelectedTemplate = _profileService.ReloadTemplates(_profileService.LastSelectedTemplateProfileId);
-    }
-
-    partial void OnSelectedTemplateChanged(TemplateOption? value)
-    {
-        try
-        {
-            App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.StorageKey})");
-            LoadSelectedTemplate();
-            _profileService.PersistLastSelectedTemplateProfileId(value?.StorageKey);
-        }
-        catch (Exception ex)
-        {
-            App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
-        }
     }
 
     public void LoadSelectedTemplate()
