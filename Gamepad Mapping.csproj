@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <Version>2.3.1-beta</Version>
+    <Company>Gamepad Mapping</Company>
+    <Product>Gamepad Mapping</Product>
+    <AssemblyTitle>Gamepad Mapping</AssemblyTitle>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
@@ -9,8 +12,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <StartupObject>Gamepad_Mapping.Program</StartupObject>
     <ApplicationIcon>Assets\Icons\Gamepad Mapping.ico</ApplicationIcon>
   </PropertyGroup>

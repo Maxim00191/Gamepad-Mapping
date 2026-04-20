@@ -22,6 +22,7 @@ using System.Linq;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Core;
+using System.Windows.Interop;
 
 namespace Gamepad_Mapping;
 
@@ -41,6 +42,7 @@ public partial class App : Application
     /// <summary>Singleton corner toast API; safe to call from background threads (marshals to the UI thread).</summary>
     public static IAppToastService ToastService { get; private set; } = null!;
     public static UpdateSuccessArgs? LaunchUpdateSuccessArgs { get; set; }
+    private IWindowTitleBarThemeService _windowTitleBarThemeService = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -63,6 +65,8 @@ public partial class App : Application
 #endif
             LaunchUpdateSuccessArgs = ParseUpdateSuccessArgs(e.Args);
             ApplyLanguage();
+            _windowTitleBarThemeService = new WindowTitleBarThemeService();
+            EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnWindowLoaded));
             ApplyChromeTheme();
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
             CheckStartupElevationCompatibility();
@@ -169,19 +173,64 @@ public partial class App : Application
         var settings = SettingsService.LoadSettings();
         var useLightTheme = UiThemeMode.ResolveToLight(settings.UiTheme, ReadUseLightTheme);
         UsesLightTheme = useLightTheme;
+        var chromeTheme = useLightTheme ? AppChromeTheme.Light : AppChromeTheme.Dark;
 
         if (useLightTheme)
         {
-            AppChromeTheme.Light.ApplyTo(Resources);
+            chromeTheme.ApplyTo(Resources);
             VisualWorkspaceTheme.Apply(Resources, light: true);
         }
         else
         {
-            AppChromeTheme.Dark.ApplyTo(Resources);
+            chromeTheme.ApplyTo(Resources);
             VisualWorkspaceTheme.Apply(Resources, light: false);
         }
 
+        ApplyTitleBarThemeToOpenWindows(chromeTheme, useLightTheme);
         ThemeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnWindowLoaded(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is not Window window)
+            return;
+
+        var theme = UsesLightTheme ? AppChromeTheme.Light : AppChromeTheme.Dark;
+        ApplyTitleBarTheme(window, theme, UsesLightTheme);
+    }
+
+    private void ApplyTitleBarThemeToOpenWindows(AppChromeTheme theme, bool usesLightTheme)
+    {
+        foreach (var window in Current.Windows.OfType<Window>())
+            ApplyTitleBarTheme(window, theme, usesLightTheme);
+    }
+
+    private void ApplyTitleBarTheme(Window window, AppChromeTheme theme, bool usesLightTheme)
+    {
+        if (new WindowInteropHelper(window).Handle != IntPtr.Zero)
+        {
+            _windowTitleBarThemeService.TryApply(
+                window,
+                theme.TitleBarBackground,
+                theme.TitleBarForeground,
+                theme.TitleBarBorder,
+                usesLightTheme);
+            return;
+        }
+
+        void ApplyWhenReady(object? _, EventArgs __)
+        {
+            window.SourceInitialized -= ApplyWhenReady;
+            _windowTitleBarThemeService.TryApply(
+                window,
+                theme.TitleBarBackground,
+                theme.TitleBarForeground,
+                theme.TitleBarBorder,
+                usesLightTheme);
+        }
+
+        window.SourceInitialized -= ApplyWhenReady;
+        window.SourceInitialized += ApplyWhenReady;
     }
 
     private static bool ReadUseLightTheme()

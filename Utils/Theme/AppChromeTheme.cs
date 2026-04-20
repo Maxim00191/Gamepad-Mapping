@@ -16,6 +16,9 @@ internal sealed class AppChromeTheme
         Color background,
         Color surface,
         Color border,
+        Color titleBarBackground,
+        Color titleBarForeground,
+        Color titleBarBorder,
         Color text,
         Color secondaryText,
         Color accentText,
@@ -42,6 +45,9 @@ internal sealed class AppChromeTheme
         Background = background;
         Surface = surface;
         Border = border;
+        TitleBarBackground = titleBarBackground;
+        TitleBarForeground = titleBarForeground;
+        TitleBarBorder = titleBarBorder;
         Text = text;
         SecondaryText = secondaryText;
         AccentText = accentText;
@@ -69,6 +75,9 @@ internal sealed class AppChromeTheme
     public Color Background { get; }
     public Color Surface { get; }
     public Color Border { get; }
+    public Color TitleBarBackground { get; }
+    public Color TitleBarForeground { get; }
+    public Color TitleBarBorder { get; }
     public Color Text { get; }
     public Color SecondaryText { get; }
     public Color AccentText { get; }
@@ -97,6 +106,9 @@ internal sealed class AppChromeTheme
         background: Color.FromRgb(0xE6, 0xE3, 0xDC),
         surface: Color.FromRgb(0xED, 0xEA, 0xE3),
         border: Color.FromRgb(0x50, 0x4C, 0x46),
+        titleBarBackground: Color.FromRgb(0xED, 0xEA, 0xE3),
+        titleBarForeground: Color.FromRgb(0x24, 0x22, 0x1E),
+        titleBarBorder: Color.FromRgb(0xA8, 0xA2, 0x98),
         text: Color.FromRgb(0x24, 0x22, 0x1E),
         secondaryText: Color.FromRgb(0x73, 0x6E, 0x66),
         accentText: Color.FromRgb(0x8A, 0x60, 0x18),
@@ -124,6 +136,9 @@ internal sealed class AppChromeTheme
         background: Color.FromRgb(24, 24, 27),
         surface: Color.FromRgb(35, 35, 40),
         border: Color.FromRgb(95, 95, 105),
+        titleBarBackground: Color.FromRgb(35, 35, 40),
+        titleBarForeground: Color.FromRgb(238, 238, 242),
+        titleBarBorder: Color.FromRgb(72, 72, 84),
         text: Color.FromRgb(238, 238, 242),
         secondaryText: Color.FromRgb(185, 185, 195),
         accentText: Color.FromRgb(255, 135, 95),
