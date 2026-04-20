@@ -7,6 +7,14 @@ namespace GamepadMapperGUI.Core;
 
 internal static class ComboHudBuilder
 {
+    private static string? EffectiveHudDescription(MappingEntry mapping)
+    {
+        var r = (mapping.ResolvedCatalogDescription ?? string.Empty).Trim();
+        if (r.Length > 0)
+            return r;
+        return string.IsNullOrWhiteSpace(mapping.Description) ? null : mapping.Description.Trim();
+    }
+
     /// <summary>Whether a modifier combo HUD would have rows if output dispatch were allowed (ignores the dispatch gate).</summary>
     internal static bool HasModifierPrefixHudContent(
         IReadOnlyCollection<GamepadButtons> activeButtons,
@@ -68,10 +76,11 @@ internal static class ComboHudBuilder
 
         var lines = new List<ComboHudLine>();
         var shortSource = FormatHudChordLabel(session.SourceToken);
-        if (!string.IsNullOrWhiteSpace(holdEntry?.Description))
+        var holdDesc = holdEntry is not null ? EffectiveHudDescription(holdEntry) : null;
+        if (!string.IsNullOrWhiteSpace(holdDesc))
         {
             var content = $"{shortSource} · tap {FormatHudOutput(session.ShortKeyToken)} · hold {session.HoldThresholdMs} ms → {FormatHudOutput(session.HoldKeyToken)}";
-            lines.Add(new ComboHudLine(holdEntry.Description.Trim(), content));
+            lines.Add(new ComboHudLine(holdDesc, content));
         }
         else
         {
@@ -120,7 +129,7 @@ internal static class ComboHudBuilder
             var spec = ChordResolver.ChordSpecificity(chord, reqRt, reqLt);
             var comboLabel = FormatHudChordLabel(mapping.From.Value ?? normTok);
             var keyPart = FormatHudMappingOutput(mapping);
-            var descPart = mapping.Description?.Trim();
+            var descPart = EffectiveHudDescription(mapping);
 
             string? contentLine = null;
             if (!string.IsNullOrEmpty(keyPart))

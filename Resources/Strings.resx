@@ -1230,4 +1230,197 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityUpload_TextPolicy_FieldViolationWithFieldText" xml:space="preserve">
     <value>{0} contains text that is not allowed for community uploads. Field content: {1}</value>
   </data>
+  <data name="ProfileRuleClipboard_Copy" xml:space="preserve">
+    <value>Copy rule</value>
+  </data>
+  <data name="ProfileRuleClipboard_Paste" xml:space="preserve">
+    <value>Paste rule</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyTooltip" xml:space="preserve">
+    <value>Copy the selected row(s) to the app rule clipboard (Ctrl+C). You can paste after switching templates.</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteTooltip" xml:space="preserve">
+    <value>Paste the copied rule(s) into this template (Ctrl+V). Duplicate catalog IDs are renamed automatically.</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyFailedTitle" xml:space="preserve">
+    <value>Copy failed</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
+    <value>Paste failed</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
+    <value>The copied rule data could not be read.</value>
+  </data>
+  <data name="ProfileRuleClipboard_UnsupportedPayload" xml:space="preserve">
+    <value>That clipboard entry is not supported here.</value>
+  </data>
+  <data name="ProfileRuleClipboard_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="ProfileRuleClipboard_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="ProfileRuleClipboard_UndoTooltip" xml:space="preserve">
+    <value>Undo the last change to this template (Ctrl+Z).</value>
+  </data>
+  <data name="ProfileRuleClipboard_RedoTooltip" xml:space="preserve">
+    <value>Redo a change to this template (Ctrl+Shift+Z).</value>
+  </data>
+  <data name="KeyboardActionPicker_OptionFormat" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="CatalogDescriptionOptionalEnglish" xml:space="preserve">
+    <value>English description (optional)</value>
+  </data>
+  <data name="CatalogDescriptionOptionalChinese" xml:space="preserve">
+    <value>Chinese description (optional)</value>
+  </data>
+  <data name="CatalogColumnHudLabelChinese" xml:space="preserve">
+    <value>HUD line (Chinese)</value>
+  </data>
+  <data name="CatalogColumnHudLabelEnglish" xml:space="preserve">
+    <value>HUD line (English, optional)</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_MappingOutput" xml:space="preserve">
+    <value>Press a key for the mapping output (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_MappingHoldOutput" xml:space="preserve">
+    <value>Press the HOLD output key (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_CatalogActionOutput" xml:space="preserve">
+    <value>Press a key for the action output (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_ItemCycleForward" xml:space="preserve">
+    <value>Press the loop-forward output key (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_ItemCycleBackward" xml:space="preserve">
+    <value>Press the loop-back output key (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_NewBindingOutput" xml:space="preserve">
+    <value>Press a key for the new key binding (Esc to cancel).</value>
+  </data>
+  <data name="KeyboardCapture_Prompt_NewBindingHoldOutput" xml:space="preserve">
+    <value>Press the HOLD output key for the new binding (Esc to cancel).</value>
+  </data>
+  <data name="ProfileTabVisualEditor" xml:space="preserve">
+    <value>Visual editor</value>
+  </data>
+  <data name="ProfileTabCommunity" xml:space="preserve">
+    <value>Community</value>
+  </data>
+  <data name="ProfileCatalogValidationWarningsTitle" xml:space="preserve">
+    <value>Validation warnings</value>
+  </data>
+  <data name="CommunityCatalog_AuthorByLine" xml:space="preserve">
+    <value>By {0}</value>
+  </data>
+  <data name="CommunityCatalog_LoadingTemplates" xml:space="preserve">
+    <value>Loading community templates…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloading" xml:space="preserve">
+    <value>Downloading {0}…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadCanceled" xml:space="preserve">
+    <value>Download canceled for {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloaded" xml:space="preserve">
+    <value>Successfully downloaded {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadFailed" xml:space="preserve">
+    <value>Failed to download {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDownloadError" xml:space="preserve">
+    <value>Error downloading {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleting" xml:space="preserve">
+    <value>Deleting {0}…</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleted" xml:space="preserve">
+    <value>Deleted {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleteNotFound" xml:space="preserve">
+    <value>Template not found locally: {0}.</value>
+  </data>
+  <data name="CommunityCatalog_StatusDeleteError" xml:space="preserve">
+    <value>Error deleting {0}.</value>
+  </data>
+  <data name="CommunityCatalog_UploadSelectTemplateFirst" xml:space="preserve">
+    <value>Select a template in the profile panel before uploading.</value>
+  </data>
+  <data name="CommunityCatalog_UploadCollectFailed" xml:space="preserve">
+    <value>Could not collect templates: {0}</value>
+  </data>
+  <data name="CommunityCatalog_UploadNoTemplates" xml:space="preserve">
+    <value>No templates to upload.</value>
+  </data>
+  <data name="CommunityCatalog_StatusUploading" xml:space="preserve">
+    <value>Uploading…</value>
+  </data>
+  <data name="CommunityCatalog_StatusPullRequestCreated" xml:space="preserve">
+    <value>Pull request created.</value>
+  </data>
+  <data name="CommunityCatalog_StatusPullRequestWithUrl" xml:space="preserve">
+    <value>Pull request: {0}</value>
+  </data>
+  <data name="CommunityCatalog_StatusUploadFailed" xml:space="preserve">
+    <value>Upload failed: {0}</value>
+  </data>
+  <data name="CommunityUpload_Error_UploadFailedGeneric" xml:space="preserve">
+    <value>Upload failed.</value>
+  </data>
+  <data name="WorkspaceUnsavedChangesTitle" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="WorkspaceUnsavedIndicatorShort" xml:space="preserve">
+    <value>Unsaved</value>
+  </data>
+  <data name="WorkspaceUnsavedIndicator" xml:space="preserve">
+    <value>You have unsaved changes — click Save profile to keep them.</value>
+  </data>
+  <data name="WorkspaceUnsavedSwitchPrompt" xml:space="preserve">
+    <value>The current template has unsaved changes. Save before switching to another template?
+
+Yes — Save and continue
+No — Discard changes and continue
+Cancel — Stay on this template</value>
+  </data>
+  <data name="WorkspaceUnsavedReloadPrompt" xml:space="preserve">
+    <value>Reload this template from disk and discard unsaved edits in the editor?
+
+Yes — Save to disk first, then reload
+No — Discard unsaved edits and reload
+Cancel — Keep editing</value>
+  </data>
+  <data name="WorkspaceUnsavedRefreshTemplatesListPrompt" xml:space="preserve">
+    <value>Refresh the template list from disk. Unsaved edits in the current template may be lost unless you save.
+
+Yes — Save the current template first
+No — Discard unsaved edits, then refresh the list
+Cancel — Do not refresh</value>
+  </data>
+  <data name="WorkspaceUnsavedExitPrompt" xml:space="preserve">
+    <value>Quit without saving changes to the current template?
+
+Yes — Save and exit
+No — Exit and discard changes
+Cancel — Keep working</value>
+  </data>
+  <data name="WorkspaceSave_NoTemplateSelected" xml:space="preserve">
+    <value>No template is selected.</value>
+  </data>
+  <data name="WorkspaceSave_BuildSnapshotFailed" xml:space="preserve">
+    <value>Could not build a template snapshot.</value>
+  </data>
+  <data name="WorkspaceSave_FailedMessage" xml:space="preserve">
+    <value>Could not save: {0}</value>
+  </data>
+  <data name="WorkspaceSave_ErrorTitle" xml:space="preserve">
+    <value>Save failed</value>
+  </data>
 </root>

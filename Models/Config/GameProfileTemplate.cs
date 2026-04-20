@@ -34,6 +34,10 @@ public class GameProfileTemplate : IKeyboardActionCatalog
     [JsonProperty("templateCatalogFolder", NullValueHandling = NullValueHandling.Ignore)]
     public string? TemplateCatalogFolder { get; set; }
 
+    /// <summary>Optional per-culture labels for the on-disk catalog folder segment (same keys as <see cref="DisplayNames"/>).</summary>
+    [JsonProperty("templateCatalogFolderNames", NullValueHandling = NullValueHandling.Ignore)]
+    public Dictionary<string, string>? TemplateCatalogFolderNames { get; set; }
+
     // Backward compatibility for older templates that used "gameId".
     [JsonProperty("gameId")]
     private string LegacyGameId

@@ -1,10 +1,13 @@
-﻿{
+{
   "schemaVersion": 1,
   "profileId": "fight-maxim0191",
   "templateGroupId": "roco-kingdom-world-maxim0191",
   "EffectiveTemplateGroupId": "roco-kingdom-world-maxim0191",
   "templateCatalogFolder": "Roco Kingdom",
-  "displayName": "洛克王国世界·战斗 - maxim0191",
+  "displayName": "Roco Kingdom World · Battle – maxim0191",
+  "displayNames": {
+    "zh-CN": "洛克王国世界·战斗 - maxim0191"
+  },
   "author": "Maxim0191",
   "displayNameKey": "",
   "targetProcessName": "NRC-Win64-Shipping",
@@ -19,7 +22,7 @@
     {
       "id": "a--battle-move-select-left-a",
       "keyboardKey": "A",
-      "description": "战斗：向左选择(A)",
+      "description": "Battle: move selection left (A)",
       "descriptions": {
         "zh-CN": "战斗：向左选择(A)"
       }
@@ -27,7 +30,7 @@
     {
       "id": "d--battle-move-select-right-d",
       "keyboardKey": "D",
-      "description": "战斗：向右选择(D)",
+      "description": "Battle: move selection right (D)",
       "descriptions": {
         "zh-CN": "战斗：向右选择(D)"
       }
@@ -35,7 +38,7 @@
     {
       "id": "mousex--rotate-camera-horizontal",
       "keyboardKey": "MouseX",
-      "description": "视角：水平",
+      "description": "Camera: yaw",
       "descriptions": {
         "zh-CN": "视角：水平"
       }
@@ -43,7 +46,7 @@
     {
       "id": "mousey--rotate-camera-vertical",
       "keyboardKey": "MouseY",
-      "description": "视角：垂直",
+      "description": "Camera: pitch",
       "descriptions": {
         "zh-CN": "视角：垂直"
       }
@@ -51,7 +54,7 @@
     {
       "id": "space--battle-confirm-selection-space",
       "keyboardKey": "Space",
-      "description": "战斗：确认选择(空格)",
+      "description": "Battle: confirm (Space)",
       "descriptions": {
         "zh-CN": "战斗：确认选择(空格)"
       }
@@ -59,7 +62,7 @@
     {
       "id": "escape--battle-back-cancel-esc",
       "keyboardKey": "Escape",
-      "description": "战斗：返回/取消(Esc)",
+      "description": "Battle: back / cancel (Esc)",
       "descriptions": {
         "zh-CN": "战斗：返回/取消(Esc)"
       }
@@ -67,7 +70,7 @@
     {
       "id": "d1--battle-act-1",
       "keyboardKey": "D1",
-      "description": "战斗：行为1 (1)",
+      "description": "Battle: action 1 (1)",
       "descriptions": {
         "zh-CN": "战斗：行为1 (1)"
       }
@@ -75,7 +78,7 @@
     {
       "id": "d2--battle-act-2",
       "keyboardKey": "D2",
-      "description": "战斗：行为2 (2)",
+      "description": "Battle: action 2 (2)",
       "descriptions": {
         "zh-CN": "战斗：行为2 (2)"
       }
@@ -83,7 +86,7 @@
     {
       "id": "d3--battle-act-3",
       "keyboardKey": "D3",
-      "description": "战斗：行为3 (3)",
+      "description": "Battle: action 3 (3)",
       "descriptions": {
         "zh-CN": "战斗：行为3 (3)"
       }
@@ -91,7 +94,7 @@
     {
       "id": "d4--battle-act-4",
       "keyboardKey": "D4",
-      "description": "战斗：行为4 (4)",
+      "description": "Battle: action 4 (4)",
       "descriptions": {
         "zh-CN": "战斗：行为4 (4)"
       }
@@ -99,7 +102,7 @@
     {
       "id": "d5--battle-act-5",
       "keyboardKey": "D5",
-      "description": "战斗：行为5 (5)",
+      "description": "Battle: action 5 (5)",
       "descriptions": {
         "zh-CN": "战斗：行为5 (5)"
       }
@@ -107,7 +110,7 @@
     {
       "id": "d6--battle-act-6",
       "keyboardKey": "D6",
-      "description": "战斗：行为6 (6)",
+      "description": "Battle: action 6 (6)",
       "descriptions": {
         "zh-CN": "战斗：行为6 (6)"
       }
@@ -115,7 +118,7 @@
     {
       "id": "leftclick--primary-action-mouse-left-click",
       "keyboardKey": "LeftClick",
-      "description": "主要操作（鼠标左键单击）",
+      "description": "Primary click (left mouse button)",
       "descriptions": {
         "zh-CN": "主要操作（鼠标左键单击）"
       }
@@ -123,7 +126,7 @@
     {
       "id": "q--ui-open-bag-q",
       "keyboardKey": "Q",
-      "description": "界面：打开背包 (Q)",
+      "description": "UI: bag (Q)",
       "descriptions": {
         "zh-CN": "界面：打开背包 (Q)"
       }
@@ -131,7 +134,7 @@
     {
       "id": "w--ui-open-capture-screen-w",
       "keyboardKey": "W",
-      "description": "界面：打开捕捉界面 (W)",
+      "description": "UI: capture (W)",
       "descriptions": {
         "zh-CN": "界面：打开捕捉界面 (W)"
       }
@@ -139,7 +142,7 @@
     {
       "id": "e--ui-open-swap-pet-screen-e",
       "keyboardKey": "E",
-      "description": "界面：打开更换精灵界面 (E)",
+      "description": "UI: swap pet (E)",
       "descriptions": {
         "zh-CN": "界面：打开更换精灵界面 (E)"
       }
@@ -147,7 +150,7 @@
     {
       "id": "r--ui-open-skills-screen-r",
       "keyboardKey": "R",
-      "description": "界面：打开技能界面 (R)",
+      "description": "UI: skills (R)",
       "descriptions": {
         "zh-CN": "界面：打开技能界面 (R)"
       }
@@ -155,7 +158,7 @@
     {
       "id": "t--battle-switch-release-pet-t",
       "keyboardKey": "T",
-      "description": "战斗：切换释放技能的精灵 (T)",
+      "description": "Battle: switch attacking pet (T)",
       "descriptions": {
         "zh-CN": "战斗：切换释放技能的精灵 (T)"
       }
@@ -163,7 +166,7 @@
     {
       "id": "x--battle-gather-energy-tap-x-clear",
       "keyboardKey": "X",
-      "description": "战斗：聚能(短按X)；清空技能链(长按Z)",
+      "description": "Battle: gather energy (tap X); clear skill chain (hold Z)",
       "descriptions": {
         "zh-CN": "战斗：聚能(短按X)；清空技能链(长按Z)"
       }
@@ -171,7 +174,7 @@
     {
       "id": "tab--battle-view-battle-log-tab",
       "keyboardKey": "Tab",
-      "description": "战斗：查看对战记录 (Tab)",
+      "description": "Battle: battle log (Tab)",
       "descriptions": {
         "zh-CN": "战斗：查看对战记录 (Tab)"
       }
@@ -179,7 +182,7 @@
     {
       "id": "enter--battle-open-chat-enter",
       "keyboardKey": "Enter",
-      "description": "战斗：打开聊天界面 (Enter)",
+      "description": "Battle: open chat (Enter)",
       "descriptions": {
         "zh-CN": "战斗：打开聊天界面 (Enter)"
       }
@@ -187,7 +190,7 @@
     {
       "id": "leftalt--reveal-cursor",
       "keyboardKey": "LeftAlt",
-      "description": "显示光标",
+      "description": "Show cursor",
       "descriptions": {
         "zh-CN": "显示光标"
       }
@@ -197,16 +200,16 @@
       "templateToggle": {
         "alternateProfileId": "explore-maxim0191"
       },
-      "description": "切换至探索模式",
+      "description": "Switch to exploration (open world)",
       "descriptions": {
-        "zh-CN": "切换至探索模式"
+        "zh-CN": "切换至探索模式（大世界）"
       }
     }
   ],
   "radialMenus": [
     {
       "id": "fight_selection_wheel",
-      "displayName": "战斗选择",
+      "displayName": "Battle actions",
       "displayNames": {
         "zh-CN": "战斗选择"
       },
@@ -214,42 +217,42 @@
       "items": [
         {
           "actionId": "d1--battle-act-1",
-          "label": "行动1",
+          "label": "Action 1",
           "labels": {
             "zh-CN": "行动1"
           }
         },
         {
           "actionId": "d2--battle-act-2",
-          "label": "行动2",
+          "label": "Action 2",
           "labels": {
             "zh-CN": "行动2"
           }
         },
         {
           "actionId": "d3--battle-act-3",
-          "label": "行动3",
+          "label": "Action 3",
           "labels": {
             "zh-CN": "行动3"
           }
         },
         {
           "actionId": "d4--battle-act-4",
-          "label": "行动4",
+          "label": "Action 4",
           "labels": {
             "zh-CN": "行动4"
           }
         },
         {
           "actionId": "d5--battle-act-5",
-          "label": "行动5",
+          "label": "Action 5",
           "labels": {
             "zh-CN": "行动5"
           }
         },
         {
           "actionId": "d6--battle-act-6",
-          "label": "行动6",
+          "label": "Action 6",
           "labels": {
             "zh-CN": "行动6"
           }
@@ -258,7 +261,7 @@
     },
     {
       "id": "fight_mode_wheel",
-      "displayName": "战斗模式",
+      "displayName": "Battle menus",
       "displayNames": {
         "zh-CN": "战斗模式"
       },
@@ -266,49 +269,49 @@
       "items": [
         {
           "actionId": "q--ui-open-bag-q",
-          "label": "背包",
+          "label": "Bag",
           "labels": {
             "zh-CN": "背包"
           }
         },
         {
           "actionId": "w--ui-open-capture-screen-w",
-          "label": "捕捉界面",
+          "label": "Capture",
           "labels": {
             "zh-CN": "捕捉界面"
           }
         },
         {
           "actionId": "e--ui-open-swap-pet-screen-e",
-          "label": "更换精灵界面",
+          "label": "Swap pet",
           "labels": {
             "zh-CN": "更换精灵界面"
           }
         },
         {
           "actionId": "r--ui-open-skills-screen-r",
-          "label": "技能界面",
+          "label": "Skills",
           "labels": {
             "zh-CN": "技能界面"
           }
         },
         {
           "actionId": "t--battle-switch-release-pet-t",
-          "label": "切换释放技能的精灵",
+          "label": "Attacking pet (skills)",
           "labels": {
             "zh-CN": "切换释放技能的精灵"
           }
         },
         {
           "actionId": "tab--battle-view-battle-log-tab",
-          "label": "对战记录",
+          "label": "Battle log",
           "labels": {
             "zh-CN": "对战记录"
           }
         },
         {
           "actionId": "enter--battle-open-chat-enter",
-          "label": "聊天",
+          "label": "Chat",
           "labels": {
             "zh-CN": "聊天"
           }
@@ -323,11 +326,14 @@
         "value": "Left"
       },
       "actionId": "a--battle-move-select-left-a",
-      "description": "战斗：向左选择(A)",
+      "description": "Battle: move selection left (A)",
       "trigger": "Pressed",
       "analogThreshold": 0.25,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：向左选择(A)"
+      }
     },
     {
       "from": {
@@ -335,11 +341,14 @@
         "value": "Right"
       },
       "actionId": "d--battle-move-select-right-d",
-      "description": "战斗：向右选择(D)",
+      "description": "Battle: move selection right (D)",
       "trigger": "Pressed",
       "analogThreshold": 0.25,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：向右选择(D)"
+      }
     },
     {
       "from": {
@@ -347,11 +356,14 @@
         "value": "X"
       },
       "actionId": "mousex--rotate-camera-horizontal",
-      "description": "视角：水平",
+      "description": "Camera: yaw",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "视角：水平"
+      }
     },
     {
       "from": {
@@ -359,11 +371,14 @@
         "value": "Y"
       },
       "actionId": "mousey--rotate-camera-vertical",
-      "description": "视角：垂直",
+      "description": "Camera: pitch",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "视角：垂直"
+      }
     },
     {
       "from": {
@@ -371,11 +386,14 @@
         "value": "A"
       },
       "actionId": "space--battle-confirm-selection-space",
-      "description": "战斗：确认选择(空格)",
+      "description": "Battle: confirm (Space)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：确认选择(空格)"
+      }
     },
     {
       "from": {
@@ -383,11 +401,14 @@
         "value": "B"
       },
       "actionId": "escape--battle-back-cancel-esc",
-      "description": "战斗：返回/取消(Esc)",
+      "description": "Battle: back / cancel (Esc)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：返回/取消(Esc)"
+      }
     },
     {
       "from": {
@@ -395,7 +416,7 @@
         "value": "DPadUp"
       },
       "keyboardKey": "",
-      "description": "战斗：循环选择(上一个)",
+      "description": "Battle: cycle selection (previous)",
       "descriptions": {
         "zh-CN": "战斗：循环选择(上一个)"
       },
@@ -414,7 +435,7 @@
         "value": "DPadDown"
       },
       "keyboardKey": "",
-      "description": "战斗：循环选择(下一个)",
+      "description": "Battle: cycle selection (next)",
       "descriptions": {
         "zh-CN": "战斗：循环选择(下一个)"
       },
@@ -432,11 +453,14 @@
         "value": "RightShoulder"
       },
       "actionId": "leftclick--primary-action-mouse-left-click",
-      "description": "主要操作（鼠标左键单击）",
+      "description": "Primary click (left mouse button)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "主要操作（鼠标左键单击）"
+      }
     },
     {
       "from": {
@@ -444,11 +468,14 @@
         "value": "Y"
       },
       "actionId": "t--battle-switch-release-pet-t",
-      "description": "战斗：切换释放技能的精灵 (T)",
+      "description": "Battle: switch attacking pet (T)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：切换释放技能的精灵 (T)"
+      }
     },
     {
       "from": {
@@ -456,11 +483,14 @@
         "value": "X"
       },
       "actionId": "x--battle-gather-energy-tap-x-clear",
-      "description": "战斗：聚能(短按X)；清空技能链(长按Z)",
+      "description": "Battle: gather energy (tap X); clear skill chain (hold Z)",
       "trigger": "Tap",
       "analogThreshold": null,
       "holdKeyboardKey": "Z",
-      "holdThresholdMs": 380
+      "holdThresholdMs": 380,
+      "descriptions": {
+        "zh-CN": "战斗：聚能(短按X)；清空技能链(长按Z)"
+      }
     },
     {
       "from": {
@@ -468,11 +498,14 @@
         "value": "Back"
       },
       "actionId": "tab--battle-view-battle-log-tab",
-      "description": "战斗：查看对战记录 (Tab)",
+      "description": "Battle: battle log (Tab)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：查看对战记录 (Tab)"
+      }
     },
     {
       "from": {
@@ -480,11 +513,14 @@
         "value": "Back"
       },
       "actionId": "tab--battle-view-battle-log-tab",
-      "description": "战斗：查看对战记录 (Tab)",
+      "description": "Battle: battle log (Tab)",
       "trigger": "Released",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：查看对战记录 (Tab)"
+      }
     },
     {
       "from": {
@@ -492,11 +528,14 @@
         "value": "Start"
       },
       "actionId": "enter--battle-open-chat-enter",
-      "description": "战斗：打开聊天界面 (Enter)",
+      "description": "Battle: open chat (Enter)",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
-      "holdThresholdMs": null
+      "holdThresholdMs": null,
+      "descriptions": {
+        "zh-CN": "战斗：打开聊天界面 (Enter)"
+      }
     },
     {
       "from": {
@@ -504,9 +543,9 @@
         "value": "Back + Start"
       },
       "actionId": "switch-to-exploration",
-      "description": "切换至探索模式",
+      "description": "Switch to exploration (open world)",
       "descriptions": {
-        "zh-CN": "切换配置：大世界探索"
+        "zh-CN": "切换至探索模式（大世界）"
       },
       "trigger": "Pressed",
       "analogThreshold": null,
@@ -519,7 +558,7 @@
         "value": "RightShoulder"
       },
       "keyboardKey": "",
-      "description": "战斗选择",
+      "description": "Battle actions",
       "descriptions": {
         "zh-CN": "战斗选择"
       },
@@ -537,7 +576,7 @@
         "value": "LeftShoulder"
       },
       "keyboardKey": "",
-      "description": "战斗模式",
+      "description": "Battle menus",
       "descriptions": {
         "zh-CN": "战斗模式"
       },

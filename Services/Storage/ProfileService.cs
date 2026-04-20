@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Text;
 using System.IO;
 using System.Linq;
@@ -119,15 +118,21 @@ public partial class ProfileService : IProfileService
                 if (!string.IsNullOrEmpty(logicalId))
                     _templateResolveIndex[logicalId] = new TemplateStorageLocation(catalogFolder, stem);
 
-                pending.Add((new TemplateOption
+                var baselineTitle = string.IsNullOrWhiteSpace(template.DisplayName) ? stem : template.DisplayName.Trim();
+                var opt = new TemplateOption
                 {
                     ProfileId = stem,
                     CatalogSubfolder = catalogFolder,
                     TemplateGroupId = template.EffectiveTemplateGroupId,
-                    DisplayName = string.IsNullOrWhiteSpace(template.DisplayName) ? stem : template.DisplayName,
+                    DisplayNameBaseline = baselineTitle,
+                    DisplayNames = template.DisplayNames,
+                    DisplayNameKey = template.DisplayNameKey ?? string.Empty,
+                    CatalogFolderDisplayNames = template.TemplateCatalogFolderNames,
                     Author = (template.Author ?? string.Empty).Trim(),
                     RadialMenus = template.RadialMenus?.ToList()
-                }, template, stem, catalogFolder));
+                };
+                CatalogDescriptionLocalizer.ApplyTemplateOption(opt, _translationService);
+                pending.Add((opt, template, stem, catalogFolder));
             }
             catch
             {
@@ -145,7 +150,7 @@ public partial class ProfileService : IProfileService
                 _templateResolveIndex[x.Stem] = new TemplateStorageLocation(x.Folder, x.Stem);
         }
 
-        foreach (var opt in pending.Select(p => p.Option).OrderBy(o => o.DisplayName, StringComparer.OrdinalIgnoreCase))
+        foreach (var opt in pending.Select(p => p.Option).OrderBy(o => o.ResolvedDisplayName, StringComparer.OrdinalIgnoreCase))
             AvailableTemplates.Add(opt);
 
         ProfilesLoaded?.Invoke(this, EventArgs.Empty);
@@ -415,61 +420,7 @@ public partial class ProfileService : IProfileService
         if (string.IsNullOrWhiteSpace(template.ProfileId))
             template.ProfileId = fileStemFromDisk;
 
-        var culture = _translationService.Culture;
-
-        if (!string.IsNullOrWhiteSpace(template.DisplayNameKey))
-        {
-            var localized = _translationService[template.DisplayNameKey];
-            if (!IsMissingLocalization(localized))
-                template.DisplayName = localized;
-        }
-
-        if (TryPickCultureString(template.DisplayNames, culture, out var displayForCulture))
-            template.DisplayName = displayForCulture;
-
-        if (template.KeyboardActions is { Count: > 0 } keyboardActions)
-        {
-            foreach (var action in keyboardActions)
-            {
-                if (!string.IsNullOrWhiteSpace(action.DescriptionKey))
-                {
-                    var localized = _translationService[action.DescriptionKey];
-                    if (!IsMissingLocalization(localized))
-                        action.Description = localized;
-                }
-
-                if (TryPickCultureString(action.Descriptions, culture, out var actionDesc))
-                    action.Description = actionDesc;
-            }
-        }
-
-        foreach (var mapping in template.Mappings)
-        {
-            if (!string.IsNullOrWhiteSpace(mapping.DescriptionKey))
-            {
-                var localized = _translationService[mapping.DescriptionKey];
-                if (!IsMissingLocalization(localized))
-                    mapping.Description = localized;
-            }
-
-            if (TryPickCultureString(mapping.Descriptions, culture, out var descForCulture))
-                mapping.Description = descForCulture;
-        }
-
-        if (template.RadialMenus is { Count: > 0 } radialMenus)
-        {
-            foreach (var rm in radialMenus)
-            {
-                if (TryPickCultureString(rm.DisplayNames, culture, out var radialTitle))
-                    rm.DisplayName = radialTitle;
-
-                foreach (var item in rm.Items)
-                {
-                    if (TryPickCultureString(item.Labels, culture, out var slotLabel))
-                        item.Label = slotLabel;
-                }
-            }
-        }
+        CatalogDescriptionLocalizer.ApplyLoadedTemplate(template, _translationService);
 
         TemplateKeyboardActionResolver.Apply(template);
 
@@ -493,50 +444,6 @@ public partial class ProfileService : IProfileService
     [GeneratedRegex("-{2,}")]
     private static partial Regex MyRegex();
 
-    private static bool IsMissingLocalization(string value)
-        => value.Length >= 2 && value[0] == '[' && value[^1] == ']';
-
-    /// <summary>Resolves <paramref name="map"/> using <paramref name="culture"/> and its parent chain; keys are matched case-insensitively.</summary>
-    private static bool TryPickCultureString(
-        IReadOnlyDictionary<string, string>? map,
-        CultureInfo culture,
-        out string value)
-    {
-        value = string.Empty;
-        if (map is null || map.Count == 0)
-            return false;
-
-        for (var c = culture; c is not null && !string.IsNullOrEmpty(c.Name); c = c.Parent)
-        {
-            if (TryGetCultureMapValue(map, c.Name, out value))
-                return true;
-        }
-
-        return TryGetCultureMapValue(map, "default", out value);
-    }
-
-    private static bool TryGetCultureMapValue(
-        IReadOnlyDictionary<string, string> map,
-        string key,
-        out string value)
-    {
-        value = string.Empty;
-        if (string.IsNullOrWhiteSpace(key))
-            return false;
-
-        foreach (var kv in map)
-        {
-            if (string.IsNullOrWhiteSpace(kv.Value))
-                continue;
-            if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase))
-            {
-                value = kv.Value;
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
 
 

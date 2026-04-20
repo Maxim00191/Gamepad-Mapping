@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -72,23 +71,25 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
                 return string.Empty;
 
             if (def.RadialMenu is { } rm && !string.IsNullOrWhiteSpace(rm.RadialMenuId))
-                return string.Format(Loc("MappingCatalogSummaryRadial"), rm.RadialMenuId.Trim());
+                return string.Format(AppUiLocalization.GetString("MappingCatalogSummaryRadial"), rm.RadialMenuId.Trim());
 
             if (def.TemplateToggle is { } tt && !string.IsNullOrWhiteSpace(tt.AlternateProfileId))
-                return string.Format(Loc("MappingCatalogSummaryTemplateToggle"), tt.AlternateProfileId.Trim());
+                return string.Format(AppUiLocalization.GetString("MappingCatalogSummaryTemplateToggle"), tt.AlternateProfileId.Trim());
 
             if (def.ItemCycle is { } ic)
             {
                 var n = Math.Clamp(ic.SlotCount, 1, 9);
-                var dir = ic.Direction == ItemCycleDirection.Previous ? Loc("ItemCycleDirection_Previous") : Loc("ItemCycleDirection_Next");
-                return $"{Loc("ActionType_ItemCycle")} (1–{n}, {dir})";
+                var dir = ic.Direction == ItemCycleDirection.Previous
+                    ? AppUiLocalization.GetString("ItemCycleDirection_Previous")
+                    : AppUiLocalization.GetString("ItemCycleDirection_Next");
+                return $"{AppUiLocalization.GetString("ActionType_ItemCycle")} (1–{n}, {dir})";
             }
 
             var key = (def.KeyboardKey ?? string.Empty).Trim();
             if (key.Length > 0)
-                return string.Format(Loc("MappingCatalogSummaryKeyboard"), key);
+                return string.Format(AppUiLocalization.GetString("MappingCatalogSummaryKeyboard"), key);
 
-            return Loc("MappingCatalogSummaryEmpty");
+            return AppUiLocalization.GetString("MappingCatalogSummaryEmpty");
         }
     }
 
@@ -102,18 +103,11 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
             string.Equals((a.Id ?? string.Empty).Trim(), id, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string Loc(string key)
-    {
-        if (Application.Current?.Resources["Loc"] is TranslationService loc)
-            return loc[key];
-        return key;
-    }
-
     [RelayCommand]
     private void RecordKeyboardKey()
     {
         _keyboardCaptureService.BeginCapture(
-            "Press a key for the mapping output (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.MappingOutput),
             key =>
             {
                 KeyboardKey = key.ToString();
@@ -125,7 +119,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     private void RecordHoldKeyboardKey()
     {
         _keyboardCaptureService.BeginCapture(
-            "Press the HOLD output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.MappingHoldOutput),
             key => HoldKeyboardKey = key.ToString());
     }
 

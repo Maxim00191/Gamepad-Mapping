@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -15,6 +16,11 @@ public partial class CommunityCatalogTemplateItemViewModel : ObservableObject
     public string Id => Template.Id;
     public string DisplayName => Template.DisplayName;
     public string Author => Template.Author;
+
+    /// <summary>Localized “By author” line for cards and tooltips.</summary>
+    public string AuthorCreditLine =>
+        string.Format(AppUiLocalization.GetString("CommunityCatalog_AuthorByLine"), Author);
+
     public string Description => Template.Description;
 
     [ObservableProperty]

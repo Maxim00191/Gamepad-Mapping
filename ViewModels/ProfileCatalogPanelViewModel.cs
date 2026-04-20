@@ -6,6 +6,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 using System.Windows.Input;
 using GamepadMapperGUI.Core;
@@ -22,6 +23,8 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     private readonly MainViewModel _main;
     private readonly IKeyboardCaptureService _keyboardCaptureService;
     private bool _syncingCatalogOutputKind;
+    private bool _workspaceKeyboardSelectionSync;
+    private bool _workspaceRadialSelectionSync;
 
     public ProfileCatalogPanelViewModel(MainViewModel mainViewModel)
     {
@@ -30,6 +33,16 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         _keyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
         _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
         _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
+        if (AppUiLocalization.TryTranslationService() is { } loc)
+            loc.PropertyChanged += CatalogTranslationServiceOnPropertyChanged;
+    }
+
+    private void CatalogTranslationServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TranslationService.Culture))
+            return;
+        PullKeyboardCatalogDescriptionPair();
+        PullRadialMenuDisplayNamePair();
     }
 
     public ObservableCollection<TemplateOption> AvailableProfileTemplates => _main.AvailableTemplates;
@@ -87,7 +100,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (SelectedKeyboardAction is null) return;
 
         _keyboardCaptureService.BeginCapture(
-            "Press a key for the action output (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.CatalogActionOutput),
             key => SelectedKeyboardAction.KeyboardKey = key.ToString());
     }
 
@@ -96,7 +109,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedKeyboardAction?.ItemCycle is null) return;
         _keyboardCaptureService.BeginCapture(
-            "Press the loop-forward output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleForward),
             key => SelectedKeyboardAction.ItemCycle.LoopForwardKey = key.ToString());
     }
 
@@ -105,7 +118,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedKeyboardAction?.ItemCycle is null) return;
         _keyboardCaptureService.BeginCapture(
-            "Press the loop-back output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleBackward),
             key => SelectedKeyboardAction.ItemCycle.LoopBackwardKey = key.ToString());
     }
 
@@ -140,6 +153,12 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     public ObservableCollection<RadialMenuDefinition> RadialMenus => _main.RadialMenus;
 
+    /// <summary>Rows currently selected in the keyboard actions grid (multi-select); drives copy/paste.</summary>
+    public ObservableCollection<KeyboardActionDefinition> WorkspaceSelectedKeyboardActions { get; } = [];
+
+    /// <summary>Rows currently selected in the radial menus grid (multi-select); drives copy/paste.</summary>
+    public ObservableCollection<RadialMenuDefinition> WorkspaceSelectedRadialMenus { get; } = [];
+
     public ObservableCollection<string> ValidationErrors { get; } = [];
 
     public ObservableCollection<string> ValidationWarnings { get; } = [];
@@ -150,9 +169,105 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     public void ResetSelection()
     {
-        SelectedKeyboardAction = null;
-        SelectedRadialMenu = null;
-        SelectedRadialSlot = null;
+        _workspaceKeyboardSelectionSync = true;
+        _workspaceRadialSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedKeyboardActions.Clear();
+            WorkspaceSelectedRadialMenus.Clear();
+            SelectedKeyboardAction = null;
+            SelectedRadialMenu = null;
+            SelectedRadialSlot = null;
+        }
+        finally
+        {
+            _workspaceKeyboardSelectionSync = false;
+            _workspaceRadialSelectionSync = false;
+        }
+    }
+
+    public void NotifyWorkspaceKeyboardSelectionFromGrid(IReadOnlyList<object> items)
+    {
+        _workspaceKeyboardSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedKeyboardActions.Clear();
+            foreach (var o in items)
+            {
+                if (o is KeyboardActionDefinition k)
+                    WorkspaceSelectedKeyboardActions.Add(k);
+            }
+
+            SelectedKeyboardAction = WorkspaceSelectedKeyboardActions.Count > 0
+                ? WorkspaceSelectedKeyboardActions[^1]
+                : null;
+        }
+        finally
+        {
+            _workspaceKeyboardSelectionSync = false;
+        }
+
+        _main.RuleClipboard?.RefreshCommandStates();
+    }
+
+    public void NotifyWorkspaceRadialSelectionFromGrid(IReadOnlyList<object> items)
+    {
+        _workspaceRadialSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedRadialMenus.Clear();
+            foreach (var o in items)
+            {
+                if (o is RadialMenuDefinition r)
+                    WorkspaceSelectedRadialMenus.Add(r);
+            }
+
+            SelectedRadialMenu = WorkspaceSelectedRadialMenus.Count > 0
+                ? WorkspaceSelectedRadialMenus[^1]
+                : null;
+        }
+        finally
+        {
+            _workspaceRadialSelectionSync = false;
+        }
+
+        _main.RuleClipboard?.RefreshCommandStates();
+    }
+
+    public void SelectAllKeyboardActionsForWorkspace()
+    {
+        _workspaceKeyboardSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedKeyboardActions.Clear();
+            foreach (var a in KeyboardActions)
+                WorkspaceSelectedKeyboardActions.Add(a);
+            SelectedKeyboardAction = KeyboardActions.Count > 0 ? KeyboardActions[^1] : null;
+        }
+        finally
+        {
+            _workspaceKeyboardSelectionSync = false;
+        }
+
+        _main.RuleClipboard?.RefreshCommandStates();
+    }
+
+    public void SelectAllRadialMenusForWorkspace()
+    {
+        _workspaceRadialSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedRadialMenus.Clear();
+            foreach (var r in RadialMenus)
+                WorkspaceSelectedRadialMenus.Add(r);
+            SelectedRadialMenu = RadialMenus.Count > 0 ? RadialMenus[^1] : null;
+        }
+        finally
+        {
+            _workspaceRadialSelectionSync = false;
+        }
+
+        _main.RuleClipboard?.RefreshCommandStates();
     }
 
     public IReadOnlyList<string> JoystickStickOptions { get; } = new[] { "LeftStick", "RightStick" };
@@ -166,11 +281,128 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     [ObservableProperty]
     private RadialMenuItem? selectedRadialSlot;
 
+    [ObservableProperty]
+    private string keyboardCatalogDescriptionPrimary = string.Empty;
+
+    [ObservableProperty]
+    private string keyboardCatalogDescriptionSecondary = string.Empty;
+
+    private bool _syncingKeyboardDescriptionPair;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNamePrimary = string.Empty;
+
+    [ObservableProperty]
+    private string radialMenuDisplayNameSecondary = string.Empty;
+
+    private bool _syncingRadialDisplayNamePair;
+
+    partial void OnKeyboardCatalogDescriptionPrimaryChanged(string value) => PushKeyboardCatalogDescriptionPair();
+
+    partial void OnKeyboardCatalogDescriptionSecondaryChanged(string value) => PushKeyboardCatalogDescriptionPair();
+
+    partial void OnRadialMenuDisplayNamePrimaryChanged(string value) => PushRadialMenuDisplayNamePair();
+
+    partial void OnRadialMenuDisplayNameSecondaryChanged(string value) => PushRadialMenuDisplayNamePair();
+
+    private void PullKeyboardCatalogDescriptionPair()
+    {
+        _syncingKeyboardDescriptionPair = true;
+        try
+        {
+            if (SelectedKeyboardAction is null)
+            {
+                KeyboardCatalogDescriptionPrimary = string.Empty;
+                KeyboardCatalogDescriptionSecondary = string.Empty;
+                return;
+            }
+
+            var ui = AppUiLocalization.EditorUiCulture();
+            var a = SelectedKeyboardAction;
+            KeyboardCatalogDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(a.Descriptions, a.Description, ui);
+            KeyboardCatalogDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(a.Descriptions, a.Description, ui);
+        }
+        finally
+        {
+            _syncingKeyboardDescriptionPair = false;
+        }
+    }
+
+    private void PushKeyboardCatalogDescriptionPair()
+    {
+        if (_syncingKeyboardDescriptionPair || SelectedKeyboardAction is null)
+            return;
+
+        var a = SelectedKeyboardAction;
+        var d = a.Descriptions;
+        var b = a.Description;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), KeyboardCatalogDescriptionPrimary, KeyboardCatalogDescriptionSecondary);
+        a.Descriptions = d;
+        a.Description = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyKeyboardAction(a, ts);
+    }
+
+    private void PullRadialMenuDisplayNamePair()
+    {
+        _syncingRadialDisplayNamePair = true;
+        try
+        {
+            if (SelectedRadialMenu is null)
+            {
+                RadialMenuDisplayNamePrimary = string.Empty;
+                RadialMenuDisplayNameSecondary = string.Empty;
+                return;
+            }
+
+            var ui = AppUiLocalization.EditorUiCulture();
+            var rm = SelectedRadialMenu;
+            RadialMenuDisplayNamePrimary = UiCultureDescriptionPair.ReadPrimary(rm.DisplayNames, rm.DisplayName, ui);
+            RadialMenuDisplayNameSecondary = UiCultureDescriptionPair.ReadSecondary(rm.DisplayNames, rm.DisplayName, ui);
+        }
+        finally
+        {
+            _syncingRadialDisplayNamePair = false;
+        }
+    }
+
+    private void PushRadialMenuDisplayNamePair()
+    {
+        if (_syncingRadialDisplayNamePair || SelectedRadialMenu is null)
+            return;
+
+        var rm = SelectedRadialMenu;
+        var d = rm.DisplayNames;
+        var b = rm.DisplayName;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), RadialMenuDisplayNamePrimary, RadialMenuDisplayNameSecondary);
+        rm.DisplayNames = d;
+        rm.DisplayName = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyRadialMenu(rm, ts);
+    }
+
     partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value)
     {
+        if (!_workspaceKeyboardSelectionSync)
+        {
+            _workspaceKeyboardSelectionSync = true;
+            try
+            {
+                WorkspaceSelectedKeyboardActions.Clear();
+                if (value is not null)
+                    WorkspaceSelectedKeyboardActions.Add(value);
+            }
+            finally
+            {
+                _workspaceKeyboardSelectionSync = false;
+            }
+        }
+
         SyncCatalogOutputKindFromSelection();
+        PullKeyboardCatalogDescriptionPair();
         _main.RefreshRightPanelSurface();
         ValidateCurrentState();
+        _main.RuleClipboard?.RefreshCommandStates();
     }
 
     private void SyncCatalogOutputKindFromSelection()
@@ -188,13 +420,31 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)
     {
+        if (!_workspaceRadialSelectionSync)
+        {
+            _workspaceRadialSelectionSync = true;
+            try
+            {
+                WorkspaceSelectedRadialMenus.Clear();
+                if (value is not null)
+                    WorkspaceSelectedRadialMenus.Add(value);
+            }
+            finally
+            {
+                _workspaceRadialSelectionSync = false;
+            }
+        }
+
+        PullRadialMenuDisplayNamePair();
         _main.RefreshRightPanelSurface();
         ValidateCurrentState();
+        _main.RuleClipboard?.RefreshCommandStates();
     }
 
     [RelayCommand]
     private void AddKeyboardAction()
     {
+        _main.RecordTemplateWorkspaceCheckpoint();
         _main.KeyboardActions.Add(new KeyboardActionDefinition
         {
             Id = NextKeyboardActionId(),
@@ -208,12 +458,14 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedKeyboardAction is null)
             return;
+        _main.RecordTemplateWorkspaceCheckpoint();
         _main.KeyboardActions.Remove(SelectedKeyboardAction);
     }
 
     [RelayCommand]
     private void AddRadialMenu()
     {
+        _main.RecordTemplateWorkspaceCheckpoint();
         _main.RadialMenus.Add(new RadialMenuDefinition
         {
             Id = NextRadialMenuId(),
@@ -228,6 +480,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedRadialMenu is null)
             return;
+        _main.RecordTemplateWorkspaceCheckpoint();
         _main.RadialMenus.Remove(SelectedRadialMenu);
     }
 
@@ -236,6 +489,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedRadialMenu is null)
             return;
+        _main.RecordTemplateWorkspaceCheckpoint();
         SelectedRadialMenu.Items.Add(new RadialMenuItem { ActionId = string.Empty });
     }
 
@@ -244,6 +498,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedRadialMenu is null || SelectedRadialSlot is null)
             return;
+        _main.RecordTemplateWorkspaceCheckpoint();
         SelectedRadialMenu.Items.Remove(SelectedRadialSlot);
     }
 

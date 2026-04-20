@@ -31,6 +31,7 @@
         <SolidColorBrush x:Key="AppSeparatorBrush" Color="#FFC9C3B8" />
         <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFBCB5AA" />
         <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FFB89428" />
+        <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FFC9A000" />
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
@@ -864,6 +865,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:InverseBooleanConverter x:Key="InverseBooleanConverter" />
         <utils:StringHasContentToVisibilityConverter x:Key="StringHasContentToVisibilityConverter" />
+        <utils:KeyboardActionPickerLabelConverter x:Key="KeyboardActionPickerLabelConverter" />
         
         <Style x:Key="AppAccentButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />

@@ -4,6 +4,8 @@
              xmlns:models="clr-namespace:GamepadMapperGUI.Models"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views.Sections"
+             xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
+             xmlns:views="clr-namespace:Gamepad_Mapping.Views"
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
@@ -22,13 +24,27 @@
                   AutoGenerateColumns="False"
                   IsReadOnly="False"
                   CanUserAddRows="False"
+                  behaviors:DataGridWorkspaceEditHistoryBehavior.RecordCheckpointOnBeginningEdit="True"
+                  ClipboardCopyMode="None"
                   HeadersVisibility="Column"
-                  SelectedItem="{Binding SelectedMapping, Mode=TwoWay}"
+                  SelectionMode="Extended"
                   SelectionUnit="FullRow"
+                  behaviors:DataGridWorkspaceSelectionBehavior.RuleListKind="{x:Static behaviors:WorkspaceRuleListKind.Mappings}"
                   Margin="0"
                   VerticalAlignment="Stretch"
                   MinHeight="200"
                   VerticalScrollBarVisibility="Auto">
+            <DataGrid.InputBindings>
+                <KeyBinding Key="A"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.SelectAllWorkspaceRulesCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+                <KeyBinding Key="C"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.CopyRuleCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+                <KeyBinding Key="V"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.PasteRuleCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+            </DataGrid.InputBindings>
             <DataGrid.Columns>
                 <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[FromType]}"
                                         Width="1.1*">
@@ -149,16 +165,15 @@
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding Id}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Id}" Value="">
-                                                            <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource KeyboardActionPickerLabelConverter}">
+                                                    <Binding Path="Id" />
+                                                    <Binding Path="ResolvedCatalogDescription" />
+                                                    <Binding Source="{StaticResource Loc}" Path="[KeyboardActionPicker_OptionFormat]" />
+                                                    <Binding Source="{StaticResource Loc}" Path="[MappingActionIdManual]" />
+                                                    <Binding Path="KeyboardKey" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
                                         </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
@@ -177,7 +192,8 @@
                                     Binding="{Binding HoldThresholdMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     Width="0.8*" />
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[Description]}"
-                                    Binding="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Binding="{Binding ResolvedCatalogDescription, Mode=OneWay}"
+                                    IsReadOnly="True"
                                     Width="1.6*" />
                 <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[Trigger]}" Width="*">
                     <DataGridTemplateColumn.CellTemplate>

@@ -87,6 +87,7 @@ public class MappingEntry : ObservableObject
     public bool ShouldSerializeHoldKeyboardKey() => string.IsNullOrWhiteSpace(_holdActionId);
 
     private string _description = string.Empty;
+    private string _resolvedCatalogDescription = string.Empty;
 
     [JsonProperty("description")]
     public string Description
@@ -95,6 +96,18 @@ public class MappingEntry : ObservableObject
         set
         {
             if (SetProperty(ref _description, value))
+                NotifyOutputSummariesChanged();
+        }
+    }
+
+    /// <summary>Localized description line for lists/HUD; canonical text remains in <see cref="Description"/>.</summary>
+    [JsonIgnore]
+    public string ResolvedCatalogDescription
+    {
+        get => _resolvedCatalogDescription;
+        set
+        {
+            if (SetProperty(ref _resolvedCatalogDescription, value))
                 NotifyOutputSummariesChanged();
         }
     }
@@ -275,7 +288,7 @@ public class MappingEntry : ObservableObject
         {
             if (RadialMenu is { } rm)
             {
-                var desc = (_description ?? string.Empty).Trim();
+                var desc = EffectiveCatalogDescriptionLine();
                 if (desc.Length > 0)
                     return desc;
 
@@ -316,7 +329,7 @@ public class MappingEntry : ObservableObject
             if (ActionType != MappingActionType.Keyboard)
                 return OutputSummaryForGrid;
 
-            var desc = (_description ?? string.Empty).Trim();
+            var desc = EffectiveCatalogDescriptionLine();
             var key = (_keyboardKey ?? string.Empty).Trim();
             if (desc.Length > 0 && key.Length > 0)
                 return $"{desc} - {key}";
@@ -324,6 +337,14 @@ public class MappingEntry : ObservableObject
                 return key;
             return desc;
         }
+    }
+
+    private string EffectiveCatalogDescriptionLine()
+    {
+        var resolved = (_resolvedCatalogDescription ?? string.Empty).Trim();
+        if (resolved.Length > 0)
+            return resolved;
+        return (_description ?? string.Empty).Trim();
     }
 
     private void NotifyOutputSummariesChanged()

@@ -11,6 +11,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels.Strategies;
 
@@ -42,7 +43,7 @@ public partial class ItemCycleActionEditorViewModel : ActionEditorViewModelBase
     private void RecordForwardKey()
     {
         _keyboardCaptureService.BeginCapture(
-            "Press the loop-forward output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleForward),
             key => ForwardKey = key.ToString());
     }
 
@@ -50,7 +51,7 @@ public partial class ItemCycleActionEditorViewModel : ActionEditorViewModelBase
     private void RecordBackwardKey()
     {
         _keyboardCaptureService.BeginCapture(
-            "Press the loop-back output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleBackward),
             key => BackwardKey = key.ToString());
     }
 

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Globalization;
+using System.Threading;
 using GamepadMapperGUI.Models;
 using Xunit;
 
@@ -30,22 +32,40 @@ public sealed class RadialMenuItemTests
     }
 
     [Fact]
-    public void LabelZhCn_Syncs_To_Labels_Dictionary()
+    public void LabelPrimary_And_LabelSecondary_RoundTrip_ForEnglishUi()
     {
-        var item = new RadialMenuItem();
-        item.LabelZhCn = "  跳跃  ";
-        Assert.NotNull(item.Labels);
-        Assert.Equal("跳跃", item.Labels![TemplateLocaleKeys.ZhCn]);
-        item.LabelZhCn = string.Empty;
-        Assert.Null(item.Labels);
+        var prev = Thread.CurrentThread.CurrentUICulture;
+        try
+        {
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            var item = new RadialMenuItem();
+            item.LabelPrimary = "Open map";
+            item.LabelSecondary = "打开地图";
+            Assert.Equal("Open map", item.Label.Trim());
+            Assert.Equal("打开地图", item.Labels?[TemplateLocaleKeys.ZhCn]);
+        }
+        finally
+        {
+            Thread.CurrentThread.CurrentUICulture = prev;
+        }
     }
 
     [Fact]
-    public void LabelEnUs_Syncs_To_Labels_Dictionary()
+    public void LabelPrimary_And_LabelSecondary_RoundTrip_ForChineseUi()
     {
-        var item = new RadialMenuItem();
-        item.LabelEnUs = "Jump";
-        Assert.NotNull(item.Labels);
-        Assert.Equal("Jump", item.Labels![TemplateLocaleKeys.EnUs]);
+        var prev = Thread.CurrentThread.CurrentUICulture;
+        try
+        {
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("zh-CN");
+            var item = new RadialMenuItem();
+            item.LabelPrimary = "打开地图";
+            item.LabelSecondary = "Open map";
+            Assert.Equal("Open map", item.Label.Trim());
+            Assert.Equal("打开地图", item.Labels?[TemplateLocaleKeys.ZhCn]);
+        }
+        finally
+        {
+            Thread.CurrentThread.CurrentUICulture = prev;
+        }
     }
 }

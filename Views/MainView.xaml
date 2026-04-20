@@ -6,6 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
              xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections"
+             xmlns:controls="clr-namespace:Gamepad_Mapping.Views.Controls"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              mc:Ignorable="d"
@@ -58,6 +59,7 @@
                                    VerticalAlignment="Center"
                                    Margin="0,0,8,0" />
                         <ComboBox Grid.Column="1"
+                                  MinWidth="120"
                                   Height="32"
                                   VerticalContentAlignment="Center"
                                   ItemsSource="{Binding ProfileTemplatePanel.AvailableTemplates}"
@@ -66,7 +68,30 @@
                         <StackPanel Grid.Column="2"
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
                                     Margin="6,0,0,0">
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,8,0"
+                                        Visibility="{Binding IsTemplateWorkspaceDirty, Converter={StaticResource BoolToVis}}">
+                                <StackPanel.ToolTip>
+                                    <TextBlock MaxWidth="320"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceUnsavedIndicator]}" />
+                                </StackPanel.ToolTip>
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           Text="&#xE7BA;"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource AppUnsavedChangesIndicatorBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,4,0" />
+                                <TextBlock FontSize="11"
+                                           Foreground="{DynamicResource AppUnsavedChangesIndicatorBrush}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="120"
+                                           Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceUnsavedIndicatorShort]}" />
+                            </StackPanel>
                             <Button Style="{StaticResource ToolbarButtonStyle}"
                                     Width="32"
                                     Height="32"
@@ -477,7 +502,10 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <Path Data="M1,21H23L12,2L1,21ZM13,18H11V16H13V18ZM13,14H11V10H13V14Z"
                                   Fill="#F2994A" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Validation Warnings" Foreground="#F2994A" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileCatalogValidationWarningsTitle]}"
+                                       Foreground="#F2994A"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding CatalogPanel.ValidationWarnings}">
                             <ItemsControl.ItemTemplate>
@@ -511,7 +539,7 @@
                             SelectedIndex="{Binding ProfileListTabIndex, Mode=TwoWay}">
                     <TabItem>
                         <TabItem.Header>
-                            <TextBlock Text="Visual Editor" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabVisualEditor]}" />
                         </TabItem.Header>
                         <Grid Margin="12"
                               VerticalAlignment="Stretch">
@@ -538,7 +566,8 @@
                                 <Button Content="{Binding Source={StaticResource Loc}, Path=[AddMappingPlus]}"
                                         Command="{Binding MappingEditorPanel.AddMappingCommand}"
                                         Padding="10,4"
-                                        Margin="0,0,0,4" />
+                                        Margin="0,0,8,4" />
+                                <controls:ProfileRuleClipboardToolbar DataContext="{Binding RuleClipboard}" />
                             </WrapPanel>
                             <sections:MappingEditorView Grid.Row="2"
                                                         DataContext="{Binding MappingEditorPanel}" />
@@ -564,7 +593,7 @@
                     </TabItem>
                     <TabItem>
                         <TabItem.Header>
-                            <TextBlock Text="Community" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabCommunity]}" />
                         </TabItem.Header>
                         <Grid Margin="12"
                               VerticalAlignment="Stretch">

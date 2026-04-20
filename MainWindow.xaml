@@ -15,7 +15,8 @@
         WindowStyle="SingleBorderWindow"
         SizeToContent="Manual"
         Background="{DynamicResource AppBackgroundBrush}"
-        Foreground="{DynamicResource AppTextBrush}">
+        Foreground="{DynamicResource AppTextBrush}"
+        PreviewKeyDown="MainWindow_OnPreviewKeyDown">
     <Grid Background="{DynamicResource AppBackgroundBrush}">
         <views:MainView />
     </Grid>

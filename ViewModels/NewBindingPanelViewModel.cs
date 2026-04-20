@@ -71,14 +71,14 @@ public partial class NewBindingPanelViewModel : ObservableObject
     private void RecordNewHoldKey()
     {
         _mainViewModel.KeyboardCaptureService.BeginCapture(
-            "Press the HOLD output key (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.NewBindingHoldOutput),
             key => NewBindingHoldKeyboardKey = key.ToString());
     }
 
     private void RecordNewBindingKey()
     {
         _mainViewModel.KeyboardCaptureService.BeginCapture(
-            "Press a key for the new key binding (Esc to cancel).",
+            AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.NewBindingOutput),
             key => NewBindingKeyboardKey = key.ToString());
     }
 
@@ -131,8 +131,8 @@ public partial class NewBindingPanelViewModel : ObservableObject
             if (!GamepadChordInput.TryParseTriggerMatchThreshold(NewBindingAnalogThresholdText, out var th))
             {
                 MessageBox.Show(
-                    Loc("TriggerChordThresholdRequiredMessage"),
-                    Loc("MappingEditorSaveFailedTitle"),
+                    AppUiLocalization.GetString("TriggerChordThresholdRequiredMessage"),
+                    AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
@@ -152,16 +152,13 @@ public partial class NewBindingPanelViewModel : ObservableObject
             HoldThresholdMs = holdMs
         };
 
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
+
+        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
         _mainViewModel.Mappings.Add(entry);
         _mainViewModel.SelectedMapping = entry;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private static string Loc(string key)
-    {
-        if (Application.Current?.Resources["Loc"] is TranslationService loc)
-            return loc[key];
-        return key;
     }
 
     partial void OnNewBindingFromButtonChanged(string value) =>

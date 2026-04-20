@@ -27,11 +27,47 @@ public partial class ProfileOrchestrator : ObservableObject
     private readonly IProcessTargetService _processTargetService;
     private string? _lastLoadedTemplateGroupIdForTargetInherit;
 
+    /// <summary>Optional gate for template switches (unsaved workspace prompts).</summary>
+    public IProfileSelectionInterlock? SelectionInterlock { get; set; }
+
     [ObservableProperty]
     private ObservableCollection<TemplateOption> _availableTemplates;
 
-    [ObservableProperty]
     private TemplateOption? _selectedTemplate;
+
+    public TemplateOption? SelectedTemplate
+    {
+        get => _selectedTemplate;
+        set
+        {
+            if (TemplateOption.MatchesStorageKey(_selectedTemplate, value))
+            {
+                if (!ReferenceEquals(_selectedTemplate, value) && value is not null)
+                    SetProperty(ref _selectedTemplate, value);
+                return;
+            }
+
+            if (SelectionInterlock?.AllowSelectTemplate(_selectedTemplate, value) == false)
+            {
+                SelectionInterlock.NotifySelectedTemplateBindingRefresh();
+                return;
+            }
+
+            if (!SetProperty(ref _selectedTemplate, value))
+                return;
+
+            try
+            {
+                App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.StorageKey})");
+                LoadSelectedTemplate();
+                _profileService.PersistLastSelectedTemplateProfileId(_selectedTemplate?.StorageKey);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
+            }
+        }
+    }
 
     [ObservableProperty]
     private string _currentTemplateDisplayName = string.Empty;
@@ -69,20 +105,6 @@ public partial class ProfileOrchestrator : ObservableObject
         SelectedTemplate = _profileService.ReloadTemplates(_profileService.LastSelectedTemplateProfileId);
     }
 
-    partial void OnSelectedTemplateChanged(TemplateOption? value)
-    {
-        try
-        {
-            App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.StorageKey})");
-            LoadSelectedTemplate();
-            _profileService.PersistLastSelectedTemplateProfileId(value?.StorageKey);
-        }
-        catch (Exception ex)
-        {
-            App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
-        }
-    }
-
     public void LoadSelectedTemplate()
     {
         if (SelectedTemplate is null)
@@ -98,7 +120,7 @@ public partial class ProfileOrchestrator : ObservableObject
             return;
         }
 
-        CurrentTemplateDisplayName = template.DisplayName;
+        CurrentTemplateDisplayName = ResolveWorkspaceTemplateDisplayName(template);
         CurrentTemplateProfileId = template.ProfileId;
         CurrentTemplateTemplateGroupId = template.TemplateGroupId ?? string.Empty;
         CurrentTemplateAuthor = template.Author ?? string.Empty;
@@ -152,6 +174,38 @@ public partial class ProfileOrchestrator : ObservableObject
         OnPropertyChanged(nameof(AvailableTemplates));
         if (reselected is not null)
             SelectedTemplate = reselected;
+    }
+
+    /// <summary>Updates the identity header from the picker row and current UI language (after language change).</summary>
+    public void RefreshCurrentIdentityDisplayNameForCulture(TranslationService ts)
+    {
+        if (SelectedTemplate is null)
+            return;
+
+        var baseline = (SelectedTemplate.DisplayNameBaseline ?? string.Empty).Trim();
+        if (baseline.Length == 0)
+            baseline = (SelectedTemplate.ProfileId ?? string.Empty).Trim();
+
+        CurrentTemplateDisplayName = TemplateCatalogDisplayResolver.Resolve(
+            baseline,
+            SelectedTemplate.DisplayNames,
+            string.IsNullOrWhiteSpace(SelectedTemplate.DisplayNameKey) ? null : SelectedTemplate.DisplayNameKey,
+            ts);
+    }
+
+    private static string ResolveWorkspaceTemplateDisplayName(GameProfileTemplate template)
+    {
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+        {
+            var baseline = string.IsNullOrWhiteSpace(template.DisplayName) ? template.ProfileId.Trim() : template.DisplayName.Trim();
+            return TemplateCatalogDisplayResolver.Resolve(
+                baseline,
+                template.DisplayNames,
+                string.IsNullOrWhiteSpace(template.DisplayNameKey) ? null : template.DisplayNameKey,
+                ts);
+        }
+
+        return string.IsNullOrWhiteSpace(template.DisplayName) ? template.ProfileId : template.DisplayName.Trim();
     }
 }
 

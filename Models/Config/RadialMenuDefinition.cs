@@ -10,6 +10,7 @@ public partial class RadialMenuDefinition : ObservableObject
 {
     private string _id = string.Empty;
     private string _displayName = string.Empty;
+    private string _resolvedDisplayName = string.Empty;
     private string _joystick = "RightStick";
     private Dictionary<string, string>? _displayNames;
 
@@ -25,6 +26,14 @@ public partial class RadialMenuDefinition : ObservableObject
     {
         get => _displayName;
         set => SetProperty(ref _displayName, value);
+    }
+
+    /// <summary>HUD/list title for the current app language; canonical text remains in <see cref="DisplayName"/>.</summary>
+    [JsonIgnore]
+    public string ResolvedDisplayName
+    {
+        get => _resolvedDisplayName;
+        set => SetProperty(ref _resolvedDisplayName, value);
     }
 
     /// <summary>Optional per-culture titles (e.g. <c>zh-CN</c>). Applied on template load; overrides <see cref="DisplayName"/> when the UI culture matches.</summary>
