@@ -1230,4 +1230,46 @@
   <data name="CommunityUpload_TextPolicy_FieldViolationWithFieldText" xml:space="preserve">
     <value>{0} 含有不允许用于社区上传的文本。字段内容：{1}</value>
   </data>
+  <data name="ProfileRuleClipboard_Copy" xml:space="preserve">
+    <value>复制规则</value>
+  </data>
+  <data name="ProfileRuleClipboard_Paste" xml:space="preserve">
+    <value>粘贴规则</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyTooltip" xml:space="preserve">
+    <value>将当前选中的行（可多选）复制到应用内规则剪贴板（Ctrl+C），切换模板后可粘贴。</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteTooltip" xml:space="preserve">
+    <value>将复制的规则粘贴到当前模板（Ctrl+V）。若与现有目录 ID 冲突会自动重命名。</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyFailedTitle" xml:space="preserve">
+    <value>复制失败</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
+    <value>粘贴失败</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
+    <value>无法读取已复制的规则数据。</value>
+  </data>
+  <data name="ProfileRuleClipboard_UnsupportedPayload" xml:space="preserve">
+    <value>无法在此处使用该剪贴板内容。</value>
+  </data>
+  <data name="ProfileRuleClipboard_Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="ProfileRuleClipboard_Redo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="ProfileRuleClipboard_UndoTooltip" xml:space="preserve">
+    <value>撤销对当前模板的上一项更改（Ctrl+Z）。</value>
+  </data>
+  <data name="ProfileRuleClipboard_RedoTooltip" xml:space="preserve">
+    <value>重做一项已撤销的更改（Ctrl+Shift+Z）。</value>
+  </data>
 </root>

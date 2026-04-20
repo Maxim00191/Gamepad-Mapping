@@ -34,6 +34,7 @@ public partial class MappingEditorViewModel : ObservableObject
     private bool _resolvingActionId;
     private bool _syncingActionEditorFromSelection;
     private readonly HashSet<MappingEntry> _mappingActionIdListeners = [];
+    private bool _workspaceMappingSelectionSync;
 
     [ObservableProperty]
     private ActionEditorViewModelBase? _currentActionEditor;
@@ -167,10 +168,70 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public ObservableCollection<MappingEntry> Mappings => _mainViewModel.Mappings;
 
+    /// <summary>Rows selected in the mappings grid (multi-select); drives workspace copy/paste.</summary>
+    public ObservableCollection<MappingEntry> WorkspaceSelectedMappings { get; } = [];
+
     public MappingEntry? SelectedMapping
     {
         get => _mainViewModel.SelectedMapping;
         set => _mainViewModel.SelectedMapping = value;
+    }
+
+    public void NotifyWorkspaceMappingSelectionFromGrid(IReadOnlyList<object> items)
+    {
+        _workspaceMappingSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedMappings.Clear();
+            foreach (var o in items)
+            {
+                if (o is MappingEntry m)
+                    WorkspaceSelectedMappings.Add(m);
+            }
+
+            SelectedMapping = WorkspaceSelectedMappings.Count > 0
+                ? WorkspaceSelectedMappings[^1]
+                : null;
+        }
+        finally
+        {
+            _workspaceMappingSelectionSync = false;
+        }
+
+        _mainViewModel.RuleClipboard?.RefreshCommandStates();
+    }
+
+    public void SelectAllMappingsForWorkspace()
+    {
+        _workspaceMappingSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedMappings.Clear();
+            foreach (var m in Mappings)
+                WorkspaceSelectedMappings.Add(m);
+            SelectedMapping = Mappings.Count > 0 ? Mappings[^1] : null;
+        }
+        finally
+        {
+            _workspaceMappingSelectionSync = false;
+        }
+
+        _mainViewModel.RuleClipboard?.RefreshCommandStates();
+    }
+
+    private void SyncWorkspaceMappingsFromPrimary()
+    {
+        _workspaceMappingSelectionSync = true;
+        try
+        {
+            WorkspaceSelectedMappings.Clear();
+            if (SelectedMapping is not null)
+                WorkspaceSelectedMappings.Add(SelectedMapping);
+        }
+        finally
+        {
+            _workspaceMappingSelectionSync = false;
+        }
     }
 
     public ObservableCollection<string> AvailableGamepadButtons => _mainViewModel.AvailableGamepadButtons;
@@ -454,6 +515,7 @@ public partial class MappingEditorViewModel : ObservableObject
             return;
         }
 
+        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
         _mainViewModel.Mappings.Add(entry);
         _mainViewModel.SelectedMapping = entry;
         IsCreatingNewMapping = false;
@@ -559,6 +621,8 @@ public partial class MappingEditorViewModel : ObservableObject
         if (SelectedMapping is null)
             return;
 
+        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
+
         if (!InputTrigger.ApplyTo(SelectedMapping))
             return;
 
@@ -587,6 +651,7 @@ public partial class MappingEditorViewModel : ObservableObject
         if (SelectedMapping is null)
             return;
 
+        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
         _mainViewModel.Mappings.Remove(SelectedMapping);
         _mainViewModel.SelectedMapping = _mainViewModel.Mappings.FirstOrDefault();
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
@@ -617,7 +682,10 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
+                if (!_workspaceMappingSelectionSync)
+                    SyncWorkspaceMappingsFromPrimary();
                 SyncFromSelection(SelectedMapping);
+                _mainViewModel.RuleClipboard?.RefreshCommandStates();
                 break;
             case nameof(MainViewModel.AvailableGamepadButtons):
                 OnPropertyChanged(nameof(AvailableGamepadButtons));

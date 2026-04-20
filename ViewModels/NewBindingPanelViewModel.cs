@@ -152,6 +152,7 @@ public partial class NewBindingPanelViewModel : ObservableObject
             HoldThresholdMs = holdMs
         };
 
+        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
         _mainViewModel.Mappings.Add(entry);
         _mainViewModel.SelectedMapping = entry;
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);

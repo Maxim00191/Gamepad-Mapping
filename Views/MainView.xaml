@@ -6,6 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
              xmlns:sections="clr-namespace:Gamepad_Mapping.Views.Sections"
+             xmlns:controls="clr-namespace:Gamepad_Mapping.Views.Controls"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              mc:Ignorable="d"
@@ -538,7 +539,8 @@
                                 <Button Content="{Binding Source={StaticResource Loc}, Path=[AddMappingPlus]}"
                                         Command="{Binding MappingEditorPanel.AddMappingCommand}"
                                         Padding="10,4"
-                                        Margin="0,0,0,4" />
+                                        Margin="0,0,8,4" />
+                                <controls:ProfileRuleClipboardToolbar DataContext="{Binding RuleClipboard}" />
                             </WrapPanel>
                             <sections:MappingEditorView Grid.Row="2"
                                                         DataContext="{Binding MappingEditorPanel}" />

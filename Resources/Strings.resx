@@ -1230,4 +1230,46 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
   <data name="CommunityUpload_TextPolicy_FieldViolationWithFieldText" xml:space="preserve">
     <value>{0} contains text that is not allowed for community uploads. Field content: {1}</value>
   </data>
+  <data name="ProfileRuleClipboard_Copy" xml:space="preserve">
+    <value>Copy rule</value>
+  </data>
+  <data name="ProfileRuleClipboard_Paste" xml:space="preserve">
+    <value>Paste rule</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyTooltip" xml:space="preserve">
+    <value>Copy the selected row(s) to the app rule clipboard (Ctrl+C). You can paste after switching templates.</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteTooltip" xml:space="preserve">
+    <value>Paste the copied rule(s) into this template (Ctrl+V). Duplicate catalog IDs are renamed automatically.</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyFailedTitle" xml:space="preserve">
+    <value>Copy failed</value>
+  </data>
+  <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
+    <value>Paste failed</value>
+  </data>
+  <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
+    <value>The copied rule data could not be read.</value>
+  </data>
+  <data name="ProfileRuleClipboard_UnsupportedPayload" xml:space="preserve">
+    <value>That clipboard entry is not supported here.</value>
+  </data>
+  <data name="ProfileRuleClipboard_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="ProfileRuleClipboard_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="ProfileRuleClipboard_UndoTooltip" xml:space="preserve">
+    <value>Undo the last change to this template (Ctrl+Z).</value>
+  </data>
+  <data name="ProfileRuleClipboard_RedoTooltip" xml:space="preserve">
+    <value>Redo a change to this template (Ctrl+Shift+Z).</value>
+  </data>
 </root>

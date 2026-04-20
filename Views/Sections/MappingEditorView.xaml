@@ -4,6 +4,8 @@
              xmlns:models="clr-namespace:GamepadMapperGUI.Models"
              xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              xmlns:local="clr-namespace:Gamepad_Mapping.Views.Sections"
+             xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
+             xmlns:views="clr-namespace:Gamepad_Mapping.Views"
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
@@ -22,13 +24,26 @@
                   AutoGenerateColumns="False"
                   IsReadOnly="False"
                   CanUserAddRows="False"
+                  ClipboardCopyMode="None"
                   HeadersVisibility="Column"
-                  SelectedItem="{Binding SelectedMapping, Mode=TwoWay}"
+                  SelectionMode="Extended"
                   SelectionUnit="FullRow"
+                  behaviors:DataGridWorkspaceSelectionBehavior.RuleListKind="{x:Static behaviors:WorkspaceRuleListKind.Mappings}"
                   Margin="0"
                   VerticalAlignment="Stretch"
                   MinHeight="200"
                   VerticalScrollBarVisibility="Auto">
+            <DataGrid.InputBindings>
+                <KeyBinding Key="A"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.SelectAllWorkspaceRulesCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+                <KeyBinding Key="C"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.CopyRuleCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+                <KeyBinding Key="V"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.PasteRuleCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+            </DataGrid.InputBindings>
             <DataGrid.Columns>
                 <DataGridTemplateColumn Header="{Binding Source={StaticResource Loc}, Path=[FromType]}"
                                         Width="1.1*">

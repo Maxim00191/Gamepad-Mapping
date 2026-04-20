@@ -1,6 +1,9 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.ProfileRadialMenusListView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Gamepad_Mapping.Views.Controls"
+             xmlns:views="clr-namespace:Gamepad_Mapping.Views"
+             xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
              MinHeight="0"
              VerticalAlignment="Stretch">
     <Grid MinHeight="0"
@@ -23,17 +26,31 @@
             <Button Content="{Binding Source={StaticResource Loc}, Path=[RemoveSelected]}"
                     Command="{Binding RemoveRadialMenuCommand}"
                     Padding="10,4"
-                    Margin="0,0,0,4" />
+                    Margin="0,0,8,4" />
+            <controls:ProfileRuleClipboardToolbar DataContext="{Binding DataContext.RuleClipboard, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
         </WrapPanel>
         <DataGrid Grid.Row="2"
                   ItemsSource="{Binding RadialMenus}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
+                  ClipboardCopyMode="None"
                   HeadersVisibility="Column"
-                  SelectedItem="{Binding SelectedRadialMenu, Mode=TwoWay}"
+                  SelectionMode="Extended"
                   SelectionUnit="FullRow"
+                  behaviors:DataGridWorkspaceSelectionBehavior.RuleListKind="{x:Static behaviors:WorkspaceRuleListKind.RadialMenus}"
                   VerticalAlignment="Stretch"
                   VerticalScrollBarVisibility="Auto">
+            <DataGrid.InputBindings>
+                <KeyBinding Key="A"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.SelectAllWorkspaceRulesCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+                <KeyBinding Key="C"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.CopyRuleCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+                <KeyBinding Key="V"
+                            Modifiers="Control"
+                            Command="{Binding DataContext.RuleClipboard.PasteRuleCommand, RelativeSource={RelativeSource AncestorType=views:MainView, Mode=FindAncestor}}" />
+            </DataGrid.InputBindings>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{Binding Source={StaticResource Loc}, Path=[CatalogColumnId]}"
                                     Binding="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

@@ -75,6 +75,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IControllerVisualLayoutHelper _controllerVisualLayoutHelper;
     private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
     private readonly Debouncer _communityListingDescriptionDebouncer;
+    private readonly IProfileTemplateEditHistoryService _templateEditHistory;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -146,6 +147,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
         _communityListingDescriptionDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1200));
+
+        _templateEditHistory = new ProfileTemplateEditHistoryService(
+            BuildWorkspaceTemplateSnapshot,
+            ApplyWorkspaceTemplateSnapshot,
+            () => SelectedTemplate is not null);
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
@@ -240,12 +246,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _uiOrchestrator.PropertyChanged += (s, e) => {
             OnPropertyChanged(e.PropertyName);
         };
-        _profileOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
+        _profileOrchestrator.PropertyChanged += OnProfileOrchestratorPropertyChanged;
         _settingsOrchestrator.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
 
         _profileOrchestrator.LoadSelectedTemplate();
         StartGamepad();
         RefreshRightPanelSurface();
+        RuleClipboard.RefreshCommandStates();
         _dispatcher.BeginInvoke(ScheduleInitialToasts, DispatcherPriority.Loaded);
     }
 
@@ -280,6 +287,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         IsVisualMode = value == (int)MainProfileWorkspaceTab.VisualEditor;
         RefreshRightPanelSurface();
+        RuleClipboard.RefreshCommandStates();
     }
 
     [ObservableProperty]
@@ -290,6 +298,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public NewBindingPanelViewModel NewBindingPanel { get; private set; } = null!;
     public MappingEditorViewModel MappingEditorPanel { get; private set; } = null!;
     public ProfileCatalogPanelViewModel CatalogPanel { get; private set; } = null!;
+    public ProfileRuleClipboardViewModel RuleClipboard { get; private set; } = null!;
     public CommunityCatalogViewModel CommunityCatalogPanel { get; private set; } = null!;
     public GamepadMonitorViewModel GamepadMonitorPanel { get; private set; } = null!;
     public ProcessTargetPanelViewModel ProcessTargetPanel { get; private set; } = null!;
@@ -324,11 +333,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             OnPropertyChanged(nameof(SelectedMapping));
             RefreshRightPanelSurface();
+            RuleClipboard?.RefreshCommandStates();
         }
+    }
+
+    private void OnProfileOrchestratorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(e.PropertyName);
+        if (e.PropertyName == nameof(ProfileOrchestrator.SelectedTemplate))
+            RuleClipboard.RefreshCommandStates();
     }
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
     {
+        _templateEditHistory.Clear();
         if (template is null) return;
         _mappingManager.LoadTemplate(template);
         ApplyDeclaredProcessTarget();
@@ -583,6 +601,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _communityListingDescriptionDebouncer.Cancel();
+        _templateEditHistory.HistoryChanged -= OnTemplateEditHistoryChanged;
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
             mappingNotify.PropertyChanged -= OnMappingManagerPropertyChanged;
         GamepadMonitorPanel.PropertyChanged -= OnGamepadMonitorPanelSettingsChanged;
@@ -741,6 +760,71 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Updates radial / keyboard catalog tables in the mapping engine after pasting catalog rows.</summary>
+    public void RefreshMappingEngineDefinitions() => _mappingManager.RefreshEngineDefinitions();
+
+    /// <summary>Refreshes dependent UI after pasting a mapping from the in-app rule clipboard.</summary>
+    public void RefreshAfterRulePastedFromClipboard()
+    {
+        UpdateTemplateToggleDisplayNames();
+        RefreshControllerVisualOverlays();
+        RefreshRightPanelSurface();
+    }
+
+    public IProfileTemplateEditHistoryService TemplateEditHistory => _templateEditHistory;
+
+    /// <summary>Captures the current template workspace for undo/redo (mappings, catalogs, combo leads).</summary>
+    public void RecordTemplateWorkspaceCheckpoint() => _templateEditHistory.RecordCheckpoint();
+
+    private GameProfileTemplate? BuildWorkspaceTemplateSnapshot()
+    {
+        if (SelectedTemplate is null)
+            return null;
+
+        List<string>? comboLeads = null;
+        if (ComboLeadButtonsPersist is not null)
+            comboLeads = new List<string>(ComboLeadButtonsPersist);
+
+        var targetProc = (TemplateTargetProcessName ?? string.Empty).Trim();
+        var catalogFolder = (CurrentTemplateCatalogFolder ?? string.Empty).Trim();
+
+        return new GameProfileTemplate
+        {
+            SchemaVersion = 1,
+            ProfileId = CurrentTemplateProfileId,
+            TemplateGroupId = string.IsNullOrWhiteSpace(CurrentTemplateTemplateGroupId)
+                ? null
+                : CurrentTemplateTemplateGroupId.Trim(),
+            TemplateCatalogFolder = string.IsNullOrEmpty(catalogFolder) ? null : catalogFolder,
+            DisplayName = CurrentTemplateDisplayName,
+            Author = NormalizeWorkspaceOptionalField(CurrentTemplateAuthor),
+            CommunityListingDescription = NormalizeWorkspaceOptionalField(CurrentTemplateCommunityListingDescription),
+            TargetProcessName = string.IsNullOrEmpty(targetProc) ? null : targetProc,
+            ComboLeadButtons = comboLeads,
+            KeyboardActions = KeyboardActions.Count == 0 ? null : KeyboardActions.ToList(),
+            RadialMenus = RadialMenus.Count == 0 ? null : RadialMenus.ToList(),
+            Mappings = Mappings.ToList()
+        };
+    }
+
+    private void ApplyWorkspaceTemplateSnapshot(GameProfileTemplate template)
+    {
+        _profileOrchestrator.ComboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
+        _mappingManager.LoadTemplate(template);
+        UpdateTemplateToggleDisplayNames();
+        CatalogPanel.ResetSelection();
+        RefreshAfterRulePastedFromClipboard();
+        RuleClipboard.RefreshCommandStates();
+    }
+
+    private void OnTemplateEditHistoryChanged(object? sender, EventArgs e) => RuleClipboard?.RefreshCommandStates();
+
+    private static string? NormalizeWorkspaceOptionalField(string? value)
+    {
+        var t = (value ?? string.Empty).Trim();
+        return t.Length == 0 ? null : t;
+    }
+
     private static float ResolveStickDeadzone(float specific, float shared) => specific > 0f ? Math.Clamp(specific, 0f, 0.9f) : Math.Clamp(shared, 0f, 0.9f);
 
     private void PersistCurrentTemplateCommunityListingDescription()
@@ -836,7 +920,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
+        var clipboardService = new ProfileRuleClipboardService();
+        RuleClipboard = new ProfileRuleClipboardViewModel(this, clipboardService, _appToastService, _templateEditHistory);
+        _templateEditHistory.HistoryChanged += OnTemplateEditHistoryChanged;
+        MappingEditorPanel.PropertyChanged += OnMappingEditorClipboardRelatedPropertyChanged;
+        CatalogPanel.PropertyChanged += OnCatalogPanelClipboardRelatedPropertyChanged;
         RefreshControllerVisualOverlays();
+    }
+
+    private void OnMappingEditorClipboardRelatedPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MappingEditorViewModel.IsCreatingNewMapping))
+            RuleClipboard.RefreshCommandStates();
+    }
+
+    private void OnCatalogPanelClipboardRelatedPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ProfileCatalogPanelViewModel.SelectedKeyboardAction)
+            or nameof(ProfileCatalogPanelViewModel.SelectedRadialMenu))
+            RuleClipboard.RefreshCommandStates();
     }
 
     private void ApplyGamepadMonitorInitialUiState(AppSettings s)
