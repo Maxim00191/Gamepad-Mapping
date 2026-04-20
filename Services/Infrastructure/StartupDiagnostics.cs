@@ -73,7 +73,7 @@ public static class StartupDiagnostics
         ShowFatalErrorDialog(e.Exception);
     }
 
-    private static void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         _logger?.Log(LogLevel.Error, $"[Startup:{_startupId}] Unobserved Task Exception", e.Exception);
         // Usually we don't want to crash on unobserved task exceptions in .NET 4.5+, 

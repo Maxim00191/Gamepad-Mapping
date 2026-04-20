@@ -3,6 +3,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace GamepadMapperGUI.UploadTextPolicy;
@@ -16,6 +17,8 @@ public static class UploadTextPolicyEmbeddedReader
     public static bool TryReadPlaintextPolicyUtf8(out string? plaintext)
     {
         plaintext = null;
+        byte[]? symKey = null;
+        byte[]? gzipPlaintext = null;
         try
         {
             var asm = typeof(UploadTextPolicyEmbeddedReader).Assembly;
@@ -24,12 +27,12 @@ public static class UploadTextPolicyEmbeddedReader
             if (keyStream is null || payloadStream is null)
                 return false;
 
-            var symKey = ReadAllBytes(keyStream);
+            symKey = ReadAllBytes(keyStream);
             if (symKey.Length != UploadTextPolicyPayloadCodec.SymmetricKeyByteLength)
                 return false;
 
             var envelope = ReadAllBytes(payloadStream);
-            if (!UploadTextPolicyPayloadCodec.TryDecryptGzipPayloadAesGcm(envelope, symKey, out var gzipPlaintext) || gzipPlaintext is null)
+            if (!UploadTextPolicyPayloadCodec.TryDecryptGzipPayloadAesGcm(envelope, symKey, out gzipPlaintext) || gzipPlaintext is null)
                 return false;
 
             using var ms = new MemoryStream(gzipPlaintext, writable: false);
@@ -41,6 +44,13 @@ public static class UploadTextPolicyEmbeddedReader
         catch
         {
             return false;
+        }
+        finally
+        {
+            if (symKey is not null)
+                CryptographicOperations.ZeroMemory(symKey);
+            if (gzipPlaintext is not null)
+                CryptographicOperations.ZeroMemory(gzipPlaintext);
         }
     }
 
