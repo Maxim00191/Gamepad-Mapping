@@ -13,7 +13,7 @@ public static class UploadTextPolicyOfflineEncoder
     public static byte[] EncodeGzipBytesWithSymmetricKey(ReadOnlySpan<byte> aes256Key, byte[] gzipPlaintext)
     {
         ArgumentNullException.ThrowIfNull(gzipPlaintext);
-        return UploadTextPolicyPayloadCodec.EncryptGzipPayloadAesGcmV1(gzipPlaintext, aes256Key);
+        return UploadTextPolicyPayloadCodec.EncryptGzipPayloadAesGcm(gzipPlaintext, aes256Key);
     }
 
     /// <summary>

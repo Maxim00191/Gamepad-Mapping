@@ -43,6 +43,21 @@ jobs:
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
 
+      - name: Validate upload text policy payload envelope
+        shell: pwsh
+        run: |
+          $payloadPath = "Resources/Embedded/upload_text_policy.payload"
+          if (-not (Test-Path -LiteralPath $payloadPath)) {
+            throw "Missing payload file: $payloadPath"
+          }
+          $payload = [System.IO.File]::ReadAllBytes($payloadPath)
+          if ($payload.Length -lt 29) {
+            throw "Payload is too short to be a valid AES-GCM envelope: $($payload.Length) bytes."
+          }
+          if ($payload[0] -ne 2) {
+            throw "Unexpected payload format version: $($payload[0]). Expected 2."
+          }
+
       - name: Restore and build
         run: |
           dotnet restore "Gamepad Mapping.csproj"
@@ -75,6 +90,21 @@ jobs:
       - name: Refresh embedded upload text policy (gzip + AES-GCM)
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
+
+      - name: Validate upload text policy payload envelope
+        shell: pwsh
+        run: |
+          $payloadPath = "Resources/Embedded/upload_text_policy.payload"
+          if (-not (Test-Path -LiteralPath $payloadPath)) {
+            throw "Missing payload file: $payloadPath"
+          }
+          $payload = [System.IO.File]::ReadAllBytes($payloadPath)
+          if ($payload.Length -lt 29) {
+            throw "Payload is too short to be a valid AES-GCM envelope: $($payload.Length) bytes."
+          }
+          if ($payload[0] -ne 2) {
+            throw "Unexpected payload format version: $($payload[0]). Expected 2."
+          }
 
       - name: Restore solution
         run: dotnet restore "GamepadMapping.sln"
@@ -136,6 +166,21 @@ jobs:
       - name: Refresh embedded upload text policy (gzip + AES-GCM)
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
+
+      - name: Validate upload text policy payload envelope
+        shell: pwsh
+        run: |
+          $payloadPath = "Resources/Embedded/upload_text_policy.payload"
+          if (-not (Test-Path -LiteralPath $payloadPath)) {
+            throw "Missing payload file: $payloadPath"
+          }
+          $payload = [System.IO.File]::ReadAllBytes($payloadPath)
+          if ($payload.Length -lt 29) {
+            throw "Payload is too short to be a valid AES-GCM envelope: $($payload.Length) bytes."
+          }
+          if ($payload[0] -ne 2) {
+            throw "Unexpected payload format version: $($payload[0]). Expected 2."
+          }
 
       - name: Publish single-file (win-x64, self-contained)
         shell: pwsh

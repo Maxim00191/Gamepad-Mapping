@@ -17,27 +17,43 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
     Write-Warning "gzip-policy: running under Windows PowerShell 5.1; CI uses pwsh — gzip output may differ from GitHub Actions. Install PowerShell 7+ and use: pwsh -File `"$PSCommandPath`""
 }
 
-function Protect-GzipWithAesGcmV1 {
+function Protect-GzipWithAesGcmV2 {
     param(
         [Parameter(Mandatory = $true)][byte[]]$Aes256Key,
         [Parameter(Mandatory = $true)][byte[]]$GzipBytes
     )
     if ($Aes256Key.Length -ne 32) { throw "upload_text_policy.symkey must be exactly 32 bytes." }
 
-    $aes = [System.Security.Cryptography.AesGcm]::new($Aes256Key, 16)
-    $nonce = New-Object byte[] 12
-    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($nonce)
+    $derivationContext = [System.Text.Encoding]::UTF8.GetBytes("GamepadMapperGUI.UploadTextPolicy::KeyDerivation::AES-GCM")
+    $material = New-Object byte[] ($Aes256Key.Length + $derivationContext.Length + 1)
+    [Array]::Copy($Aes256Key, 0, $material, 0, $Aes256Key.Length)
+    [Array]::Copy($derivationContext, 0, $material, $Aes256Key.Length, $derivationContext.Length)
+    $material[$material.Length - 1] = 2
+    $derivedKey = [System.Security.Cryptography.SHA256]::HashData($material)
+    [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($material)
 
-    $cipher = New-Object byte[] $GzipBytes.Length
-    $tag = New-Object byte[] 16
-    $aes.Encrypt($nonce, $GzipBytes, $cipher, $tag, $null)
+    $aad = [System.Text.Encoding]::UTF8.GetBytes("GM.UploadTextPolicy.Payload.v2")
+    $aes = $null
+    try {
+        $aes = [System.Security.Cryptography.AesGcm]::new($derivedKey, 16)
+        $nonce = New-Object byte[] 12
+        [System.Security.Cryptography.RandomNumberGenerator]::Fill($nonce)
 
-    $out = New-Object byte[] (1 + 12 + $cipher.Length + 16)
-    $out[0] = 1
-    [Array]::Copy($nonce, 0, $out, 1, 12)
-    [Array]::Copy($cipher, 0, $out, 13, $cipher.Length)
-    [Array]::Copy($tag, 0, $out, 13 + $cipher.Length, 16)
-    return $out
+        $cipher = New-Object byte[] $GzipBytes.Length
+        $tag = New-Object byte[] 16
+        $aes.Encrypt($nonce, $GzipBytes, $cipher, $tag, $aad)
+
+        $out = New-Object byte[] (1 + 12 + $cipher.Length + 16)
+        $out[0] = 2
+        [Array]::Copy($nonce, 0, $out, 1, 12)
+        [Array]::Copy($cipher, 0, $out, 13, $cipher.Length)
+        [Array]::Copy($tag, 0, $out, 13 + $cipher.Length, 16)
+        return $out
+    }
+    finally {
+        if ($aes -ne $null) { $aes.Dispose() }
+        [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($derivedKey)
+    }
 }
 
 $p = Join-Path $PSScriptRoot 'upload_text_policy.txt'
@@ -50,41 +66,54 @@ if (-not (Test-Path -LiteralPath $keyPath)) {
     throw "Missing symmetric key file: $keyPath (32 bytes). Create a random 32-byte file (see repository docs / gzip-policy header)."
 }
 
-$symKey = [System.IO.File]::ReadAllBytes($keyPath)
-if ($symKey.Length -ne 32) {
-    throw "upload_text_policy.symkey must be exactly 32 bytes (got $($symKey.Length))."
-}
-
+$symKey = $null
 $gzBytes = $null
-if (Test-Path -LiteralPath $p) {
-    $bytes = [System.IO.File]::ReadAllBytes($p)
-    $ms = New-Object System.IO.MemoryStream
-    try {
-        $gz = New-Object System.IO.Compression.GZipStream($ms, [System.IO.Compression.CompressionLevel]::Optimal)
-        try { $gz.Write($bytes, 0, $bytes.Length) }
-        finally { $gz.Dispose() }
-        $gzBytes = $ms.ToArray()
+$bytes = $null
+$xorKey = $null
+$obf = $null
+try {
+    $symKey = [System.IO.File]::ReadAllBytes($keyPath)
+    if ($symKey.Length -ne 32) {
+        throw "upload_text_policy.symkey must be exactly 32 bytes (got $($symKey.Length))."
     }
-    finally { $ms.Dispose() }
-}
-elseif ((Test-Path -LiteralPath $legacyGz) -and (Test-Path -LiteralPath $legacyXor)) {
-    Write-Host "gzip-policy: plaintext missing; migrating legacy XOR obfuscated .txt.gz to AES-GCM payload."
-    $xorKey = [System.IO.File]::ReadAllBytes($legacyXor)
-    if ($xorKey.Length -eq 0) { throw "Legacy XOR key is empty: $legacyXor" }
-    $obf = [System.IO.File]::ReadAllBytes($legacyGz)
-    for ($i = 0; $i -lt $obf.Length; $i++) {
-        $obf[$i] = $obf[$i] -bxor $xorKey[$i % $xorKey.Length]
-    }
-    $gzBytes = $obf
-}
-else {
-    if (Test-Path -LiteralPath $outPayload) {
-        Write-Host "Skip gzip-policy: plaintext not present ($p); using existing $outPayload."
-        exit 0
-    }
-    throw "Missing $p (and no legacy XOR pair or $outPayload to fall back on)."
-}
 
-$envelope = Protect-GzipWithAesGcmV1 -Aes256Key $symKey -GzipBytes $gzBytes
-[System.IO.File]::WriteAllBytes($outPayload, $envelope)
-Write-Host "Wrote $outPayload ($((Get-Item $outPayload).Length) bytes)"
+    if (Test-Path -LiteralPath $p) {
+        $bytes = [System.IO.File]::ReadAllBytes($p)
+        $ms = New-Object System.IO.MemoryStream
+        try {
+            $gz = New-Object System.IO.Compression.GZipStream($ms, [System.IO.Compression.CompressionLevel]::Optimal)
+            try { $gz.Write($bytes, 0, $bytes.Length) }
+            finally { $gz.Dispose() }
+            $gzBytes = $ms.ToArray()
+        }
+        finally { $ms.Dispose() }
+    }
+    elseif ((Test-Path -LiteralPath $legacyGz) -and (Test-Path -LiteralPath $legacyXor)) {
+        Write-Host "gzip-policy: plaintext missing; migrating legacy XOR obfuscated .txt.gz to AES-GCM payload."
+        $xorKey = [System.IO.File]::ReadAllBytes($legacyXor)
+        if ($xorKey.Length -eq 0) { throw "Legacy XOR key is empty: $legacyXor" }
+        $obf = [System.IO.File]::ReadAllBytes($legacyGz)
+        for ($i = 0; $i -lt $obf.Length; $i++) {
+            $obf[$i] = $obf[$i] -bxor $xorKey[$i % $xorKey.Length]
+        }
+        $gzBytes = $obf
+    }
+    else {
+        if (Test-Path -LiteralPath $outPayload) {
+            Write-Host "Skip gzip-policy: plaintext not present ($p); using existing $outPayload."
+            exit 0
+        }
+        throw "Missing $p (and no legacy XOR pair or $outPayload to fall back on)."
+    }
+
+    $envelope = Protect-GzipWithAesGcmV2 -Aes256Key $symKey -GzipBytes $gzBytes
+    [System.IO.File]::WriteAllBytes($outPayload, $envelope)
+    Write-Host "Wrote $outPayload ($((Get-Item $outPayload).Length) bytes)"
+}
+finally {
+    if ($symKey -ne $null) { [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($symKey) }
+    if ($bytes -ne $null) { [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($bytes) }
+    if ($gzBytes -ne $null) { [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($gzBytes) }
+    if ($xorKey -ne $null) { [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($xorKey) }
+    if ($obf -ne $null) { [System.Security.Cryptography.CryptographicOperations]::ZeroMemory($obf) }
+}
