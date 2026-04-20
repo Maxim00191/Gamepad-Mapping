@@ -33,6 +33,7 @@
                   ItemsSource="{Binding KeyboardActions}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
+                  behaviors:DataGridWorkspaceEditHistoryBehavior.RecordCheckpointOnBeginningEdit="True"
                   ClipboardCopyMode="None"
                   HeadersVisibility="Column"
                   SelectionMode="Extended"

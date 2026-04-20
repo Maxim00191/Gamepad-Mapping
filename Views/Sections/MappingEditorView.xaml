@@ -24,6 +24,7 @@
                   AutoGenerateColumns="False"
                   IsReadOnly="False"
                   CanUserAddRows="False"
+                  behaviors:DataGridWorkspaceEditHistoryBehavior.RecordCheckpointOnBeginningEdit="True"
                   ClipboardCopyMode="None"
                   HeadersVisibility="Column"
                   SelectionMode="Extended"
