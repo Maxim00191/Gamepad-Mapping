@@ -43,6 +43,13 @@ if (-not (Test-Path -LiteralPath $gzipPolicyScript)) {
 Write-Host "Refreshing embedded upload text policy (gzip)..." -ForegroundColor Cyan
 & $gzipPolicyScript
 
+$validatePayloadScript = Join-Path $repoRoot "Resources\Embedded\validate-upload-text-policy-payload.ps1"
+if (-not (Test-Path -LiteralPath $validatePayloadScript)) {
+    throw "Payload validator script not found: $validatePayloadScript"
+}
+Write-Host "Validating embedded upload text policy envelope..." -ForegroundColor Cyan
+& $validatePayloadScript
+
 $updaterManifestPath = Join-Path $publishRoot "updater-required-files.txt"
 if (-not (Test-Path -LiteralPath $updaterManifestPath)) {
     throw "Updater payload manifest not found: $updaterManifestPath"
