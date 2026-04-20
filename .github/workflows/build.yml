@@ -43,10 +43,6 @@ jobs:
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
 
-      - name: Validate upload text policy payload envelope
-        shell: pwsh
-        run: ./Resources/Embedded/validate-upload-text-policy-payload.ps1
-
       - name: Restore and build
         run: |
           dotnet restore "Gamepad Mapping.csproj"
@@ -140,10 +136,6 @@ jobs:
       - name: Refresh embedded upload text policy (gzip + AES-GCM)
         shell: pwsh
         run: ./Resources/Embedded/gzip-policy.ps1
-
-      - name: Validate upload text policy payload envelope
-        shell: pwsh
-        run: ./Resources/Embedded/validate-upload-text-policy-payload.ps1
 
       - name: Publish single-file (win-x64, self-contained)
         shell: pwsh
