@@ -124,4 +124,38 @@ public sealed class HumanizingMouseEmulatorTests
         // If carry had been cleared, a delta of 3 would stay below subdivision span and emit ~3 px total.
         Assert.True(recorded.Sum(t => t.Dx) > 12, "right-stick carry should survive clearing the left scope only");
     }
+
+    [Fact]
+    public void TryPlanMouseLookMove_NoNoise_BelowSubdivideSpan_IsDirect()
+    {
+        var inner = new Mock<IMouseEmulator>();
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        var kind = emu.TryPlanMouseLookMove(3, 0, 1.0f, out int tx, out int ty, out int nSteps);
+
+        Assert.Equal(HumanizingMouseEmulator.MouseLookPlanKind.Direct, kind);
+        Assert.Equal(3, tx);
+        Assert.Equal(0, ty);
+        Assert.Equal(0, nSteps);
+    }
+
+    [Fact]
+    public void TryPlanMouseLookMove_NoNoise_AboveSubdivideSpan_IsSubdivided()
+    {
+        var inner = new Mock<IMouseEmulator>();
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        var kind = emu.TryPlanMouseLookMove(10, -3, 1.0f, out int tx, out int ty, out int nSteps);
+
+        Assert.Equal(HumanizingMouseEmulator.MouseLookPlanKind.Subdivided, kind);
+        Assert.Equal(10, tx);
+        Assert.Equal(-3, ty);
+        Assert.True(nSteps >= 2);
+    }
 }

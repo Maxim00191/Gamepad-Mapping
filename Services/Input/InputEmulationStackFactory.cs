@@ -16,11 +16,17 @@ public sealed class InputEmulationStackFactory : IInputEmulationStackFactory
 {
     private readonly Func<int> _noiseSeed;
     private readonly ITimeProvider _timeProvider;
+    private readonly Func<int> _getGamepadPollingIntervalMs;
 
-    public InputEmulationStackFactory(Func<int>? noiseSeed = null, ITimeProvider? timeProvider = null)
+    public InputEmulationStackFactory(
+        Func<int>? noiseSeed = null,
+        ITimeProvider? timeProvider = null,
+        Func<int>? getGamepadPollingIntervalMs = null)
     {
         _noiseSeed = noiseSeed ?? (() => Random.Shared.Next());
         _timeProvider = timeProvider ?? new RealTimeProvider();
+        _getGamepadPollingIntervalMs = getGamepadPollingIntervalMs
+            ?? (() => GamepadInputStreamConstraints.ClampPollingIntervalMs(10));
     }
 
     public (IKeyboardEmulator Keyboard, IMouseEmulator Mouse) CreatePair(
@@ -31,8 +37,9 @@ public sealed class InputEmulationStackFactory : IInputEmulationStackFactory
 
         INoiseGenerator noiseGen = new NoiseGenerator(_noiseSeed());
         var controller = new HumanInputNoiseController(noiseGen, getNoiseParameters, _timeProvider);
+        var subMoveDelayer = new HardwareStyledMouseSubMoveStepDelayer(controller, _getGamepadPollingIntervalMs);
         return (
             new HumanizingKeyboardEmulator(keyboard, controller),
-            new HumanizingMouseEmulator(mouse, controller));
+            new HumanizingMouseEmulator(mouse, controller, subMoveDelayer));
     }
 }

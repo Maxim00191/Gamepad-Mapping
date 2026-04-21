@@ -147,7 +147,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
                 : NullRadialMenuHud.Instance);
         _settingsService = settingsService ?? new SettingsService();
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
-        _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory();
+        _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory(
+            getGamepadPollingIntervalMs: () => GamepadInputStreamConstraints.ClampPollingIntervalMs(_settingsOrchestrator.Settings.GamepadPollingIntervalMs));
         var appSettings = _settingsOrchestrator.Settings;
 
         _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
@@ -790,7 +791,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             getMouseLookSmoothing: () => _settingsOrchestrator.Settings.MouseLookSmoothing,
             getMouseLookSettleMagnitude: () => _settingsOrchestrator.Settings.MouseLookSettleMagnitude,
             getMouseLookReboundSuppression: () => _settingsOrchestrator.Settings.MouseLookReboundSuppression,
-            getGamepadPollingIntervalMs: () => _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
+            getGamepadPollingIntervalMs: () => GamepadInputStreamConstraints.ClampPollingIntervalMs(_settingsOrchestrator.Settings.GamepadPollingIntervalMs),
             getAnalogChangeEpsilon: () => _settingsOrchestrator.Settings.AnalogChangeEpsilon,
             getAnalogHysteresisPressExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisPressExtra,
             getAnalogHysteresisReleaseExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisReleaseExtra,
