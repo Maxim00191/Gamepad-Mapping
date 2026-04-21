@@ -6,7 +6,6 @@ using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using Microsoft.Win32;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
@@ -69,7 +68,8 @@ public partial class App : Application
             EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnWindowLoaded));
             ApplyChromeTheme();
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
-            CheckStartupElevationCompatibility();
+            if (ShouldAbortStartupForElevationRelaunch())
+                return;
 
             var gitHubContentService = new GitHubContentService();
             var localFileService = new LocalFileService();
@@ -271,15 +271,19 @@ public partial class App : Application
             translationService.Culture = culture;
     }
 
-    private static void CheckStartupElevationCompatibility()
+    /// <summary>
+    /// If the foreground window is an elevated process while we are not, offer to relaunch elevated.
+    /// When relaunch succeeds, returns true so <see cref="OnStartup"/> does not construct the main window (shutdown is asynchronous).
+    /// </summary>
+    private static bool ShouldAbortStartupForElevationRelaunch()
     {
         var processTargetService = new ProcessTargetService();
         if (processTargetService.IsCurrentProcessElevated())
-            return;
+            return false;
 
         var foregroundPid = processTargetService.GetForegroundProcessId();
         if (foregroundPid <= 0 || !processTargetService.IsProcessElevated(foregroundPid))
-            return;
+            return false;
 
         var result = MessageBox.Show(
             "The currently focused target appears to be running as administrator.\n\n" +
@@ -288,30 +292,9 @@ public partial class App : Application
             MessageBoxButton.YesNo,
             MessageBoxImage.Information);
         if (result != MessageBoxResult.Yes)
-            return;
+            return false;
 
-        var exePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(exePath))
-            return;
-
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exePath,
-                UseShellExecute = true,
-                Verb = "runas"
-            });
-            Current?.Shutdown();
-        }
-        catch (Win32Exception)
-        {
-            // User cancelled the UAC prompt.
-        }
-        catch
-        {
-            // Best-effort relaunch only.
-        }
+        return ElevationApplicationRelaunch.TryRelaunchElevatedAndShutdownCurrentApplication();
     }
 }
 

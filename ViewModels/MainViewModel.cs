@@ -401,7 +401,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     partial void OnSelectedTargetProcessChanged(ProcessInfo? value)
     {
-        if (value is not null) _elevationHandler.CheckAndPromptElevation(value);
+        if (value is not null && _elevationHandler.CheckAndPromptElevation(value))
+            return;
+
         IsProcessTargetingEnabled = value is not null;
         SyncAppStatusMonitor();
     }

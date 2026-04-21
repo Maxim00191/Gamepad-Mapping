@@ -12,6 +12,7 @@ public interface IUiOrchestrator : IDisposable, INotifyPropertyChanged
     AppTargetingState TargetState { get; }
     string TargetStatusText { get; }
     
+    /// <summary>Updates targeting status in the UI. Safe to call from any thread.</summary>
     void UpdateStatus(AppTargetingState state, string statusText);
     void ShowComboHud(ComboHudContent? content, byte alpha, double shadowOpacity, string placement);
     void ShowTemplateSwitchHud(string profileDisplayName, double seconds, byte alpha, double shadowOpacity, string placement, Action onFinished);

@@ -1,6 +1,4 @@
 using System;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
@@ -41,17 +39,17 @@ public sealed class ElevationHandler : IElevationHandler
         return isElevated;
     }
 
-    public void CheckAndPromptElevation(ProcessInfo target)
+    public bool CheckAndPromptElevation(ProcessInfo target)
     {
         if (!IsBlockedByUipi(target))
-            return;
+            return false;
 
         if (_lastElevationPromptedProcessId == target.ProcessId)
-            return;
+            return false;
 
         _lastElevationPromptedProcessId = target.ProcessId;
         Gamepad_Mapping.App.Logger.Info($"Prompting for elevation due to target {target.ProcessName} (PID {target.ProcessId})");
-        
+
         var relaunch = MessageBox.Show(
             $"The selected target '{target.ProcessName}' is running as administrator.\n\n" +
             "This mapper is not elevated, so Windows UIPI can block injected input.\n\n" +
@@ -63,40 +61,13 @@ public sealed class ElevationHandler : IElevationHandler
         if (relaunch == MessageBoxResult.Yes)
         {
             Gamepad_Mapping.App.Logger.Info("User accepted elevation relaunch.");
-            RelaunchAsAdministrator();
+            return ElevationApplicationRelaunch.TryRelaunchElevatedAndShutdownCurrentApplication();
         }
-        else
-        {
-            Gamepad_Mapping.App.Logger.Warning("User declined elevation relaunch. Input may be non-functional for the target.");
-        }
+
+        Gamepad_Mapping.App.Logger.Warning("User declined elevation relaunch. Input may be non-functional for the target.");
+        return false;
     }
 
-    private static void RelaunchAsAdministrator()
-    {
-        var exePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(exePath))
-            return;
-
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = exePath,
-                UseShellExecute = true,
-                Verb = "runas"
-            };
-            Process.Start(psi);
-            Application.Current?.Shutdown();
-        }
-        catch (Win32Exception)
-        {
-            // User cancelled the UAC prompt.
-        }
-        catch
-        {
-            // Best-effort relaunch only.
-        }
-    }
 }
 
 

@@ -33,11 +33,19 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
     }
 
+    /// <inheritdoc cref="IUiOrchestrator.UpdateStatus"/>
     public void UpdateStatus(AppTargetingState state, string statusText)
     {
-        _dispatcher.VerifyAccess();
-        TargetState = state;
-        TargetStatusText = statusText;
+        void Apply()
+        {
+            TargetState = state;
+            TargetStatusText = statusText;
+        }
+
+        if (_dispatcher.CheckAccess())
+            Apply();
+        else
+            _dispatcher.BeginInvoke(Apply);
     }
 
     public void ShowComboHud(ComboHudContent? content, byte alpha, double shadowOpacity, string placement)
