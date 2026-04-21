@@ -303,7 +303,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         VisualEditor = 0,
         Mappings = 1,
         KeyboardActions = 2,
-        RadialMenus = 3
+        RadialMenus = 3,
+        Community = 4,
     }
 
     [ObservableProperty]
@@ -321,6 +322,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IsVisualMode = value == (int)MainProfileWorkspaceTab.VisualEditor;
         RefreshRightPanelSurface();
         RuleClipboard.RefreshCommandStates();
+
+        if (value == (int)MainProfileWorkspaceTab.Community)
+            _ = CommunityCatalogPanel.EnsureCommunityCatalogIndexWhenEmptyAsync();
     }
 
     [ObservableProperty]

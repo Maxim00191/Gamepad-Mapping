@@ -1513,4 +1513,7 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
   <data name="DebugCornerToast_Message" xml:space="preserve">
     <value>Launched with --debug-toast. Dismiss or wait for auto-hide; no update or welcome flow runs.</value>
   </data>
+  <data name="CommunityCatalog_AutoGettingUpdates" xml:space="preserve">
+    <value>Automatically getting updates</value>
+  </data>
 </root>

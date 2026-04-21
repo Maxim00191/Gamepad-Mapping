@@ -21,6 +21,12 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class CommunityCatalogViewModel : ObservableObject
 {
+    private enum CommunityCatalogIndexLoadKind
+    {
+        AutomaticOnFirstOpen,
+        UserManualRefresh,
+    }
+
     private readonly TimeSpan _refreshCooldownDuration;
 
     private readonly ICommunityTemplateService _communityService;
@@ -90,6 +96,18 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 Math.Max(0, RefreshCooldownSecondsRemaining))
             : Localize("Refresh");
 
+    /// <summary>
+    /// When the user opens the Community workspace tab and no index is in memory yet,
+    /// fetches the published index once (same network behavior as refresh, without cooldown).
+    /// </summary>
+    public Task EnsureCommunityCatalogIndexWhenEmptyAsync()
+    {
+        if (_cachedCommunityIndex is not null || IsLoading)
+            return Task.CompletedTask;
+
+        return FetchAndApplyCommunityIndexAsync(CommunityCatalogIndexLoadKind.AutomaticOnFirstOpen);
+    }
+
     [RelayCommand(CanExecute = nameof(CanRefreshTemplates))]
     public async Task RefreshTemplatesAsync()
     {
@@ -102,11 +120,30 @@ public partial class CommunityCatalogViewModel : ObservableObject
             StartRefreshCooldownTimer();
         }
 
+        await FetchAndApplyCommunityIndexAsync(CommunityCatalogIndexLoadKind.UserManualRefresh);
+    }
+
+    private async Task FetchAndApplyCommunityIndexAsync(CommunityCatalogIndexLoadKind kind)
+    {
+        if (IsLoading)
+            return;
+
+        var manual = kind == CommunityCatalogIndexLoadKind.UserManualRefresh;
+
         IsLoading = true;
-        StatusMessage = Localize("CommunityCatalog_LoadingTemplates");
-        FolderGroups.Clear();
-        _cachedCommunityIndex = null;
+        StatusMessage = manual
+            ? Localize("CommunityCatalog_LoadingTemplates")
+            : Localize("CommunityCatalog_AutoGettingUpdates");
+
+        if (manual)
+        {
+            FolderGroups.Clear();
+            _cachedCommunityIndex = null;
+        }
+
         RefreshTemplatesCommand.NotifyCanExecuteChanged();
+        DownloadTemplateCommand.NotifyCanExecuteChanged();
+        DeleteTemplateCommand.NotifyCanExecuteChanged();
 
         try
         {
@@ -131,7 +168,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
         {
             IsLoading = false;
             RefreshTemplatesCommand.NotifyCanExecuteChanged();
+            DownloadTemplateCommand.NotifyCanExecuteChanged();
+            DeleteTemplateCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        RefreshTemplatesCommand.NotifyCanExecuteChanged();
+        UploadToCommunityCommand.NotifyCanExecuteChanged();
+        DownloadTemplateCommand.NotifyCanExecuteChanged();
+        DeleteTemplateCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSearchQueryChanged(string value)

@@ -1513,4 +1513,7 @@
   <data name="DebugCornerToast_Message" xml:space="preserve">
     <value>已使用 --debug-toast 启动。可手动关闭或等待自动隐藏；不会执行更新或欢迎流程。</value>
   </data>
+  <data name="CommunityCatalog_AutoGettingUpdates" xml:space="preserve">
+    <value>正在自动获取更新</value>
+  </data>
 </root>
