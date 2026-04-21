@@ -355,7 +355,7 @@
     <value>Standard Windows API for Xbox and compatible controllers.</value>
   </data>
   <data name="GamepadSourceDualSenseLabel" xml:space="preserve">
-    <value>DualSense (PlayStation 5)</value>
+    <value>DualSense (PlayStation 5) (not supported yet)</value>
   </data>
   <data name="GamepadSourceDualSenseHint" xml:space="preserve">
     <value>Native support for DualSense features (adaptive triggers, etc). Not yet implemented.</value>
