@@ -60,7 +60,7 @@
                                   HorizontalAlignment="Stretch"
                                   MinHeight="28"
                                   Padding="10,4"
-                                  Style="{StaticResource ToolbarToggleButtonStyle}">
+                                  Style="{StaticResource TemplateDescriptionHudToggleButtonStyle}">
                         <TextBlock FontWeight="SemiBold"
                                    Text="{Binding Source={StaticResource Loc}, Path=[TemplateCommunityDescriptionHudTitle]}" />
                     </ToggleButton>

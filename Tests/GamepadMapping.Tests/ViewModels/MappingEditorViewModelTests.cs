@@ -11,6 +11,7 @@ using System.Collections.ObjectModel;
 using GamepadMapperGUI.Core;
 using System.Windows.Input;
 using GamepadMapperGUI.Interfaces.Core;
+using System.Collections.Generic;
 
 namespace GamepadMapping.Tests.ViewModels;
 
@@ -19,6 +20,7 @@ public class MappingEditorViewModelTests
     private readonly Mock<IProfileService> _profileServiceMock;
     private readonly Mock<IKeyboardCaptureService> _keyboardCaptureServiceMock;
     private readonly Mock<ISettingsService> _settingsServiceMock;
+    private readonly Mock<IItemSelectionDialogService> _itemSelectionDialogServiceMock;
     private readonly MainViewModel _mainViewModel;
 
     public MappingEditorViewModelTests()
@@ -26,6 +28,7 @@ public class MappingEditorViewModelTests
         _profileServiceMock = new Mock<IProfileService>();
         _keyboardCaptureServiceMock = new Mock<IKeyboardCaptureService>();
         _settingsServiceMock = new Mock<ISettingsService>();
+        _itemSelectionDialogServiceMock = new Mock<IItemSelectionDialogService>();
         _profileServiceMock.Setup(p => p.AvailableTemplates).Returns(new ObservableCollection<TemplateOption>());
         _keyboardCaptureServiceMock.Setup(k => k.KeyboardKeyCapturePrompt).Returns("Prompt");
         _settingsServiceMock.Setup(s => s.LoadSettings()).Returns(new AppSettings());
@@ -38,7 +41,8 @@ public class MappingEditorViewModelTests
             elevationHandler: new Mock<IElevationHandler>().Object,
             appStatusMonitor: new Mock<IAppStatusMonitor>().Object,
             mappingEngine: new Mock<IMappingEngine>().Object,
-            settingsService: _settingsServiceMock.Object
+            settingsService: _settingsServiceMock.Object,
+            itemSelectionDialogService: _itemSelectionDialogServiceMock.Object
         );
     }
 
@@ -140,6 +144,25 @@ public class MappingEditorViewModelTests
         
         Assert.IsType<ItemCycleActionEditorViewModel>(vm.CurrentActionEditor);
         Assert.False(vm.EditKeyboardAndHoldSectionsEnabled);
+    }
+
+    [Fact]
+    public void PickMappingActionIdCommand_AssignsSelectedCatalogActionId()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+
+        _itemSelectionDialogServiceMock
+            .Setup(s => s.Select(It.IsAny<System.Windows.Window?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<Gamepad_Mapping.Models.State.SelectionDialogItem>>(), It.IsAny<string?>()))
+            .Returns("jump");
+
+        vm.PickMappingActionIdCommand.Execute(entry);
+
+        Assert.Equal("jump", entry.ActionId);
     }
 
     [Fact]

@@ -23,4 +23,11 @@ public abstract partial class ActionEditorViewModelBase : ObservableObject
     /// Clears the editor state for a new mapping.
     /// </summary>
     public abstract void Clear();
+
+    /// <summary>
+    /// Called when UI localization changes so derived editors can refresh computed labels.
+    /// </summary>
+    public virtual void OnLocalizationChanged()
+    {
+    }
 }

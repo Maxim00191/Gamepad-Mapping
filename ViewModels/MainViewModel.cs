@@ -79,6 +79,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly Debouncer _workspaceDirtyDebouncer;
     private readonly ILaunchInitialToastScheduler _launchInitialToastScheduler;
     private readonly IProfileTemplateEditHistoryService _templateEditHistory;
+    private readonly IItemSelectionDialogService _itemSelectionDialogService;
+    private readonly IKeyboardActionSelectionBuilder _keyboardActionSelectionBuilder;
     private WorkspaceObservableMutationWatcher? _workspaceMutationWatcher;
     private string? _workspacePersistenceBaselineJson;
     private bool _suppressProfileSelectionInterlock;
@@ -99,6 +101,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public IControllerVisualLayoutHelper ControllerVisualLayoutHelper => _controllerVisualLayoutHelper;
 
     public IMappingsForLogicalControlQuery MappingsForLogicalControlQuery => _mappingsForLogicalControlQuery;
+    public IItemSelectionDialogService ItemSelectionDialogService => _itemSelectionDialogService;
+    public IKeyboardActionSelectionBuilder KeyboardActionSelectionBuilder => _keyboardActionSelectionBuilder;
 
     public MainViewModel(
         IProfileService? profileService = null,
@@ -133,7 +137,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IControllerVisualLayoutHelper? controllerVisualLayoutHelper = null,
         IRadialMenuHud? radialMenuHud = null,
         ILaunchInitialToastScheduler? launchInitialToastScheduler = null,
-        IUiOrchestrator? uiOrchestrator = null)
+        IUiOrchestrator? uiOrchestrator = null,
+        IItemSelectionDialogService? itemSelectionDialogService = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
@@ -205,6 +210,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _mappingsForLogicalControlQuery = new MappingsForLogicalControlQuery(_controllerVisualService);
 
         _uiOrchestrator = uiOrchestrator ?? new UiOrchestrator(_appToastService, _dispatcher);
+        _itemSelectionDialogService = itemSelectionDialogService ?? new ItemSelectionDialogService();
+        _keyboardActionSelectionBuilder = new KeyboardActionSelectionBuilder();
         _launchInitialToastScheduler = launchInitialToastScheduler
             ?? new LaunchInitialToastScheduler(_appToastService, _updateNotificationService, _settingsOrchestrator);
 

@@ -44,7 +44,7 @@ public partial class ControllerVisualViewModel : ObservableObject
     private readonly IControllerMappingOverlayLabelComposer _mappingOverlayLabelComposer;
 
     public ControllerMappingOverlayPrimaryLabelMode OverlayPrimaryLabelMode { get; set; } =
-        ControllerMappingOverlayPrimaryLabelMode.ActionSummary;
+        ControllerMappingOverlayLabelModeParser.DefaultMode;
 
     public bool OverlayShowSecondary { get; set; } = true;
 

@@ -160,25 +160,24 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <ComboBox ItemsSource="{Binding DataContext.KeyboardActionsForPicker, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding ActionId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock VerticalAlignment="Center">
-                                            <TextBlock.Text>
-                                                <MultiBinding Converter="{StaticResource KeyboardActionPickerLabelConverter}">
-                                                    <Binding Path="Id" />
-                                                    <Binding Path="ResolvedCatalogDescription" />
-                                                    <Binding Source="{StaticResource Loc}" Path="[KeyboardActionPicker_OptionFormat]" />
-                                                    <Binding Source="{StaticResource Loc}" Path="[MappingActionIdManual]" />
-                                                    <Binding Path="KeyboardKey" />
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <Button Command="{Binding DataContext.PickMappingActionIdCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}">
+                                <TextBlock VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding ActionId}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActionId}" Value="{x:Null}">
+                                                    <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActionId}" Value="">
+                                                    <Setter Property="Text" Value="{Binding Source={StaticResource Loc}, Path=[MappingActionIdManual]}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Button>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>

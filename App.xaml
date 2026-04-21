@@ -32,6 +32,7 @@
         <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFBCB5AA" />
         <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FFB89428" />
         <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FFC9A000" />
+        <SolidColorBrush x:Key="AppSoftWarningBorderBrush" Color="#FFD4B247" />
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
@@ -205,6 +206,16 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style x:Key="TemplateDescriptionHudToggleButtonStyle"
+               TargetType="{x:Type ToggleButton}"
+               BasedOn="{StaticResource ToolbarToggleButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasTemplateCommunityListingDescription}" Value="False">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AppSoftWarningBorderBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="ToolbarButtonStyle" TargetType="{x:Type Button}">
@@ -515,6 +526,30 @@
             <Style.Triggers>
                 <Trigger Property="IsKeyboardFocused" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AppSelectionDialogListBoxStyle" TargetType="{x:Type ListBox}">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppControlSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+
+        <Style x:Key="AppSelectionDialogListBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource AppSelectionTextBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>

@@ -295,7 +295,8 @@ public class AppSettings
     /// Controller diagram overlay primary line: <c>actionSummary</c>, <c>physicalControl</c>, or <c>actionAndPhysical</c> (action plus control name).
     /// </summary>
     [JsonProperty("controllerMappingOverlayPrimaryLabel")]
-    public string ControllerMappingOverlayPrimaryLabel { get; set; } = "actionSummary";
+    public string ControllerMappingOverlayPrimaryLabel { get; set; } =
+        ControllerMappingOverlayLabelModeParser.DefaultSettingValue;
 
     /// <summary>When true, show secondary text such as <c>+N</c> for additional mappings on the same control.</summary>
     [JsonProperty("controllerMappingOverlayShowSecondary")]

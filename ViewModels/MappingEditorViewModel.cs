@@ -30,6 +30,7 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class MappingEditorViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
+    private readonly IItemSelectionDialogService _itemSelectionDialogService;
     private readonly IActionEditorFactory _actionEditorFactory;
     private bool _resolvingActionId;
     private bool _syncingActionEditorFromSelection;
@@ -58,6 +59,7 @@ public partial class MappingEditorViewModel : ObservableObject
     public MappingEditorViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
+        _itemSelectionDialogService = _mainViewModel.ItemSelectionDialogService;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
 
@@ -455,6 +457,10 @@ public partial class MappingEditorViewModel : ObservableObject
     private ICommand? _cancelCreateNewMappingCommand;
     public ICommand CancelCreateNewMappingCommand => _cancelCreateNewMappingCommand ??= new RelayCommand(CancelCreateNewMapping);
 
+    private ICommand? _pickMappingActionIdCommand;
+    public ICommand PickMappingActionIdCommand =>
+        _pickMappingActionIdCommand ??= new RelayCommand<MappingEntry>(PickMappingActionId);
+
     public void SyncFromSelection(MappingEntry? value)
     {
         if (value is not null)
@@ -683,6 +689,23 @@ public partial class MappingEditorViewModel : ObservableObject
         SyncFromSelection(SelectedMapping);
     }
 
+    private void PickMappingActionId(MappingEntry? mapping)
+    {
+        if (mapping is null)
+            return;
+
+        var selected = _itemSelectionDialogService.Select(
+            Application.Current?.MainWindow,
+            AppUiLocalization.GetString("KeyboardActionPicker_DialogTitle"),
+            AppUiLocalization.GetString("KeyboardActionPicker_SearchPlaceholder"),
+            _mainViewModel.KeyboardActionSelectionBuilder.BuildSelectionItems(_mainViewModel.KeyboardActions),
+            mapping.ActionId);
+        if (selected is null)
+            return;
+
+        mapping.ActionId = selected;
+    }
+
     private bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
     {
         messageKey = null;
@@ -816,6 +839,7 @@ public partial class MappingEditorViewModel : ObservableObject
         {
             RefreshStatusDiagnostics();
             RefreshMappingDescriptionEditFields();
+            CurrentActionEditor?.OnLocalizationChanged();
         }
     }
 

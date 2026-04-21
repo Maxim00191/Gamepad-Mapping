@@ -21,26 +21,9 @@
             <StackPanel>
                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnActionId]}"
                            Margin="0,8,0,4" />
-                <ComboBox Margin="0,0,0,4"
-                          ItemsSource="{Binding DataContext.KeyboardActionsForPicker, RelativeSource={RelativeSource AncestorType=UserControl, Mode=FindAncestor}}"
-                          SelectedValuePath="Id"
-                          SelectedValue="{Binding ActionId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <MultiBinding Converter="{StaticResource KeyboardActionPickerLabelConverter}">
-                                        <Binding Path="Id" />
-                                        <Binding Path="ResolvedCatalogDescription" />
-                                        <Binding Source="{StaticResource Loc}" Path="[KeyboardActionPicker_OptionFormat]" />
-                                        <Binding Source="{StaticResource Loc}" Path="[MappingActionIdManual]" />
-                                        <Binding Path="KeyboardKey" />
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+                <Button Margin="0,0,0,4"
+                        Command="{Binding PickCatalogActionCommand}"
+                        Content="{Binding ActionPickerDisplayText}" />
 
                 <TextBlock Text="{Binding CatalogBehaviorSummary}"
                            TextWrapping="Wrap"

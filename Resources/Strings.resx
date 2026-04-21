@@ -1029,7 +1029,7 @@ Do you want to overwrite it?</value>
     <value>Author folder</value>
   </data>
   <data name="CommunityUpload_ListingDescriptionLabel" xml:space="preserve">
-    <value>Listing description</value>
+    <value>Template description</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
     <value>Uploads use Cloudflare Worker + Turnstile handshake only. If the relevant configuration does not exist, you need to fill in the communityProfilesUploadWorkerUrl or Turnstile information in local_settings.json.</value>
@@ -1133,7 +1133,7 @@ This only removes your local copy.</value>
     <value>Community description</value>
   </data>
   <data name="TemplateCommunityDescriptionHudTitle" xml:space="preserve">
-    <value>Template usage description</value>
+    <value>Template description</value>
   </data>
   <data name="TemplateCommunityDescriptionHudHint" xml:space="preserve">
     <value>This template's brief description:</value>
@@ -1539,5 +1539,20 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsUnknownSource" xml:space="preserve">
     <value>(unknown source)</value>
+  </data>
+  <data name="KeyboardActionPicker_DialogTitle" xml:space="preserve">
+    <value>Select keyboard action</value>
+  </data>
+  <data name="KeyboardActionPicker_SearchPlaceholder" xml:space="preserve">
+    <value>Search by action id, description, or key...</value>
+  </data>
+  <data name="Dialog_Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="KeyboardActionPicker_SearchLabel" xml:space="preserve">
+    <value>Search:</value>
+  </data>
+  <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
+    <value>Manual keyboard input</value>
   </data>
 </root>

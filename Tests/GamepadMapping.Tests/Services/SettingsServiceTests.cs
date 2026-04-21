@@ -132,5 +132,15 @@ public class SettingsServiceTests
         Assert.Equal(expectedInL, settings.LeftTriggerInnerDeadzone, 3);
         Assert.Equal(expectedOutL, settings.LeftTriggerOuterDeadzone, 3);
     }
+
+    [Fact]
+    public void NewAppSettings_DefaultOverlayPrimaryLabel_IsActionAndPhysical()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(
+            ControllerMappingOverlayLabelModeParser.DefaultSettingValue,
+            settings.ControllerMappingOverlayPrimaryLabel);
+    }
 }
 

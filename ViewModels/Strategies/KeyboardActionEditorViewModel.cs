@@ -1,8 +1,11 @@
 using System;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Gamepad_Mapping.Models.State;
+using Gamepad_Mapping.Utils;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
@@ -22,11 +25,19 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
 {
     private readonly IKeyboardCaptureService _keyboardCaptureService;
     private readonly IEnumerable<KeyboardActionDefinition> _keyboardActions;
+    private readonly IItemSelectionDialogService _itemSelectionDialogService;
+    private readonly IKeyboardActionSelectionBuilder _keyboardActionSelectionBuilder;
 
-    public KeyboardActionEditorViewModel(IKeyboardCaptureService keyboardCaptureService, IEnumerable<KeyboardActionDefinition> keyboardActions)
+    public KeyboardActionEditorViewModel(
+        IKeyboardCaptureService keyboardCaptureService,
+        IEnumerable<KeyboardActionDefinition> keyboardActions,
+        IItemSelectionDialogService itemSelectionDialogService,
+        IKeyboardActionSelectionBuilder keyboardActionSelectionBuilder)
     {
         _keyboardCaptureService = keyboardCaptureService;
         _keyboardActions = keyboardActions;
+        _itemSelectionDialogService = itemSelectionDialogService;
+        _keyboardActionSelectionBuilder = keyboardActionSelectionBuilder;
     }
 
     [ObservableProperty]
@@ -34,6 +45,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowCatalogBehaviorSummary))]
     [NotifyPropertyChangedFor(nameof(CatalogBehaviorSummary))]
     [NotifyPropertyChangedFor(nameof(ShowTapAndHoldKeyEditors))]
+    [NotifyPropertyChangedFor(nameof(ActionPickerDisplayText))]
     private string _actionId = string.Empty;
 
     [ObservableProperty]
@@ -46,6 +58,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     private string _holdThresholdText = string.Empty;
 
     public bool IsKeyboardKeyReadOnly => !string.IsNullOrWhiteSpace(ActionId);
+    public string ActionPickerDisplayText => BuildCurrentActionPickerLabel();
 
     /// <summary>True when the catalog entry defines a keyboard key (tap/hold editing applies).</summary>
     public bool ShowTapAndHoldKeyEditors
@@ -123,6 +136,21 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
             key => HoldKeyboardKey = key.ToString());
     }
 
+    [RelayCommand]
+    private void PickCatalogAction()
+    {
+        var selected = _itemSelectionDialogService.Select(
+            Application.Current?.MainWindow,
+            AppUiLocalization.GetString("KeyboardActionPicker_DialogTitle"),
+            AppUiLocalization.GetString("KeyboardActionPicker_SearchPlaceholder"),
+            BuildPickerItems(),
+            ActionId);
+        if (selected is null)
+            return;
+
+        ActionId = selected;
+    }
+
     public override void SyncFrom(MappingEntry mapping)
     {
         ActionId = mapping.ActionId ?? string.Empty;
@@ -190,5 +218,17 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
         HoldKeyboardKey = string.Empty;
         HoldThresholdText = string.Empty;
     }
+
+    public override void OnLocalizationChanged()
+    {
+        OnPropertyChanged(nameof(ActionPickerDisplayText));
+        OnPropertyChanged(nameof(CatalogBehaviorSummary));
+    }
+
+    private IReadOnlyList<SelectionDialogItem> BuildPickerItems()
+        => _keyboardActionSelectionBuilder.BuildSelectionItems(_keyboardActions);
+
+    private string BuildCurrentActionPickerLabel()
+        => _keyboardActionSelectionBuilder.BuildSelectedActionDisplayText(ActionId, _keyboardActions);
 }
 
