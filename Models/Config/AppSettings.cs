@@ -257,6 +257,13 @@ public class AppSettings
     public int FocusGracePeriodMs { get; set; } = 500;
 
     /// <summary>
+    /// How often to re-check foreground targeting and refresh status (ms). Should be well below
+    /// <see cref="FocusGracePeriodMs"/> so grace-period behavior stays accurate. Clamped when applied.
+    /// </summary>
+    [JsonProperty("appStatusPollIntervalMs")]
+    public int AppStatusPollIntervalMs { get; set; } = 100;
+
+    /// <summary>
     /// Keyboard/mouse simulation backend (<see cref="InputEmulationApiIds.Win32"/> = SendInput). Extensible for other drivers.
     /// </summary>
     [JsonProperty("inputEmulationApi")]

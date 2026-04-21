@@ -225,10 +225,18 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             appSettings.RightTriggerOuterDeadzone,
             dzShape);
         _gamepadService = new GamepadService(reader);
-        
+        _gamepadService.ApplyInputStreamTuning(
+            appSettings.GamepadPollingIntervalMs,
+            appSettings.AnalogChangeEpsilon);
+
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
         _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
-        _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(_processTargetService, _elevationHandler, initialGracePeriodMs: appSettings.FocusGracePeriodMs);
+        var statusPollMs = Math.Clamp(appSettings.AppStatusPollIntervalMs, 20, 5000);
+        _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(
+            _processTargetService,
+            _elevationHandler,
+            TimeSpan.FromMilliseconds(statusPollMs),
+            appSettings.FocusGracePeriodMs);
 
         var engine = mappingEngine ?? CreateMappingEngine();
         _mappingManager = new MappingManager(engine, _profileService);
@@ -251,7 +259,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         _profileService.ProfilesLoaded += (_, _) => OnPropertyChanged(nameof(AvailableTemplates));
         _appStatusMonitor.StatusChanged += (_, args) => _uiOrchestrator.UpdateStatus(args.State, args.StatusText);
-        _gamepadService.OnInputFrame += frame => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.EvaluateNow());
+        // Use cached CanSendOutput (updated by AppStatusMonitor's timer). Do not call EvaluateNow() per frame — it runs
+        // expensive foreground/process checks and would execute at gamepad polling rate.
+        _gamepadService.OnInputFrame += frame => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.CanSendOutput);
 
         _uiOrchestrator.PropertyChanged += (s, e) => {
             OnPropertyChanged(e.PropertyName);
@@ -421,7 +431,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     partial void OnLeadKeyReleaseSuppressMsSettingChanged(int value) => UpdateSetting(s => s.LeadKeyReleaseSuppressMs = Math.Clamp(value, 50, 10_000));
 
     [ObservableProperty] private int gamepadPollingIntervalMs;
-    partial void OnGamepadPollingIntervalMsChanged(int value) => UpdateSetting(s => s.GamepadPollingIntervalMs = Math.Clamp(value, 5, 30));
+    partial void OnGamepadPollingIntervalMsChanged(int value) => UpdateSetting(
+        s => s.GamepadPollingIntervalMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(value),
+        s => _gamepadService.ApplyInputStreamTuning(s.GamepadPollingIntervalMs, s.AnalogChangeEpsilon));
 
     [ObservableProperty] private int radialMenuConfirmModeIndex;
     partial void OnRadialMenuConfirmModeIndexChanged(int value) => UpdateSetting(s => s.RadialMenuConfirmMode = value == 0 ? "returnStickToCenter" : "releaseGuideKey");
@@ -466,7 +478,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     }
 
     [ObservableProperty] private float analogChangeEpsilon;
-    partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(s => s.AnalogChangeEpsilon = Math.Clamp(value, 0.001f, 0.1f));
+    partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(
+        s => s.AnalogChangeEpsilon = GamepadInputStreamConstraints.ClampAnalogChangeEpsilon(value),
+        s => _gamepadService.ApplyInputStreamTuning(s.GamepadPollingIntervalMs, s.AnalogChangeEpsilon));
 
     [ObservableProperty] private int keyboardTapHoldDurationMs;
     partial void OnKeyboardTapHoldDurationMsChanged(int value) => UpdateSetting(s => s.KeyboardTapHoldDurationMs = Math.Clamp(value, 20, 100));
@@ -593,6 +607,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             dzShape);
 
         _gamepadService.ReplaceReader(reader);
+        _gamepadService.ApplyInputStreamTuning(
+            _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
+            _settingsOrchestrator.Settings.AnalogChangeEpsilon);
         OnPropertyChanged(nameof(IsGamepadRunning));
     }
 

@@ -102,7 +102,7 @@ internal sealed class AnalogMappingProcessor
                 {
                     pipe.PreReleaseSignX = ToSign(pipe.LastRawX);
                     pipe.PreReleaseSignY = ToSign(pipe.LastRawY);
-                    var pollMs = Math.Clamp(_getGamepadPollingIntervalMs(), 5, 30);
+                    var pollMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(_getGamepadPollingIntervalMs());
                     var frames = (int)MathF.Ceiling(65f / pollMs);
                     pipe.ReboundFramesRemaining = Math.Max(2, frames);
                 }
@@ -178,7 +178,7 @@ internal sealed class AnalogMappingProcessor
             }
             else
             {
-                var pollMs = Math.Clamp(_getGamepadPollingIntervalMs(), 5, 30);
+                var pollMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(_getGamepadPollingIntervalMs());
                 var dtSec = pollMs / 1000f;
                 var sm = smoothing * smoothing;
                 var tauSec = 0.004f + (0.10f - 0.004f) * sm;
