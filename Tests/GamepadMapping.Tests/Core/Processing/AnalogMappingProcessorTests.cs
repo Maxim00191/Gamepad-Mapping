@@ -43,7 +43,7 @@ public sealed class AnalogMappingProcessorTests
         sut.ProcessThumbstick(GamepadBindingType.LeftThumbstick, new Vector2(1f, 0f), mappings);
 
         mouse.Verify(
-            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()),
+            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()),
             Times.Never);
     }
 
@@ -72,7 +72,7 @@ public sealed class AnalogMappingProcessorTests
         sut.ProcessThumbstick(GamepadBindingType.RightThumbstick, new Vector2(0f, 1f), mappings);
 
         mouse.Verify(
-            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()),
+            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()),
             Times.Never);
     }
 
@@ -103,7 +103,7 @@ public sealed class AnalogMappingProcessorTests
         sut.ProcessThumbstick(GamepadBindingType.LeftThumbstick, new Vector2(1f, 0f), mappings);
 
         mouse.Verify(
-            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()),
+            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()),
             Times.AtLeastOnce);
     }
 
@@ -136,9 +136,9 @@ public sealed class AnalogMappingProcessorTests
 
         keyboard.Verify(k => k.KeyDown(Key.D), Times.Once);
         mouse.Verify(
-            m => m.MoveBy(It.Is<int>(dx => dx != 0), It.IsAny<int>(), It.IsAny<float>()),
+            m => m.MoveBy(It.Is<int>(dx => dx != 0), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()),
             Times.Once);
-        mouse.Verify(m => m.MoveBy(0, 0, It.IsAny<float>()), Times.Never);
+        mouse.Verify(m => m.MoveBy(0, 0, It.IsAny<float>(), It.IsAny<GamepadBindingType?>()), Times.Never);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public sealed class AnalogMappingProcessorTests
         sut.ProcessThumbstick(GamepadBindingType.RightThumbstick, new Vector2(0f, 1f), mappings);
 
         mouse.Verify(
-            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()),
+            m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()),
             Times.AtLeastOnce);
     }
 }

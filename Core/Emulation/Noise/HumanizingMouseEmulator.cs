@@ -9,23 +9,26 @@ namespace GamepadMapperGUI.Core.Emulation.Noise;
 /// <summary>
 /// Decorates <see cref="IMouseEmulator"/> with human-noise on <see cref="LeftClickAsync"/> (and other <c>*Async</c> full clicks) and on <see cref="MoveBy"/>.
 /// Large relative <see cref="MoveBy"/> calls are split into smaller relative steps so Win32/injected backends do not emit a single giant <c>SendInput</c> move.
-/// Synchronous <c>*Click</c> methods forward to the inner emulator so hold timing is not duplicated here; prefer <c>*Async</c> from dispatch paths so delays use <see cref="Task.Delay"/> instead of blocking the caller thread.
+/// Sub-moves are capped per gamepad poll (<see cref="MouseLookMotionConstraints.MaxSubMovesPerGamepadPoll"/>); remainder carries forward so movement is not lost.
+/// Carry is tracked per <see cref="GamepadBindingType"/> thumbstick so clearing one stick (e.g. radial menu consuming the other) does not drop the active stick's remainder.
 /// </summary>
-public sealed class HumanizingMouseEmulator : IMouseEmulator
+/// <remarks>
+/// Mouse-look output rate follows the gamepad sampling interval (see <see cref="GamepadInputStreamConstraints"/>), not a hardware mouse report rate.
+/// Within one poll, multiple relative moves may be issued back-to-back; that differs from typical USB HID timing but reduces single-step teleports.
+/// </remarks>
+public sealed class HumanizingMouseEmulator : IMouseEmulator, IPendingMouseSubdivisionState
 {
     private readonly IMouseEmulator _inner;
     private readonly IHumanInputNoiseController _noise;
 
     private const int ClickHoldMs = 30;
 
-    /// <summary>Below this Chebyshev span, emit a single relative move (tiny steps are already fine-grained).</summary>
-    private const int MinPixelSpanToSubdivide = 4;
-
-    /// <summary>Upper bound on sub-moves per call to keep the input thread responsive.</summary>
-    private const int MaxSmoothSubSteps = 48;
-
-    /// <summary>Target max Chebyshev norm per sub-move when subdividing (smaller = smoother, more events).</summary>
-    private const int MaxChebyshevPixelsPerSubMove = 2;
+    private int _carryUnscopedX;
+    private int _carryUnscopedY;
+    private int _carryLeftX;
+    private int _carryLeftY;
+    private int _carryRightX;
+    private int _carryRightY;
 
     public HumanizingMouseEmulator(IMouseEmulator inner, IHumanInputNoiseController noise)
     {
@@ -125,10 +128,16 @@ public sealed class HumanizingMouseEmulator : IMouseEmulator
     public void WheelUp() => _inner.WheelUp();
     public void WheelDown() => _inner.WheelDown();
 
-    public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f)
+    public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f, GamepadBindingType? moveSubdivisionScope = null)
     {
-        // 1. Get noise-only jitter from the controller.
-        // This is decoupled from the mechanical move delta but scaled by stick magnitude.
+        if (deltaX != 0 || deltaY != 0)
+        {
+            var (cx, cy) = GetCarry(moveSubdivisionScope);
+            deltaX += cx;
+            deltaY += cy;
+            SetCarry(moveSubdivisionScope, 0, 0);
+        }
+
         var (jx, jy) = _noise.AdjustMouseMove(0, 0, stickMagnitude);
 
         int tx = deltaX + jx;
@@ -138,24 +147,51 @@ public sealed class HumanizingMouseEmulator : IMouseEmulator
             return;
 
         int span = Math.Max(Math.Abs(tx), Math.Abs(ty));
-        if (span < MinPixelSpanToSubdivide)
+        if (span < MouseLookMotionConstraints.MinPixelSpanToSubdivide)
         {
-            _inner.MoveBy(tx, ty, stickMagnitude);
+            _inner.MoveBy(tx, ty, stickMagnitude, null);
             return;
         }
 
         int nSteps = Math.Min(
-            MaxSmoothSubSteps,
-            Math.Max(1, (span + MaxChebyshevPixelsPerSubMove - 1) / MaxChebyshevPixelsPerSubMove));
+            MouseLookMotionConstraints.MaxSmoothSubSteps,
+            Math.Max(1, (span + MouseLookMotionConstraints.MaxChebyshevPixelsPerSubMove - 1) / MouseLookMotionConstraints.MaxChebyshevPixelsPerSubMove));
 
-        MoveByDistributed(tx, ty, nSteps);
+        MoveByDistributed(tx, ty, nSteps, moveSubdivisionScope);
     }
 
-    private void MoveByDistributed(int totalX, int totalY, int nSteps)
+    public void ClearPendingSubdivision(GamepadBindingType? thumbstickScope = null)
     {
+        if (thumbstickScope is null)
+        {
+            _carryUnscopedX = 0;
+            _carryUnscopedY = 0;
+            _carryLeftX = 0;
+            _carryLeftY = 0;
+            _carryRightX = 0;
+            _carryRightY = 0;
+            return;
+        }
+
+        switch (thumbstickScope.Value)
+        {
+            case GamepadBindingType.LeftThumbstick:
+                _carryLeftX = 0;
+                _carryLeftY = 0;
+                break;
+            case GamepadBindingType.RightThumbstick:
+                _carryRightX = 0;
+                _carryRightY = 0;
+                break;
+        }
+    }
+
+    private void MoveByDistributed(int totalX, int totalY, int nSteps, GamepadBindingType? moveSubdivisionScope)
+    {
+        int stepsThisPoll = Math.Min(nSteps, MouseLookMotionConstraints.MaxSubMovesPerGamepadPoll);
         int accX = 0;
         int accY = 0;
-        for (int i = 1; i <= nSteps; i++)
+        for (int i = 1; i <= stepsThisPoll; i++)
         {
             int nextX = (int)((long)totalX * i / nSteps);
             int nextY = (int)((long)totalY * i / nSteps);
@@ -164,7 +200,40 @@ public sealed class HumanizingMouseEmulator : IMouseEmulator
             accX = nextX;
             accY = nextY;
             if (sx != 0 || sy != 0)
-                _inner.MoveBy(sx, sy, 1.0f);
+                _inner.MoveBy(sx, sy, 1.0f, null);
+        }
+
+        if (stepsThisPoll < nSteps)
+        {
+            var (cx, cy) = GetCarry(moveSubdivisionScope);
+            SetCarry(moveSubdivisionScope, cx + totalX - accX, cy + totalY - accY);
+        }
+    }
+
+    private (int cx, int cy) GetCarry(GamepadBindingType? scope) =>
+        scope switch
+        {
+            GamepadBindingType.LeftThumbstick => (_carryLeftX, _carryLeftY),
+            GamepadBindingType.RightThumbstick => (_carryRightX, _carryRightY),
+            _ => (_carryUnscopedX, _carryUnscopedY),
+        };
+
+    private void SetCarry(GamepadBindingType? scope, int cx, int cy)
+    {
+        switch (scope)
+        {
+            case GamepadBindingType.LeftThumbstick:
+                _carryLeftX = cx;
+                _carryLeftY = cy;
+                break;
+            case GamepadBindingType.RightThumbstick:
+                _carryRightX = cx;
+                _carryRightY = cy;
+                break;
+            default:
+                _carryUnscopedX = cx;
+                _carryUnscopedY = cy;
+                break;
         }
     }
 

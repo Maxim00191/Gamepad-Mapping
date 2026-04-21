@@ -37,6 +37,9 @@ public interface IMouseEmulator
     Task X2ClickAsync(CancellationToken cancellationToken = default);
     void WheelUp();
     void WheelDown();
-    void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f);
+    /// <param name="moveSubdivisionScope">
+    /// For mouse-look from a thumbstick, pass <see cref="GamepadBindingType.LeftThumbstick"/> or <see cref="GamepadBindingType.RightThumbstick"/> so layered emulators can track per-stick pending move subdivision. Other callers may omit.
+    /// </param>
+    void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f, GamepadBindingType? moveSubdivisionScope = null);
 }
 

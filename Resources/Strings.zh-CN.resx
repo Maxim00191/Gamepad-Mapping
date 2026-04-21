@@ -355,7 +355,7 @@
     <value>用于 Xbox 和兼容控制器的标准 Windows API。</value>
   </data>
   <data name="GamepadSourceDualSenseLabel" xml:space="preserve">
-    <value>DualSense (PlayStation 5) (暂不支持)/value>
+    <value>DualSense (PlayStation 5) (暂不支持)</value>
   </data>
   <data name="GamepadSourceDualSenseHint" xml:space="preserve">
     <value>原生支持 DualSense 功能（自适应触发器等）。尚未实现。</value>
