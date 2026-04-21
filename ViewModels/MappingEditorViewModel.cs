@@ -177,9 +177,8 @@ public partial class MappingEditorViewModel : ObservableObject
                     WorkspaceSelectedMappings.Add(m);
             }
 
-            SelectedMapping = WorkspaceSelectedMappings.Count > 0
-                ? WorkspaceSelectedMappings[^1]
-                : null;
+            if (WorkspaceSelectedMappings.Count <= 1)
+                SelectedMapping = WorkspaceSelectedMappings.Count == 1 ? WorkspaceSelectedMappings[0] : null;
         }
         finally
         {
@@ -197,7 +196,6 @@ public partial class MappingEditorViewModel : ObservableObject
             WorkspaceSelectedMappings.Clear();
             foreach (var m in Mappings)
                 WorkspaceSelectedMappings.Add(m);
-            SelectedMapping = Mappings.Count > 0 ? Mappings[^1] : null;
         }
         finally
         {

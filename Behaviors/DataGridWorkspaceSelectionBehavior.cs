@@ -32,6 +32,7 @@ public static class DataGridWorkspaceSelectionBehavior
         public bool SyncingFromVm;
         public NotifyCollectionChangedEventHandler? CollectionHandler;
         public SelectionChangedEventHandler? SelectionHandler;
+        public DependencyPropertyChangedEventHandler? DataContextHandler;
         public RoutedEventHandler? LoadedHandler;
         public RoutedEventHandler? UnloadedHandler;
     }
@@ -71,6 +72,10 @@ public static class DataGridWorkspaceSelectionBehavior
         bridge.LoadedHandler = Loaded;
         grid.Loaded += Loaded;
 
+        void DataContextChanged(object _, DependencyPropertyChangedEventArgs __) => Wire(grid, bridge);
+        bridge.DataContextHandler = DataContextChanged;
+        grid.DataContextChanged += DataContextChanged;
+
         void Unloaded(object _, RoutedEventArgs __) => Detach(grid);
         bridge.UnloadedHandler = Unloaded;
         grid.Unloaded += Unloaded;
@@ -88,6 +93,8 @@ public static class DataGridWorkspaceSelectionBehavior
 
         if (bridge.LoadedHandler is not null)
             grid.Loaded -= bridge.LoadedHandler;
+        if (bridge.DataContextHandler is not null)
+            grid.DataContextChanged -= bridge.DataContextHandler;
         if (bridge.UnloadedHandler is not null)
             grid.Unloaded -= bridge.UnloadedHandler;
 
@@ -121,6 +128,17 @@ public static class DataGridWorkspaceSelectionBehavior
         };
 
         collection.CollectionChanged += bridge.CollectionHandler;
+
+        // Keep DataGrid visuals aligned when selection already exists in VM before this grid wires.
+        bridge.SyncingFromVm = true;
+        try
+        {
+            PushVmSelectionToGrid(grid, collection);
+        }
+        finally
+        {
+            bridge.SyncingFromVm = false;
+        }
     }
 
     private static void Unwire(DataGrid grid, Bridge bridge)
