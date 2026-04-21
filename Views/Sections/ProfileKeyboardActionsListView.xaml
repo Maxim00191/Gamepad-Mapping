@@ -31,7 +31,6 @@
         </WrapPanel>
         <DataGrid Grid.Row="2"
                   ItemsSource="{Binding KeyboardActions}"
-                  SelectedItem="{Binding SelectedKeyboardAction, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   behaviors:DataGridWorkspaceEditHistoryBehavior.RecordCheckpointOnBeginningEdit="True"

@@ -230,8 +230,9 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
                     WorkspaceSelectedKeyboardActions.Add(k);
             }
 
-            if (WorkspaceSelectedKeyboardActions.Count <= 1)
-                SelectedKeyboardAction = WorkspaceSelectedKeyboardActions.Count == 1 ? WorkspaceSelectedKeyboardActions[0] : null;
+            SelectedKeyboardAction = WorkspaceSelectedKeyboardActions.Count > 0
+                ? WorkspaceSelectedKeyboardActions[^1]
+                : null;
         }
         finally
         {
@@ -253,8 +254,9 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
                     WorkspaceSelectedRadialMenus.Add(r);
             }
 
-            if (WorkspaceSelectedRadialMenus.Count <= 1)
-                SelectedRadialMenu = WorkspaceSelectedRadialMenus.Count == 1 ? WorkspaceSelectedRadialMenus[0] : null;
+            SelectedRadialMenu = WorkspaceSelectedRadialMenus.Count > 0
+                ? WorkspaceSelectedRadialMenus[^1]
+                : null;
         }
         finally
         {
@@ -272,6 +274,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
             WorkspaceSelectedKeyboardActions.Clear();
             foreach (var a in KeyboardActions)
                 WorkspaceSelectedKeyboardActions.Add(a);
+            SelectedKeyboardAction = KeyboardActions.Count > 0 ? KeyboardActions[^1] : null;
         }
         finally
         {
@@ -289,6 +292,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
             WorkspaceSelectedRadialMenus.Clear();
             foreach (var r in RadialMenus)
                 WorkspaceSelectedRadialMenus.Add(r);
+            SelectedRadialMenu = RadialMenus.Count > 0 ? RadialMenus[^1] : null;
         }
         finally
         {

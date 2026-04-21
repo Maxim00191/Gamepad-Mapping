@@ -21,7 +21,6 @@
 
         <DataGrid Grid.Row="0"
                   ItemsSource="{Binding Mappings}"
-                  SelectedItem="{Binding SelectedMapping, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                   AutoGenerateColumns="False"
                   IsReadOnly="False"
                   CanUserAddRows="False"

@@ -3,9 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Reflection;
-using Gamepad_Mapping.Behaviors;
 using Gamepad_Mapping.ViewModels;
 using GamepadMapperGUI.Services.Infrastructure;
 using System.Globalization;
@@ -36,9 +34,7 @@ public partial class MainWindow : Window
         if (!mods.HasFlag(ModifierKeys.Control) || mods.HasFlag(ModifierKeys.Alt))
             return;
 
-        var focusedDependencyObject = Keyboard.FocusedElement as DependencyObject;
-        var isWorkspaceGridContext = IsWorkspaceGridContext(focusedDependencyObject);
-        if (Keyboard.FocusedElement is TextBoxBase && !isWorkspaceGridContext)
+        if (Keyboard.FocusedElement is TextBoxBase)
             return;
 
         if (e.Key == Key.Z)
@@ -93,20 +89,6 @@ public partial class MainWindow : Window
 
                 break;
         }
-    }
-
-    private static bool IsWorkspaceGridContext(DependencyObject? start)
-    {
-        for (var current = start; current is not null; current = VisualTreeHelper.GetParent(current))
-        {
-            if (current is DataGrid grid &&
-                DataGridWorkspaceSelectionBehavior.GetRuleListKind(grid) is not null)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static string GetDisplayVersion()

@@ -31,7 +31,6 @@
         </WrapPanel>
         <DataGrid Grid.Row="2"
                   ItemsSource="{Binding RadialMenus}"
-                  SelectedItem="{Binding SelectedRadialMenu, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   behaviors:DataGridWorkspaceEditHistoryBehavior.RecordCheckpointOnBeginningEdit="True"
