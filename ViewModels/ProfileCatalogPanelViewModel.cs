@@ -25,14 +25,16 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     private bool _syncingCatalogOutputKind;
     private bool _workspaceKeyboardSelectionSync;
     private bool _workspaceRadialSelectionSync;
+    private int _validationSuspendDepth;
+    private bool _validationRefreshPending;
 
     public ProfileCatalogPanelViewModel(MainViewModel mainViewModel)
     {
         _main = mainViewModel;
         _keyboardCaptureService = _main.KeyboardCaptureService;
         _keyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
-        _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
-        _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
+        _main.KeyboardActions.CollectionChanged += (_, _) => RequestValidationRefresh();
+        _main.RadialMenus.CollectionChanged += (_, _) => RequestValidationRefresh();
         if (AppUiLocalization.TryTranslationService() is { } loc)
             loc.PropertyChanged += CatalogTranslationServiceOnPropertyChanged;
     }
@@ -61,7 +63,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
             return;
 
         SelectedKeyboardAction.ApplyCatalogOutputKind(value);
-        ValidateCurrentState();
+        RequestValidationRefresh();
     }
 
     private void NotifyCatalogOutputKindSectionVisibility()
@@ -141,6 +143,36 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         foreach (var w in result.Warnings)
             ValidationWarnings.Add(w);
         NotifyValidationPresenceChanged();
+    }
+
+    public IDisposable SuspendValidationRefresh()
+    {
+        _validationSuspendDepth++;
+        return new ValidationRefreshScope(this);
+    }
+
+    private void ResumeValidationRefresh()
+    {
+        if (_validationSuspendDepth == 0)
+            return;
+
+        _validationSuspendDepth--;
+        if (_validationSuspendDepth == 0 && _validationRefreshPending)
+        {
+            _validationRefreshPending = false;
+            ValidateCurrentState();
+        }
+    }
+
+    private void RequestValidationRefresh()
+    {
+        if (_validationSuspendDepth > 0)
+        {
+            _validationRefreshPending = true;
+            return;
+        }
+
+        ValidateCurrentState();
     }
 
     private void NotifyValidationPresenceChanged()
@@ -397,7 +429,6 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         SyncCatalogOutputKindFromSelection();
         PullKeyboardCatalogDescriptionPair();
         _main.RefreshRightPanelSurface();
-        ValidateCurrentState();
         _main.RuleClipboard?.RefreshCommandStates();
     }
 
@@ -433,7 +464,6 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
         PullRadialMenuDisplayNamePair();
         _main.RefreshRightPanelSurface();
-        ValidateCurrentState();
         _main.RuleClipboard?.RefreshCommandStates();
     }
 
@@ -520,6 +550,23 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         }
 
         return $"radial{Guid.NewGuid():N}"[..12];
+    }
+
+    private sealed class ValidationRefreshScope : IDisposable
+    {
+        private ProfileCatalogPanelViewModel? _owner;
+
+        public ValidationRefreshScope(ProfileCatalogPanelViewModel owner) => _owner = owner;
+
+        public void Dispose()
+        {
+            var owner = _owner;
+            if (owner is null)
+                return;
+
+            _owner = null;
+            owner.ResumeValidationRefresh();
+        }
     }
 }
 

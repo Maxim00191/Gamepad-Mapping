@@ -69,14 +69,13 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel.KeyboardActions.CollectionChanged += (_, _) =>
         {
             RebuildKeyboardActionsPicker();
-            UpdateUnusedActionIds();
-            ValidateCurrentState();
+            RefreshStatusDiagnostics();
         };
+        _mainViewModel.RadialMenus.CollectionChanged += (_, _) => RefreshStatusDiagnostics();
         foreach (var m in _mainViewModel.Mappings)
             AttachMappingActionIdListener(m);
         RebuildKeyboardActionsPicker();
-        UpdateUnusedActionIds();
-        ValidateCurrentState();
+        RefreshStatusDiagnostics();
 
         // Initialize default editor
         OnSelectedActionTypeChanged(SelectedActionType);
@@ -85,13 +84,37 @@ public partial class MappingEditorViewModel : ObservableObject
     private void ValidateCurrentState()
     {
         var profile = _mainViewModel.GetWorkspaceTemplateSnapshot();
-        if (profile == null) return;
+        if (profile == null)
+        {
+            HasValidationError = false;
+            ValidationError = string.Empty;
+            HasValidationWarning = false;
+            ValidationWarning = string.Empty;
+            return;
+        }
 
         var result = _mainViewModel.GetProfileService().ValidateTemplate(profile);
+        if (result is null)
+        {
+            HasValidationError = false;
+            ValidationError = string.Empty;
+            HasValidationWarning = false;
+            ValidationWarning = string.Empty;
+            return;
+        }
+
+        var errors = result.Errors ?? [];
+        var warnings = result.Warnings ?? [];
         HasValidationError = !result.IsValid;
-        ValidationError = string.Join(Environment.NewLine, result.Errors);
-        HasValidationWarning = result.Warnings.Any();
-        ValidationWarning = string.Join(Environment.NewLine, result.Warnings);
+        ValidationError = string.Join(Environment.NewLine, errors);
+        HasValidationWarning = warnings.Any();
+        ValidationWarning = string.Join(Environment.NewLine, warnings);
+    }
+
+    public void RefreshStatusDiagnostics()
+    {
+        UpdateUnusedActionIds();
+        ValidateCurrentState();
     }
 
     [ObservableProperty]
@@ -377,7 +400,6 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void OnMappingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        UpdateUnusedActionIds();
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
@@ -401,6 +423,8 @@ public partial class MappingEditorViewModel : ObservableObject
                     AttachMappingActionIdListener(m);
                 break;
         }
+
+        RefreshStatusDiagnostics();
     }
 
     private void AttachMappingActionIdListener(MappingEntry m)
@@ -696,11 +720,11 @@ public partial class MappingEditorViewModel : ObservableObject
         switch (e.PropertyName)
         {
             case nameof(MainViewModel.RadialMenus):
-                UpdateUnusedActionIds();
+                RefreshStatusDiagnostics();
                 break;
             case nameof(MainViewModel.Mappings):
                 OnPropertyChanged(nameof(Mappings));
-                UpdateUnusedActionIds();
+                RefreshStatusDiagnostics();
                 break;
             case nameof(MainViewModel.SelectedMapping):
                 OnPropertyChanged(nameof(SelectedMapping));
@@ -720,7 +744,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedTemplate):
                 OnPropertyChanged(nameof(AvailableRadialMenus));
-                UpdateUnusedActionIds();
+                RefreshStatusDiagnostics();
                 break;
         }
     }

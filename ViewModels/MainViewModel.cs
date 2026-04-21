@@ -394,6 +394,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private void OnTemplateLoaded(GameProfileTemplate? template)
     {
         _templateEditHistory.Clear();
+        using var validationScope = CatalogPanel.SuspendValidationRefresh();
         if (template is null)
         {
             _workspacePersistenceBaselineJson = null;
@@ -405,6 +406,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
         CatalogPanel.ResetSelection();
+        MappingEditorPanel.RefreshStatusDiagnostics();
         RefreshRightPanelSurface();
         CaptureWorkspacePersistenceBaseline();
         RefreshTemplateWorkspaceDirtyState();

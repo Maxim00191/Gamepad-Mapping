@@ -1516,4 +1516,7 @@
   <data name="CommunityCatalog_AutoGettingUpdates" xml:space="preserve">
     <value>正在自动获取更新</value>
   </data>
+  <data name="ProfileCatalogValidationErrorsTitle" xml:space="preserve">
+    <value>校验错误</value>
+  </data>
 </root>

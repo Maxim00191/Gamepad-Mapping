@@ -1516,4 +1516,7 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
   <data name="CommunityCatalog_AutoGettingUpdates" xml:space="preserve">
     <value>Automatically getting updates</value>
   </data>
+  <data name="ProfileCatalogValidationErrorsTitle" xml:space="preserve">
+    <value>Validation Errors</value>
+  </data>
 </root>

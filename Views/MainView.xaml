@@ -469,7 +469,10 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2Zm1,15h-2v-2h2v2Zm0-4h-2V7h2v6Z"
                                   Fill="#EB5757" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Validation Errors" Foreground="#EB5757" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileCatalogValidationErrorsTitle]}"
+                                       Foreground="#EB5757"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding CatalogPanel.ValidationErrors}">
                             <ItemsControl.ItemTemplate>
