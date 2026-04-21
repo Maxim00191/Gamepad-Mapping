@@ -41,6 +41,35 @@
 
             <StackPanel Orientation="Horizontal"
                         Margin="0,4,0,0"
+                        Visibility="{Binding HasDuplicateActionIds, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="&#xE8C8;"
+                           FontFamily="Segoe MDL2 Assets"
+                           Foreground="Orange"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0" />
+                <TextBlock Text="{Binding DuplicateActionIdsHint}"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTipService.InitialShowDelay="100">
+                    <TextBlock.ToolTip>
+                        <ToolTip Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
+                                 Foreground="{DynamicResource AppTextBrush}"
+                                 BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}">
+                            <StackPanel Margin="4">
+                                <TextBlock FontWeight="Bold"
+                                           Margin="0,0,0,4"
+                                           Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingDuplicateCatalogActionIdsTooltipTitle]}" />
+                                <TextBlock Text="{Binding DuplicateActionIdsTooltip}" />
+                            </StackPanel>
+                        </ToolTip>
+                    </TextBlock.ToolTip>
+                </TextBlock>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal"
+                        Margin="0,4,0,0"
                         Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="&#xE783;"
                            FontFamily="Segoe MDL2 Assets"

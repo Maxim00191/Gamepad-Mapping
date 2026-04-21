@@ -113,7 +113,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public void RefreshStatusDiagnostics()
     {
-        UpdateUnusedActionIds();
+        var usage = AnalyzeActionUsage();
+        UpdateUnusedActionIds(usage);
+        UpdateDuplicateActionIds(usage);
         ValidateCurrentState();
     }
 
@@ -126,7 +128,16 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private bool hasUnusedActionIds;
 
-    private void UpdateUnusedActionIds()
+    [ObservableProperty]
+    private string duplicateActionIdsHint = string.Empty;
+
+    [ObservableProperty]
+    private string duplicateActionIdsTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool hasDuplicateActionIds;
+
+    private void UpdateUnusedActionIds(ActionUsageDiagnostics usage)
     {
         var profile = _mainViewModel.GetWorkspaceTemplateSnapshot();
         if (profile is null)
@@ -135,21 +146,10 @@ public partial class MappingEditorViewModel : ObservableObject
             return;
         }
 
-        var usedInMappings = _mainViewModel.Mappings
-            .Select(m => m.ActionId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var usedInRadialMenus = _mainViewModel.RadialMenus
-            .SelectMany(rm => rm.Items)
-            .Select(item => item.ActionId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var unused = profile.GetAllActions()
-            .Where(a => !string.IsNullOrWhiteSpace(a.Id) && 
-                        !usedInMappings.Contains(a.Id) && 
-                        !usedInRadialMenus.Contains(a.Id))
+            .Where(a => !string.IsNullOrWhiteSpace(a.Id)
+                        && !usage.MappingUsageByActionId.ContainsKey((a.Id ?? string.Empty).Trim())
+                        && !usage.UsedInRadialMenus.Contains((a.Id ?? string.Empty).Trim()))
             .ToList();
 
         HasUnusedActionIds = unused.Count > 0;
@@ -157,14 +157,139 @@ public partial class MappingEditorViewModel : ObservableObject
         {
             UnusedActionIdsHint = string.Format(CultureInfo.CurrentUICulture,
                 AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsHint"), unused.Count);
-            UnusedActionIdsTooltip = string.Join(Environment.NewLine,
-                unused.Select(a => $"{a.Id}: {a.Description}"));
+            UnusedActionIdsTooltip = BuildUnusedActionIdsTooltip(unused);
         }
         else
         {
             UnusedActionIdsHint = string.Empty;
             UnusedActionIdsTooltip = string.Empty;
         }
+    }
+
+    private void UpdateDuplicateActionIds(ActionUsageDiagnostics usage)
+    {
+        var duplicateGroups = usage.MappingUsageByActionId.Values
+            .Select(BuildDuplicateGroup)
+            .Where(group => group is not null)
+            .Select(group => group!)
+            .ToList();
+
+        HasDuplicateActionIds = duplicateGroups.Count > 0;
+        if (!HasDuplicateActionIds)
+        {
+            DuplicateActionIdsHint = string.Empty;
+            DuplicateActionIdsTooltip = string.Empty;
+            return;
+        }
+
+        DuplicateActionIdsHint = string.Format(
+            CultureInfo.CurrentUICulture,
+            AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsHint"),
+            duplicateGroups.Count);
+        DuplicateActionIdsTooltip = BuildDuplicateActionIdsTooltip(duplicateGroups);
+    }
+
+    private static string BuildUnusedActionIdsTooltip(IReadOnlyList<KeyboardActionDefinition> unusedActions)
+    {
+        var translationService = AppUiLocalization.TryTranslationService();
+        var lineWithDescriptionFormat = AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsTooltipLineWithDescriptionFormat");
+        var lineWithoutDescriptionFormat = AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsTooltipLineWithoutDescriptionFormat");
+
+        return string.Join(Environment.NewLine, unusedActions.Select(action =>
+        {
+            var id = (action.Id ?? string.Empty).Trim();
+            var resolvedDescription = ResolveCatalogDescription(action, translationService);
+            return string.IsNullOrWhiteSpace(resolvedDescription)
+                ? string.Format(CultureInfo.CurrentUICulture, lineWithoutDescriptionFormat, id)
+                : string.Format(CultureInfo.CurrentUICulture, lineWithDescriptionFormat, id, resolvedDescription);
+        }));
+    }
+
+    private static string BuildDuplicateActionIdsTooltip(IReadOnlyList<DuplicateActionGroup> duplicateGroups)
+    {
+        var lineFormat = AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat");
+        var bindingSeparator = AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator");
+
+        return string.Join(Environment.NewLine, duplicateGroups.Select(group =>
+        {
+            var joinedSources = string.Join(bindingSeparator, group.SourceLabels);
+            return string.Format(CultureInfo.CurrentUICulture, lineFormat, group.ActionId, joinedSources);
+        }));
+    }
+
+    private static DuplicateActionGroup? BuildDuplicateGroup(List<MappingActionUsage> usages)
+    {
+        if (usages.Count == 0)
+            return null;
+
+        var distinctSources = usages
+            .Select(usage => usage.SourceLabel)
+            .Where(label => !string.IsNullOrWhiteSpace(label))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(label => label, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        if (distinctSources.Count <= 1)
+            return null;
+
+        return new DuplicateActionGroup(usages[0].ActionId, distinctSources);
+    }
+
+    private ActionUsageDiagnostics AnalyzeActionUsage()
+    {
+        var mappingUsageByActionId = new Dictionary<string, List<MappingActionUsage>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var mapping in _mainViewModel.Mappings)
+        {
+            var actionId = (mapping.ActionId ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(actionId))
+                continue;
+
+            if (!mappingUsageByActionId.TryGetValue(actionId, out var list))
+            {
+                list = [];
+                mappingUsageByActionId[actionId] = list;
+            }
+
+            list.Add(new MappingActionUsage(actionId, FormatMappingSource(mapping)));
+        }
+
+        var usedInRadialMenus = _mainViewModel.RadialMenus
+            .SelectMany(rm => rm.Items)
+            .Select(item => (item.ActionId ?? string.Empty).Trim())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return new ActionUsageDiagnostics(mappingUsageByActionId, usedInRadialMenus);
+    }
+
+    private static string FormatMappingSource(MappingEntry mapping)
+    {
+        var from = mapping.From;
+        var value = (from?.Value ?? string.Empty).Trim();
+        if (from is null)
+            return AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsUnknownSource");
+
+        return string.IsNullOrWhiteSpace(value) ? from.Type.ToString() : value;
+    }
+
+    private sealed record MappingActionUsage(string ActionId, string SourceLabel);
+
+    private sealed record DuplicateActionGroup(string ActionId, IReadOnlyList<string> SourceLabels);
+
+    private sealed record ActionUsageDiagnostics(
+        Dictionary<string, List<MappingActionUsage>> MappingUsageByActionId,
+        HashSet<string> UsedInRadialMenus);
+
+    private static string ResolveCatalogDescription(KeyboardActionDefinition action, TranslationService? translationService)
+    {
+        if (translationService is null)
+            return (action.Description ?? string.Empty).Trim();
+
+        return TemplateCatalogDisplayResolver.Resolve(
+            action.Description ?? string.Empty,
+            action.Descriptions,
+            action.DescriptionKey,
+            translationService);
     }
 
     /// <summary>Keyboard catalog for the current profile (same as <see cref="MainViewModel.KeyboardActions"/>).</summary>
@@ -441,8 +566,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void OnMappingEntryPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MappingEntry.ActionId))
-            UpdateUnusedActionIds();
+        if (e.PropertyName is nameof(MappingEntry.ActionId) or nameof(MappingEntry.From))
+            RefreshStatusDiagnostics();
 
         if (e.PropertyName != nameof(MappingEntry.ActionId) || sender is not MappingEntry m)
             return;
@@ -689,7 +814,7 @@ public partial class MappingEditorViewModel : ObservableObject
     {
         if (e.PropertyName == nameof(TranslationService.Culture))
         {
-            UpdateUnusedActionIds();
+            RefreshStatusDiagnostics();
             RefreshMappingDescriptionEditFields();
         }
     }

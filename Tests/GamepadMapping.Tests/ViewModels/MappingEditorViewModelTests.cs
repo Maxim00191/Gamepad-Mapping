@@ -141,5 +141,69 @@ public class MappingEditorViewModelTests
         Assert.IsType<ItemCycleActionEditorViewModel>(vm.CurrentActionEditor);
         Assert.False(vm.EditKeyboardAndHoldSectionsEnabled);
     }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenActionIsBoundMultipleTimes_ShowsDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LB+A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.RightTrigger, Value = nameof(GamepadBindingType.RightTrigger) }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.True(vm.HasDuplicateActionIds);
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsTooltip));
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenActionIsRepeatedOnSameSource_HidesDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.False(vm.HasDuplicateActionIds);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenActionIsBoundOnce_HidesDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.False(vm.HasDuplicateActionIds);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
 }
 

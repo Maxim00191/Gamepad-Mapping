@@ -1519,4 +1519,25 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
   <data name="ProfileCatalogValidationErrorsTitle" xml:space="preserve">
     <value>Validation Errors</value>
   </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithDescriptionFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithoutDescriptionFormat" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsHint" xml:space="preserve">
+    <value>{0} action keys are bound multiple times.</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>Action keys with multiple bindings</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsUnknownSource" xml:space="preserve">
+    <value>(unknown source)</value>
+  </data>
 </root>

@@ -176,36 +176,20 @@ public partial class ProfileOrchestrator : ObservableObject
             SelectedTemplate = reselected;
     }
 
-    /// <summary>Updates the identity header from the picker row and current UI language (after language change).</summary>
+    /// <summary>
+    /// Re-applies localized labels in the template picker while keeping the editable template identity fields stable.
+    /// </summary>
     public void RefreshCurrentIdentityDisplayNameForCulture(TranslationService ts)
     {
-        if (SelectedTemplate is null)
-            return;
-
-        var baseline = (SelectedTemplate.DisplayNameBaseline ?? string.Empty).Trim();
-        if (baseline.Length == 0)
-            baseline = (SelectedTemplate.ProfileId ?? string.Empty).Trim();
-
-        CurrentTemplateDisplayName = TemplateCatalogDisplayResolver.Resolve(
-            baseline,
-            SelectedTemplate.DisplayNames,
-            string.IsNullOrWhiteSpace(SelectedTemplate.DisplayNameKey) ? null : SelectedTemplate.DisplayNameKey,
-            ts);
+        ArgumentNullException.ThrowIfNull(ts);
     }
 
     private static string ResolveWorkspaceTemplateDisplayName(GameProfileTemplate template)
     {
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-        {
-            var baseline = string.IsNullOrWhiteSpace(template.DisplayName) ? template.ProfileId.Trim() : template.DisplayName.Trim();
-            return TemplateCatalogDisplayResolver.Resolve(
-                baseline,
-                template.DisplayNames,
-                string.IsNullOrWhiteSpace(template.DisplayNameKey) ? null : template.DisplayNameKey,
-                ts);
-        }
-
-        return string.IsNullOrWhiteSpace(template.DisplayName) ? template.ProfileId : template.DisplayName.Trim();
+        var canonical = (template.DisplayName ?? string.Empty).Trim();
+        if (canonical.Length > 0)
+            return canonical;
+        return template.ProfileId.Trim();
     }
 }
 

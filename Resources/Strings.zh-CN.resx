@@ -1519,4 +1519,25 @@
   <data name="ProfileCatalogValidationErrorsTitle" xml:space="preserve">
     <value>校验错误</value>
   </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithDescriptionFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithoutDescriptionFormat" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsHint" xml:space="preserve">
+    <value>{0} 个动作键被重复绑定。</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>存在多重绑定的动作键</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator" xml:space="preserve">
+    <value>，</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsUnknownSource" xml:space="preserve">
+    <value>（未知来源）</value>
+  </data>
 </root>
