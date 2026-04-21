@@ -170,12 +170,7 @@ public partial class SettingsOrchestrator : ObservableObject
         _settingsService.SaveSettings(_appSettings);
     }
 
-    public string Localize(string key)
-    {
-        if (Application.Current?.Resources["Loc"] is TranslationService loc)
-            return loc[key];
-        return key;
-    }
+    public string Localize(string key) => AppUiLocalization.GetString(key);
 
     public string FormatUpdateSuccessMessage(string releaseTag)
     {

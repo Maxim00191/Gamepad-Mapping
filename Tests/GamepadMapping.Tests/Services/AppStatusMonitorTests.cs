@@ -22,12 +22,23 @@ public class AppStatusMonitorTests
     private readonly Mock<IElevationHandler> _elevationHandlerMock;
     private readonly AppStatusMonitor _monitor;
 
+    /// <summary>Stable English strings for tests (no WPF <c>Loc</c> resource).</summary>
+    private static string TestLocalize(string key) => key switch
+    {
+        "AppStatus_NoTargetOutputSuppressed" => "No target selected - output suppressed",
+        "AppStatus_TargetRequiresAdminFormat" => "Target requires admin privileges: {0} (PID {1})",
+        "AppStatus_ConnectedFormat" => "Connected: {0} (PID {1})",
+        "AppStatus_ConnectedGraceFormat" => "Connected (Grace Period): {0} (PID {1})",
+        "AppStatus_WaitingForegroundFormat" => "Waiting for target foreground: {0} (PID {1})",
+        _ => key
+    };
+
     public AppStatusMonitorTests()
     {
         _processTargetMock = new Mock<IProcessTargetService>();
         _elevationHandlerMock = new Mock<IElevationHandler>();
         // Use a long poll interval to prevent timer interference during tests
-        _monitor = new AppStatusMonitor(_processTargetMock.Object, _elevationHandlerMock.Object, TimeSpan.FromHours(1));
+        _monitor = new AppStatusMonitor(_processTargetMock.Object, _elevationHandlerMock.Object, TimeSpan.FromHours(1), localize: TestLocalize);
     }
 
     [Fact]

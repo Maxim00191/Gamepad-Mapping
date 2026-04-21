@@ -84,15 +84,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void ValidateCurrentState()
     {
-        var profile = _mainViewModel.GetProfileService().LoadSelectedTemplate(_mainViewModel.SelectedTemplate);
+        var profile = _mainViewModel.GetWorkspaceTemplateSnapshot();
         if (profile == null) return;
-
-        // Update profile with current UI state if we are editing
-        if (SelectedMapping != null)
-        {
-            // This is a bit tricky since we want real-time feedback.
-            // For now, let's validate the whole profile.
-        }
 
         var result = _mainViewModel.GetProfileService().ValidateTemplate(profile);
         HasValidationError = !result.IsValid;
@@ -112,13 +105,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void UpdateUnusedActionIds()
     {
-        IKeyboardActionCatalog? catalog = null;
-        if (_mainViewModel.SelectedTemplate != null)
-        {
-            catalog = _mainViewModel.GetProfileService().LoadSelectedTemplate(_mainViewModel.SelectedTemplate);
-        }
-
-        if (catalog == null)
+        var profile = _mainViewModel.GetWorkspaceTemplateSnapshot();
+        if (profile is null)
         {
             HasUnusedActionIds = false;
             return;
@@ -135,7 +123,7 @@ public partial class MappingEditorViewModel : ObservableObject
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var unused = catalog.GetAllActions()
+        var unused = profile.GetAllActions()
             .Where(a => !string.IsNullOrWhiteSpace(a.Id) && 
                         !usedInMappings.Contains(a.Id) && 
                         !usedInRadialMenus.Contains(a.Id))
@@ -463,8 +451,8 @@ public partial class MappingEditorViewModel : ObservableObject
         if (def is null)
         {
             MessageBox.Show(
-                $"Unknown keyboardActions id '{id}'.",
-                "Catalog",
+                string.Format(AppUiLocalization.GetString("MappingEditorUnknownKeyboardActionId"), id),
+                AppUiLocalization.GetString("MappingEditorCatalogDialogTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             _resolvingActionId = true;

@@ -19,7 +19,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
     private DispatcherTimer? _templateSwitchHudTimer;
 
     [ObservableProperty]
-    private string _targetStatusText = "No target selected - output suppressed";
+    private string _targetStatusText = AppUiLocalization.GetString("AppStatus_NoTargetOutputSuppressed");
 
     [ObservableProperty]
     private AppTargetingState _targetState = AppTargetingState.NoTargetSelected;
@@ -100,7 +100,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
                 onFinished?.Invoke();
             };
 
-            var title = "Profile switched";
+            var title = AppUiLocalization.GetString("TemplateSwitchHud_Title");
             var line = new ComboHudLine($"→ {profileDisplayName}", null);
             var content = new ComboHudContent(title, new[] { line });
 
@@ -144,14 +144,6 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             OnClosed = onClosed,
             InvokeOnClosedWhenExitingApplication = true
         });
-    }
-
-    public bool? ShowActionEditDialog(MappingEntry mapping)
-    {
-        // This would be implemented in the actual application code to show a window.
-        // For the sake of this task, I'll assume the contract is enough for now 
-        // as I cannot create new Windows/XAML files easily without knowing the project's Window base classes.
-        return null;
     }
 
     public void Dispose()

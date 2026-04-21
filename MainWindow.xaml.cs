@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Reflection;
 using Gamepad_Mapping.ViewModels;
 using GamepadMapperGUI.Services.Infrastructure;
+using System.Globalization;
 
 namespace Gamepad_Mapping;
 
@@ -24,7 +25,7 @@ public partial class MainWindow : Window
         SizeToContent = SizeToContent.Manual;
         WindowState = WindowState.Normal;
         DataContext = _viewModel;
-        Title = $"Gamepad Mapping v{GetDisplayVersion()} - Maxim";
+        Title = string.Format(CultureInfo.CurrentUICulture, AppUiLocalization.GetString("MainWindow_TitleFormat"), GetDisplayVersion());
     }
 
     private void MainWindow_OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -109,36 +110,8 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (_viewModel.IsTemplateWorkspaceDirty)
-        {
-            var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
-            var message = AppUiLocalization.GetString("WorkspaceUnsavedExitPrompt");
-            var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-            switch (result)
-            {
-                case MessageBoxResult.Yes:
-                    if (!_viewModel.TryPersistWorkspaceTemplateToDisk(out var err))
-                    {
-                        if (!string.IsNullOrWhiteSpace(err))
-                        {
-                            MessageBox.Show(
-                                string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
-                                title,
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Error);
-                        }
-
-                        e.Cancel = true;
-                    }
-
-                    break;
-                case MessageBoxResult.No:
-                    break;
-                default:
-                    e.Cancel = true;
-                    break;
-            }
-        }
+        if (_viewModel.ShouldCancelCloseDueToUnsavedWorkspace())
+            e.Cancel = true;
 
         base.OnClosing(e);
     }

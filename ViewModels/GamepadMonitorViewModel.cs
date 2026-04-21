@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -149,6 +150,13 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
 
     public void Dispose() => StopUiRefreshTimer();
 
+    /// <summary>Re-applies idle monitor labels after UI culture changes. Prefer calling when the gamepad reader is stopped.</summary>
+    public void RefreshLocalizedIdleMonitorDefaults()
+    {
+        LastMappedOutput = AppUiLocalization.GetString("GamepadMonitor_LastMappedOutputNone");
+        LastMappingStatus = AppUiLocalization.GetString("GamepadMonitor_WaitingForInputStatus");
+    }
+
     [ObservableProperty]
     private bool isGamepadRunning;
 
@@ -159,10 +167,10 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     private string lastButtonReleased = string.Empty;
 
     [ObservableProperty]
-    private string lastMappedOutput = "None";
+    private string lastMappedOutput = AppUiLocalization.GetString("GamepadMonitor_LastMappedOutputNone");
 
     [ObservableProperty]
-    private string lastMappingStatus = "Waiting for gamepad input";
+    private string lastMappingStatus = AppUiLocalization.GetString("GamepadMonitor_WaitingForInputStatus");
 
     /// <summary>Non-empty when combo HUD preview is suppressed because output dispatch is blocked (targeting / focus / UIPI).</summary>
     [ObservableProperty]

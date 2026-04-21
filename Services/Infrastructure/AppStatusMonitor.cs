@@ -22,6 +22,7 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
 {
     private readonly IProcessTargetService _processTargetService;
     private readonly IElevationHandler _elevationHandler;
+    private readonly Func<string, string> _localize;
     private readonly Timer _timer;
     private readonly object _sync = new();
 
@@ -35,13 +36,15 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
         IProcessTargetService processTargetService,
         IElevationHandler elevationHandler,
         TimeSpan? pollInterval = null,
-        int initialGracePeriodMs = 500)
+        int initialGracePeriodMs = 500,
+        Func<string, string>? localize = null)
     {
         _processTargetService = processTargetService;
         _elevationHandler = elevationHandler;
+        _localize = localize ?? AppUiLocalization.GetString;
         _focusGracePeriodMs = initialGracePeriodMs;
         CurrentState = AppTargetingState.NoTargetSelected;
-        CurrentStatusText = "No target selected - output suppressed";
+        CurrentStatusText = _localize("AppStatus_NoTargetOutputSuppressed");
 
         var interval = pollInterval ?? TimeSpan.FromSeconds(1);
         _timer = new Timer(_ => EvaluateNow(), null, interval, interval);
@@ -130,7 +133,7 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
         if (!_isProcessTargetingEnabled || _selectedTargetProcess is null)
         {
             _lastForegroundMatchTimestamp = 0;
-            return (AppTargetingState.NoTargetSelected, "No target selected - output suppressed");
+            return (AppTargetingState.NoTargetSelected, _localize("AppStatus_NoTargetOutputSuppressed"));
         }
 
         var uipiTarget = ResolveProcessForUipi(_selectedTargetProcess);
@@ -139,7 +142,7 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
             _lastForegroundMatchTimestamp = 0;
             return (
                 AppTargetingState.BlockedByUipi,
-                $"Target requires admin privileges: {uipiTarget.ProcessName} (PID {uipiTarget.ProcessId})");
+                string.Format(_localize("AppStatus_TargetRequiresAdminFormat"), uipiTarget.ProcessName, uipiTarget.ProcessId));
         }
 
         var now = Environment.TickCount64;
@@ -149,19 +152,22 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
         {
             _lastForegroundMatchTimestamp = now;
             var pid = DisplayPidForStatus(_selectedTargetProcess);
-            return (AppTargetingState.Connected, $"Connected: {_selectedTargetProcess.ProcessName} (PID {pid})");
+            return (AppTargetingState.Connected, string.Format(_localize("AppStatus_ConnectedFormat"), _selectedTargetProcess.ProcessName, pid));
         }
 
         // If we were connected recently, allow a grace period before cutting off input.
         if (_lastForegroundMatchTimestamp > 0 && (now - _lastForegroundMatchTimestamp) < _focusGracePeriodMs)
         {
             var pid = DisplayPidForStatus(_selectedTargetProcess);
-            return (AppTargetingState.Connected, $"Connected (Grace Period): {_selectedTargetProcess.ProcessName} (PID {pid})");
+            return (AppTargetingState.Connected, string.Format(_localize("AppStatus_ConnectedGraceFormat"), _selectedTargetProcess.ProcessName, pid));
         }
 
         return (
             AppTargetingState.WaitingForForeground,
-            $"Waiting for target foreground: {_selectedTargetProcess.ProcessName} (PID {DisplayPidForStatus(_selectedTargetProcess)})");
+            string.Format(
+                _localize("AppStatus_WaitingForegroundFormat"),
+                _selectedTargetProcess.ProcessName,
+                DisplayPidForStatus(_selectedTargetProcess)));
     }
 
     private int DisplayPidForStatus(ProcessInfo selected)

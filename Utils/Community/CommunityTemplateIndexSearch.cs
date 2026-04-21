@@ -89,6 +89,12 @@ public static class CommunityTemplateIndexSearch
 
         Append(t.Id);
         Append(t.DisplayName);
+        if (t.DisplayNames is { Count: > 0 })
+        {
+            foreach (var kv in t.DisplayNames)
+                Append(kv.Value);
+        }
+
         Append(t.Author);
         Append(t.Description);
         Append(t.CatalogFolder);

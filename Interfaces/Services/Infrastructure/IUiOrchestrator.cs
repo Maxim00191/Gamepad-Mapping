@@ -20,10 +20,5 @@ public interface IUiOrchestrator : IDisposable, INotifyPropertyChanged
     void ApplyHudVisuals(byte alpha, double shadowOpacity);
     
     void ShowToast(string title, string message, Action? onClosed = null);
-
-    /// <summary>
-    /// Shows a dialog for editing a mapping action.
-    /// </summary>
-    bool? ShowActionEditDialog(MappingEntry mapping);
 }
 

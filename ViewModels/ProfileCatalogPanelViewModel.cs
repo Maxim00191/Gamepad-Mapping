@@ -124,7 +124,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     private void ValidateCurrentState()
     {
-        var profile = _main.GetProfileService().LoadSelectedTemplate(_main.SelectedTemplate);
+        var profile = _main.GetWorkspaceTemplateSnapshot();
         if (profile == null)
         {
             ValidationErrors.Clear();
@@ -469,7 +469,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         _main.RadialMenus.Add(new RadialMenuDefinition
         {
             Id = NextRadialMenuId(),
-            DisplayName = "Radial",
+            DisplayName = AppUiLocalization.GetString("RadialMenu_DefaultDisplayName"),
             Joystick = "RightStick",
             Items = new ObservableCollection<RadialMenuItem>()
         });

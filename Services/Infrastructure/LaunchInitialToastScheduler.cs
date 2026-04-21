@@ -1,62 +1,37 @@
+#nullable enable
+
 using System;
 using System.Linq;
-using System.Windows;
-using CommunityToolkit.Mvvm.ComponentModel;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
-using GamepadMapperGUI.Interfaces.Services.Storage;
 using GamepadMapperGUI.Interfaces.Services.Update;
-using GamepadMapperGUI.Interfaces.Services.Input;
-using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
-using GamepadMapperGUI.Services.Infrastructure;
-using GamepadMapperGUI.Services.Update;
+using Gamepad_Mapping.ViewModels;
 
-namespace Gamepad_Mapping.ViewModels;
+namespace GamepadMapperGUI.Services.Infrastructure;
 
 /// <summary>
-/// Orchestrates application updates and toast notifications.
-/// Merges UpdateService, ToastService, and notification lifecycle logic.
+/// Centralizes startup toast logic (update success/failure, welcome) so it stays consistent
+/// and matches <see cref="IUpdateNotificationService"/> acknowledgements.
 /// </summary>
-public partial class UpdateOrchestrator : ObservableObject, IDisposable
+public sealed class LaunchInitialToastScheduler : ILaunchInitialToastScheduler
 {
-    private readonly IUpdateService _updateService;
-    private readonly IUpdateNotificationService _updateNotificationService;
     private readonly IAppToastService _appToastService;
+    private readonly IUpdateNotificationService _updateNotificationService;
     private readonly SettingsOrchestrator _settingsOrchestrator;
-    private readonly AppToastViewModel _toastHost;
 
-    public UpdateViewModel UpdatePanel { get; }
-    public AppToastViewModel ToastHost => _toastHost;
-
-    public UpdateOrchestrator(
-        IUpdateService updateService,
-        IUpdateNotificationService updateNotificationService,
+    public LaunchInitialToastScheduler(
         IAppToastService appToastService,
-        SettingsOrchestrator settingsOrchestrator,
-        ISettingsService settingsService,
-        AppSettings appSettings,
-        ILocalFileService localFileService,
-        IUpdateInstallerService updateInstallerService,
-        IUpdateQuotaService updateQuotaService,
-        IUpdateVersionCacheService updateVersionCacheService)
+        IUpdateNotificationService updateNotificationService,
+        SettingsOrchestrator settingsOrchestrator)
     {
-        _updateService = updateService;
-        _updateNotificationService = updateNotificationService;
-        _appToastService = appToastService;
-        _settingsOrchestrator = settingsOrchestrator;
-        _toastHost = new AppToastViewModel(_appToastService);
-        
-        UpdatePanel = new UpdateViewModel(
-            _updateService,
-            settingsService,
-            appSettings,
-            localFileService,
-            updateInstallerService,
-            updateQuotaService,
-            updateVersionCacheService);
+        _appToastService = appToastService ?? throw new ArgumentNullException(nameof(appToastService));
+        _updateNotificationService = updateNotificationService ?? throw new ArgumentNullException(nameof(updateNotificationService));
+        _settingsOrchestrator = settingsOrchestrator ?? throw new ArgumentNullException(nameof(settingsOrchestrator));
     }
 
-    public void ScheduleInitialToasts()
+    /// <inheritdoc />
+    public void ScheduleInitial()
     {
 #if DEBUG
         if (TryShowDebugCornerToast())
@@ -74,7 +49,6 @@ public partial class UpdateOrchestrator : ObservableObject, IDisposable
                 OnClosed = () => _updateNotificationService.AcknowledgeSuccess(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
                 InvokeOnClosedWhenExitingApplication = true
             });
-            // Clear the argument so it doesn't show again on subsequent launches from e.g. a shortcut
             App.LaunchUpdateSuccessArgs = null;
             return;
         }
@@ -134,8 +108,8 @@ public partial class UpdateOrchestrator : ObservableObject, IDisposable
         {
             _appToastService.Show(new AppToastRequest
             {
-                Title = "Debug: corner toast",
-                Message = "Launched with --debug-toast. Dismiss or wait for auto-hide; no update or welcome flow runs.",
+                Title = _settingsOrchestrator.Localize("DebugCornerToast_Title"),
+                Message = _settingsOrchestrator.Localize("DebugCornerToast_Message"),
                 AutoHideSeconds = null,
                 InvokeOnClosedWhenExitingApplication = false
             });
@@ -169,15 +143,4 @@ public partial class UpdateOrchestrator : ObservableObject, IDisposable
         return false;
     }
 #endif
-
-    public void NotifyApplicationExiting()
-    {
-        _appToastService.NotifyApplicationExiting();
-    }
-
-    public void Dispose()
-    {
-        _toastHost.Dispose();
-    }
 }
-

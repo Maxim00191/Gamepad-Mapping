@@ -77,6 +77,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
     private readonly Debouncer _communityListingDescriptionDebouncer;
     private readonly Debouncer _workspaceDirtyDebouncer;
+    private readonly ILaunchInitialToastScheduler _launchInitialToastScheduler;
     private readonly IProfileTemplateEditHistoryService _templateEditHistory;
     private WorkspaceObservableMutationWatcher? _workspaceMutationWatcher;
     private string? _workspacePersistenceBaselineJson;
@@ -130,7 +131,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IControllerVisualLayoutSource? controllerVisualLayoutSource = null,
         IControllerVisualLoader? controllerVisualLoader = null,
         IControllerVisualLayoutHelper? controllerVisualLayoutHelper = null,
-        IRadialMenuHud? radialMenuHud = null)
+        IRadialMenuHud? radialMenuHud = null,
+        ILaunchInitialToastScheduler? launchInitialToastScheduler = null,
+        IUiOrchestrator? uiOrchestrator = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
@@ -201,7 +204,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
         _mappingsForLogicalControlQuery = new MappingsForLogicalControlQuery(_controllerVisualService);
 
-        _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
+        _uiOrchestrator = uiOrchestrator ?? new UiOrchestrator(_appToastService, _dispatcher);
+        _launchInitialToastScheduler = launchInitialToastScheduler
+            ?? new LaunchInitialToastScheduler(_appToastService, _updateNotificationService, _settingsOrchestrator);
 
         UpdatePanel = new UpdateViewModel(
             _updateService,
@@ -668,6 +673,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         OnPropertyChanged(nameof(RadialSlotHudLinePrimaryColumnHeader));
         OnPropertyChanged(nameof(RadialSlotHudLineSecondaryColumnHeader));
         RefreshControllerVisualOverlays();
+        if (!GamepadMonitorPanel.IsGamepadRunning)
+            GamepadMonitorPanel.RefreshLocalizedIdleMonitorDefaults();
     }
 
     /// <summary>When true, the primary description field in editors is Chinese and the optional field is English.</summary>
@@ -705,6 +712,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _mappingManager.Dispose();
         _radialMenuHud.Dispose();
         _appStatusMonitor.Dispose();
+        _appToastService.NotifyApplicationExiting();
         _toastHost.Dispose();
     }
 
@@ -958,15 +966,61 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         }
     }
 
+    /// <summary>
+    /// When the user closes the main window with unsaved template edits, prompts to save, discard, or cancel.
+    /// </summary>
+    /// <returns>True if the window close should be cancelled.</returns>
+    public bool ShouldCancelCloseDueToUnsavedWorkspace()
+    {
+        if (!IsTemplateWorkspaceDirty)
+            return false;
+
+        var message = AppUiLocalization.GetString("WorkspaceUnsavedExitPrompt");
+        var result = ShowUnsavedWorkspaceDialog(message);
+        switch (result)
+        {
+            case MessageBoxResult.Yes:
+                if (!TryPersistWorkspaceTemplateToDisk(out var err))
+                {
+                    ShowWorkspaceSaveFailedIfNeeded(err);
+                    return true;
+                }
+
+                return false;
+            case MessageBoxResult.No:
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    private static MessageBoxResult ShowUnsavedWorkspaceDialog(string localizedMessage)
+    {
+        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
+        return MessageBox.Show(localizedMessage, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+    }
+
+    private static void ShowWorkspaceSaveFailedIfNeeded(string? err)
+    {
+        if (string.IsNullOrWhiteSpace(err))
+            return;
+
+        var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
+        MessageBox.Show(
+            string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
+            title,
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+    }
+
     /// <summary>Reload from disk without changing the selected template row (discard in-memory edits).</summary>
     public bool ConfirmDiscardOrSaveBeforeReloadFromDisk()
     {
         if (!IsTemplateWorkspaceDirty)
             return true;
 
-        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
         var message = AppUiLocalization.GetString("WorkspaceUnsavedReloadPrompt");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        var result = ShowUnsavedWorkspaceDialog(message);
         switch (result)
         {
             case MessageBoxResult.Yes:
@@ -984,9 +1038,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         if (!IsTemplateWorkspaceDirty)
             return true;
 
-        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
         var message = AppUiLocalization.GetString("WorkspaceUnsavedRefreshTemplatesListPrompt");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        var result = ShowUnsavedWorkspaceDialog(message);
         switch (result)
         {
             case MessageBoxResult.Yes:
@@ -1006,23 +1059,14 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         if (!IsTemplateWorkspaceDirty)
             return true;
 
-        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
         var message = AppUiLocalization.GetString("WorkspaceUnsavedSwitchPrompt");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        var result = ShowUnsavedWorkspaceDialog(message);
         switch (result)
         {
             case MessageBoxResult.Yes:
                 if (!TryPersistWorkspaceTemplateToDisk(out var err))
                 {
-                    if (!string.IsNullOrWhiteSpace(err))
-                    {
-                        MessageBox.Show(
-                            string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
-                            title,
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    }
-
+                    ShowWorkspaceSaveFailedIfNeeded(err);
                     return false;
                 }
 
@@ -1041,6 +1085,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         else
             _dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(SelectedTemplate)));
     }
+
+    /// <summary>
+    /// Current in-memory profile workspace as a <see cref="GameProfileTemplate"/> for validation and UI diagnostics.
+    /// Reflects unsaved edits; does not read from disk.
+    /// </summary>
+    public GameProfileTemplate? GetWorkspaceTemplateSnapshot() => BuildWorkspaceTemplateSnapshot();
 
     private GameProfileTemplate? BuildWorkspaceTemplateSnapshot()
     {
@@ -1252,11 +1302,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             UpdateSetting(s => s.GamepadMonitorVisible = GamepadMonitorPanel.IsMonitorExpanderExpanded);
     }
 
-    private void ScheduleInitialToasts()
-    {
-        if (App.LaunchUpdateSuccessArgs is not null)
-            _uiOrchestrator.ShowToast(_settingsOrchestrator.Localize("UpdateSuccessToastTitle"), _settingsOrchestrator.FormatUpdateSuccessMessage(App.LaunchUpdateSuccessArgs.Value.ReleaseTag));
-    }
+    private void ScheduleInitialToasts() => _launchInitialToastScheduler.ScheduleInitial();
 
     private ICommunityTemplateUploadService ResolveDefaultCommunityTemplateUploadService(
         AppSettings settings,

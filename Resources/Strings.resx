@@ -1423,4 +1423,94 @@ Cancel — Keep working</value>
   <data name="WorkspaceSave_ErrorTitle" xml:space="preserve">
     <value>Save failed</value>
   </data>
+  <data name="Dialog_ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Profile_DeleteConfirmTitle" xml:space="preserve">
+    <value>Confirm delete</value>
+  </data>
+  <data name="Profile_DeleteConfirmMessage" xml:space="preserve">
+    <value>Delete profile '{0}' ({1})?</value>
+  </data>
+  <data name="ProfileOperation_DeleteFailed" xml:space="preserve">
+    <value>Failed to delete profile: {0}</value>
+  </data>
+  <data name="ProfileOperation_ReloadTemplatesFailed" xml:space="preserve">
+    <value>Failed to reload templates: {0}</value>
+  </data>
+  <data name="ProfileOperation_CreateFailed" xml:space="preserve">
+    <value>Failed to create profile: {0}</value>
+  </data>
+  <data name="MappingEditorUnknownKeyboardActionId" xml:space="preserve">
+    <value>Unknown keyboardActions id '{0}'.</value>
+  </data>
+  <data name="MappingEditorCatalogDialogTitle" xml:space="preserve">
+    <value>Catalog</value>
+  </data>
+  <data name="GamepadMonitor_LastMappedOutputNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="GamepadMonitor_WaitingForInputStatus" xml:space="preserve">
+    <value>Waiting for gamepad input</value>
+  </data>
+  <data name="UpdateInstallModeValue_Fx" xml:space="preserve">
+    <value>fx</value>
+  </data>
+  <data name="UpdateInstallModeValue_Single" xml:space="preserve">
+    <value>single</value>
+  </data>
+  <data name="UpdateInstallModeValue_Unknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="RadialMenu_DefaultDisplayName" xml:space="preserve">
+    <value>Radial</value>
+  </data>
+  <data name="MainWindow_TitleFormat" xml:space="preserve">
+    <value>Gamepad Mapping v{0}</value>
+  </data>
+  <data name="StartupDiagnostics_FatalErrorTitle" xml:space="preserve">
+    <value>Fatal error</value>
+  </data>
+  <data name="StartupDiagnostics_UnknownError" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="StartupDiagnostics_FatalErrorBodyFormat" xml:space="preserve">
+    <value>A fatal error has occurred and the application must close.
+
+Error: {0}
+
+Please check the logs for more details.</value>
+  </data>
+  <data name="AppStatus_NoTargetOutputSuppressed" xml:space="preserve">
+    <value>No target selected - output suppressed</value>
+  </data>
+  <data name="AppStatus_TargetRequiresAdminFormat" xml:space="preserve">
+    <value>Target requires admin privileges: {0} (PID {1})</value>
+  </data>
+  <data name="AppStatus_ConnectedFormat" xml:space="preserve">
+    <value>Connected: {0} (PID {1})</value>
+  </data>
+  <data name="AppStatus_ConnectedGraceFormat" xml:space="preserve">
+    <value>Connected (Grace Period): {0} (PID {1})</value>
+  </data>
+  <data name="AppStatus_WaitingForegroundFormat" xml:space="preserve">
+    <value>Waiting for target foreground: {0} (PID {1})</value>
+  </data>
+  <data name="TemplateSwitchHud_Title" xml:space="preserve">
+    <value>Profile switched</value>
+  </data>
+  <data name="ElevationRelaunch_Title" xml:space="preserve">
+    <value>Run as administrator</value>
+  </data>
+  <data name="ElevationRelaunch_Message" xml:space="preserve">
+    <value>The currently focused target appears to be running as administrator.
+
+To avoid Windows UIPI input blocking, relaunch this tool as administrator?</value>
+  </data>
+  <data name="DebugCornerToast_Title" xml:space="preserve">
+    <value>Debug: corner toast</value>
+  </data>
+  <data name="DebugCornerToast_Message" xml:space="preserve">
+    <value>Launched with --debug-toast. Dismiss or wait for auto-hide; no update or welcome flow runs.</value>
+  </data>
 </root>

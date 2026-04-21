@@ -74,21 +74,14 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
     private string _downloadEtaText = "--";
 
     [ObservableProperty]
-    private string _installModeText = "Unknown";
+    private string _installModeText;
 
     [ObservableProperty]
     private bool _downloadFailed;
 
     public string DownloadPrimaryActionText => DownloadFailed
-        ? GetLoc("UpdateDownloadRetry")
-        : (IsDownloading ? GetLoc("UpdateCancelButton") : GetLoc("UpdateDownloadNewVersion"));
-
-    private string GetLoc(string key)
-    {
-        if (Application.Current?.Resources["Loc"] is TranslationService loc)
-            return loc[key];
-        return key;
-    }
+        ? AppUiLocalization.GetString("UpdateDownloadRetry")
+        : (IsDownloading ? AppUiLocalization.GetString("UpdateCancelButton") : AppUiLocalization.GetString("UpdateDownloadNewVersion"));
 
     public bool IncludePrereleases
     {
@@ -191,7 +184,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
 
         IsChecking = true;
         IsForbidden = false;
-        StatusMessage = GetLoc("UpdateChecking");
+        StatusMessage = AppUiLocalization.GetString("UpdateChecking");
         LatestVersion = null;
         DownloadUpdateCommand.NotifyCanExecuteChanged();
         InstallUpdateCommand.NotifyCanExecuteChanged();
@@ -262,7 +255,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         DownloadSpeedText = "--";
         DownloadEtaText = "--";
         _activeDownloadFilePath = null;
-        StatusMessage = GetLoc("UpdatePreparingDownload");
+        StatusMessage = AppUiLocalization.GetString("UpdatePreparingDownload");
         DownloadUpdateCommand.NotifyCanExecuteChanged();
 
         _downloadCts?.Dispose();
@@ -285,13 +278,13 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             if (resolution.MatchedAsset is null)
             {
                 DownloadFailed = true;
-                StatusMessage = resolution.ErrorMessage ?? GetLoc("UpdateNoPackageForInstallMode");
+                StatusMessage = resolution.ErrorMessage ?? AppUiLocalization.GetString("UpdateNoPackageForInstallMode");
                 return;
             }
             if (string.IsNullOrWhiteSpace(resolution.MatchedAsset.Sha256))
             {
                 DownloadFailed = true;
-                StatusMessage = GetLoc("UpdateChecksumSignatureValidationFailed");
+                StatusMessage = AppUiLocalization.GetString("UpdateChecksumSignatureValidationFailed");
                 return;
             }
 
@@ -303,13 +296,13 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             if (_localFileService.FileExists(targetPath))
             {
                 var overwrite = System.Windows.MessageBox.Show(
-                    string.Format(GetLoc("UpdateOverwriteExistingFilePrompt"), fileName),
-                    GetLoc("UpdateOverwriteExistingFile"),
+                    string.Format(AppUiLocalization.GetString("UpdateOverwriteExistingFilePrompt"), fileName),
+                    AppUiLocalization.GetString("UpdateOverwriteExistingFile"),
                     System.Windows.MessageBoxButton.YesNo,
                     System.Windows.MessageBoxImage.Question);
                 if (overwrite != System.Windows.MessageBoxResult.Yes)
                 {
-                    StatusMessage = string.Format(GetLoc("UpdateDownloadCanceled"), fileName);
+                    StatusMessage = string.Format(AppUiLocalization.GetString("UpdateDownloadCanceled"), fileName);
                     return;
                 }
             }
@@ -317,7 +310,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             _activeDownloadFilePath = targetPath;
             var progress = new Progress<ReleaseDownloadProgress>(OnDownloadProgressChanged);
 
-            StatusMessage = string.Format(GetLoc("UpdateDownloading"), fileName);
+            StatusMessage = string.Format(AppUiLocalization.GetString("UpdateDownloading"), fileName);
             await _updateService.DownloadReleaseAssetAsync(
                 resolution.MatchedAsset.DownloadUrl,
                 targetPath,
@@ -326,8 +319,8 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             AppendNetworkFallbackNoticeIfAny();
 
             DownloadProgressPercent = 100;
-            DownloadEtaText = GetLoc("UpdateDownloadDone");
-            StatusMessage = string.Format(GetLoc("UpdateDownloadComplete"), fileName);
+            DownloadEtaText = AppUiLocalization.GetString("UpdateDownloadDone");
+            StatusMessage = string.Format(AppUiLocalization.GetString("UpdateDownloadComplete"), fileName);
             _activeDownloadFilePath = null;
             _lastDownloadedPackagePath = targetPath;
             _lastDownloadedPackageName = fileName;
@@ -338,7 +331,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = GetLoc("UpdateDownloadCancelled");
+            StatusMessage = AppUiLocalization.GetString("UpdateDownloadCancelled");
             TryDeleteFileIfExists(_activeDownloadFilePath);
             _activeDownloadFilePath = null;
             DownloadProgressPercent = 0;
@@ -347,7 +340,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         {
             DownloadFailed = true;
             DownloadProgressPercent = 0;
-            StatusMessage = string.Format(GetLoc("UpdateDownloadFailed"), ex.Message);
+            StatusMessage = string.Format(AppUiLocalization.GetString("UpdateDownloadFailed"), ex.Message);
         }
         finally
         {
@@ -393,11 +386,11 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         catch { /* Ignore */ }
     }
 
-    private static string ToInstallModeText(AppInstallMode mode) => mode switch
+    private string ToInstallModeText(AppInstallMode mode) => mode switch
     {
-        AppInstallMode.Fx => "fx",
-        AppInstallMode.Single => "single",
-        _ => "unknown"
+        AppInstallMode.Fx => AppUiLocalization.GetString("UpdateInstallModeValue_Fx"),
+        AppInstallMode.Single => AppUiLocalization.GetString("UpdateInstallModeValue_Single"),
+        _ => AppUiLocalization.GetString("UpdateInstallModeValue_Unknown")
     };
 
     private string FormatSpeed(double bytesPerSecond)
@@ -419,14 +412,14 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
     private string FormatTimeLeft(TimeSpan remaining)
     {
         if (remaining <= TimeSpan.Zero)
-            return GetLoc("UpdateAlmostThere");
+            return AppUiLocalization.GetString("UpdateAlmostThere");
 
         var rounded = TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds));
         if (rounded.TotalHours >= 1)
-            return string.Format(GetLoc("UpdateAboutHoursMinutes"), (int)rounded.TotalHours, rounded.Minutes);
+            return string.Format(AppUiLocalization.GetString("UpdateAboutHoursMinutes"), (int)rounded.TotalHours, rounded.Minutes);
         if (rounded.TotalMinutes >= 1)
-            return string.Format(GetLoc("UpdateAboutMinutesSeconds"), (int)rounded.TotalMinutes, rounded.Seconds);
-        return string.Format(GetLoc("UpdateAboutSeconds"), Math.Max(1, rounded.Seconds));
+            return string.Format(AppUiLocalization.GetString("UpdateAboutMinutesSeconds"), (int)rounded.TotalMinutes, rounded.Seconds);
+        return string.Format(AppUiLocalization.GetString("UpdateAboutSeconds"), Math.Max(1, rounded.Seconds));
     }
 
     private bool IsChineseUi()
@@ -437,8 +430,8 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
 
     private void PromptInstallDownloadedPackage(string zipPath, string packageName)
     {
-        var title = GetLoc("UpdateInstallTitle");
-        var message = string.Format(GetLoc("UpdateInstallPromptNow"), packageName);
+        var title = AppUiLocalization.GetString("UpdateInstallTitle");
+        var message = string.Format(AppUiLocalization.GetString("UpdateInstallPromptNow"), packageName);
 
         var installNow = MessageBox.Show(
             message,
@@ -464,13 +457,13 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
 
         if (!_localFileService.FileExists(packagePath))
         {
-            StatusMessage = GetLoc("UpdateInstallPackageNotFound");
+            StatusMessage = AppUiLocalization.GetString("UpdateInstallPackageNotFound");
             InstallUpdateCommand.NotifyCanExecuteChanged();
             return;
         }
         if (string.IsNullOrWhiteSpace(_lastDownloadedPackageSha256))
         {
-            StatusMessage = GetLoc("UpdateSecureChecksumMissing");
+            StatusMessage = AppUiLocalization.GetString("UpdateSecureChecksumMissing");
             return;
         }
 
@@ -482,10 +475,10 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
 
     private void InstallPackage(string zipPath, string packageName, bool askConfirmation)
     {
-        var title = GetLoc("UpdateInstallTitle");
+        var title = AppUiLocalization.GetString("UpdateInstallTitle");
         if (askConfirmation)
         {
-            var message = string.Format(GetLoc("UpdateInstallReadyPrompt"), packageName);
+            var message = string.Format(AppUiLocalization.GetString("UpdateInstallReadyPrompt"), packageName);
             var proceed = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (proceed != MessageBoxResult.Yes)
                 return;
@@ -505,7 +498,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         if (!_updateInstallerService.TryLaunchInstaller(request, out var errorMessage))
         {
             // Installation failed
-            var failureMessage = string.Format(GetLoc("UpdateInstallLaunchFailed"), errorMessage ?? GetLoc("UpdateUnknownError"));
+            var failureMessage = string.Format(AppUiLocalization.GetString("UpdateInstallLaunchFailed"), errorMessage ?? AppUiLocalization.GetString("UpdateUnknownError"));
             MessageBox.Show(failureMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
 
             return; // Exit the method as installation failed
@@ -685,7 +678,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         {
             UpdateQuotaBlockReason.Cooldown => BuildCooldownBlockedMessage(decision),
             UpdateQuotaBlockReason.DailyLimit => BuildDailyLimitBlockedMessage(decision),
-            _ => GetLoc("UpdateCheckFailed")
+            _ => AppUiLocalization.GetString("UpdateCheckFailed")
         };
     }
 
@@ -693,20 +686,20 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
     {
         var retryAfter = decision.RetryAfter ?? TimeSpan.Zero;
         var seconds = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
-        return string.Format(GetLoc("UpdateQuotaCooldownBlocked"), seconds);
+        return string.Format(AppUiLocalization.GetString("UpdateQuotaCooldownBlocked"), seconds);
     }
 
     private string BuildDailyLimitBlockedMessage(UpdateQuotaDecision decision)
     {
         var actionText = decision.Action == UpdateQuotaAction.Download
-            ? GetLoc("UpdateQuotaActionDownload")
-            : GetLoc("UpdateQuotaActionCheck");
-        return string.Format(GetLoc("UpdateQuotaDailyLimitBlocked"), actionText, decision.DailyLimit);
+            ? AppUiLocalization.GetString("UpdateQuotaActionDownload")
+            : AppUiLocalization.GetString("UpdateQuotaActionCheck");
+        return string.Format(AppUiLocalization.GetString("UpdateQuotaDailyLimitBlocked"), actionText, decision.DailyLimit);
     }
 
     private string BuildUpdateCheckFailedMessageWithCacheFallback()
     {
-        return BuildStatusMessageWithCachedVersionHint(GetLoc("UpdateCheckFailed"));
+        return BuildStatusMessageWithCachedVersionHint(AppUiLocalization.GetString("UpdateCheckFailed"));
     }
 
     private string BuildUpdateStatusMessage(AppUpdateInfo info)
@@ -714,7 +707,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         if (!string.IsNullOrWhiteSpace(info.ErrorMessage))
             return BuildStatusMessageWithCachedVersionHint(info.ErrorMessage);
 
-        return IsUpdateAvailable ? GetLoc("UpdateNewVersionAvailable") : GetLoc("UpdateUpToDate");
+        return IsUpdateAvailable ? AppUiLocalization.GetString("UpdateNewVersionAvailable") : AppUiLocalization.GetString("UpdateUpToDate");
     }
 
     private string BuildStatusMessageWithCachedVersionHint(string baseMessage)
@@ -724,7 +717,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             return baseMessage;
 
         var hint = string.Format(
-            GetLoc("UpdateCheckFailedCachedLatestHint"),
+            AppUiLocalization.GetString("UpdateCheckFailedCachedLatestHint"),
             cached.LatestVersion,
             FormatCacheUtcTime(cached.CachedAtUtc));
         return $"{baseMessage} {hint}";

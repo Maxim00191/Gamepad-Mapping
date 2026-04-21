@@ -138,8 +138,11 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
             return;
 
         var ok = MessageBox.Show(
-            $"Delete profile '{SelectedTemplate.DisplayName}' ({SelectedTemplate.TemplateGroupId})?",
-            "Confirm delete",
+            string.Format(
+                AppUiLocalization.GetString("Profile_DeleteConfirmMessage"),
+                SelectedTemplate.DisplayName,
+                SelectedTemplate.TemplateGroupId),
+            AppUiLocalization.GetString("Profile_DeleteConfirmTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
@@ -154,7 +157,11 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to delete profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(
+                string.Format(AppUiLocalization.GetString("ProfileOperation_DeleteFailed"), ex.Message),
+                AppUiLocalization.GetString("Dialog_ErrorTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 
@@ -172,7 +179,11 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to reload templates: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(
+                string.Format(AppUiLocalization.GetString("ProfileOperation_ReloadTemplatesFailed"), ex.Message),
+                AppUiLocalization.GetString("Dialog_ErrorTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 
@@ -217,7 +228,11 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to create profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(
+                string.Format(AppUiLocalization.GetString("ProfileOperation_CreateFailed"), ex.Message),
+                AppUiLocalization.GetString("Dialog_ErrorTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 

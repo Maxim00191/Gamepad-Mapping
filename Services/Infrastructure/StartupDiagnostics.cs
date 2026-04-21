@@ -83,17 +83,20 @@ public static class StartupDiagnostics
 
     public static void ShowFatalErrorDialog(Exception? ex)
     {
-        var errorMessage = "A fatal error has occurred and the application must close.\n\n" +
-                           $"Error: {ex?.Message ?? "Unknown error"}\n\n" +
-                           "Please check the logs for more details.";
+        var title = AppUiLocalization.GetString("StartupDiagnostics_FatalErrorTitle");
+        var detail = string.IsNullOrWhiteSpace(ex?.Message)
+            ? AppUiLocalization.GetString("StartupDiagnostics_UnknownError")
+            : ex!.Message;
+        var errorMessage = string.Format(System.Globalization.CultureInfo.CurrentUICulture,
+            AppUiLocalization.GetString("StartupDiagnostics_FatalErrorBodyFormat"), detail);
 
         if (Application.Current?.Dispatcher?.CheckAccess() == false)
         {
-            Application.Current.Dispatcher.Invoke(() => MessageBox.Show(errorMessage, "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error));
+            Application.Current.Dispatcher.Invoke(() => MessageBox.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error));
         }
         else
         {
-            MessageBox.Show(errorMessage, "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

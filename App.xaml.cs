@@ -71,41 +71,8 @@ public partial class App : Application
             if (ShouldAbortStartupForElevationRelaunch())
                 return;
 
-            var gitHubContentService = new GitHubContentService();
-            var localFileService = new LocalFileService();
-            var updateInstallerService = new UpdateInstallerService();
-            var settingsService = new SettingsService();
-            var appSettings = settingsService.LoadSettingsInternal();
-            var profileService = new ProfileService(settingsService: settingsService, appSettings: appSettings);
-            var updateVersionCacheService = new UpdateVersionCacheService();
-            var trustedUtcTimeService = new TrustedUtcTimeService();
-            var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
-            var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
-            var appToastService = new AppToastService();
+            var (mainViewModel, appToastService) = ApplicationComposition.BuildMainViewModel();
             ToastService = appToastService;
-            var xinputService = new XInputService();
-            var gamepadSource = new XInputSource(xinputService);
-            var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
-            var mainViewModel = new MainViewModel(
-                profileService: profileService,
-                gitHubContentService: gitHubContentService,
-                communityService: new CommunityTemplateService(
-                    profileService,
-                    gitHubContentService,
-                    localFileService,
-                    appSettings,
-                    communityDownloadThrottle),
-                updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
-                localFileService: localFileService,
-                updateInstallerService: updateInstallerService,
-                updateQuotaService: updateQuotaService,
-                settingsService: settingsService,
-                trustedUtcTimeService: trustedUtcTimeService,
-                updateVersionCacheService: updateVersionCacheService,
-                updateQuotaPolicyProvider: updateQuotaPolicyProvider,
-                appToastService: appToastService,
-                xinput: xinputService,
-                gamepadSource: gamepadSource);
 
             var mainWindow = new MainWindow(mainViewModel);
             MainWindow = mainWindow;
@@ -286,9 +253,8 @@ public partial class App : Application
             return false;
 
         var result = MessageBox.Show(
-            "The currently focused target appears to be running as administrator.\n\n" +
-            "To avoid Windows UIPI input blocking, relaunch this tool as administrator?",
-            "Run as administrator",
+            AppUiLocalization.GetString("ElevationRelaunch_Message"),
+            AppUiLocalization.GetString("ElevationRelaunch_Title"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Information);
         if (result != MessageBoxResult.Yes)
