@@ -32,16 +32,16 @@
         <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFBCB5AA" />
         <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FFB89428" />
         <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FFC9A000" />
-        <SolidColorBrush x:Key="AppSoftWarningBorderBrush" Color="#FFD4B247" />
+        <SolidColorBrush x:Key="AppSoftWarningBorderBrush" Color="#FFE89B10" />
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
         <Storyboard x:Key="SoftWarningBreathingBorderStoryboard">
             <DoubleAnimation Storyboard.TargetName="SoftWarningBorder"
                              Storyboard.TargetProperty="Opacity"
-                             From="0.35"
+                             From="0.4"
                              To="1"
-                             Duration="0:0:1.2"
+                             Duration="0:0:0.95"
                              AutoReverse="True"
                              RepeatBehavior="Forever">
                 <DoubleAnimation.EasingFunction>
@@ -202,7 +202,7 @@
                             </Border>
                             <Border x:Name="SoftWarningBorder"
                                     BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    BorderThickness="2"
                                     CornerRadius="4"
                                     IsHitTestVisible="False"
                                     Opacity="0"
@@ -264,7 +264,7 @@
                             </Border>
                             <Border x:Name="SoftWarningBorder"
                                     BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    BorderThickness="2"
                                     CornerRadius="4"
                                     IsHitTestVisible="False"
                                     Opacity="0"
@@ -490,7 +490,7 @@
                             </Border>
                             <Border x:Name="SoftWarningBorder"
                                     BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    BorderThickness="2"
                                     CornerRadius="4"
                                     IsHitTestVisible="False"
                                     Opacity="0"

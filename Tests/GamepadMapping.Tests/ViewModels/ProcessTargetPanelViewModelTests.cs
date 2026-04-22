@@ -74,5 +74,42 @@ public class ProcessTargetPanelViewModelTests
 
         Assert.Equal(AppTargetingState.Connected, vm.TargetState);
     }
+
+    [Fact]
+    public void ShouldHighlightTargetProcessRefresh_TrueWhenResolvedPidIsZero()
+    {
+        var vm = _mainViewModel.ProcessTargetPanel;
+
+        _mainViewModel.SelectedTargetProcess = new ProcessInfo
+        {
+            ProcessId = 0,
+            ProcessName = "SomeGame"
+        };
+
+        Assert.True(vm.ShouldHighlightTargetProcessRefresh);
+    }
+
+    [Fact]
+    public void ShouldHighlightTargetProcessRefresh_FalseWhenResolvedPidIsPositive()
+    {
+        var vm = _mainViewModel.ProcessTargetPanel;
+
+        _mainViewModel.SelectedTargetProcess = new ProcessInfo
+        {
+            ProcessId = 1234,
+            ProcessName = "SomeGame"
+        };
+
+        Assert.False(vm.ShouldHighlightTargetProcessRefresh);
+    }
+
+    [Fact]
+    public void RefreshDeclaredProcessTargetCommand_IsExposedFromPanel()
+    {
+        var vm = _mainViewModel.ProcessTargetPanel;
+
+        Assert.NotNull(vm.RefreshDeclaredProcessTargetCommand);
+        Assert.True(vm.RefreshDeclaredProcessTargetCommand.CanExecute(null));
+    }
 }
 

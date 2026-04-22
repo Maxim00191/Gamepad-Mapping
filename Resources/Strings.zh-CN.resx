@@ -1601,4 +1601,10 @@
   <data name="WorkspaceSave_AttentionTooltip" xml:space="preserve">
     <value>保存此模板以保留工作区中的更改。</value>
   </data>
+  <data name="TargetProcessRefreshTooltip" xml:space="preserve">
+    <value>根据上方名称重新查找正在运行的进程（若先打开本工具再启动游戏，请点此）。</value>
+  </data>
+  <data name="TargetProcessRefresh_AttentionTooltip" xml:space="preserve">
+    <value>尚未找到匹配的进程 — 点击以重新检测。</value>
+  </data>
 </root>

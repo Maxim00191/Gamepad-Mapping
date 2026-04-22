@@ -392,6 +392,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" MinWidth="100" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
                                        Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
@@ -403,6 +404,22 @@
                                      VerticalContentAlignment="Center"
                                      Text="{Binding ProcessTargetPanel.TemplateTargetProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="{Binding Source={StaticResource Loc}, Path=[TargetProcessNameToolTip]}" />
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    MinWidth="36"
+                                    Width="36"
+                                    Height="32"
+                                    Margin="8,0,0,0"
+                                    Padding="0"
+                                    Command="{Binding ProcessTargetPanel.RefreshDeclaredProcessTargetCommand}"
+                                    ToolTip="{Binding ProcessTargetPanel.TargetProcessRefreshToolTip}"
+                                    behaviors:ButtonAttentionAssist.IsSoftWarningHighlighted="{Binding ProcessTargetPanel.ShouldHighlightTargetProcessRefresh}">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           Text="&#xE72C;"
+                                           FontSize="14"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Button>
                         </Grid>
                         <TextBlock Text="{Binding ProcessTargetPanel.TargetStatusText}"
                                    TextWrapping="Wrap"

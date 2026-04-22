@@ -1601,4 +1601,10 @@ Relaunch this tool as administrator now?</value>
   <data name="WorkspaceSave_AttentionTooltip" xml:space="preserve">
     <value>Save this template to keep your unsaved changes.</value>
   </data>
+  <data name="TargetProcessRefreshTooltip" xml:space="preserve">
+    <value>Re-scan for a running process matching the name above (useful if you opened this tool before starting the game).</value>
+  </data>
+  <data name="TargetProcessRefresh_AttentionTooltip" xml:space="preserve">
+    <value>No matching process found yet — click to re-detect.</value>
+  </data>
 </root>

@@ -664,6 +664,14 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void SyncAppStatusMonitor() => _appStatusMonitor.UpdateTarget(SelectedTargetProcess, IsProcessTargetingEnabled);
 
+    /// <summary>Re-resolves the declared process name and re-evaluates foreground targeting (for example after the game starts).</summary>
+    [RelayCommand]
+    private void RefreshDeclaredProcessTarget()
+    {
+        ApplyDeclaredProcessTarget();
+        SyncAppStatusMonitor();
+    }
+
     partial void OnSelectedTargetProcessChanged(ProcessInfo? value)
     {
         if (value is not null && _elevationHandler.CheckAndPromptElevation(value))

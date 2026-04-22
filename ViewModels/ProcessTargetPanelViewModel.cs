@@ -1,11 +1,8 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using GamepadMapperGUI.Services.Infrastructure;
-using GamepadMapperGUI.Services.Storage;
-using GamepadMapperGUI.Services.Update;
-using GamepadMapperGUI.Services.Input;
-using GamepadMapperGUI.Services.Radial;
+using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models.State;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -31,6 +28,16 @@ public class ProcessTargetPanelViewModel : ObservableObject
 
     public AppTargetingState TargetState => _mainViewModel.TargetState;
 
+    public IRelayCommand RefreshDeclaredProcessTargetCommand => _mainViewModel.RefreshDeclaredProcessTargetCommand;
+
+    /// <summary>Soft-warning highlight when the declared name has not resolved to a live PID yet.</summary>
+    public bool ShouldHighlightTargetProcessRefresh => _mainViewModel.SelectedTargetProcess?.ProcessId == 0;
+
+    public string TargetProcessRefreshToolTip =>
+        ShouldHighlightTargetProcessRefresh
+            ? AppUiLocalization.GetString("TargetProcessRefresh_AttentionTooltip")
+            : AppUiLocalization.GetString("TargetProcessRefreshTooltip");
+
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
@@ -47,7 +54,10 @@ public class ProcessTargetPanelViewModel : ObservableObject
             case nameof(MainViewModel.TargetState):
                 OnPropertyChanged(nameof(TargetState));
                 break;
+            case nameof(MainViewModel.SelectedTargetProcess):
+                OnPropertyChanged(nameof(ShouldHighlightTargetProcessRefresh));
+                OnPropertyChanged(nameof(TargetProcessRefreshToolTip));
+                break;
         }
     }
 }
-
