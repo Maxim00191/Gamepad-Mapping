@@ -131,11 +131,9 @@ public partial class NewBindingPanelViewModel : ObservableObject
         {
             if (!GamepadChordInput.TryParseTriggerMatchThreshold(NewBindingAnalogThresholdText, out var th))
             {
-                _mainViewModel.UserDialogService.Show(
+                _mainViewModel.UserDialogService.ShowInfo(
                     AppUiLocalization.GetString("TriggerChordThresholdRequiredMessage"),
-                    AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    AppUiLocalization.GetString("MappingEditorSaveFailedTitle"));
                 return;
             }
 

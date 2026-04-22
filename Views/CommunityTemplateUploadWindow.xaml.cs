@@ -38,7 +38,7 @@ public partial class CommunityTemplateUploadWindow
             if (!ok)
             {
                 var message = err ?? AppUiLocalization.GetString("CommunityUpload_Error_InvalidInput");
-                _userDialogService.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                _userDialogService.ShowWarning(message, title);
                 return;
             }
         }
@@ -49,11 +49,9 @@ public partial class CommunityTemplateUploadWindow
         catch (Exception ex)
         {
             Gamepad_Mapping.App.Logger.Warning($"Community upload validation failed: {ex.Message}");
-            _userDialogService.Show(
+            _userDialogService.ShowError(
                 string.Format(AppUiLocalization.GetString("CommunityCatalog_StatusUploadFailed"), ex.Message),
-                title,
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                title);
             return;
         }
         finally

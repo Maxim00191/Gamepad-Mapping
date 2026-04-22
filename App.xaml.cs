@@ -252,12 +252,11 @@ public partial class App : Application
         if (foregroundPid <= 0 || !processTargetService.IsProcessElevated(foregroundPid))
             return false;
 
-        var result = new UserDialogService().Show(
+        var result = new UserDialogService().ConfirmYesNo(
             AppUiLocalization.GetString("ElevationRelaunch_Message"),
             AppUiLocalization.GetString("ElevationRelaunch_Title"),
-            MessageBoxButton.YesNo,
             MessageBoxImage.Information);
-        if (result != MessageBoxResult.Yes)
+        if (!result)
             return false;
 
         return ElevationApplicationRelaunch.TryRelaunchElevatedAndShutdownCurrentApplication();

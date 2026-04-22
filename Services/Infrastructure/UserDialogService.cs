@@ -37,4 +37,21 @@ public sealed class UserDialogService : IUserDialogService
         return dispatcher.Invoke(() =>
             ShowCore(ResolveOwner(owner), message, title, buttons, image, defaultResult));
     }
+
+    public void ShowInfo(string message, string title, Window? owner = null)
+        => Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information, owner: owner);
+
+    public void ShowWarning(string message, string title, Window? owner = null)
+        => Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning, owner: owner);
+
+    public void ShowError(string message, string title, Window? owner = null)
+        => Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error, owner: owner);
+
+    public bool ConfirmYesNo(
+        string message,
+        string title,
+        MessageBoxImage image = MessageBoxImage.Question,
+        MessageBoxResult defaultResult = MessageBoxResult.None,
+        Window? owner = null)
+        => Show(message, title, MessageBoxButton.YesNo, image, defaultResult, owner) == MessageBoxResult.Yes;
 }

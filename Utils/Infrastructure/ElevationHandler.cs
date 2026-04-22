@@ -47,13 +47,12 @@ public sealed class ElevationHandler : IElevationHandler
         var message = string.Format(
             AppUiLocalization.GetString("ElevationRelaunch_TargetMessageFormat"),
             target.ProcessName);
-        var relaunch = _userDialogService.Show(
+        var relaunch = _userDialogService.ConfirmYesNo(
             message,
             AppUiLocalization.GetString("ElevationRelaunch_Title"),
-            MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
-        if (relaunch == MessageBoxResult.Yes)
+        if (relaunch)
         {
             Gamepad_Mapping.App.Logger.Info("User accepted elevation relaunch.");
             return ElevationApplicationRelaunch.TryRelaunchElevatedAndShutdownCurrentApplication();

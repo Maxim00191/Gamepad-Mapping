@@ -137,13 +137,13 @@ public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketT
             var owner = Application.Current?.MainWindow;
             var title = _localize("WebView2_RuntimeRequired_Title");
             var message = _localize("WebView2_RuntimeRequired_Message");
-            var result = _userDialogService.Show(
+            var result = _userDialogService.ConfirmYesNo(
                 message,
                 title,
-                MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,
+                defaultResult: MessageBoxResult.No,
                 owner: owner);
-            if (result == MessageBoxResult.Yes)
+            if (result)
                 TryOpenWebView2DownloadPage();
 
             return null;

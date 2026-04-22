@@ -290,12 +290,11 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             var targetPath = Path.Combine(AppPaths.GetUpdateDownloadsDirectory(), fileName);
             if (_localFileService.FileExists(targetPath))
             {
-                var overwrite = _userDialogService.Show(
+                var overwrite = _userDialogService.ConfirmYesNo(
                     string.Format(AppUiLocalization.GetString("UpdateOverwriteExistingFilePrompt"), fileName),
                     AppUiLocalization.GetString("UpdateOverwriteExistingFile"),
-                    MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
-                if (overwrite != MessageBoxResult.Yes)
+                if (!overwrite)
                 {
                     StatusMessage = string.Format(AppUiLocalization.GetString("UpdateDownloadCanceled"), fileName);
                     return;
@@ -437,13 +436,12 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         var title = AppUiLocalization.GetString("UpdateInstallTitle");
         var message = string.Format(AppUiLocalization.GetString("UpdateInstallPromptNow"), packageName);
 
-        var installNow = _userDialogService.Show(
+        var installNow = _userDialogService.ConfirmYesNo(
             message,
             title,
-            MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
-        if (installNow != MessageBoxResult.Yes)
+        if (!installNow)
             return;
 
         InstallPackage(zipPath, packageName, askConfirmation: false);
@@ -483,8 +481,8 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         if (askConfirmation)
         {
             var message = string.Format(AppUiLocalization.GetString("UpdateInstallReadyPrompt"), packageName);
-            var proceed = _userDialogService.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (proceed != MessageBoxResult.Yes)
+            var proceed = _userDialogService.ConfirmYesNo(message, title, MessageBoxImage.Question);
+            if (!proceed)
                 return;
         }
 
@@ -503,7 +501,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         {
             // Installation failed
             var failureMessage = string.Format(AppUiLocalization.GetString("UpdateInstallLaunchFailed"), errorMessage ?? AppUiLocalization.GetString("UpdateUnknownError"));
-            _userDialogService.Show(failureMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            _userDialogService.ShowError(failureMessage, title);
 
             return; // Exit the method as installation failed
         }

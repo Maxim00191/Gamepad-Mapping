@@ -1254,26 +1254,10 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     /// <returns>True if the window close should be cancelled.</returns>
     public bool ShouldCancelCloseDueToUnsavedWorkspace()
     {
-        if (!IsTemplateWorkspaceDirty)
-            return false;
-
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedExitPrompt");
-        var result = ShowUnsavedWorkspaceDialog(message);
-        switch (result)
-        {
-            case MessageBoxResult.Yes:
-                if (!TryPersistWorkspaceTemplateToDisk(out var err))
-                {
-                    ShowWorkspaceSaveFailedIfNeeded(err);
-                    return true;
-                }
-
-                return false;
-            case MessageBoxResult.No:
-                return false;
-            default:
-                return true;
-        }
+        var shouldContinue = TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedExitPrompt",
+            showSaveFailureDialog: true);
+        return !shouldContinue;
     }
 
     private MessageBoxResult ShowUnsavedWorkspaceDialog(string localizedMessage)
@@ -1292,76 +1276,60 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             return;
 
         var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
-        _userDialogService.Show(
+        _userDialogService.ShowError(
             string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
-            title,
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
+            title);
     }
 
     /// <summary>Reload from disk without changing the selected template row (discard in-memory edits).</summary>
     public bool ConfirmDiscardOrSaveBeforeReloadFromDisk()
     {
-        if (!IsTemplateWorkspaceDirty)
-            return true;
-
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedReloadPrompt");
-        var result = ShowUnsavedWorkspaceDialog(message);
-        switch (result)
-        {
-            case MessageBoxResult.Yes:
-                return TryPersistWorkspaceTemplateToDisk(out _);
-            case MessageBoxResult.No:
-                return true;
-            default:
-                return false;
-        }
+        return TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedReloadPrompt",
+            showSaveFailureDialog: false);
     }
 
     /// <summary>Confirm before refreshing the template list from disk while the editor may have unsaved edits.</summary>
     public bool ConfirmDiscardOrSaveBeforeTemplateMetadataRefresh()
     {
-        if (!IsTemplateWorkspaceDirty)
-            return true;
-
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedRefreshTemplatesListPrompt");
-        var result = ShowUnsavedWorkspaceDialog(message);
-        switch (result)
-        {
-            case MessageBoxResult.Yes:
-                return TryPersistWorkspaceTemplateToDisk(out _);
-            case MessageBoxResult.No:
-                ReloadSelectedTemplate();
-                return true;
-            default:
-                return false;
-        }
+        return TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedRefreshTemplatesListPrompt",
+            showSaveFailureDialog: false,
+            onDiscardConfirmed: ReloadSelectedTemplate);
     }
 
     bool IProfileSelectionInterlock.AllowSelectTemplate(TemplateOption? current, TemplateOption? proposed)
     {
         if (_suppressProfileSelectionInterlock)
             return true;
+
+        return TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedSwitchPrompt",
+            showSaveFailureDialog: true);
+    }
+
+    private bool TryContinueAfterUnsavedWorkspacePrompt(
+        string messageLocalizationKey,
+        bool showSaveFailureDialog,
+        Action? onDiscardConfirmed = null)
+    {
         if (!IsTemplateWorkspaceDirty)
             return true;
 
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedSwitchPrompt");
-        var result = ShowUnsavedWorkspaceDialog(message);
-        switch (result)
+        var result = ShowUnsavedWorkspaceDialog(AppUiLocalization.GetString(messageLocalizationKey));
+        if (result == MessageBoxResult.No)
         {
-            case MessageBoxResult.Yes:
-                if (!TryPersistWorkspaceTemplateToDisk(out var err))
-                {
-                    ShowWorkspaceSaveFailedIfNeeded(err);
-                    return false;
-                }
-
-                return true;
-            case MessageBoxResult.No:
-                return true;
-            default:
-                return false;
+            onDiscardConfirmed?.Invoke();
+            return true;
         }
+
+        if (result != MessageBoxResult.Yes)
+            return false;
+
+        var saved = TryPersistWorkspaceTemplateToDisk(out var err);
+        if (!saved && showSaveFailureDialog)
+            ShowWorkspaceSaveFailedIfNeeded(err);
+        return saved;
     }
 
     void IProfileSelectionInterlock.NotifySelectedTemplateBindingRefresh()

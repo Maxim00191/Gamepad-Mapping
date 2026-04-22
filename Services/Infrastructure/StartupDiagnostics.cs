@@ -91,9 +91,6 @@ public static class StartupDiagnostics
             AppUiLocalization.GetString("StartupDiagnostics_FatalErrorBodyFormat"), detail);
 
         var dialogService = new UserDialogService();
-        if (Application.Current?.Dispatcher?.CheckAccess() == false)
-            Application.Current.Dispatcher.Invoke(() => dialogService.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error));
-        else
-            dialogService.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        dialogService.ShowError(errorMessage, title);
     }
 }
