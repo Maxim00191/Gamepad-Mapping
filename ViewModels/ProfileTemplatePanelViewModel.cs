@@ -87,6 +87,13 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
 
     public int MappingCount => _mainViewModel.MappingCount;
 
+    public bool ShouldHighlightSaveProfileButton => _mainViewModel.IsTemplateWorkspaceDirty;
+
+    public string? SaveProfileToolTip =>
+        ShouldHighlightSaveProfileButton
+            ? AppUiLocalization.GetString("WorkspaceSave_AttentionTooltip")
+            : null;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateProfileCommand))]
     private string newProfileTemplateGroupId = string.Empty;
@@ -279,6 +286,10 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.MappingCount):
                 OnPropertyChanged(nameof(MappingCount));
+                break;
+            case nameof(MainViewModel.IsTemplateWorkspaceDirty):
+                OnPropertyChanged(nameof(ShouldHighlightSaveProfileButton));
+                OnPropertyChanged(nameof(SaveProfileToolTip));
                 break;
         }
     }

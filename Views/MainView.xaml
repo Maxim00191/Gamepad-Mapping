@@ -253,7 +253,9 @@
                                 VerticalContentAlignment="Center"
                                 Margin="0,0,8,6"
                                 Content="{Binding Source={StaticResource Loc}, Path=[SaveProfile]}"
-                                Command="{Binding ProfileTemplatePanel.SaveProfileCommand}" />
+                                Command="{Binding ProfileTemplatePanel.SaveProfileCommand}"
+                                ToolTip="{Binding ProfileTemplatePanel.SaveProfileToolTip}"
+                                behaviors:ButtonAttentionAssist.IsSoftWarningHighlighted="{Binding ProfileTemplatePanel.ShouldHighlightSaveProfileButton}" />
                         <Button Height="32"
                                 MinWidth="72"
                                 Padding="10,0"

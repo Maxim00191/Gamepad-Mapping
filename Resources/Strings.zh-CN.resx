@@ -1598,4 +1598,7 @@
   <data name="KeyboardActionPicker_HoldManualInputLabel" xml:space="preserve">
     <value>选择长按按键</value>
   </data>
+  <data name="WorkspaceSave_AttentionTooltip" xml:space="preserve">
+    <value>保存此模板以保留工作区中的更改。</value>
+  </data>
 </root>

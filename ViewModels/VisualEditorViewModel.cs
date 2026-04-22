@@ -52,6 +52,9 @@ public partial class VisualEditorViewModel : ObservableObject
     public bool HasTemplateCommunityListingDescription =>
         !string.IsNullOrWhiteSpace(TemplateCommunityListingDescription);
 
+    public bool ShouldHighlightTemplateDescriptionButton =>
+        !HasTemplateCommunityListingDescription;
+
     public VisualLogicalControlMappingsViewModel LogicalControlMappings { get; }
 
     public bool ShowVisualCreateMappingCallout =>
@@ -111,6 +114,7 @@ public partial class VisualEditorViewModel : ObservableObject
                 OnPropertyChanged(nameof(TemplateCommunityListingDescription));
                 OnPropertyChanged(nameof(TemplateCommunityListingDescriptionPreview));
                 OnPropertyChanged(nameof(HasTemplateCommunityListingDescription));
+                OnPropertyChanged(nameof(ShouldHighlightTemplateDescriptionButton));
             }
         };
     }

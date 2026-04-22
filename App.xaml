@@ -36,6 +36,19 @@
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
+        <Storyboard x:Key="SoftWarningBreathingBorderStoryboard">
+            <DoubleAnimation Storyboard.TargetName="SoftWarningBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0.35"
+                             To="1"
+                             Duration="0:0:1.2"
+                             AutoReverse="True"
+                             RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction>
+                    <SineEase EasingMode="EaseInOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
         <SolidColorBrush x:Key="VisualWorkspacePanelBackgroundBrush" Color="#FFD4CEC4" />
         <SolidColorBrush x:Key="VisualWorkspacePanelBorderBrush" Color="#FF8F887E" />
         <SolidColorBrush x:Key="VisualWorkspaceListItemBackgroundBrush" Color="#FFDFD9D0" />
@@ -176,16 +189,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ToggleButton}">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <Border x:Name="SoftWarningBorder"
+                                    BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -202,20 +224,19 @@
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
                             </Trigger>
+                            <Trigger Property="ui:ButtonAttentionAssist.IsSoftWarningHighlighted" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SoftWarningBreathingStoryboard"
+                                                     Storyboard="{StaticResource SoftWarningBreathingBorderStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="SoftWarningBreathingStoryboard" />
+                                </Trigger.ExitActions>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
-
-        <Style x:Key="TemplateDescriptionHudToggleButtonStyle"
-               TargetType="{x:Type ToggleButton}"
-               BasedOn="{StaticResource ToolbarToggleButtonStyle}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding HasTemplateCommunityListingDescription}" Value="False">
-                    <Setter Property="BorderBrush" Value="{DynamicResource AppSoftWarningBorderBrush}" />
-                </DataTrigger>
-            </Style.Triggers>
         </Style>
 
         <Style x:Key="ToolbarButtonStyle" TargetType="{x:Type Button}">
@@ -230,16 +251,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <Border x:Name="SoftWarningBorder"
+                                    BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -251,6 +281,15 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                            <Trigger Property="ui:ButtonAttentionAssist.IsSoftWarningHighlighted" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SoftWarningBreathingStoryboard"
+                                                     Storyboard="{StaticResource SoftWarningBreathingBorderStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="SoftWarningBreathingStoryboard" />
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -438,16 +477,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <Border x:Name="SoftWarningBorder"
+                                    BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -459,6 +507,15 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                            <Trigger Property="ui:ButtonAttentionAssist.IsSoftWarningHighlighted" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SoftWarningBreathingStoryboard"
+                                                     Storyboard="{StaticResource SoftWarningBreathingBorderStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="SoftWarningBreathingStoryboard" />
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

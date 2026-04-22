@@ -1598,4 +1598,7 @@ Relaunch this tool as administrator now?</value>
   <data name="KeyboardActionPicker_HoldManualInputLabel" xml:space="preserve">
     <value>Select long press key</value>
   </data>
+  <data name="WorkspaceSave_AttentionTooltip" xml:space="preserve">
+    <value>Save this template to keep your unsaved changes.</value>
+  </data>
 </root>
