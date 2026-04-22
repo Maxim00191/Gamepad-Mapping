@@ -1564,4 +1564,26 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
   <data name="MappingCatalogActionId_Empty" xml:space="preserve">
     <value>None (Direct Input)</value>
   </data>
+  <data name="ElevationRelaunch_TargetMessageFormat" xml:space="preserve">
+    <value>The selected target '{0}' is running as administrator.
+
+This mapper is not elevated, so Windows UIPI can block injected input.
+
+Relaunch this tool as administrator now?</value>
+  </data>
+  <data name="MappingCatalogSummaryItemCycleFormat" xml:space="preserve">
+    <value>Item Cycle (1-{0}, {1})</value>
+  </data>
+  <data name="UpdateDownloadSpeed_GigabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} GB/s</value>
+  </data>
+  <data name="UpdateDownloadSpeed_MegabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} MB/s</value>
+  </data>
+  <data name="UpdateDownloadSpeed_KilobytesPerSecondFormat" xml:space="preserve">
+    <value>{0} KB/s</value>
+  </data>
+  <data name="UpdateDownloadSpeed_BytesPerSecondFormat" xml:space="preserve">
+    <value>{0} B/s</value>
+  </data>
 </root>

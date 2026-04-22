@@ -67,6 +67,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly IUpdateInstallerService _updateInstallerService;
     private readonly IUpdateNotificationService _updateNotificationService;
     private readonly IAppToastService _appToastService;
+    private readonly IUserDialogService _userDialogService;
     private readonly AppToastViewModel _toastHost;
     private readonly IKeyboardEmulator? _keyboardEmulatorOverride;
     private readonly IMouseEmulator? _mouseEmulatorOverride;
@@ -112,6 +113,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public IMappingsForLogicalControlQuery MappingsForLogicalControlQuery => _mappingsForLogicalControlQuery;
     public IItemSelectionDialogService ItemSelectionDialogService => _itemSelectionDialogService;
     public IKeyboardActionSelectionBuilder KeyboardActionSelectionBuilder => _keyboardActionSelectionBuilder;
+    public IUserDialogService UserDialogService => _userDialogService;
     public MainViewModel(
         IProfileService? profileService = null,
         IGamepadReader? gamepadReader = null,
@@ -134,6 +136,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IUpdateQuotaPolicyProvider? updateQuotaPolicyProvider = null,
         IUpdateNotificationService? updateNotificationService = null,
         IAppToastService? appToastService = null,
+        IUserDialogService? userDialogService = null,
         IKeyboardEmulator? keyboardEmulator = null,
         IMouseEmulator? mouseEmulator = null,
         IXInput? xinput = null,
@@ -173,6 +176,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _workspaceDirtyDebouncer = new Debouncer(TimeSpan.FromMilliseconds(80));
         _profileDomainService = profileDomainService ?? new ProfileDomainService();
         _activeSelectionScope = WorkspaceSelectionScope.None;
+        _appToastService = appToastService ?? new AppToastService();
+        _userDialogService = userDialogService ?? new UserDialogService();
+        _toastHost = new AppToastViewModel(_appToastService);
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
@@ -199,8 +205,6 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
-        _appToastService = appToastService ?? new AppToastService();
-        _toastHost = new AppToastViewModel(_appToastService);
 
         _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
         _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
@@ -228,7 +232,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _localFileService,
             _updateInstallerService,
             updateQuotaService ?? new UpdateQuotaService(updateQuotaPolicyProvider ?? new StaticUpdateQuotaPolicyProvider(), trustedUtcTimeService ?? new TrustedUtcTimeService()),
-            resolvedUpdateVersionCacheService);
+            resolvedUpdateVersionCacheService,
+            _userDialogService);
 
         var initialLeftDeadzone = ResolveStickDeadzone(appSettings.LeftThumbstickDeadzone, appSettings.ThumbstickDeadzone);
         var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, appSettings.ThumbstickDeadzone);
@@ -249,7 +254,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             appSettings.AnalogChangeEpsilon);
 
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
-        _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
+        _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService, _userDialogService);
         var statusPollMs = Math.Clamp(appSettings.AppStatusPollIntervalMs, 20, 5000);
         _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(
             _processTargetService,
@@ -590,7 +595,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         if (template is null)
         {
             ClearWorkspaceCollections();
-            ResetWorkspaceEditingSession(selectFirstItems: false);
+            ResetWorkspaceEditingSession(selectFirstItems: false, clearClipboard: false);
             _workspacePersistenceBaselineJson = null;
             IsTemplateWorkspaceDirty = false;
             return;
@@ -599,7 +604,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _mappingManager.LoadTemplate(template);
         var scope = GetWorkspaceSelectionScopeForTab(ProfileListTabIndex);
         SetWorkspaceSelectionScope(scope);
-        ResetWorkspaceEditingSession(selectFirstItems: true);
+        ResetWorkspaceEditingSession(selectFirstItems: true, clearClipboard: false);
 
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
@@ -613,18 +618,22 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     }
 
     /// <summary>
-    /// Clears undo/redo, clipboard, and selection state across all editor workspaces.
+    /// Clears undo/redo and selection state across all editor workspaces.
     /// Called after template load/switch to guarantee the right panel and selection mirrors
     /// are fully rehydrated from the newly loaded workspace payload.
     /// </summary>
-    private void ResetWorkspaceEditingSession(bool selectFirstItems)
+    private void ResetWorkspaceEditingSession(bool selectFirstItems, bool clearClipboard)
     {
         _mappingsWorkspace.History.Clear();
         _keyboardActionsWorkspace.History.Clear();
         _radialMenusWorkspace.History.Clear();
-        _mappingsWorkspace.ClearClipboard();
-        _keyboardActionsWorkspace.ClearClipboard();
-        _radialMenusWorkspace.ClearClipboard();
+
+        if (clearClipboard)
+        {
+            _mappingsWorkspace.ClearClipboard();
+            _keyboardActionsWorkspace.ClearClipboard();
+            _radialMenusWorkspace.ClearClipboard();
+        }
 
         MappingEditorPanel.IsCreatingNewMapping = false;
 
@@ -835,11 +844,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private void RecreateGamepadReaderForCurrentSource()
     {
         var api = _settingsOrchestrator.Settings.GamepadSourceApi;
-        IGamepadSource source = api switch
+        if (string.Equals(api, GamepadSourceApiIds.DualSense, StringComparison.OrdinalIgnoreCase))
         {
-            GamepadSourceApiIds.DualSense => throw new NotImplementedException("DualSense source not yet implemented."),
-            _ => new XInputSource(new XInputService())
-        };
+            Gamepad_Mapping.App.Logger.Warning("DualSense source is not implemented yet. Falling back to XInput.");
+        }
+
+        IGamepadSource source = new XInputSource(new XInputService());
 
         var dzShape = ThumbstickDeadzoneShapeParser.Parse(_settingsOrchestrator.Settings.ThumbstickDeadzoneShape);
         var reader = new GamepadReader(
@@ -960,6 +970,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _mappingManager.Dispose();
         _radialMenuHud.Dispose();
         _appStatusMonitor.Dispose();
+        CommunityCatalogPanel.Dispose();
+        UpdatePanel.Dispose();
         _appToastService.NotifyApplicationExiting();
         _toastHost.Dispose();
     }
@@ -1264,19 +1276,23 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         }
     }
 
-    private static MessageBoxResult ShowUnsavedWorkspaceDialog(string localizedMessage)
+    private MessageBoxResult ShowUnsavedWorkspaceDialog(string localizedMessage)
     {
         var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
-        return MessageBox.Show(localizedMessage, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        return _userDialogService.Show(
+            localizedMessage,
+            title,
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Warning);
     }
 
-    private static void ShowWorkspaceSaveFailedIfNeeded(string? err)
+    private void ShowWorkspaceSaveFailedIfNeeded(string? err)
     {
         if (string.IsNullOrWhiteSpace(err))
             return;
 
         var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
-        MessageBox.Show(
+        _userDialogService.Show(
             string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
             title,
             MessageBoxButton.OK,
@@ -1503,7 +1519,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         AvailableGamepadApis.Clear();
         AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.XInput, _settingsOrchestrator.Localize("GamepadSourceXInputLabel")));
-        AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.DualSense, _settingsOrchestrator.Localize("GamepadSourceDualSenseLabel")));
+
+        if (!string.Equals(appSettings.GamepadSourceApi, GamepadSourceApiIds.XInput, StringComparison.OrdinalIgnoreCase))
+        {
+            appSettings.GamepadSourceApi = GamepadSourceApiIds.XInput;
+            _settingsOrchestrator.SaveSettings();
+        }
 
         SyncInputApiUi(NormalizeInputEmulationApiId(appSettings.InputEmulationApi));
         SyncGamepadSourceUi(appSettings.GamepadSourceApi ?? GamepadSourceApiIds.XInput);
@@ -1552,6 +1573,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _communityTemplateUploadService,
             _communityTemplateComplianceService,
             _appToastService,
+            _userDialogService,
             s.CommunityCatalogRefreshCooldownSeconds);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
@@ -1630,7 +1652,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         var ticketProvider = new CommunityUploadTicketTokenProvider(
             settings,
             new WebView2RuntimeAvailability(),
-            _settingsOrchestrator.Localize);
+            _settingsOrchestrator.Localize,
+            _userDialogService);
         return new CommunityTemplateWorkerUploadService(settings, null, compliance, ticketProvider);
     }
 }

@@ -111,7 +111,10 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
                 var dir = ic.Direction == ItemCycleDirection.Previous
                     ? AppUiLocalization.GetString("ItemCycleDirection_Previous")
                     : AppUiLocalization.GetString("ItemCycleDirection_Next");
-                return $"{AppUiLocalization.GetString("ActionType_ItemCycle")} (1–{n}, {dir})";
+                return string.Format(
+                    AppUiLocalization.GetString("MappingCatalogSummaryItemCycleFormat"),
+                    n,
+                    dir);
             }
 
             var key = (def.KeyboardKey ?? string.Empty).Trim();

@@ -19,7 +19,7 @@ using Gamepad_Mapping.Views;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class CommunityCatalogViewModel : ObservableObject
+public partial class CommunityCatalogViewModel : ObservableObject, IDisposable
 {
     private enum CommunityCatalogIndexLoadKind
     {
@@ -33,7 +33,10 @@ public partial class CommunityCatalogViewModel : ObservableObject
     private readonly ICommunityTemplateUploadService _uploadService;
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly IAppToastService _appToastService;
+    private readonly IUserDialogService _userDialogService;
     private readonly MainViewModel _main;
+    private readonly TranslationService? _translationService;
+    private readonly CancellationTokenSource _lifetimeCts = new();
     private CommunityUploadDialogMemory? _uploadDialogMemory;
     private DateTime _refreshCooldownEndsUtc = DateTime.MinValue;
     private DispatcherTimer? _refreshCooldownTimer;
@@ -63,6 +66,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         ICommunityTemplateUploadService uploadService,
         ICommunityTemplateUploadComplianceService complianceService,
         IAppToastService appToastService,
+        IUserDialogService userDialogService,
         int communityCatalogRefreshCooldownSeconds = 10)
     {
         _main = main;
@@ -70,11 +74,13 @@ public partial class CommunityCatalogViewModel : ObservableObject
         _uploadService = uploadService;
         _complianceService = complianceService;
         _appToastService = appToastService;
+        _userDialogService = userDialogService;
         var seconds = Math.Clamp(communityCatalogRefreshCooldownSeconds, 0, 600);
         _refreshCooldownDuration = TimeSpan.FromSeconds(seconds);
 
-        if (AppUiLocalization.TryTranslationService() is { } loc)
-            loc.PropertyChanged += OnTranslationServicePropertyChanged;
+        _translationService = AppUiLocalization.TryTranslationService();
+        if (_translationService is not null)
+            _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
     }
 
     private void OnTranslationServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -148,7 +154,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         try
         {
             var templates = await _communityService.GetCommunityIndexSnapshotAsync(
-                CancellationToken.None,
+                _lifetimeCts.Token,
                 CommunityIndexFetchBehavior.PreferFreshIndex);
 
             if (templates is null)
@@ -160,8 +166,13 @@ public partial class CommunityCatalogViewModel : ObservableObject
             _cachedCommunityIndex = templates;
             await ApplySearchAndPopulateAsync();
         }
-        catch
+        catch (OperationCanceledException)
         {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Gamepad_Mapping.App.Logger.Warning($"Failed to load community catalog index: {ex.Message}");
             StatusMessage = Localize("CommunityCatalog_LoadFailed");
         }
         finally
@@ -337,7 +348,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
                     : string.Format(
                         Localize("CommunityCatalog_OverwriteWarning"),
                         CommunityTemplateUiTitle(template));
-                var result = MessageBox.Show(
+                var result = _userDialogService.Show(
                     message,
                     Localize("CommunityCatalog_OverwriteTitle"),
                     MessageBoxButton.YesNo,
@@ -379,8 +390,9 @@ public partial class CommunityCatalogViewModel : ObservableObject
                     string.Format(Localize("CommunityCatalog_DownloadFailedToastMessage"), CommunityTemplateUiTitle(template)));
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Gamepad_Mapping.App.Logger.Warning($"Failed to download community template '{template.Id}': {ex.Message}");
             StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadError"), CommunityTemplateUiTitle(template));
         }
         finally
@@ -399,7 +411,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         if (templateItem?.Template == null) return;
 
         var template = templateItem.Template;
-        var confirm = MessageBox.Show(
+        var confirm = _userDialogService.Show(
             string.Format(Localize("CommunityCatalog_DeleteConfirmMessage"), CommunityTemplateUiTitle(template)),
             Localize("CommunityCatalog_DeleteConfirmTitle"),
             MessageBoxButton.YesNo,
@@ -434,8 +446,9 @@ public partial class CommunityCatalogViewModel : ObservableObject
                     string.Format(Localize("CommunityCatalog_DeleteFailedToastMessage"), CommunityTemplateUiTitle(template)));
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Gamepad_Mapping.App.Logger.Warning($"Failed to delete local community template '{template.Id}': {ex.Message}");
             StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleteError"), CommunityTemplateUiTitle(template));
             ShowToast(
                 Localize("CommunityCatalog_DeleteFailedToastTitle"),
@@ -458,7 +471,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         var sel = _main.SelectedTemplate;
         if (sel is null)
         {
-            MessageBox.Show(
+            _userDialogService.Show(
                 Localize("CommunityCatalog_UploadSelectTemplateFirst"),
                 Localize("CommunityUpload_WindowTitle"),
                 MessageBoxButton.OK,
@@ -474,7 +487,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            _userDialogService.Show(
                 string.Format(Localize("CommunityCatalog_UploadCollectFailed"), ex.Message),
                 Localize("CommunityUpload_WindowTitle"),
                 MessageBoxButton.OK,
@@ -484,7 +497,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
 
         if (bundleEntries.Count == 0)
         {
-            MessageBox.Show(
+            _userDialogService.Show(
                 Localize("CommunityCatalog_UploadNoTemplates"),
                 Localize("CommunityUpload_WindowTitle"),
                 MessageBoxButton.OK,
@@ -493,9 +506,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
-        var publishedIndex = await _communityService
-            .GetCommunityIndexSnapshotAsync(CancellationToken.None, CommunityIndexFetchBehavior.PreferFreshIndex)
-            .ConfigureAwait(true);
+        IReadOnlyList<CommunityTemplateInfo>? publishedIndex;
+        try
+        {
+            publishedIndex = await _communityService
+                .GetCommunityIndexSnapshotAsync(_lifetimeCts.Token, CommunityIndexFetchBehavior.PreferFreshIndex)
+                .ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
         var bundleFingerprint = CommunityUploadBundleFingerprint.Compute(bundleEntries);
         var dialogVm = new CommunityTemplateUploadDialogViewModel(
             _complianceService,
@@ -515,7 +536,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 dialogVm.ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim();
             }
 
-            var dialog = new CommunityTemplateUploadWindow
+            var dialog = new CommunityTemplateUploadWindow(_userDialogService)
             {
                 Owner = Application.Current?.MainWindow,
                 DataContext = dialogVm
@@ -556,7 +577,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 {
                     var failureMessage = BuildUploadFailureMessage(result);
                     StatusMessage = failureMessage;
-                    MessageBox.Show(
+                    _userDialogService.Show(
                         failureMessage,
                         Localize("CommunityUpload_WindowTitle"),
                         MessageBoxButton.OK,
@@ -566,7 +587,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
             catch (Exception ex)
             {
                 StatusMessage = string.Format(Localize("CommunityCatalog_StatusUploadFailed"), ex.Message);
-                MessageBox.Show(ex.Message, Localize("CommunityUpload_WindowTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+                _userDialogService.Show(ex.Message, Localize("CommunityUpload_WindowTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -589,8 +610,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
             .SelectMany(static author => author.Templates)
             .ToList();
 
-        foreach (var templateItem in allTemplateItems)
-            templateItem.IsInstalledLocally = await _communityService.IsTemplateDownloadedAsync(templateItem.Template);
+        var installChecks = allTemplateItems
+            .Select(async templateItem => new
+            {
+                templateItem,
+                isInstalled = await _communityService.IsTemplateDownloadedAsync(templateItem.Template).ConfigureAwait(true)
+            })
+            .ToArray();
+
+        var results = await Task.WhenAll(installChecks).ConfigureAwait(true);
+        foreach (var result in results)
+            result.templateItem.IsInstalledLocally = result.isInstalled;
 
         DeleteTemplateCommand.NotifyCanExecuteChanged();
     }
@@ -606,8 +636,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
         {
             Title = title,
             Message = message,
-            AutoHideSeconds = 5
+            AutoHideSeconds = AppToastDefaults.AutoHideSeconds
         });
+    }
+
+    public void Dispose()
+    {
+        if (_translationService is not null)
+            _translationService.PropertyChanged -= OnTranslationServicePropertyChanged;
+        StopRefreshCooldownTimer();
+        _lifetimeCts.Cancel();
+        _lifetimeCts.Dispose();
     }
 
     private string ResolveFolderName(string? catalogFolder)

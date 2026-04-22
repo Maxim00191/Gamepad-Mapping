@@ -90,13 +90,10 @@ public static class StartupDiagnostics
         var errorMessage = string.Format(System.Globalization.CultureInfo.CurrentUICulture,
             AppUiLocalization.GetString("StartupDiagnostics_FatalErrorBodyFormat"), detail);
 
+        var dialogService = new UserDialogService();
         if (Application.Current?.Dispatcher?.CheckAccess() == false)
-        {
-            Application.Current.Dispatcher.Invoke(() => MessageBox.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error));
-        }
+            Application.Current.Dispatcher.Invoke(() => dialogService.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error));
         else
-        {
-            MessageBox.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+            dialogService.Show(errorMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
     }
 }

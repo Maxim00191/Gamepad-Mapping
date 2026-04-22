@@ -16,19 +16,14 @@ using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
 using GamepadMapperGUI.Interfaces.Services.Update;
-using GamepadMapperGUI.Interfaces.Services.Input;
-using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
-using GamepadMapperGUI.Services.Input;
-using GamepadMapperGUI.Services.Radial;
 using GamepadMapperGUI.Utils;
 using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Threading;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -41,7 +36,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
     private readonly IUpdateInstallerService _updateInstallerService;
     private readonly IUpdateQuotaService _updateQuotaService;
     private readonly IUpdateVersionCacheService _updateVersionCacheService;
-    private readonly IAppToastService _appToastService;
+    private readonly IUserDialogService _userDialogService;
 
     [ObservableProperty]
     private string _currentVersion = "1.0.0";
@@ -122,7 +117,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         IUpdateInstallerService? updateInstallerService = null,
         IUpdateQuotaService? updateQuotaService = null,
         IUpdateVersionCacheService? updateVersionCacheService = null,
-        IAppToastService? appToastService = null)
+        IUserDialogService? userDialogService = null)
     {
         _updateService = updateService;
         _localFileService = localFileService ?? new LocalFileService();
@@ -131,7 +126,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateQuotaService = updateQuotaService ?? new UpdateQuotaService(new StaticUpdateQuotaPolicyProvider());
         _updateVersionCacheService = updateVersionCacheService ?? new UpdateVersionCacheService();
-        _appToastService = appToastService ?? new AppToastService();
+        _userDialogService = userDialogService ?? new UserDialogService();
 
         CheckUpdateCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
         DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, CanDownloadUpdate);
@@ -295,12 +290,12 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
             var targetPath = Path.Combine(AppPaths.GetUpdateDownloadsDirectory(), fileName);
             if (_localFileService.FileExists(targetPath))
             {
-                var overwrite = System.Windows.MessageBox.Show(
+                var overwrite = _userDialogService.Show(
                     string.Format(AppUiLocalization.GetString("UpdateOverwriteExistingFilePrompt"), fileName),
                     AppUiLocalization.GetString("UpdateOverwriteExistingFile"),
-                    System.Windows.MessageBoxButton.YesNo,
-                    System.Windows.MessageBoxImage.Question);
-                if (overwrite != System.Windows.MessageBoxResult.Yes)
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (overwrite != MessageBoxResult.Yes)
                 {
                     StatusMessage = string.Format(AppUiLocalization.GetString("UpdateDownloadCanceled"), fileName);
                     return;
@@ -397,16 +392,27 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
     {
         if (bytesPerSecond <= 1d) return "--";
 
-        const double b = 1d;
         const double kb = 1024d;
         const double mb = kb * 1024d;
         const double gb = mb * 1024d;
-        var culture = IsChineseUi() ? CultureInfo.GetCultureInfo("zh-CN") : CultureInfo.GetCultureInfo("en-US");
+        var culture = ResolveUiCulture();
 
-        if (bytesPerSecond >= gb) return $"{(bytesPerSecond / gb).ToString("0.00", culture)} GB/s";
-        if (bytesPerSecond >= mb) return $"{(bytesPerSecond / mb).ToString("0.00", culture)} MB/s";
-        if (bytesPerSecond >= kb) return $"{(bytesPerSecond / kb).ToString("0.00", culture)} KB/s";
-        return $"{Math.Round(bytesPerSecond / b):0} B/s";
+        if (bytesPerSecond >= gb)
+            return string.Format(
+                AppUiLocalization.GetString("UpdateDownloadSpeed_GigabytesPerSecondFormat"),
+                (bytesPerSecond / gb).ToString("0.00", culture));
+        if (bytesPerSecond >= mb)
+            return string.Format(
+                AppUiLocalization.GetString("UpdateDownloadSpeed_MegabytesPerSecondFormat"),
+                (bytesPerSecond / mb).ToString("0.00", culture));
+        if (bytesPerSecond >= kb)
+            return string.Format(
+                AppUiLocalization.GetString("UpdateDownloadSpeed_KilobytesPerSecondFormat"),
+                (bytesPerSecond / kb).ToString("0.00", culture));
+        var bytesRounded = Math.Round(bytesPerSecond).ToString("0", culture);
+        return string.Format(
+            AppUiLocalization.GetString("UpdateDownloadSpeed_BytesPerSecondFormat"),
+            bytesRounded);
     }
 
     private string FormatTimeLeft(TimeSpan remaining)
@@ -422,18 +428,16 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         return string.Format(AppUiLocalization.GetString("UpdateAboutSeconds"), Math.Max(1, rounded.Seconds));
     }
 
-    private bool IsChineseUi()
-    {
-        var uiCulture = (_appSettings.UiCulture ?? string.Empty).Trim();
-        return uiCulture.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
-    }
+    private static CultureInfo ResolveUiCulture() =>
+        AppUiLocalization.TryTranslationService()?.Culture
+        ?? CultureInfo.CurrentUICulture;
 
     private void PromptInstallDownloadedPackage(string zipPath, string packageName)
     {
         var title = AppUiLocalization.GetString("UpdateInstallTitle");
         var message = string.Format(AppUiLocalization.GetString("UpdateInstallPromptNow"), packageName);
 
-        var installNow = MessageBox.Show(
+        var installNow = _userDialogService.Show(
             message,
             title,
             MessageBoxButton.YesNo,
@@ -479,7 +483,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         if (askConfirmation)
         {
             var message = string.Format(AppUiLocalization.GetString("UpdateInstallReadyPrompt"), packageName);
-            var proceed = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var proceed = _userDialogService.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (proceed != MessageBoxResult.Yes)
                 return;
         }
@@ -499,7 +503,7 @@ public partial class UpdateViewModel : ObservableObject, IDisposable
         {
             // Installation failed
             var failureMessage = string.Format(AppUiLocalization.GetString("UpdateInstallLaunchFailed"), errorMessage ?? AppUiLocalization.GetString("UpdateUnknownError"));
-            MessageBox.Show(failureMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            _userDialogService.Show(failureMessage, title, MessageBoxButton.OK, MessageBoxImage.Error);
 
             return; // Exit the method as installation failed
         }

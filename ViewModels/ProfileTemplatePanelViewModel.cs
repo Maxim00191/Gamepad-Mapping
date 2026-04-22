@@ -117,7 +117,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (!_mainViewModel.TryPersistWorkspaceTemplateToDisk(out var err))
         {
             var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
-            MessageBox.Show(
+            _mainViewModel.UserDialogService.Show(
                 string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err ?? string.Empty),
                 title,
                 MessageBoxButton.OK,
@@ -137,7 +137,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (string.Equals(SelectedTemplate.ProfileId, _profileService.DefaultProfileId, StringComparison.OrdinalIgnoreCase))
             return;
 
-        var ok = MessageBox.Show(
+        var ok = _mainViewModel.UserDialogService.Show(
             string.Format(
                 AppUiLocalization.GetString("Profile_DeleteConfirmMessage"),
                 SelectedTemplate.DisplayName,
@@ -157,7 +157,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            _mainViewModel.UserDialogService.Show(
                 string.Format(AppUiLocalization.GetString("ProfileOperation_DeleteFailed"), ex.Message),
                 AppUiLocalization.GetString("Dialog_ErrorTitle"),
                 MessageBoxButton.OK,
@@ -179,7 +179,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            _mainViewModel.UserDialogService.Show(
                 string.Format(AppUiLocalization.GetString("ProfileOperation_ReloadTemplatesFailed"), ex.Message),
                 AppUiLocalization.GetString("Dialog_ErrorTitle"),
                 MessageBoxButton.OK,
@@ -228,7 +228,7 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            _mainViewModel.UserDialogService.Show(
                 string.Format(AppUiLocalization.GetString("ProfileOperation_CreateFailed"), ex.Message),
                 AppUiLocalization.GetString("Dialog_ErrorTitle"),
                 MessageBoxButton.OK,

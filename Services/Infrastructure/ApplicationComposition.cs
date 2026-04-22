@@ -31,6 +31,7 @@ public static class ApplicationComposition
         var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
         var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
         var appToastService = new AppToastService();
+        var userDialogService = new UserDialogService();
         var xinputService = new XInputService();
         var gamepadSource = new XInputSource(xinputService);
         var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
@@ -56,6 +57,7 @@ public static class ApplicationComposition
             updateVersionCacheService: updateVersionCacheService,
             updateQuotaPolicyProvider: updateQuotaPolicyProvider,
             appToastService: appToastService,
+            userDialogService: userDialogService,
             xinput: xinputService,
             gamepadSource: gamepadSource,
             uiOrchestrator: uiOrchestrator,

@@ -252,7 +252,7 @@ public partial class App : Application
         if (foregroundPid <= 0 || !processTargetService.IsProcessElevated(foregroundPid))
             return false;
 
-        var result = MessageBox.Show(
+        var result = new UserDialogService().Show(
             AppUiLocalization.GetString("ElevationRelaunch_Message"),
             AppUiLocalization.GetString("ElevationRelaunch_Title"),
             MessageBoxButton.YesNo,

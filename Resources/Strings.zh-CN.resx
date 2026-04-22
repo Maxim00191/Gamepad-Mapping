@@ -1564,4 +1564,26 @@
   <data name="Redo_Action" xml:space="preserve">
     <value>重做</value>
   </data>
+  <data name="ElevationRelaunch_TargetMessageFormat" xml:space="preserve">
+    <value>所选目标“{0}”正在以管理员身份运行。
+
+当前映射器未提权，Windows UIPI 可能会阻止输入注入。
+
+是否立即以管理员身份重新启动本工具？</value>
+  </data>
+  <data name="MappingCatalogSummaryItemCycleFormat" xml:space="preserve">
+    <value>循环道具（1-{0}，{1}）</value>
+  </data>
+  <data name="UpdateDownloadSpeed_GigabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} GB/秒</value>
+  </data>
+  <data name="UpdateDownloadSpeed_MegabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} MB/秒</value>
+  </data>
+  <data name="UpdateDownloadSpeed_KilobytesPerSecondFormat" xml:space="preserve">
+    <value>{0} KB/秒</value>
+  </data>
+  <data name="UpdateDownloadSpeed_BytesPerSecondFormat" xml:space="preserve">
+    <value>{0} B/秒</value>
+  </data>
 </root>

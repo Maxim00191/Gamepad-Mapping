@@ -1,28 +1,22 @@
 using System;
 using System.Windows;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
-using GamepadMapperGUI.Interfaces.Services.Storage;
-using GamepadMapperGUI.Interfaces.Services.Update;
-using GamepadMapperGUI.Interfaces.Services.Input;
-using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
-using GamepadMapperGUI.Services.Storage;
-using GamepadMapperGUI.Services.Update;
-using GamepadMapperGUI.Services.Input;
-using GamepadMapperGUI.Services.Radial;
 
 namespace GamepadMapperGUI.Utils;
 
 public sealed class ElevationHandler : IElevationHandler
 {
     private readonly IProcessTargetService _processTargetService;
+    private readonly IUserDialogService _userDialogService;
     private readonly bool _isCurrentProcessElevated;
     private int? _lastElevationPromptedProcessId;
 
-    public ElevationHandler(IProcessTargetService processTargetService)
+    public ElevationHandler(IProcessTargetService processTargetService, IUserDialogService? userDialogService = null)
     {
         _processTargetService = processTargetService;
+        _userDialogService = userDialogService ?? new UserDialogService();
         _isCurrentProcessElevated = _processTargetService.IsCurrentProcessElevated();
     }
 
@@ -50,11 +44,12 @@ public sealed class ElevationHandler : IElevationHandler
         _lastElevationPromptedProcessId = target.ProcessId;
         Gamepad_Mapping.App.Logger.Info($"Prompting for elevation due to target {target.ProcessName} (PID {target.ProcessId})");
 
-        var relaunch = MessageBox.Show(
-            $"The selected target '{target.ProcessName}' is running as administrator.\n\n" +
-            "This mapper is not elevated, so Windows UIPI can block injected input.\n\n" +
-            "Relaunch this tool as administrator now?",
-            "Administrator rights required",
+        var message = string.Format(
+            AppUiLocalization.GetString("ElevationRelaunch_TargetMessageFormat"),
+            target.ProcessName);
+        var relaunch = _userDialogService.Show(
+            message,
+            AppUiLocalization.GetString("ElevationRelaunch_Title"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
