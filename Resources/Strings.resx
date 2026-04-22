@@ -1526,10 +1526,10 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
     <value>{0}</value>
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsHint" xml:space="preserve">
-    <value>{0} action keys are bound multiple times.</value>
+    <value>{0} keyboard action IDs have duplicate controller bindings.</value>
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsTooltipTitle" xml:space="preserve">
-    <value>Action keys with multiple bindings</value>
+    <value>Currently duplicated keyboard action bindings are:</value>
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat" xml:space="preserve">
     <value>{0}: {1}</value>

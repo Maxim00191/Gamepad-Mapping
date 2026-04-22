@@ -234,7 +234,7 @@ public class MappingEditorViewModelTests
 
         Assert.True(vm.HasDuplicateActionIds);
         Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
-        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsTooltip));
+        Assert.Equal("jump: LB+A, RightTrigger", vm.DuplicateActionIdsTooltip);
     }
 
     [Fact]
@@ -276,6 +276,90 @@ public class MappingEditorViewModelTests
         Assert.False(vm.HasDuplicateActionIds);
         Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
         Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenMappingSourceChanges_KeepsDuplicateBannerAccurate()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        var first = new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        var second = new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LB" }
+        };
+        _mainViewModel.Mappings.Add(first);
+        _mainViewModel.Mappings.Add(second);
+
+        vm.RefreshStatusDiagnostics();
+        Assert.True(vm.HasDuplicateActionIds);
+
+        second.From.Value = "RB";
+
+        Assert.True(vm.HasDuplicateActionIds);
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
+        Assert.Equal("jump: A, RB", vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenMappingsUseUnknownActionIds_DoesNotShowDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "unknown_action",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "unknown_action",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.False(vm.HasDuplicateActionIds);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenMultipleActionsHaveDuplicateBindings_ShowsOneLinePerAction()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "dash", KeyboardKey = "LeftShift" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "dash",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LB" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "dash",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RB" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.True(vm.HasDuplicateActionIds);
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
+        Assert.Equal("dash: LB, RB" + Environment.NewLine + "jump: A, B", vm.DuplicateActionIdsTooltip);
     }
 
     [Fact]

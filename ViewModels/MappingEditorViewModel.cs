@@ -36,6 +36,7 @@ public partial class MappingEditorViewModel : ObservableObject
     private bool _resolvingActionId;
     private bool _syncingActionEditorFromSelection;
     private readonly HashSet<MappingEntry> _mappingActionIdListeners = [];
+    private readonly Dictionary<MappingEntry, GamepadBinding> _mappingSourceListeners = [];
 
     [ObservableProperty]
     private ActionEditorViewModelBase? _currentActionEditor;
@@ -187,6 +188,7 @@ public partial class MappingEditorViewModel : ObservableObject
             .Select(BuildDuplicateGroup)
             .Where(group => group is not null)
             .Select(group => group!)
+            .OrderBy(group => group.ActionId, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
         HasDuplicateActionIds = duplicateGroups.Count > 0;
@@ -222,8 +224,8 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private static string BuildDuplicateActionIdsTooltip(IReadOnlyList<DuplicateActionGroup> duplicateGroups)
     {
-        var lineFormat = AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat");
-        var bindingSeparator = AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator");
+        var lineFormat = GetLocalizedStringOrDefault("ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat", "{0}: {1}");
+        var bindingSeparator = GetLocalizedStringOrDefault("ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator", ", ");
 
         return string.Join(Environment.NewLine, duplicateGroups.Select(group =>
         {
@@ -234,29 +236,45 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private static DuplicateActionGroup? BuildDuplicateGroup(List<MappingActionUsage> usages)
     {
-        if (usages.Count == 0)
+        if (usages.Count <= 1)
             return null;
 
-        var distinctSources = usages
-            .Select(usage => usage.SourceLabel)
-            .Where(label => !string.IsNullOrWhiteSpace(label))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(label => label, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+        var sources = CollectDistinctSourceLabels(usages);
 
-        if (distinctSources.Count <= 1)
+        if (sources.Count <= 1)
             return null;
 
-        return new DuplicateActionGroup(usages[0].ActionId, distinctSources);
+        return new DuplicateActionGroup(usages[0].ActionId, sources);
+    }
+
+    private static IReadOnlyList<string> CollectDistinctSourceLabels(IEnumerable<MappingActionUsage> usages)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var orderedSources = new List<string>();
+
+        foreach (var source in usages
+                     .Select(usage => usage.SourceLabel)
+                     .Where(label => !string.IsNullOrWhiteSpace(label)))
+        {
+            if (seen.Add(source))
+                orderedSources.Add(source);
+        }
+
+        return orderedSources;
     }
 
     private ActionUsageDiagnostics AnalyzeActionUsage()
     {
+        var keyboardActionIds = _mainViewModel.KeyboardActions
+            .Select(action => (action.Id ?? string.Empty).Trim())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var mappingUsageByActionId = new Dictionary<string, List<MappingActionUsage>>(StringComparer.OrdinalIgnoreCase);
         foreach (var mapping in _mainViewModel.Mappings)
         {
             var actionId = (mapping.ActionId ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(actionId))
+            if (string.IsNullOrWhiteSpace(actionId) || !keyboardActionIds.Contains(actionId))
                 continue;
 
             if (!mappingUsageByActionId.TryGetValue(actionId, out var list))
@@ -265,7 +283,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 mappingUsageByActionId[actionId] = list;
             }
 
-            list.Add(new MappingActionUsage(actionId, FormatMappingSource(mapping)));
+            list.Add(new MappingActionUsage(actionId, FormatControllerBindingLabel(mapping)));
         }
 
         var usedInRadialMenus = _mainViewModel.RadialMenus
@@ -277,14 +295,22 @@ public partial class MappingEditorViewModel : ObservableObject
         return new ActionUsageDiagnostics(mappingUsageByActionId, usedInRadialMenus);
     }
 
-    private static string FormatMappingSource(MappingEntry mapping)
+    private static string FormatControllerBindingLabel(MappingEntry mapping)
     {
         var from = mapping.From;
         var value = (from?.Value ?? string.Empty).Trim();
         if (from is null)
-            return AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsUnknownSource");
+            return GetLocalizedStringOrDefault("ProfileMappingDuplicateCatalogActionIdsUnknownSource", "(unknown source)");
 
         return string.IsNullOrWhiteSpace(value) ? from.Type.ToString() : value;
+    }
+
+    private static string GetLocalizedStringOrDefault(string resourceKey, string fallback)
+    {
+        var localized = AppUiLocalization.GetString(resourceKey);
+        return string.IsNullOrWhiteSpace(localized) || string.Equals(localized, resourceKey, StringComparison.Ordinal)
+            ? fallback
+            : localized;
     }
 
     private sealed record MappingActionUsage(string ActionId, string SourceLabel);
@@ -625,19 +651,59 @@ public partial class MappingEditorViewModel : ObservableObject
     private void AttachMappingActionIdListener(MappingEntry m)
     {
         if (_mappingActionIdListeners.Add(m))
+        {
             m.PropertyChanged += OnMappingEntryPropertyChanged;
+            AttachSourceListener(m, m.From);
+        }
     }
 
     private void DetachMappingActionIdListener(MappingEntry m)
     {
         if (_mappingActionIdListeners.Remove(m))
+        {
             m.PropertyChanged -= OnMappingEntryPropertyChanged;
+            DetachSourceListener(m);
+        }
+    }
+
+    private void AttachSourceListener(MappingEntry mapping, GamepadBinding? source)
+    {
+        if (source is null)
+            return;
+
+        _mappingSourceListeners[mapping] = source;
+        source.PropertyChanged += OnMappingSourcePropertyChanged;
+    }
+
+    private void DetachSourceListener(MappingEntry mapping)
+    {
+        if (!_mappingSourceListeners.TryGetValue(mapping, out var source))
+            return;
+
+        source.PropertyChanged -= OnMappingSourcePropertyChanged;
+        _mappingSourceListeners.Remove(mapping);
+    }
+
+    private void RewireSourceListener(MappingEntry mapping)
+    {
+        DetachSourceListener(mapping);
+        AttachSourceListener(mapping, mapping.From);
+    }
+
+    private void OnMappingSourcePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(GamepadBinding.Type) or nameof(GamepadBinding.Value))
+            RefreshStatusDiagnostics();
     }
 
     private void OnMappingEntryPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(MappingEntry.ActionId) or nameof(MappingEntry.From))
+        {
+            if (e.PropertyName == nameof(MappingEntry.From) && sender is MappingEntry mapping)
+                RewireSourceListener(mapping);
             RefreshStatusDiagnostics();
+        }
 
         if (e.PropertyName != nameof(MappingEntry.ActionId) || sender is not MappingEntry m)
             return;

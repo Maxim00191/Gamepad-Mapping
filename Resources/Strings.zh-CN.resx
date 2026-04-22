@@ -1526,10 +1526,10 @@
     <value>{0}</value>
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsHint" xml:space="preserve">
-    <value>{0} 个动作键被重复绑定。</value>
+    <value>{0} 个键盘动作 ID 存在重复的控制器绑定。</value>
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsTooltipTitle" xml:space="preserve">
-    <value>存在多重绑定的动作键</value>
+    <value>当前重复的键盘动作绑定如下：</value>
   </data>
   <data name="ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat" xml:space="preserve">
     <value>{0}：{1}</value>

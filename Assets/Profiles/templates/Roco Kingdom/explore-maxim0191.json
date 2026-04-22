@@ -1,4 +1,4 @@
-{
+﻿{
   "schemaVersion": 1,
   "profileId": "explore-maxim0191",
   "templateGroupId": "roco-kingdom-world-maxim0191",
@@ -313,11 +313,11 @@
       }
     },
     {
-      "id": "escape--show-unlock-cursor",
+      "id": "escape--return",
       "keyboardKey": "Escape",
-      "description": "Show cursor",
+      "description": "Return",
       "descriptions": {
-        "zh-CN": "显示光标"
+        "zh-CN": "返回"
       }
     },
     {
@@ -782,21 +782,6 @@
     {
       "from": {
         "type": "Button",
-        "value": "RightTrigger + B"
-      },
-      "actionId": "rightclick--exit-aiming-mode",
-      "description": "Exit aim mode",
-      "trigger": "Released",
-      "analogThreshold": 0.35,
-      "holdKeyboardKey": "",
-      "holdThresholdMs": null,
-      "descriptions": {
-        "zh-CN": "退出瞄准模式"
-      }
-    },
-    {
-      "from": {
-        "type": "Button",
         "value": "RightTrigger + DPadLeft"
       },
       "actionId": "wheelup--mouse-wheel-up-one-notch",
@@ -861,7 +846,7 @@
       },
       "actionId": "x--cancel-mount-climbing-companion-",
       "description": "Cancel mount, climb, follow, or special state",
-      "trigger": "Tap",
+      "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
       "holdThresholdMs": null,
@@ -934,29 +919,14 @@
         "type": "Button",
         "value": "Back"
       },
-      "actionId": "escape--show-unlock-cursor",
-      "description": "Show cursor",
+      "actionId": "escape--return",
+      "description": "Return",
       "trigger": "Pressed",
       "analogThreshold": null,
       "holdKeyboardKey": "",
       "holdThresholdMs": null,
       "descriptions": {
-        "zh-CN": "显示光标"
-      }
-    },
-    {
-      "from": {
-        "type": "Button",
-        "value": "Back"
-      },
-      "actionId": "escape--show-unlock-cursor",
-      "description": "Show cursor",
-      "trigger": "Released",
-      "analogThreshold": null,
-      "holdKeyboardKey": "",
-      "holdThresholdMs": null,
-      "descriptions": {
-        "zh-CN": "显示光标"
+        "zh-CN": "返回"
       }
     },
     {
