@@ -1243,16 +1243,16 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
     <value>Paste the copied rule(s) into this template (Ctrl+V). Duplicate catalog IDs are renamed automatically.</value>
   </data>
   <data name="ProfileRuleClipboard_CopyFailedTitle" xml:space="preserve">
-    <value>Copy failed</value>
+    <value>Copy Failed</value>
   </data>
   <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>Failed to copy to clipboard: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
-    <value>Paste failed</value>
+    <value>Paste Failed</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>Failed to paste from clipboard: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
     <value>The copied rule data could not be read.</value>
@@ -1554,5 +1554,14 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
   </data>
   <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
     <value>Manual keyboard input</value>
+  </data>
+  <data name="Undo_Action" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Redo_Action" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="MappingCatalogActionId_Empty" xml:space="preserve">
+    <value>None (Direct Input)</value>
   </data>
 </root>

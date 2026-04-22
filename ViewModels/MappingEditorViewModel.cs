@@ -18,6 +18,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -35,7 +36,6 @@ public partial class MappingEditorViewModel : ObservableObject
     private bool _resolvingActionId;
     private bool _syncingActionEditorFromSelection;
     private readonly HashSet<MappingEntry> _mappingActionIdListeners = [];
-    private bool _workspaceMappingSelectionSync;
 
     [ObservableProperty]
     private ActionEditorViewModelBase? _currentActionEditor;
@@ -56,12 +56,23 @@ public partial class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
     }
 
+    partial void OnCurrentActionEditorChanged(ActionEditorViewModelBase? oldValue, ActionEditorViewModelBase? newValue)
+    {
+        if (oldValue != null)
+            oldValue.ConfigurationChanged -= OnActionEditorConfigurationChanged;
+        if (newValue != null)
+            newValue.ConfigurationChanged += OnActionEditorConfigurationChanged;
+    }
+
+    private void OnActionEditorConfigurationChanged(object? sender, EventArgs e) => AutoUpdateMapping();
+
     public MappingEditorViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
         _itemSelectionDialogService = _mainViewModel.ItemSelectionDialogService;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
+        _inputTrigger.ConfigurationChanged += (_, _) => AutoUpdateMapping();
 
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         if (AppUiLocalization.TryTranslationService() is { } translationService)
@@ -78,6 +89,8 @@ public partial class MappingEditorViewModel : ObservableObject
             AttachMappingActionIdListener(m);
         RebuildKeyboardActionsPicker();
         RefreshStatusDiagnostics();
+
+        _mainViewModel.MappingSelection.SelectionChanged += (_, _) => RefreshWorkspaceSelectionMirror();
 
         // Initialize default editor
         OnSelectedActionTypeChanged(SelectedActionType);
@@ -311,65 +324,34 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public MappingEntry? SelectedMapping
     {
-        get => _mainViewModel.SelectedMapping;
-        set => _mainViewModel.SelectedMapping = value;
+        get => _mainViewModel.MappingSelection.SelectedItem;
+        set => _mainViewModel.MappingSelection.SelectedItem = value;
     }
 
     public void NotifyWorkspaceMappingSelectionFromGrid(IReadOnlyList<object> items)
     {
-        _workspaceMappingSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedMappings.Clear();
-            foreach (var o in items)
-            {
-                if (o is MappingEntry m)
-                    WorkspaceSelectedMappings.Add(m);
-            }
-
-            SelectedMapping = WorkspaceSelectedMappings.Count > 0
-                ? WorkspaceSelectedMappings[^1]
-                : null;
-        }
-        finally
-        {
-            _workspaceMappingSelectionSync = false;
-        }
-
-        _mainViewModel.RuleClipboard?.RefreshCommandStates();
+        _mainViewModel.MappingSelection.UpdateSelection(items);
     }
 
     public void SelectAllMappingsForWorkspace()
     {
-        _workspaceMappingSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedMappings.Clear();
-            foreach (var m in Mappings)
-                WorkspaceSelectedMappings.Add(m);
-            SelectedMapping = Mappings.Count > 0 ? Mappings[^1] : null;
-        }
-        finally
-        {
-            _workspaceMappingSelectionSync = false;
-        }
-
-        _mainViewModel.RuleClipboard?.RefreshCommandStates();
+        _mainViewModel.MappingSelection.SelectAll(_mainViewModel.Mappings);
     }
 
     private void SyncWorkspaceMappingsFromPrimary()
     {
-        _workspaceMappingSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedMappings.Clear();
-            if (SelectedMapping is not null)
-                WorkspaceSelectedMappings.Add(SelectedMapping);
-        }
-        finally
-        {
-            _workspaceMappingSelectionSync = false;
-        }
+        // No longer needed as SelectionService handles this
+    }
+
+    /// <summary>Refreshes the selected mappings mirror and editor from workspace selection.</summary>
+    internal void RefreshWorkspaceSelectionMirror()
+    {
+        WorkspaceSelectedMappings.Clear();
+        foreach (var item in _mainViewModel.MappingSelection.SelectedItems)
+            WorkspaceSelectedMappings.Add(item);
+
+        OnPropertyChanged(nameof(SelectedMapping));
+        SyncFromSelection(_mainViewModel.MappingSelection.SelectedItem);
     }
 
     public ObservableCollection<string> AvailableGamepadButtons => _mainViewModel.AvailableGamepadButtons;
@@ -388,15 +370,31 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private TriggerMoment editBindingTrigger = TriggerMoment.Tap;
 
+    partial void OnEditBindingTriggerChanged(TriggerMoment value) => AutoUpdateMapping();
+
     [ObservableProperty]
     private string editBindingDescriptionPrimary = string.Empty;
+
+    partial void OnEditBindingDescriptionPrimaryChanged(string value) => AutoUpdateMapping();
 
     [ObservableProperty]
     private string editBindingDescriptionSecondary = string.Empty;
 
+    partial void OnEditBindingDescriptionSecondaryChanged(string value) => AutoUpdateMapping();
+
     /// <summary>Trigger match threshold for LT/RT chords (0–1, exclusive of 0); shown when <see cref="InputTriggerViewModel.SourceInvolvesTrigger"/> is true.</summary>
     [ObservableProperty]
     private string editAnalogThresholdText = string.Empty;
+
+    partial void OnEditAnalogThresholdTextChanged(string value) => AutoUpdateMapping();
+
+    private void AutoUpdateMapping()
+    {
+        if (_isSyncingFromSelection || _syncingActionEditorFromSelection || IsCreatingNewMapping || SelectedMapping is null)
+            return;
+
+        _mainViewModel.ActiveMappingListEditor.UpdateSelectedFromEditorFields();
+    }
 
     [ObservableProperty]
     private string validationError = string.Empty;
@@ -431,18 +429,50 @@ public partial class MappingEditorViewModel : ObservableObject
     public string KeyboardKeyCapturePrompt => _mainViewModel.KeyboardCaptureService.KeyboardKeyCapturePrompt;
 
     private ICommand? _recordKeyboardKeyCommand;
-    public ICommand RecordKeyboardKeyCommand => _recordKeyboardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as KeyboardActionEditorViewModel)?.RecordKeyboardKeyCommand.Execute(null));
+    public ICommand RecordKeyboardKeyCommand => _recordKeyboardKeyCommand ??= new RelayCommand(() =>
+    {
+        var editor = CurrentActionEditor as KeyboardActionEditorViewModel;
+        if (editor is null) return;
+        _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+        {
+            editor.RecordKeyboardKeyCommand.Execute(null);
+        });
+    });
 
     private ICommand? _recordHoldKeyboardKeyCommand;
-    public ICommand RecordHoldKeyboardKeyCommand => _recordHoldKeyboardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as KeyboardActionEditorViewModel)?.RecordHoldKeyboardKeyCommand.Execute(null));
+    public ICommand RecordHoldKeyboardKeyCommand => _recordHoldKeyboardKeyCommand ??= new RelayCommand(() =>
+    {
+        var editor = CurrentActionEditor as KeyboardActionEditorViewModel;
+        if (editor is null) return;
+        _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+        {
+            editor.RecordHoldKeyboardKeyCommand.Execute(null);
+        });
+    });
 
     private ICommand? _recordItemCycleForwardKeyCommand;
     public ICommand RecordItemCycleForwardKeyCommand =>
-        _recordItemCycleForwardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as ItemCycleActionEditorViewModel)?.RecordForwardKeyCommand.Execute(null));
+        _recordItemCycleForwardKeyCommand ??= new RelayCommand(() =>
+        {
+            var editor = CurrentActionEditor as ItemCycleActionEditorViewModel;
+            if (editor is null) return;
+            _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+            {
+                editor.RecordForwardKeyCommand.Execute(null);
+            });
+        });
 
     private ICommand? _recordItemCycleBackwardKeyCommand;
     public ICommand RecordItemCycleBackwardKeyCommand =>
-        _recordItemCycleBackwardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as ItemCycleActionEditorViewModel)?.RecordBackwardKeyCommand.Execute(null));
+        _recordItemCycleBackwardKeyCommand ??= new RelayCommand(() =>
+        {
+            var editor = CurrentActionEditor as ItemCycleActionEditorViewModel;
+            if (editor is null) return;
+            _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+            {
+                editor.RecordBackwardKeyCommand.Execute(null);
+            });
+        });
 
     private ICommand? _updateSelectedBindingCommand;
     public ICommand UpdateSelectedBindingCommand => _updateSelectedBindingCommand ??= new RelayCommand(UpdateSelectedBinding);
@@ -463,64 +493,98 @@ public partial class MappingEditorViewModel : ObservableObject
     public ICommand PickMappingActionIdCommand =>
         _pickMappingActionIdCommand ??= new RelayCommand<MappingEntry>(PickMappingActionId);
 
+    private bool _isSyncingFromSelection;
+
     public void SyncFromSelection(MappingEntry? value)
     {
-        if (value is not null)
-            IsCreatingNewMapping = false;
-
-        // Avoid wiping the "new mapping" draft when we clear table selection for create mode.
-        if (value is null && IsCreatingNewMapping)
-            return;
-
-        InputTrigger.SyncFrom(value ?? new MappingEntry());
-        EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
-        if (value is not null)
+        if (_isSyncingFromSelection) return;
+        _isSyncingFromSelection = true;
+        try
         {
-            var ui = AppUiLocalization.EditorUiCulture();
-            EditBindingDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(value.Descriptions, value.Description, ui);
-            EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(value.Descriptions, value.Description, ui);
-        }
-        else
-        {
-            EditBindingDescriptionPrimary = string.Empty;
-            EditBindingDescriptionSecondary = string.Empty;
-        }
-        EditAnalogThresholdText = value?.AnalogThreshold is { } t
-            ? t.ToString("G", CultureInfo.InvariantCulture)
-            : string.Empty;
+            if (value is not null)
+                IsCreatingNewMapping = false;
 
-        if (value is not null)
-        {
-            _syncingActionEditorFromSelection = true;
-            try
+            // Avoid wiping the "new mapping" draft when we clear table selection for create mode.
+            if (value is null && IsCreatingNewMapping)
+                return;
+
+            InputTrigger.SyncFrom(value ?? new MappingEntry());
+            EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
+            if (value is not null)
             {
-                if (!string.IsNullOrWhiteSpace(value.ActionId))
+                var ui = AppUiLocalization.EditorUiCulture();
+                EditBindingDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(value.Descriptions, value.Description, ui);
+                EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(value.Descriptions, value.Description, ui);
+            }
+            else
+            {
+                EditBindingDescriptionPrimary = string.Empty;
+                EditBindingDescriptionSecondary = string.Empty;
+            }
+            EditAnalogThresholdText = value?.AnalogThreshold is { } t
+                ? t.ToString("G", CultureInfo.InvariantCulture)
+                : string.Empty;
+
+            if (value is not null)
+            {
+                _syncingActionEditorFromSelection = true;
+                try
                 {
-                    SelectedActionType = MappingActionType.Keyboard;
-                    var keyboardEditor = _actionEditorFactory.Create(MappingActionType.Keyboard);
-                    keyboardEditor.SyncFrom(value);
-                    CurrentActionEditor = keyboardEditor;
+                    if (!string.IsNullOrWhiteSpace(value.ActionId))
+                    {
+                        SelectedActionType = MappingActionType.Keyboard;
+                        if (CurrentActionEditor is KeyboardActionEditorViewModel keyboardEditor)
+                        {
+                            keyboardEditor.SyncFrom(value);
+                        }
+                        else
+                        {
+                            keyboardEditor = (KeyboardActionEditorViewModel)_actionEditorFactory.Create(MappingActionType.Keyboard);
+                            keyboardEditor.SyncFrom(value);
+                            CurrentActionEditor = keyboardEditor;
+                        }
+                    }
+                    else
+                    {
+                        SelectedActionType = value.ActionType;
+                        var expectedType = value.ActionType switch
+                        {
+                            MappingActionType.Keyboard => typeof(KeyboardActionEditorViewModel),
+                            MappingActionType.ItemCycle => typeof(ItemCycleActionEditorViewModel),
+                            MappingActionType.TemplateToggle => typeof(TemplateToggleActionEditorViewModel),
+                            MappingActionType.RadialMenu => typeof(RadialMenuActionEditorViewModel),
+                            _ => null
+                        };
+
+                        if (CurrentActionEditor != null && CurrentActionEditor.GetType() == expectedType)
+                        {
+                            CurrentActionEditor.SyncFrom(value);
+                        }
+                        else
+                        {
+                            CurrentActionEditor = _actionEditorFactory.CreateForMapping(value);
+                        }
+                    }
                 }
-                else
+                finally
                 {
-                    SelectedActionType = value.ActionType;
-                    CurrentActionEditor = _actionEditorFactory.CreateForMapping(value);
+                    _syncingActionEditorFromSelection = false;
                 }
             }
-            finally
+            else
             {
-                _syncingActionEditorFromSelection = false;
+                SelectedActionType = MappingActionType.Keyboard;
+                CurrentActionEditor = _actionEditorFactory.Create(SelectedActionType);
+                CurrentActionEditor.Clear();
             }
-        }
-        else
-        {
-            SelectedActionType = MappingActionType.Keyboard;
-            CurrentActionEditor = _actionEditorFactory.Create(SelectedActionType);
-            CurrentActionEditor.Clear();
-        }
 
-        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
-        OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
+            OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+            OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
+        }
+        finally
+        {
+            _isSyncingFromSelection = false;
+        }
     }
 
     private void RebuildKeyboardActionsPicker()
@@ -556,8 +620,6 @@ public partial class MappingEditorViewModel : ObservableObject
                     AttachMappingActionIdListener(m);
                 break;
         }
-
-        RefreshStatusDiagnostics();
     }
 
     private void AttachMappingActionIdListener(MappingEntry m)
@@ -605,11 +667,10 @@ public partial class MappingEditorViewModel : ObservableObject
             string.Equals((a.Id ?? string.Empty).Trim(), id, StringComparison.OrdinalIgnoreCase));
         if (def is null)
         {
-            MessageBox.Show(
-                string.Format(AppUiLocalization.GetString("MappingEditorUnknownKeyboardActionId"), id),
-                AppUiLocalization.GetString("MappingEditorCatalogDialogTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            _mainViewModel.ShowInfoToast(
+                "MappingEditorCatalogDialogTitle",
+                "MappingEditorUnknownKeyboardActionId",
+                id);
             _resolvingActionId = true;
             try
             {
@@ -646,10 +707,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void BeginCreateNewMapping()
     {
+        _mainViewModel.ActiveMappingListEditor.BeginCreateNewMapping();
+        
         IsMappingDetailsExpanderExpanded = true;
-        IsCreatingNewMapping = true;
-        _mainViewModel.SelectedMapping = null;
-
         InputTrigger.Clear();
         EditBindingTrigger = TriggerMoment.Tap;
         EditBindingDescriptionPrimary = string.Empty;
@@ -662,53 +722,19 @@ public partial class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
+    public void NotifyConfigurationChanged() => ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+
     private void SaveNewMapping()
     {
-        if (!TryBuildMappingFromEditorFields(out var entry, out var messageKey))
-        {
-            MessageBox.Show(
-                AppUiLocalization.GetString(messageKey ?? "MappingEditorSaveFailedGeneric"),
-                AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
-        }
-
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
-
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
-        _mainViewModel.Mappings.Add(entry);
-        _mainViewModel.SelectedMapping = entry;
-        IsCreatingNewMapping = false;
-        InputTrigger.ShowSourceKindChangedHint = false;
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        _mainViewModel.ActiveMappingListEditor.SaveNewMapping();
     }
 
-    private void CancelCreateNewMapping()
+    private void UpdateSelectedBinding()
     {
-        IsCreatingNewMapping = false;
-        SyncFromSelection(SelectedMapping);
+        _mainViewModel.ActiveMappingListEditor.UpdateSelectedFromEditorFields();
     }
 
-    private void PickMappingActionId(MappingEntry? mapping)
-    {
-        if (mapping is null)
-            return;
-
-        var selected = _itemSelectionDialogService.Select(
-            Application.Current?.MainWindow,
-            AppUiLocalization.GetString("KeyboardActionPicker_DialogTitle"),
-            AppUiLocalization.GetString("KeyboardActionPicker_SearchPlaceholder"),
-            _mainViewModel.KeyboardActionSelectionBuilder.BuildSelectionItems(_mainViewModel.KeyboardActions),
-            mapping.ActionId);
-        if (selected is null)
-            return;
-
-        mapping.ActionId = selected;
-    }
-
-    private bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
+    public bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
     {
         messageKey = null;
         entry = new MappingEntry();
@@ -737,7 +763,7 @@ public partial class MappingEditorViewModel : ObservableObject
         return true;
     }
 
-    private bool TryApplyAnalogThreshold(MappingEntry entry)
+    public bool TryApplyAnalogThreshold(MappingEntry entry)
     {
         var fromType = entry.From?.Type;
 
@@ -788,45 +814,45 @@ public partial class MappingEditorViewModel : ObservableObject
         return true;
     }
 
-    private void UpdateSelectedBinding()
+    public void ApplyDescriptionPairToMapping(MappingEntry entry)
     {
-        if (SelectedMapping is null)
-            return;
-
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
-
-        if (!InputTrigger.ApplyTo(SelectedMapping))
-            return;
-
-        if (!TryApplyAnalogThreshold(SelectedMapping))
-        {
-            MessageBox.Show(
-                AppUiLocalization.GetString("TriggerChordThresholdRequiredMessage"),
-                AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
-        }
-
-        SelectedMapping.Trigger = EditBindingTrigger;
-        ApplyDescriptionPairToMapping(SelectedMapping);
-
-        if (CurrentActionEditor?.ApplyTo(SelectedMapping) != true)
-            return;
-
-        InputTrigger.ShowSourceKindChangedHint = false;
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        var ui = AppUiLocalization.EditorUiCulture();
+        var d = entry.Descriptions;
+        var b = entry.Description;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, ui, EditBindingDescriptionPrimary, EditBindingDescriptionSecondary);
+        entry.Descriptions = d;
+        entry.Description = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
     }
 
     private void RemoveSelectedMapping()
     {
-        if (SelectedMapping is null)
+        _mainViewModel.ActiveMappingListEditor.Delete();
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CancelCreateNewMapping()
+    {
+        IsCreatingNewMapping = false;
+        SyncFromSelection(SelectedMapping);
+    }
+
+    private void PickMappingActionId(MappingEntry? mapping)
+    {
+        if (mapping is null)
             return;
 
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
-        _mainViewModel.Mappings.Remove(SelectedMapping);
-        _mainViewModel.SelectedMapping = _mainViewModel.Mappings.FirstOrDefault();
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        var selected = _itemSelectionDialogService.Select(
+            Application.Current?.MainWindow,
+            AppUiLocalization.GetString("KeyboardActionPicker_DialogTitle"),
+            AppUiLocalization.GetString("KeyboardActionPicker_SearchPlaceholder"),
+            _mainViewModel.KeyboardActionSelectionBuilder.BuildSelectionItems(_mainViewModel.KeyboardActions),
+            mapping.ActionId);
+        if (selected is null)
+            return;
+
+        mapping.ActionId = selected;
     }
 
     private void KeyboardCaptureServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -854,18 +880,6 @@ public partial class MappingEditorViewModel : ObservableObject
         EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(SelectedMapping.Descriptions, SelectedMapping.Description, ui);
     }
 
-    private void ApplyDescriptionPairToMapping(MappingEntry entry)
-    {
-        var ui = AppUiLocalization.EditorUiCulture();
-        var d = entry.Descriptions;
-        var b = entry.Description;
-        UiCultureDescriptionPair.WritePair(ref d, ref b, ui, EditBindingDescriptionPrimary, EditBindingDescriptionSecondary);
-        entry.Descriptions = d;
-        entry.Description = b;
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
-    }
-
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
@@ -876,13 +890,6 @@ public partial class MappingEditorViewModel : ObservableObject
             case nameof(MainViewModel.Mappings):
                 OnPropertyChanged(nameof(Mappings));
                 RefreshStatusDiagnostics();
-                break;
-            case nameof(MainViewModel.SelectedMapping):
-                OnPropertyChanged(nameof(SelectedMapping));
-                if (!_workspaceMappingSelectionSync)
-                    SyncWorkspaceMappingsFromPrimary();
-                SyncFromSelection(SelectedMapping);
-                _mainViewModel.RuleClipboard?.RefreshCommandStates();
                 break;
             case nameof(MainViewModel.AvailableGamepadButtons):
                 OnPropertyChanged(nameof(AvailableGamepadButtons));

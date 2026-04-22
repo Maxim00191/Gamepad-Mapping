@@ -7,6 +7,9 @@ public interface IAppToastService
     event EventHandler<AppToastRequest?>? CurrentToastChanged;
 
     void Show(AppToastRequest request);
+    void ShowError(string titleKey, string messageKey, params object[] args);
+    void ShowInfo(string titleKey, string messageKey, params object[] args);
+    void LogDebug(string message);
 
     void DismissCurrent();
 

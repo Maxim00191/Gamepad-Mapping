@@ -83,6 +83,10 @@ public partial class InputTriggerViewModel : ObservableObject
             ? T("MappingDetailsAnalogThresholdStickHint")
             : T("TriggerChordMatchThresholdHint");
 
+    public event EventHandler? ConfigurationChanged;
+
+    public void NotifyConfigurationChanged() => ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+
     public void SyncFrom(MappingEntry mapping)
     {
         _syncingFromMapping = true;
@@ -301,6 +305,9 @@ public partial class InputTriggerViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowDetailsAnalogThreshold));
         OnPropertyChanged(nameof(AnalogThresholdPrimaryCaption));
         OnPropertyChanged(nameof(AnalogThresholdSecondaryHint));
+
+        if (!_syncingFromMapping)
+            NotifyConfigurationChanged();
     }
 
     private static string T(string key)

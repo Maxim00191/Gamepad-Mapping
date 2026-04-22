@@ -34,6 +34,10 @@ public static class DataGridWorkspaceSelectionBehavior
         public SelectionChangedEventHandler? SelectionHandler;
         public RoutedEventHandler? LoadedHandler;
         public RoutedEventHandler? UnloadedHandler;
+        public DependencyPropertyChangedEventHandler? DataContextChangedHandler;
+
+        /// <summary>Source for <see cref="CollectionHandler"/>; kept so we can unsubscribe after DataContext changes.</summary>
+        public INotifyCollectionChanged? SubscribedCollection;
     }
 
     private static readonly ConditionalWeakTable<DataGrid, Bridge> Bridges = new();
@@ -71,9 +75,15 @@ public static class DataGridWorkspaceSelectionBehavior
         bridge.LoadedHandler = Loaded;
         grid.Loaded += Loaded;
 
-        void Unloaded(object _, RoutedEventArgs __) => Detach(grid);
+        // TabControl (and similar hosts) detach tab content from the visual tree when it is not selected.
+        // A full Detach would remove Loaded handlers and drop the bridge, so returning to the tab never re-Wire()s.
+        void Unloaded(object _, RoutedEventArgs __) => SuspendWiring(grid);
         bridge.UnloadedHandler = Unloaded;
         grid.Unloaded += Unloaded;
+
+        void DataContextChanged(object _, DependencyPropertyChangedEventArgs __) => Wire(grid, bridge);
+        bridge.DataContextChangedHandler = DataContextChanged;
+        grid.DataContextChanged += DataContextChanged;
 
         if (grid.IsLoaded)
             Wire(grid, bridge);
@@ -90,6 +100,8 @@ public static class DataGridWorkspaceSelectionBehavior
             grid.Loaded -= bridge.LoadedHandler;
         if (bridge.UnloadedHandler is not null)
             grid.Unloaded -= bridge.UnloadedHandler;
+        if (bridge.DataContextChangedHandler is not null)
+            grid.DataContextChanged -= bridge.DataContextChangedHandler;
 
         Bridges.Remove(grid);
     }
@@ -120,7 +132,17 @@ public static class DataGridWorkspaceSelectionBehavior
             }
         };
 
+        bridge.SubscribedCollection = collection;
         collection.CollectionChanged += bridge.CollectionHandler;
+        bridge.SyncingFromVm = true;
+        try
+        {
+            PushVmSelectionToGrid(grid, collection);
+        }
+        finally
+        {
+            bridge.SyncingFromVm = false;
+        }
     }
 
     private static void Unwire(DataGrid grid, Bridge bridge)
@@ -133,11 +155,19 @@ public static class DataGridWorkspaceSelectionBehavior
 
         if (bridge.CollectionHandler is not null)
         {
-            var collection = ResolveCollection(grid, bridge.Kind);
-            if (collection is not null)
-                collection.CollectionChanged -= bridge.CollectionHandler;
+            if (bridge.SubscribedCollection is not null)
+                bridge.SubscribedCollection.CollectionChanged -= bridge.CollectionHandler;
             bridge.CollectionHandler = null;
+            bridge.SubscribedCollection = null;
         }
+    }
+
+    /// <summary>Stops event wiring while the grid is off the visual tree; bridge stays so <see cref="FrameworkElement.Loaded"/> can re-wire.</summary>
+    private static void SuspendWiring(DataGrid grid)
+    {
+        if (!Bridges.TryGetValue(grid, out var bridge))
+            return;
+        Unwire(grid, bridge);
     }
 
     private static INotifyCollectionChanged? ResolveCollection(DataGrid grid, WorkspaceRuleListKind kind) =>

@@ -46,19 +46,35 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     [NotifyPropertyChangedFor(nameof(CatalogBehaviorSummary))]
     [NotifyPropertyChangedFor(nameof(ShowTapAndHoldKeyEditors))]
     [NotifyPropertyChangedFor(nameof(ActionPickerDisplayText))]
+    [NotifyPropertyChangedFor(nameof(ActionIdDisplayText))]
     private string _actionId = string.Empty;
+
+    partial void OnActionIdChanged(string value) => AutoUpdateMapping();
 
     [ObservableProperty]
     private string _keyboardKey = string.Empty;
 
+    partial void OnKeyboardKeyChanged(string value) => AutoUpdateMapping();
+
     [ObservableProperty]
     private string _holdKeyboardKey = string.Empty;
+
+    partial void OnHoldKeyboardKeyChanged(string value) => AutoUpdateMapping();
 
     [ObservableProperty]
     private string _holdThresholdText = string.Empty;
 
+    partial void OnHoldThresholdTextChanged(string value) => AutoUpdateMapping();
+
+    private void AutoUpdateMapping()
+    {
+        if (_syncingFromMapping) return;
+        NotifyConfigurationChanged();
+    }
+
     public bool IsKeyboardKeyReadOnly => !string.IsNullOrWhiteSpace(ActionId);
     public string ActionPickerDisplayText => BuildCurrentActionPickerLabel();
+    public string ActionIdDisplayText => string.IsNullOrWhiteSpace(ActionId) ? AppUiLocalization.GetString("MappingCatalogActionId_Empty") : ActionId;
 
     /// <summary>True when the catalog entry defines a keyboard key (tap/hold editing applies).</summary>
     public bool ShowTapAndHoldKeyEditors
@@ -153,10 +169,18 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
 
     public override void SyncFrom(MappingEntry mapping)
     {
-        ActionId = mapping.ActionId ?? string.Empty;
-        KeyboardKey = mapping.KeyboardKey ?? string.Empty;
-        HoldKeyboardKey = mapping.HoldKeyboardKey ?? string.Empty;
-        HoldThresholdText = mapping.HoldThresholdMs?.ToString() ?? string.Empty;
+        _syncingFromMapping = true;
+        try
+        {
+            ActionId = mapping.ActionId ?? string.Empty;
+            KeyboardKey = mapping.KeyboardKey ?? string.Empty;
+            HoldKeyboardKey = mapping.HoldKeyboardKey ?? string.Empty;
+            HoldThresholdText = mapping.HoldThresholdMs?.ToString() ?? string.Empty;
+        }
+        finally
+        {
+            _syncingFromMapping = false;
+        }
     }
 
     public override bool ApplyTo(MappingEntry mapping)
@@ -222,6 +246,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     public override void OnLocalizationChanged()
     {
         OnPropertyChanged(nameof(ActionPickerDisplayText));
+        OnPropertyChanged(nameof(ActionIdDisplayText));
         OnPropertyChanged(nameof(CatalogBehaviorSummary));
     }
 

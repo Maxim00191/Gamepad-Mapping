@@ -25,6 +25,7 @@ public static class ApplicationComposition
         var settingsService = new SettingsService();
         var appSettings = settingsService.LoadSettingsInternal();
         var profileService = new ProfileService(settingsService: settingsService, appSettings: appSettings);
+        var profileDomainService = new ProfileDomainService();
         var updateVersionCacheService = new UpdateVersionCacheService();
         var trustedUtcTimeService = new TrustedUtcTimeService();
         var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
@@ -57,7 +58,8 @@ public static class ApplicationComposition
             appToastService: appToastService,
             xinput: xinputService,
             gamepadSource: gamepadSource,
-            uiOrchestrator: uiOrchestrator);
+            uiOrchestrator: uiOrchestrator,
+            profileDomainService: profileDomainService);
 
         return (mainViewModel, appToastService);
     }

@@ -40,13 +40,8 @@ public partial class TemplateToggleActionEditorViewModel : ActionEditorViewModel
             && altLoc.SameFileAs(curLoc))
             return false;
 
-        mapping.ItemCycle = null;
+        ResetCommonMappingFields(mapping);
         mapping.TemplateToggle = new TemplateToggleBinding { AlternateProfileId = alt };
-        mapping.RadialMenu = null;
-        mapping.ActionId = null;
-        mapping.KeyboardKey = string.Empty;
-        mapping.HoldKeyboardKey = string.Empty;
-        mapping.HoldThresholdMs = null;
 
         return true;
     }

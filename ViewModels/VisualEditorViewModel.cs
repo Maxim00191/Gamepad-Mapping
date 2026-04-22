@@ -3,6 +3,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.ViewModels.ControllerVisual;
 
@@ -83,6 +84,12 @@ public partial class VisualEditorViewModel : ObservableObject
             mainViewModel.ControllerVisualLayoutHelper);
 
         _mainViewModel.MappingEditorPanel.PropertyChanged += OnMappingEditorPanelPropertyChanged;
+        _mainViewModel.MappingSelection.SelectionChanged += (_, _) =>
+        {
+            var mapping = _mainViewModel.MappingSelection.SelectedItem;
+            SyncFromGlobalSelection(mapping);
+            ControllerVisual.SelectedMapping = mapping;
+        };
 
         ControllerVisual.PropertyChanged += (_, e) =>
         {
@@ -99,12 +106,7 @@ public partial class VisualEditorViewModel : ObservableObject
 
         _mainViewModel.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(MainViewModel.SelectedMapping))
-            {
-                SyncFromGlobalSelection(_mainViewModel.SelectedMapping);
-                ControllerVisual.SelectedMapping = _mainViewModel.SelectedMapping;
-            }
-            else if (e.PropertyName == nameof(MainViewModel.CurrentTemplateCommunityListingDescription))
+            if (e.PropertyName == nameof(MainViewModel.CurrentTemplateCommunityListingDescription))
             {
                 OnPropertyChanged(nameof(TemplateCommunityListingDescription));
                 OnPropertyChanged(nameof(TemplateCommunityListingDescriptionPreview));
@@ -152,7 +154,11 @@ public partial class VisualEditorViewModel : ObservableObject
     private void SyncFromGlobalSelection(MappingEntry? mapping)
     {
         if (mapping is null)
+        {
+            SelectedMapping = null;
+            ControllerVisual.SelectedMapping = null;
             return;
+        }
 
         var elementId = _mappingQuery.ResolvePrimaryLogicalControlIdForMapping(mapping);
         if (string.IsNullOrEmpty(elementId))
@@ -171,7 +177,7 @@ public partial class VisualEditorViewModel : ObservableObject
         if (string.IsNullOrEmpty(elementName))
         {
             SelectedMapping = null;
-            _mainViewModel.SelectedMapping = null;
+            _mainViewModel.MappingSelection.SelectedItem = null;
             return;
         }
 
@@ -179,7 +185,7 @@ public partial class VisualEditorViewModel : ObservableObject
         if (binding is null)
         {
             SelectedMapping = null;
-            _mainViewModel.SelectedMapping = null;
+            _mainViewModel.MappingSelection.SelectedItem = null;
             return;
         }
 
@@ -187,17 +193,17 @@ public partial class VisualEditorViewModel : ObservableObject
         if (forControl.Count == 0)
         {
             SelectedMapping = null;
-            _mainViewModel.SelectedMapping = null;
+            _mainViewModel.MappingSelection.SelectedItem = null;
             return;
         }
 
-        var current = _mainViewModel.SelectedMapping;
+        var current = _mainViewModel.MappingSelection.SelectedItem;
         if (current is not null && forControl.Any(x => ReferenceEquals(x, current)))
             return;
 
         var pick = forControl[0];
         SelectedMapping = pick;
-        _mainViewModel.SelectedMapping = pick;
+        _mainViewModel.MappingSelection.SelectedItem = pick;
     }
 
     [RelayCommand]

@@ -1246,13 +1246,13 @@
     <value>复制失败</value>
   </data>
   <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>复制到剪贴板失败: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
     <value>粘贴失败</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>从剪贴板粘贴失败: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
     <value>无法读取已复制的规则数据。</value>
@@ -1554,5 +1554,14 @@
   </data>
   <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
     <value>手动输入按键</value>
+  </data>
+    <data name="MappingCatalogActionId_Empty" xml:space="preserve">
+    <value>无（直接输入）</value>
+  </data>
+  <data name="Undo_Action" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Redo_Action" xml:space="preserve">
+    <value>重做</value>
   </data>
 </root>

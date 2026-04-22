@@ -60,7 +60,7 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
             loc.PropertyChanged += OnTranslationServicePropertyChanged;
         }
 
-        _mainViewModel.PropertyChanged += OnMainPropertyChanged;
+        _mainViewModel.MappingSelection.SelectionChanged += OnVisualMappingSelectionChanged;
         _mainViewModel.Mappings.CollectionChanged += OnMappingsCollectionChanged;
     }
 
@@ -88,7 +88,7 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
         if (_suppressSelectionSync || value is null)
             return;
 
-        _mainViewModel.SelectedMapping = value.Mapping;
+        _mainViewModel.MappingSelection.SelectedItem = value.Mapping;
     }
 
     [RelayCommand]
@@ -101,16 +101,18 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
         if (binding is null)
             return;
 
-        _mainViewModel.MappingEditorPanel.AddMappingCommand.Execute(null);
-        _mainViewModel.MappingEditorPanel.InputTrigger.SyncFrom(new MappingEntry { From = binding });
+        _mainViewModel.MappingsWorkspace.History.ExecuteTransaction(() =>
+        {
+            _mainViewModel.MappingEditorPanel.AddMappingCommand.Execute(null);
+            _mainViewModel.MappingEditorPanel.InputTrigger.SyncFrom(new MappingEntry { From = binding });
+        });
         _mainViewModel.RefreshRightPanelSurface();
         _mainViewModel.RequestFocusMappingDetailsFirstField();
     }
 
-    private void OnMainPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnVisualMappingSelectionChanged(object? sender, EventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.SelectedMapping))
-            ApplySelectionFromMain();
+        ApplySelectionFromVisualSelection();
     }
 
     private void OnMappingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
@@ -121,7 +123,7 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
         Items.Clear();
         if (string.IsNullOrEmpty(_elementId))
         {
-            ApplySelectionFromMain();
+            ApplySelectionFromVisualSelection();
             return;
         }
 
@@ -138,12 +140,12 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowUnmappedHint));
         OnPropertyChanged(nameof(ShowMappingList));
         OnPropertyChanged(nameof(MappingsCountSummary));
-        ApplySelectionFromMain();
+        ApplySelectionFromVisualSelection();
     }
 
-    private void ApplySelectionFromMain()
+    private void ApplySelectionFromVisualSelection()
     {
-        var sel = _mainViewModel.SelectedMapping;
+        var sel = _mainViewModel.MappingSelection.SelectedItem;
         _suppressSelectionSync = true;
         try
         {

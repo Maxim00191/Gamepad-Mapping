@@ -25,6 +25,7 @@ public partial class ProfileOrchestrator : ObservableObject
 {
     private readonly IProfileService _profileService;
     private readonly IProcessTargetService _processTargetService;
+    private readonly IAppToastService? _toast;
     private string? _lastLoadedTemplateGroupIdForTargetInherit;
 
     /// <summary>Optional gate for template switches (unsaved workspace prompts).</summary>
@@ -47,8 +48,11 @@ public partial class ProfileOrchestrator : ObservableObject
                 return;
             }
 
+            _toast?.LogDebug($"SelectedTemplate changing from {_selectedTemplate?.DisplayName ?? "null"} to {value?.DisplayName ?? "null"}");
+
             if (SelectionInterlock?.AllowSelectTemplate(_selectedTemplate, value) == false)
             {
+                _toast?.LogDebug("SelectionInterlock rejected template switch");
                 SelectionInterlock.NotifySelectedTemplateBindingRefresh();
                 return;
             }
@@ -59,12 +63,14 @@ public partial class ProfileOrchestrator : ObservableObject
             try
             {
                 App.Logger.Info($"Switching to template: {value?.DisplayName} ({value?.StorageKey})");
+                _toast?.LogDebug($"Loading template: {value?.DisplayName}");
                 LoadSelectedTemplate();
                 _profileService.PersistLastSelectedTemplateProfileId(_selectedTemplate?.StorageKey);
             }
             catch (Exception ex)
             {
                 App.Logger.Error($"Failed to load template '{value?.ProfileId ?? value?.TemplateGroupId}'", ex);
+                _toast?.LogDebug($"Failed to load template: {ex.Message}");
             }
         }
     }
@@ -96,10 +102,11 @@ public partial class ProfileOrchestrator : ObservableObject
     public event Action<GameProfileTemplate?>? TemplateLoaded;
     public event Action<string>? TemplateSwitchRequested;
 
-    public ProfileOrchestrator(IProfileService profileService, IProcessTargetService processTargetService)
+    public ProfileOrchestrator(IProfileService profileService, IProcessTargetService processTargetService, IAppToastService? toast = null)
     {
         _profileService = profileService;
         _processTargetService = processTargetService;
+        _toast = toast;
         AvailableTemplates = _profileService.AvailableTemplates;
         
         SelectedTemplate = _profileService.ReloadTemplates(_profileService.LastSelectedTemplateProfileId);

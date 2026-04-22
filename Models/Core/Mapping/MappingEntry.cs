@@ -25,6 +25,9 @@ public enum MappingActionType
 
 public class MappingEntry : ObservableObject
 {
+    [JsonProperty("id")]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
     private GamepadBinding _from = new();
 
     [JsonProperty("from")]

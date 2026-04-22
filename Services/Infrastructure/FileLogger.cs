@@ -29,6 +29,10 @@ public class FileLogger : ILogger
 
     public void Log(LogLevel level, string message, Exception? exception = null)
     {
+#if !DEBUG
+        if (level == LogLevel.Debug)
+            return;
+#endif
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
         var logEntry = $"[{timestamp}] [{level}] {message}";
         
