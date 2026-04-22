@@ -220,7 +220,7 @@
     <value>Update selected binding</value>
   </data>
   <data name="HoldBindHelp" xml:space="preserve">
-    <value>Hold bind (optional): Trigger must be Tap. Hold the button at least the threshold to send the hold key once; quick release sends the short key. Button-only chords (no LT/RT in the chord).</value>
+    <value>Hold bind (optional): Short press trigger type must be set to Tap. Hold the button past the threshold to send the hold key once; releasing quickly sends the tap key. Only button combos without LT/RT are supported.</value>
   </data>
   <data name="HoldOutputLongPress" xml:space="preserve">
     <value>Hold output (long press)</value>
@@ -508,7 +508,7 @@
     <value>Action id</value>
   </data>
   <data name="MappingActionIdManual" xml:space="preserve">
-    <value>(Manual key)</value>
+    <value>(Select key)</value>
   </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>Icon</value>
@@ -1553,7 +1553,7 @@ To avoid Windows UIPI input blocking, relaunch this tool as administrator?</valu
     <value>Search:</value>
   </data>
   <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
-    <value>Manual keyboard input</value>
+    <value>Select keyboard key</value>
   </data>
   <data name="Undo_Action" xml:space="preserve">
     <value>Undo</value>
@@ -1585,5 +1585,17 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="UpdateDownloadSpeed_BytesPerSecondFormat" xml:space="preserve">
     <value>{0} B/s</value>
+  </data>
+  <data name="HoldOutputActionId" xml:space="preserve">
+    <value>Long press action</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldDialogTitle" xml:space="preserve">
+    <value>Select long press action</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldSearchPlaceholder" xml:space="preserve">
+    <value>Search long press action by id, description, or key...</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldManualInputLabel" xml:space="preserve">
+    <value>Select long press key</value>
   </data>
 </root>

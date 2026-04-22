@@ -12,6 +12,7 @@ namespace GamepadMapperGUI.Services.Infrastructure;
 public sealed class KeyboardActionSelectionBuilder : IKeyboardActionSelectionBuilder
 {
     private const string ManualPickerLabelKey = "KeyboardActionPicker_ManualInputLabel";
+    private const string HoldManualPickerLabelKey = "KeyboardActionPicker_HoldManualInputLabel";
 
     public IReadOnlyList<SelectionDialogItem> BuildSelectionItems(IEnumerable<KeyboardActionDefinition> keyboardActions)
     {
@@ -60,5 +61,34 @@ public sealed class KeyboardActionSelectionBuilder : IKeyboardActionSelectionBui
             AppUiLocalization.GetString(ManualPickerLabelKey),
             match.KeyboardKey,
             CultureInfo.CurrentUICulture);
+    }
+
+    public string BuildSelectedHoldActionDisplayText(
+        string? holdActionId,
+        string? holdKeyboardKey,
+        IEnumerable<KeyboardActionDefinition> keyboardActions)
+    {
+        var id = (holdActionId ?? string.Empty).Trim();
+        if (id.Length > 0)
+        {
+            var match = keyboardActions.FirstOrDefault(action =>
+                string.Equals((action.Id ?? string.Empty).Trim(), id, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+                return id;
+
+            return KeyboardActionPickerLabelConverter.FormatLabel(
+                id,
+                match.ResolvedCatalogDescription,
+                AppUiLocalization.GetString("KeyboardActionPicker_OptionFormat"),
+                AppUiLocalization.GetString(HoldManualPickerLabelKey),
+                match.KeyboardKey,
+                CultureInfo.CurrentUICulture);
+        }
+
+        var holdToken = (holdKeyboardKey ?? string.Empty).Trim();
+        if (holdToken.Length > 0)
+            return holdToken;
+
+        return AppUiLocalization.GetString(HoldManualPickerLabelKey);
     }
 }

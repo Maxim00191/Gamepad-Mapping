@@ -62,6 +62,12 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     partial void OnHoldKeyboardKeyChanged(string value) => AutoUpdateMapping();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HoldActionPickerDisplayText))]
+    private string _holdActionId = string.Empty;
+
+    partial void OnHoldActionIdChanged(string value) => AutoUpdateMapping();
+
+    [ObservableProperty]
     private string _holdThresholdText = string.Empty;
 
     partial void OnHoldThresholdTextChanged(string value) => AutoUpdateMapping();
@@ -74,6 +80,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
 
     public bool IsKeyboardKeyReadOnly => !string.IsNullOrWhiteSpace(ActionId);
     public string ActionPickerDisplayText => BuildCurrentActionPickerLabel();
+    public string HoldActionPickerDisplayText => BuildCurrentHoldActionPickerLabel();
     public string ActionIdDisplayText => string.IsNullOrWhiteSpace(ActionId) ? AppUiLocalization.GetString("MappingCatalogActionId_Empty") : ActionId;
 
     /// <summary>True when the catalog entry defines a keyboard key (tap/hold editing applies).</summary>
@@ -152,7 +159,11 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     {
         _keyboardCaptureService.BeginCapture(
             AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.MappingHoldOutput),
-            key => HoldKeyboardKey = key.ToString());
+            key =>
+            {
+                HoldKeyboardKey = key.ToString();
+                HoldActionId = string.Empty;
+            });
     }
 
     [RelayCommand]
@@ -170,6 +181,25 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
         ActionId = selected;
     }
 
+    [RelayCommand]
+    private void PickHoldCatalogAction()
+    {
+        var selected = _itemSelectionDialogService.Select(
+            Application.Current?.MainWindow,
+            AppUiLocalization.GetString("KeyboardActionPicker_HoldDialogTitle"),
+            AppUiLocalization.GetString("KeyboardActionPicker_HoldSearchPlaceholder"),
+            BuildPickerItems(),
+            HoldActionId);
+        if (selected is null)
+            return;
+
+        HoldActionId = selected;
+        if (string.IsNullOrWhiteSpace(HoldActionId))
+            return;
+
+        HoldKeyboardKey = string.Empty;
+    }
+
     public override void SyncFrom(MappingEntry mapping)
     {
         _syncingFromMapping = true;
@@ -177,6 +207,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
         {
             ActionId = mapping.ActionId ?? string.Empty;
             KeyboardKey = mapping.KeyboardKey ?? string.Empty;
+            HoldActionId = mapping.HoldActionId ?? string.Empty;
             HoldKeyboardKey = mapping.HoldKeyboardKey ?? string.Empty;
             HoldThresholdText = mapping.HoldThresholdMs?.ToString() ?? string.Empty;
         }
@@ -214,25 +245,54 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
             mapping.KeyboardKey = isMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(keyToken) : key.ToString();
         }
 
-        // Apply hold fields
-        var holdToken = HoldKeyboardKey?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(holdToken))
+        var holdActionIdTrimmed = HoldActionId?.Trim() ?? string.Empty;
+        if (!string.IsNullOrEmpty(holdActionIdTrimmed))
         {
-            mapping.HoldKeyboardKey = string.Empty;
-            mapping.HoldThresholdMs = null;
+            var holdDef = _keyboardActions.FirstOrDefault(a =>
+                string.Equals(a.Id?.Trim(), holdActionIdTrimmed, StringComparison.OrdinalIgnoreCase));
+            if (holdDef is null)
+                return false;
+
+            mapping.HoldActionId = holdActionIdTrimmed;
+            mapping.ApplyHoldKeyboardActionResolution(
+                (holdDef.KeyboardKey ?? string.Empty).Trim(),
+                holdDef.TemplateToggle,
+                holdDef.RadialMenu,
+                holdDef.ItemCycle);
         }
         else
         {
-            var holdKey = MappingEngine.ParseKey(holdToken);
-            var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
-            if (holdKey == Key.None && !holdMouseLook) return false;
-
-            mapping.HoldKeyboardKey = holdMouseLook ? MappingEngine.NormalizeKeyboardKeyToken(holdToken) : holdKey.ToString();
-            
-            if (int.TryParse(HoldThresholdText, out var ms) && ms > 0)
-                mapping.HoldThresholdMs = ms;
+            var holdToken = HoldKeyboardKey?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(holdToken))
+            {
+                mapping.HoldActionId = null;
+                mapping.HoldKeyboardKey = string.Empty;
+            }
             else
-                mapping.HoldThresholdMs = null;
+            {
+                var holdKey = MappingEngine.ParseKey(holdToken);
+                var holdMouseLook = MappingEngine.IsMouseLookOutput(holdToken);
+                if (holdKey == Key.None && !holdMouseLook)
+                    return false;
+
+                mapping.HoldActionId = null;
+                mapping.HoldKeyboardKey = holdMouseLook
+                    ? MappingEngine.NormalizeKeyboardKeyToken(holdToken)
+                    : holdKey.ToString();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(mapping.HoldKeyboardKey) && string.IsNullOrWhiteSpace(mapping.HoldActionId))
+        {
+            mapping.HoldThresholdMs = null;
+        }
+        else if (int.TryParse(HoldThresholdText, out var ms) && ms > 0)
+        {
+            mapping.HoldThresholdMs = ms;
+        }
+        else
+        {
+            mapping.HoldThresholdMs = null;
         }
 
         return true;
@@ -242,6 +302,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     {
         ActionId = string.Empty;
         KeyboardKey = string.Empty;
+        HoldActionId = string.Empty;
         HoldKeyboardKey = string.Empty;
         HoldThresholdText = string.Empty;
     }
@@ -249,6 +310,7 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
     public override void OnLocalizationChanged()
     {
         OnPropertyChanged(nameof(ActionPickerDisplayText));
+        OnPropertyChanged(nameof(HoldActionPickerDisplayText));
         OnPropertyChanged(nameof(ActionIdDisplayText));
         OnPropertyChanged(nameof(CatalogBehaviorSummary));
     }
@@ -258,5 +320,8 @@ public partial class KeyboardActionEditorViewModel : ActionEditorViewModelBase
 
     private string BuildCurrentActionPickerLabel()
         => _keyboardActionSelectionBuilder.BuildSelectedActionDisplayText(ActionId, _keyboardActions);
+
+    private string BuildCurrentHoldActionPickerLabel()
+        => _keyboardActionSelectionBuilder.BuildSelectedHoldActionDisplayText(HoldActionId, HoldKeyboardKey, _keyboardActions);
 }
 

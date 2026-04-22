@@ -215,6 +215,85 @@ public class MappingEditorViewModelTests
     }
 
     [Fact]
+    public void PickHoldCatalogActionCommand_AssignsHoldActionIdInEditor()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+            KeyboardKey = "Space"
+        };
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        vm.SyncFromSelection(entry);
+
+        var editor = Assert.IsType<KeyboardActionEditorViewModel>(vm.CurrentActionEditor);
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "hold_jump", KeyboardKey = "LeftShift" });
+        _itemSelectionDialogServiceMock
+            .Setup(s => s.Select(It.IsAny<System.Windows.Window?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<Gamepad_Mapping.Models.State.SelectionDialogItem>>(), It.IsAny<string?>()))
+            .Returns("hold_jump");
+
+        editor.PickHoldCatalogActionCommand.Execute(null);
+
+        Assert.Equal("hold_jump", editor.HoldActionId);
+    }
+
+    [Fact]
+    public void UpdateSelectedBinding_WhenHoldActionSelected_StoresHoldActionId()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        vm.SyncFromSelection(entry);
+
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "tap_jump", KeyboardKey = "Space" });
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "hold_jump", KeyboardKey = "LeftShift" });
+
+        var editor = Assert.IsType<KeyboardActionEditorViewModel>(vm.CurrentActionEditor);
+        editor.ActionId = "tap_jump";
+        editor.HoldActionId = "hold_jump";
+        editor.HoldKeyboardKey = string.Empty;
+        editor.HoldThresholdText = "400";
+
+        vm.UpdateSelectedBindingCommand.Execute(null);
+
+        Assert.Equal("hold_jump", entry.HoldActionId);
+        Assert.Equal("LeftShift", entry.HoldKeyboardKey);
+        Assert.Equal(400, entry.HoldThresholdMs);
+    }
+
+    [Fact]
+    public void UpdateSelectedBinding_WhenHoldManualModeUsed_ClearsHoldActionFields()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+            HoldActionId = "legacy_hold"
+        };
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        vm.SyncFromSelection(entry);
+
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "tap_jump", KeyboardKey = "Space" });
+        var editor = Assert.IsType<KeyboardActionEditorViewModel>(vm.CurrentActionEditor);
+        editor.ActionId = "tap_jump";
+        editor.HoldActionId = string.Empty;
+        editor.HoldKeyboardKey = string.Empty;
+        editor.HoldThresholdText = "350";
+
+        vm.UpdateSelectedBindingCommand.Execute(null);
+
+        Assert.Null(entry.HoldActionId);
+        Assert.Equal(string.Empty, entry.HoldKeyboardKey);
+        Assert.Null(entry.HoldThresholdMs);
+    }
+
+    [Fact]
     public void RefreshStatusDiagnostics_WhenActionIsBoundMultipleTimes_ShowsDuplicateBanner()
     {
         var vm = _mainViewModel.MappingEditorPanel;

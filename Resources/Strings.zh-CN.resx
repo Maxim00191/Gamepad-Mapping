@@ -220,7 +220,7 @@
     <value>更新所选映射</value>
   </data>
   <data name="HoldBindHelp" xml:space="preserve">
-    <value>长按绑定（可选）：触发方式必须为 Tap。按住按钮达到阈值后发送一次长按键；快速松开则发送短按键。仅支持按钮组合（组合中不含 LT/RT）。</value>
+    <value>长按绑定（可选）：必须将短按触发方式设为Tap。按住按钮达到阈值后发送一次长按键；快速松开则发送短按键。仅支持按钮组合（组合中不含 LT/RT）。</value>
   </data>
   <data name="HoldOutputLongPress" xml:space="preserve">
     <value>长按输出（长按）</value>
@@ -508,7 +508,7 @@
     <value>动作 Id</value>
   </data>
   <data name="MappingActionIdManual" xml:space="preserve">
-    <value>（手动按键）</value>
+    <value>（手动输入按键）</value>
   </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>图标</value>
@@ -1553,7 +1553,7 @@
     <value>搜索：</value>
   </data>
   <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
-    <value>手动输入按键</value>
+    <value>选择按键</value>
   </data>
     <data name="MappingCatalogActionId_Empty" xml:space="preserve">
     <value>无（直接输入）</value>
@@ -1585,5 +1585,17 @@
   </data>
   <data name="UpdateDownloadSpeed_BytesPerSecondFormat" xml:space="preserve">
     <value>{0} B/秒</value>
+  </data>
+  <data name="HoldOutputActionId" xml:space="preserve">
+    <value>长按动作</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldDialogTitle" xml:space="preserve">
+    <value>选择长按动作</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldSearchPlaceholder" xml:space="preserve">
+    <value>按动作 ID、描述或按键搜索长按动作...</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldManualInputLabel" xml:space="preserve">
+    <value>选择长按按键</value>
   </data>
 </root>
