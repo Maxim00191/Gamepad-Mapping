@@ -52,6 +52,35 @@ public class MappingEditorViewModelTests
     }
 
     [Fact]
+    public void HasAnyProfileMappingStatusHints_AggregatesStatusFlags()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        vm.HasUnusedActionIds = false;
+        vm.HasDuplicateActionIds = false;
+        vm.HasValidationError = false;
+        vm.HasValidationWarning = false;
+        Assert.False(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasUnusedActionIds = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasUnusedActionIds = false;
+        vm.HasDuplicateActionIds = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasDuplicateActionIds = false;
+        vm.HasValidationError = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasValidationError = false;
+        vm.HasValidationWarning = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasValidationWarning = false;
+        Assert.False(vm.HasAnyProfileMappingStatusHints);
+    }
+
+    [Fact]
     public void ChangingMainViewModelSelectedMapping_UpdatesEditorWithoutManualSync()
     {
         var vm = _mainViewModel.MappingEditorPanel;

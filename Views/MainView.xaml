@@ -75,9 +75,13 @@
                                         Margin="0,0,8,0"
                                         Visibility="{Binding IsTemplateWorkspaceDirty, Converter={StaticResource BoolToVis}}">
                                 <StackPanel.ToolTip>
-                                    <TextBlock MaxWidth="320"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceUnsavedIndicator]}" />
+                                    <ToolTip Background="{DynamicResource AppTooltipBackgroundBrush}"
+                                             BorderBrush="{DynamicResource AppTooltipBorderBrush}"
+                                             Foreground="{DynamicResource AppTextBrush}">
+                                        <TextBlock MaxWidth="320"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceUnsavedIndicator]}" />
+                                    </ToolTip>
                                 </StackPanel.ToolTip>
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
                                            Text="&#xE7BA;"

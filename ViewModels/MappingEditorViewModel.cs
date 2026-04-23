@@ -434,6 +434,22 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private bool hasValidationWarning;
 
+    /// <summary>True when any profile mapping status row should be shown (unused actions, duplicates, validation).</summary>
+    public bool HasAnyProfileMappingStatusHints =>
+        HasUnusedActionIds || HasDuplicateActionIds || HasValidationError || HasValidationWarning;
+
+    partial void OnHasUnusedActionIdsChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
+    partial void OnHasDuplicateActionIdsChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
+    partial void OnHasValidationErrorChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
+    partial void OnHasValidationWarningChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
     [ObservableProperty]
     private bool isCreatingNewMapping;
 

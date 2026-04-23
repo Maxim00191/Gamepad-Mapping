@@ -9,6 +9,7 @@
              MinHeight="0"
              VerticalAlignment="Stretch">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <utils:GamepadBindingTypeToLocalizationConverter x:Key="GamepadBindingTypeToLoc" />
         <utils:MappingFromValueItemsSourceConverter x:Key="FromValueItems" />
         <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
@@ -213,6 +214,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <local:ProfileMappingStatusHintsBar Grid.Row="1" />
+        <local:ProfileMappingStatusHintsBar Grid.Row="1"
+                                          Visibility="{Binding HasAnyProfileMappingStatusHints, Converter={StaticResource BoolToVis}}" />
     </Grid>
 </UserControl>

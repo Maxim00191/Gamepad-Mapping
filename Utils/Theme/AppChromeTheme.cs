@@ -40,7 +40,13 @@ internal sealed class AppChromeTheme
         Color hudDetail,
         Color toastBackground,
         Color hudOverlayPanelBase,
-        Color hudOverlayBorderBase)
+        Color hudOverlayBorderBase,
+        Color softWarningBorder,
+        Color unsavedChangesIndicator,
+        Color semanticWarningForeground,
+        Color semanticErrorForeground,
+        Color tooltipBackground,
+        Color tooltipBorder)
     {
         Background = background;
         Surface = surface;
@@ -70,6 +76,12 @@ internal sealed class AppChromeTheme
         ToastBackground = toastBackground;
         HudOverlayPanelBase = hudOverlayPanelBase;
         HudOverlayBorderBase = hudOverlayBorderBase;
+        SoftWarningBorder = softWarningBorder;
+        UnsavedChangesIndicator = unsavedChangesIndicator;
+        SemanticWarningForeground = semanticWarningForeground;
+        SemanticErrorForeground = semanticErrorForeground;
+        TooltipBackground = tooltipBackground;
+        TooltipBorder = tooltipBorder;
     }
 
     public Color Background { get; }
@@ -101,36 +113,61 @@ internal sealed class AppChromeTheme
     public Color HudOverlayPanelBase { get; }
     public Color HudOverlayBorderBase { get; }
 
+    /// <summary>Breathing border for soft-warning button highlight (must read on control surfaces).</summary>
+    public Color SoftWarningBorder { get; }
+
+    /// <summary>Workspace unsaved indicator glyph and label.</summary>
+    public Color UnsavedChangesIndicator { get; }
+
+    /// <summary>Warning semantics on tinted panels (e.g. duplicate bindings, validation warnings).</summary>
+    public Color SemanticWarningForeground { get; }
+
+    /// <summary>Error semantics on tinted panels (e.g. validation errors).</summary>
+    public Color SemanticErrorForeground { get; }
+
+    /// <summary>Tooltip chrome; slightly separated from <see cref="Surface"/> for legibility.</summary>
+    public Color TooltipBackground { get; }
+
+    /// <summary>Tooltip outline (typically aligned with <see cref="Border"/>).</summary>
+    public Color TooltipBorder { get; }
+
     /// <summary>Warm muted light chrome: lower luminance surfaces, soft warm grays, restrained gold accents.</summary>
     public static AppChromeTheme Light { get; } = new(
-        background: Color.FromRgb(0xE6, 0xE3, 0xDC),
-        surface: Color.FromRgb(0xED, 0xEA, 0xE3),
+        background: Color.FromRgb(0xF2, 0xF0, 0xEC),
+        surface: Color.FromRgb(0xF7, 0xF5, 0xF0),
         border: Color.FromRgb(0x50, 0x4C, 0x46),
-        titleBarBackground: Color.FromRgb(0xE6, 0xE3, 0xDC),
+        titleBarBackground: Color.FromRgb(0xF2, 0xF0, 0xEC),
         titleBarForeground: Color.FromRgb(0x24, 0x22, 0x1E),
         titleBarBorder: Color.FromRgb(0xA8, 0xA2, 0x98),
         text: Color.FromRgb(0x24, 0x22, 0x1E),
         secondaryText: Color.FromRgb(0x73, 0x6E, 0x66),
         accentText: Color.FromRgb(0x8A, 0x60, 0x18),
-        controlSurface: Color.FromRgb(0xED, 0xEA, 0xE3),
-        controlSurfaceAlt: Color.FromRgb(0xE0, 0xDB, 0xD2),
-        controlHover: Color.FromRgb(0xD5, 0xD0, 0xC6),
-        controlPressed: Color.FromRgb(0xC9, 0xC3, 0xB8),
+        controlSurface: Color.FromRgb(0xF7, 0xF5, 0xF0),
+        controlSurfaceAlt: Color.FromRgb(0xEC, 0xE8, 0xE0),
+        controlHover: Color.FromRgb(0xE2, 0xDD, 0xD4),
+        controlPressed: Color.FromRgb(0xD8, 0xD2, 0xC8),
         accent: Color.FromRgb(0x2A, 0x4A, 0x7A),
         accentHover: Color.FromRgb(0x22, 0x3C, 0x66),
         selection: Color.FromRgb(0xDD, 0xD4, 0xC4),
         selectionText: Color.FromRgb(0x24, 0x22, 0x1E),
-        scrollTrack: Color.FromRgb(0xD4, 0xD1, 0xC9),
+        scrollTrack: Color.FromRgb(0xE2, 0xDD, 0xD4),
         scrollThumb: Color.FromRgb(0xA8, 0xA2, 0x98),
         scrollThumbHover: Color.FromRgb(0x8A, 0x84, 0x7A),
-        separator: Color.FromRgb(0xC9, 0xC3, 0xB8),
+        separator: Color.FromRgb(0xD8, 0xD2, 0xC8),
         gridSplitter: Color.FromRgb(0xBC, 0xB5, 0xAA),
         gridSplitterHover: Color.FromRgb(0xB8, 0x94, 0x28),
         hudTitle: Color.FromRgb(0x24, 0x22, 0x20),
         hudDetail: Color.FromRgb(0x5F, 0x5A, 0x54),
-        toastBackground: Color.FromArgb(210, 0xED, 0xEA, 0xE3),
-        hudOverlayPanelBase: Color.FromRgb(0xE8, 0xE4, 0xDC),
-        hudOverlayBorderBase: Color.FromRgb(0x58, 0x52, 0x4A));
+        toastBackground: Color.FromArgb(210, 0xF7, 0xF5, 0xF0),
+        hudOverlayPanelBase: Color.FromRgb(0xF0, 0xED, 0xE8),
+        hudOverlayBorderBase: Color.FromRgb(0x58, 0x52, 0x4A),
+        // Darker amber than control surfaces so the animated soft-warning rim stays visible on warm light UI.
+        softWarningBorder: Color.FromRgb(0xB3, 0x5F, 0x00),
+        unsavedChangesIndicator: Color.FromRgb(0xB3, 0x5F, 0x00),
+        semanticWarningForeground: Color.FromRgb(0x9A, 0x34, 0x12),
+        semanticErrorForeground: Color.FromRgb(0xB9, 0x1C, 0x1C),
+        tooltipBackground: Color.FromRgb(0xFD, 0xFB, 0xF7),
+        tooltipBorder: Color.FromRgb(0x50, 0x4C, 0x46));
 
     public static AppChromeTheme Dark { get; } = new(
         background: Color.FromRgb(24, 24, 27),
@@ -160,7 +197,13 @@ internal sealed class AppChromeTheme
         hudDetail: Color.FromRgb(205, 210, 220),
         toastBackground: Color.FromArgb(210, 42, 42, 48),
         hudOverlayPanelBase: Color.FromRgb(28, 28, 30),
-        hudOverlayBorderBase: Color.FromRgb(0, 0, 0));
+        hudOverlayBorderBase: Color.FromRgb(0, 0, 0),
+        softWarningBorder: Color.FromRgb(0xE8, 0x9B, 0x10),
+        unsavedChangesIndicator: Color.FromRgb(0xC9, 0xA0, 0x00),
+        semanticWarningForeground: Color.FromRgb(0xFB, 0x92, 0x3C),
+        semanticErrorForeground: Color.FromRgb(0xF8, 0x71, 0x71),
+        tooltipBackground: Color.FromRgb(0x36, 0x36, 0x3C),
+        tooltipBorder: Color.FromRgb(0x68, 0x68, 0x74));
 
     public void ApplyTo(ResourceDictionary resources)
     {
@@ -187,6 +230,12 @@ internal sealed class AppChromeTheme
         resources["AppHudTitleBrush"] = Brush(HudTitle);
         resources["AppHudDetailBrush"] = Brush(HudDetail);
         resources["AppToastBackgroundBrush"] = Brush(ToastBackground);
+        resources["AppSoftWarningBorderBrush"] = Brush(SoftWarningBorder);
+        resources["AppUnsavedChangesIndicatorBrush"] = Brush(UnsavedChangesIndicator);
+        resources["AppSemanticWarningForegroundBrush"] = Brush(SemanticWarningForeground);
+        resources["AppSemanticErrorForegroundBrush"] = Brush(SemanticErrorForeground);
+        resources["AppTooltipBackgroundBrush"] = Brush(TooltipBackground);
+        resources["AppTooltipBorderBrush"] = Brush(TooltipBorder);
     }
 
     public static void ApplyHudChrome(

@@ -31,11 +31,15 @@
         <SolidColorBrush x:Key="AppSeparatorBrush" Color="#FFC9C3B8" />
         <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFBCB5AA" />
         <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FFB89428" />
-        <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FFC9A000" />
-        <SolidColorBrush x:Key="AppSoftWarningBorderBrush" Color="#FFE89B10" />
+        <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FF6D4714" />
+        <SolidColorBrush x:Key="AppSoftWarningBorderBrush" Color="#FF92400E" />
+        <SolidColorBrush x:Key="AppSemanticWarningForegroundBrush" Color="#FF9A3412" />
+        <SolidColorBrush x:Key="AppSemanticErrorForegroundBrush" Color="#FFB91C1C" />
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
+        <SolidColorBrush x:Key="AppTooltipBackgroundBrush" Color="#FFFDFBF7" />
+        <SolidColorBrush x:Key="AppTooltipBorderBrush" Color="#FF504C46" />
         <Storyboard x:Key="SoftWarningBreathingBorderStoryboard">
             <DoubleAnimation Storyboard.TargetName="SoftWarningBorder"
                              Storyboard.TargetProperty="Opacity"
@@ -59,7 +63,7 @@
         <SolidColorBrush x:Key="VisualWorkspaceHintBarBackgroundBrush" Color="#CCBEB6A8" />
         <SolidColorBrush x:Key="VisualWorkspaceHintBarBorderBrush" Color="#FF8F887E" />
         <SolidColorBrush x:Key="VisualWorkspaceHintBarPrimaryForegroundBrush" Color="#FF24221E" />
-        <SolidColorBrush x:Key="VisualWorkspaceHintBarSecondaryForegroundBrush" Color="#FF736E66" />
+        <SolidColorBrush x:Key="VisualWorkspaceHintBarSecondaryForegroundBrush" Color="#FF524E46" />
         <SolidColorBrush x:Key="VisualWorkspaceOverlayLeaderMutedStrokeBrush" Color="#66302C26" />
         <SolidColorBrush x:Key="VisualWorkspaceOverlayLabelDotBrush" Color="#44302C26" />
         <SolidColorBrush x:Key="VisualWorkspacePathHoverFillBrush" Color="#28000000" />
@@ -138,7 +142,7 @@
         </Style>
 
         <Style x:Key="MainWorkspaceTabItem" TargetType="{x:Type TabItem}">
-            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0,0,4,0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -146,25 +150,46 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type TabItem}">
-                        <Border x:Name="TabBd"
-                                Padding="12,10"
-                                Margin="0,0,4,0"
-                                Background="Transparent"
-                                BorderThickness="0,0,0,2"
-                                BorderBrush="Transparent"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter ContentSource="Header"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
+                        <Grid x:Name="RootGrid" SnapsToDevicePixels="True">
+                            <Border x:Name="TabBd"
+                                    Padding="16,12"
+                                    Margin="0,0,4,0"
+                                    Background="Transparent"
+                                    BorderThickness="0,0,0,3"
+                                    BorderBrush="Transparent"
+                                    CornerRadius="4,4,0,0"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter x:Name="Content"
+                                                  ContentSource="Header"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                            <!-- Highlight bar for selected state -->
+                            <Border x:Name="SelectionIndicator"
+                                    Height="3"
+                                    VerticalAlignment="Bottom"
+                                    Margin="0,0,4,0"
+                                    Background="{DynamicResource AppAccentBrush}"
+                                    Visibility="Collapsed" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBd" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-                                <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="TabBd" Property="Background" Value="{DynamicResource AppControlSurfaceAltBrush}" />
                             </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsSelected" Value="False" />
+                                </MultiTrigger.Conditions>
                                 <Setter TargetName="TabBd" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -909,9 +934,9 @@
         </Style>
 
         <Style TargetType="{x:Type ToolTip}">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppTooltipBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppTooltipBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,6" />
         </Style>

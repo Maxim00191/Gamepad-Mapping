@@ -6,8 +6,8 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
     <Border Padding="8,4"
-            Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
-            BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}"
+            Background="{DynamicResource VisualWorkspaceHintBarBackgroundBrush}"
+            BorderBrush="{DynamicResource VisualWorkspaceHintBarBorderBrush}"
             BorderThickness="0,1,0,0"
             CornerRadius="4">
         <StackPanel>
@@ -19,20 +19,22 @@
                            VerticalAlignment="Center"
                            Margin="0,0,8,0" />
                 <TextBlock Text="{Binding UnusedActionIdsHint}"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                           Foreground="{DynamicResource VisualWorkspaceHintBarPrimaryForegroundBrush}"
                            FontSize="12"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"
                            ToolTipService.InitialShowDelay="100">
                     <TextBlock.ToolTip>
-                        <ToolTip Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
-                                 Foreground="{DynamicResource AppTextBrush}"
-                                 BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}">
+                        <ToolTip>
                             <StackPanel Margin="4">
                                 <TextBlock FontWeight="Bold"
                                            Margin="0,0,0,4"
+                                           Foreground="{DynamicResource AppTextBrush}"
                                            Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingUnusedCatalogActionIdsTooltipTitle]}" />
-                                <TextBlock Text="{Binding UnusedActionIdsTooltip}" />
+                                <TextBlock Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                           Text="{Binding UnusedActionIdsTooltip}"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="420" />
                             </StackPanel>
                         </ToolTip>
                     </TextBlock.ToolTip>
@@ -44,24 +46,26 @@
                         Visibility="{Binding HasDuplicateActionIds, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="&#xE8C8;"
                            FontFamily="Segoe MDL2 Assets"
-                           Foreground="Orange"
+                           Foreground="{DynamicResource AppSemanticWarningForegroundBrush}"
                            VerticalAlignment="Center"
                            Margin="0,0,8,0" />
                 <TextBlock Text="{Binding DuplicateActionIdsHint}"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                           Foreground="{DynamicResource VisualWorkspaceHintBarPrimaryForegroundBrush}"
                            FontSize="12"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"
                            ToolTipService.InitialShowDelay="100">
                     <TextBlock.ToolTip>
-                        <ToolTip Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
-                                 Foreground="{DynamicResource AppTextBrush}"
-                                 BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}">
+                        <ToolTip>
                             <StackPanel Margin="4">
                                 <TextBlock FontWeight="Bold"
                                            Margin="0,0,0,4"
+                                           Foreground="{DynamicResource AppTextBrush}"
                                            Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingDuplicateCatalogActionIdsTooltipTitle]}" />
-                                <TextBlock Text="{Binding DuplicateActionIdsTooltip}" />
+                                <TextBlock Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                           Text="{Binding DuplicateActionIdsTooltip}"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="420" />
                             </StackPanel>
                         </ToolTip>
                     </TextBlock.ToolTip>
@@ -73,22 +77,24 @@
                         Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="&#xE783;"
                            FontFamily="Segoe MDL2 Assets"
-                           Foreground="Red"
+                           Foreground="{DynamicResource AppSemanticErrorForegroundBrush}"
                            VerticalAlignment="Center"
                            Margin="0,0,8,0" />
-                <TextBlock Foreground="Red"
+                <TextBlock Foreground="{DynamicResource AppSemanticErrorForegroundBrush}"
                            FontSize="12"
                            VerticalAlignment="Center"
                            Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingValidationErrorsShort]}">
                     <TextBlock.ToolTip>
-                        <ToolTip Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
-                                 Foreground="{DynamicResource AppTextBrush}"
-                                 BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}">
+                        <ToolTip>
                             <StackPanel Margin="4">
                                 <TextBlock FontWeight="Bold"
                                            Margin="0,0,0,4"
+                                           Foreground="{DynamicResource AppTextBrush}"
                                            Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingValidationErrorsTooltipTitle]}" />
-                                <TextBlock Text="{Binding ValidationError}" />
+                                <TextBlock Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                           Text="{Binding ValidationError}"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="420" />
                             </StackPanel>
                         </ToolTip>
                     </TextBlock.ToolTip>
@@ -100,22 +106,24 @@
                         Visibility="{Binding HasValidationWarning, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="&#xE7BA;"
                            FontFamily="Segoe MDL2 Assets"
-                           Foreground="Orange"
+                           Foreground="{DynamicResource AppSemanticWarningForegroundBrush}"
                            VerticalAlignment="Center"
                            Margin="0,0,8,0" />
-                <TextBlock Foreground="Orange"
+                <TextBlock Foreground="{DynamicResource AppSemanticWarningForegroundBrush}"
                            FontSize="12"
                            VerticalAlignment="Center"
                            Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingValidationWarningsShort]}">
                     <TextBlock.ToolTip>
-                        <ToolTip Background="{DynamicResource VisualWorkspacePanelBackgroundBrush}"
-                                 Foreground="{DynamicResource AppTextBrush}"
-                                 BorderBrush="{DynamicResource VisualWorkspacePanelBorderBrush}">
+                        <ToolTip>
                             <StackPanel Margin="4">
                                 <TextBlock FontWeight="Bold"
                                            Margin="0,0,0,4"
+                                           Foreground="{DynamicResource AppTextBrush}"
                                            Text="{Binding Source={StaticResource Loc}, Path=[ProfileMappingValidationWarningsTooltipTitle]}" />
-                                <TextBlock Text="{Binding ValidationWarning}" />
+                                <TextBlock Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                           Text="{Binding ValidationWarning}"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="420" />
                             </StackPanel>
                         </ToolTip>
                     </TextBlock.ToolTip>

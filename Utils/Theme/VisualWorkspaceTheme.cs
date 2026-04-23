@@ -11,17 +11,18 @@ internal static class VisualWorkspaceTheme
     {
         if (light)
         {
-            resources["VisualWorkspacePanelBackgroundBrush"] = Brush(Color.FromRgb(0xD4, 0xCE, 0xC4));
+            resources["VisualWorkspacePanelBackgroundBrush"] = Brush(Color.FromRgb(0xEC, 0xE8, 0xE0));
             resources["VisualWorkspacePanelBorderBrush"] = Brush(Color.FromRgb(0x8F, 0x88, 0x7E));
-            resources["VisualWorkspaceListItemBackgroundBrush"] = Brush(Color.FromRgb(0xDF, 0xD9, 0xD0));
+            resources["VisualWorkspaceListItemBackgroundBrush"] = Brush(Color.FromRgb(0xF2, 0xEE, 0xE6));
             resources["VisualWorkspaceListItemSelectedBackgroundBrush"] = Brush(Color.FromRgb(0xB8, 0xC8, 0xE0));
             resources["VisualWorkspaceListAccentBrush"] = Brush(Color.FromRgb(0x2A, 0x4A, 0x7A));
             resources["VisualWorkspaceListItemHoverBorderBrush"] = Brush(Color.FromRgb(0x7A, 0x73, 0x69));
-            resources["VisualWorkspaceControllerBackgroundBrush"] = Brush(Color.FromRgb(0xC9, 0xC2, 0xB6));
-            resources["VisualWorkspaceHintBarBackgroundBrush"] = Brush(Color.FromArgb(0xCC, 0xBE, 0xB6, 0xA8));
+            resources["VisualWorkspaceControllerBackgroundBrush"] = Brush(Color.FromRgb(0xE2, 0xDD, 0xD4));
+            resources["VisualWorkspaceHintBarBackgroundBrush"] = Brush(Color.FromArgb(0xCC, 0xE2, 0xDD, 0xD4));
             resources["VisualWorkspaceHintBarBorderBrush"] = Brush(Color.FromRgb(0x8F, 0x88, 0x7E));
             resources["VisualWorkspaceHintBarPrimaryForegroundBrush"] = Brush(Color.FromRgb(0x24, 0x22, 0x1E));
-            resources["VisualWorkspaceHintBarSecondaryForegroundBrush"] = Brush(Color.FromRgb(0x73, 0x6E, 0x66));
+            // Darker than AppSecondaryTextBrush so the hint reads on translucent warm beige.
+            resources["VisualWorkspaceHintBarSecondaryForegroundBrush"] = Brush(Color.FromRgb(0x52, 0x4E, 0x46));
             resources["VisualWorkspaceOverlayLeaderMutedStrokeBrush"] = Brush(Color.FromArgb(0x66, 0x30, 0x2C, 0x26));
             resources["VisualWorkspaceOverlayLabelDotBrush"] = Brush(Color.FromArgb(0x44, 0x30, 0x2C, 0x26));
             resources["VisualWorkspacePathHoverFillBrush"] = Brush(Color.FromArgb(0x28, 0, 0, 0));
@@ -29,13 +30,13 @@ internal static class VisualWorkspaceTheme
             resources["VisualWorkspaceChordPartFillBrush"] = Brush(Color.FromArgb(0x40, 0x2A, 0x4A, 0x7A));
             resources["VisualWorkspaceStrongAccentBorderBrush"] = Brush(Color.FromArgb(0xCC, 0x2A, 0x4A, 0x7A));
             resources["VisualWorkspaceOverlayLabelPrimaryForegroundBrush"] = Brush(Color.FromRgb(0x24, 0x22, 0x1E));
-            resources["VisualWorkspaceOverlayLabelChipBackgroundBrush"] = Brush(Color.FromArgb(0xE0, 0xED, 0xEA, 0xE3));
+            resources["VisualWorkspaceOverlayLabelChipBackgroundBrush"] = Brush(Color.FromArgb(0xE0, 0xF7, 0xF5, 0xF0));
             resources["VisualWorkspaceOverlayLabelChipBorderBrush"] = Brush(Color.FromArgb(0x99, 0x80, 0x7A, 0x72));
             resources["VisualWorkspaceOverlayLabelChipExtraMappingsBackgroundBrush"] =
                 Brush(Color.FromArgb(0xD8, 0xDD, 0xE8, 0xF8));
             resources["VisualWorkspaceOverlayLabelChipExtraMappingsBorderBrush"] =
                 Brush(Color.FromArgb(0xB0, 0x2A, 0x4A, 0x7A));
-            resources["VisualWorkspaceOverlayLabelChipHoverBackgroundBrush"] = Brush(Color.FromArgb(0xF0, 0xD5, 0xD0, 0xC6));
+            resources["VisualWorkspaceOverlayLabelChipHoverBackgroundBrush"] = Brush(Color.FromArgb(0xF0, 0xE2, 0xDD, 0xD4));
         }
         else
         {
