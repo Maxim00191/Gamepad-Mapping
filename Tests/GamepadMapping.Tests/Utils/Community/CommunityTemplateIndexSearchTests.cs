@@ -77,6 +77,26 @@ public class CommunityTemplateIndexSearchTests
     }
 
     [Fact]
+    public void Filter_SearchesLocalizedDisplayNames_MapValues()
+    {
+        var list = new List<CommunityTemplateInfo>
+        {
+            new()
+            {
+                Id = "id1",
+                DisplayName = "English Only",
+                DisplayNames = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                {
+                    ["zh-CN"] = "洛克王国"
+                }
+            }
+        };
+
+        var hit = CommunityTemplateIndexSearch.Filter(list, "洛克");
+        Assert.Single(hit);
+    }
+
+    [Fact]
     public void Filter_ExtraSpacesBetweenTerms_StillMatches()
     {
         var list = new List<CommunityTemplateInfo>

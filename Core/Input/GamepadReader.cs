@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Numerics;
 using Gamepad_Mapping;
 using GamepadMapperGUI.Interfaces.Core;
@@ -12,12 +11,14 @@ namespace GamepadMapperGUI.Core
 
         private Task? _pollingTask;
         private CancellationTokenSource? _cts;
-        private int _pollingRateMs = 10;
+        private int _pollingRateMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(10);
+        private float _analogChangeEpsilon = 0.01f;
         private InputFrame _previousFrame;
         private bool _hasPreviousState;
         private bool _isFirstFrameEmission;
         private readonly object _startStopLock = new();
         private bool _disposed;
+        private long _lastPollingLoopErrorLogTick;
 
         private float _leftThumbstickDeadzone;
         private float _rightThumbstickDeadzone;
@@ -28,7 +29,6 @@ namespace GamepadMapperGUI.Core
         private float _rightTriggerInnerDeadzone;
         private float _rightTriggerOuterDeadzone = 1f;
 
-        private const float AnalogChangeEpsilon = 0.01f;
         private const float TriggerDeadzoneMinSpan = 0.02f;
 
         public event Action<InputFrame>? OnInputFrame;
@@ -63,6 +63,18 @@ namespace GamepadMapperGUI.Core
         {
             get => _thumbstickDeadzoneShape;
             set => _thumbstickDeadzoneShape = value;
+        }
+
+        public int PollingIntervalMs
+        {
+            get => _pollingRateMs;
+            set => _pollingRateMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(value);
+        }
+
+        public float AnalogChangeEpsilon
+        {
+            get => _analogChangeEpsilon;
+            set => _analogChangeEpsilon = GamepadInputStreamConstraints.ClampAnalogChangeEpsilon(value);
         }
 
         public float LeftThumbstickDeadzone
@@ -183,14 +195,14 @@ namespace GamepadMapperGUI.Core
                         var shouldEmit =
                             _isFirstFrameEmission ||
                             (_hasPreviousState && currentState.Buttons != _previousFrame.Buttons) ||
-                            (_hasPreviousState && HasAnalogChanged(_previousFrame.LeftThumbstick, currentState.LeftThumbstick, AnalogChangeEpsilon)) ||
+                            (_hasPreviousState && HasAnalogChanged(_previousFrame.LeftThumbstick, currentState.LeftThumbstick, _analogChangeEpsilon)) ||
                             (_hasPreviousState &&
-                             (HasAnalogChanged(_previousFrame.RightThumbstick, currentState.RightThumbstick, AnalogChangeEpsilon) ||
-                              IsAnalogEngaged(currentState.RightThumbstick, AnalogChangeEpsilon))) ||
+                             (HasAnalogChanged(_previousFrame.RightThumbstick, currentState.RightThumbstick, _analogChangeEpsilon) ||
+                              IsAnalogEngaged(currentState.RightThumbstick, _analogChangeEpsilon))) ||
                             (_hasPreviousState &&
-                             HasAnalogChanged(_previousFrame.LeftTrigger, currentState.LeftTrigger, AnalogChangeEpsilon)) ||
+                             HasAnalogChanged(_previousFrame.LeftTrigger, currentState.LeftTrigger, _analogChangeEpsilon)) ||
                             (_hasPreviousState &&
-                             HasAnalogChanged(_previousFrame.RightTrigger, currentState.RightTrigger, AnalogChangeEpsilon));
+                             HasAnalogChanged(_previousFrame.RightTrigger, currentState.RightTrigger, _analogChangeEpsilon));
 
                         if (shouldEmit)
                         {
@@ -214,7 +226,13 @@ namespace GamepadMapperGUI.Core
                 }
                 catch (Exception ex)
                 {
-                    App.Logger.Error("Critical error in GamepadReader PollingLoop", ex);
+                    // Avoid flooding the log if the driver throws on every poll (long sessions, bad device state).
+                    var now = Environment.TickCount64;
+                    if (_lastPollingLoopErrorLogTick == 0 || now - _lastPollingLoopErrorLogTick >= 30_000)
+                    {
+                        _lastPollingLoopErrorLogTick = now;
+                        App.Logger.Error("Critical error in GamepadReader PollingLoop", ex);
+                    }
                 }
 
                 if (ct.WaitHandle.WaitOne(_pollingRateMs))

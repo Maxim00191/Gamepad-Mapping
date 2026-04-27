@@ -220,7 +220,7 @@
     <value>Update selected binding</value>
   </data>
   <data name="HoldBindHelp" xml:space="preserve">
-    <value>Hold bind (optional): Trigger must be Tap. Hold the button at least the threshold to send the hold key once; quick release sends the short key. Button-only chords (no LT/RT in the chord).</value>
+    <value>Hold bind (optional): Short press trigger type must be set to Tap. Hold the button past the threshold to send the hold key once; releasing quickly sends the tap key. Only button combos without LT/RT are supported.</value>
   </data>
   <data name="HoldOutputLongPress" xml:space="preserve">
     <value>Hold output (long press)</value>
@@ -355,7 +355,7 @@
     <value>Standard Windows API for Xbox and compatible controllers.</value>
   </data>
   <data name="GamepadSourceDualSenseLabel" xml:space="preserve">
-    <value>DualSense (PlayStation 5)</value>
+    <value>DualSense (PlayStation 5) (not supported yet)</value>
   </data>
   <data name="GamepadSourceDualSenseHint" xml:space="preserve">
     <value>Native support for DualSense features (adaptive triggers, etc). Not yet implemented.</value>
@@ -508,7 +508,7 @@
     <value>Action id</value>
   </data>
   <data name="MappingActionIdManual" xml:space="preserve">
-    <value>(Manual key)</value>
+    <value>(Select key)</value>
   </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>Icon</value>
@@ -1029,7 +1029,7 @@ Do you want to overwrite it?</value>
     <value>Author folder</value>
   </data>
   <data name="CommunityUpload_ListingDescriptionLabel" xml:space="preserve">
-    <value>Listing description</value>
+    <value>Template description</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
     <value>Uploads use Cloudflare Worker + Turnstile handshake only. If the relevant configuration does not exist, you need to fill in the communityProfilesUploadWorkerUrl or Turnstile information in local_settings.json.</value>
@@ -1133,7 +1133,7 @@ This only removes your local copy.</value>
     <value>Community description</value>
   </data>
   <data name="TemplateCommunityDescriptionHudTitle" xml:space="preserve">
-    <value>Template usage description</value>
+    <value>Template description</value>
   </data>
   <data name="TemplateCommunityDescriptionHudHint" xml:space="preserve">
     <value>This template's brief description:</value>
@@ -1243,16 +1243,16 @@ Open the Microsoft download page to install it (Evergreen Runtime), then try aga
     <value>Paste the copied rule(s) into this template (Ctrl+V). Duplicate catalog IDs are renamed automatically.</value>
   </data>
   <data name="ProfileRuleClipboard_CopyFailedTitle" xml:space="preserve">
-    <value>Copy failed</value>
+    <value>Copy Failed</value>
   </data>
   <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>Failed to copy to clipboard: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
-    <value>Paste failed</value>
+    <value>Paste Failed</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>Failed to paste from clipboard: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
     <value>The copied rule data could not be read.</value>
@@ -1422,5 +1422,198 @@ Cancel — Keep working</value>
   </data>
   <data name="WorkspaceSave_ErrorTitle" xml:space="preserve">
     <value>Save failed</value>
+  </data>
+  <data name="Dialog_ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Profile_DeleteConfirmTitle" xml:space="preserve">
+    <value>Confirm delete</value>
+  </data>
+  <data name="Profile_DeleteConfirmMessage" xml:space="preserve">
+    <value>Delete profile '{0}' ({1})?</value>
+  </data>
+  <data name="ProfileOperation_DeleteFailed" xml:space="preserve">
+    <value>Failed to delete profile: {0}</value>
+  </data>
+  <data name="ProfileOperation_ReloadTemplatesFailed" xml:space="preserve">
+    <value>Failed to reload templates: {0}</value>
+  </data>
+  <data name="ProfileOperation_CreateFailed" xml:space="preserve">
+    <value>Failed to create profile: {0}</value>
+  </data>
+  <data name="MappingEditorUnknownKeyboardActionId" xml:space="preserve">
+    <value>Unknown keyboardActions id '{0}'.</value>
+  </data>
+  <data name="MappingEditorCatalogDialogTitle" xml:space="preserve">
+    <value>Catalog</value>
+  </data>
+  <data name="GamepadMonitor_LastMappedOutputNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="GamepadMonitor_WaitingForInputStatus" xml:space="preserve">
+    <value>Waiting for gamepad input</value>
+  </data>
+  <data name="UpdateInstallModeValue_Fx" xml:space="preserve">
+    <value>fx</value>
+  </data>
+  <data name="UpdateInstallModeValue_Single" xml:space="preserve">
+    <value>single</value>
+  </data>
+  <data name="UpdateInstallModeValue_Unknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="RadialMenu_DefaultDisplayName" xml:space="preserve">
+    <value>Radial</value>
+  </data>
+  <data name="MainWindow_TitleFormat" xml:space="preserve">
+    <value>Gamepad Mapping v{0}</value>
+  </data>
+  <data name="StartupDiagnostics_FatalErrorTitle" xml:space="preserve">
+    <value>Fatal error</value>
+  </data>
+  <data name="StartupDiagnostics_UnknownError" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="StartupDiagnostics_FatalErrorBodyFormat" xml:space="preserve">
+    <value>A fatal error has occurred and the application must close.
+
+Error: {0}
+
+Please check the logs for more details.</value>
+  </data>
+  <data name="AppStatus_NoTargetOutputSuppressed" xml:space="preserve">
+    <value>No target selected - output suppressed</value>
+  </data>
+  <data name="AppStatus_TargetRequiresAdminFormat" xml:space="preserve">
+    <value>Target requires admin privileges: {0} (PID {1})</value>
+  </data>
+  <data name="AppStatus_ConnectedFormat" xml:space="preserve">
+    <value>Connected: {0} (PID {1})</value>
+  </data>
+  <data name="AppStatus_ConnectedGraceFormat" xml:space="preserve">
+    <value>Connected (Grace Period): {0} (PID {1})</value>
+  </data>
+  <data name="AppStatus_WaitingForegroundFormat" xml:space="preserve">
+    <value>Waiting for target foreground: {0} (PID {1})</value>
+  </data>
+  <data name="TemplateSwitchHud_Title" xml:space="preserve">
+    <value>Profile switched</value>
+  </data>
+  <data name="ElevationRelaunch_Title" xml:space="preserve">
+    <value>Run as administrator</value>
+  </data>
+  <data name="ElevationRelaunch_Message" xml:space="preserve">
+    <value>The currently focused target appears to be running as administrator.
+
+To avoid Windows UIPI input blocking, relaunch this tool as administrator?</value>
+  </data>
+  <data name="DebugCornerToast_Title" xml:space="preserve">
+    <value>Debug: corner toast</value>
+  </data>
+  <data name="DebugCornerToast_Message" xml:space="preserve">
+    <value>Launched with --debug-toast. Dismiss or wait for auto-hide; no update or welcome flow runs.</value>
+  </data>
+  <data name="CommunityCatalog_AutoGettingUpdates" xml:space="preserve">
+    <value>Automatically getting updates</value>
+  </data>
+  <data name="ProfileCatalogValidationErrorsTitle" xml:space="preserve">
+    <value>Validation Errors</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithDescriptionFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithoutDescriptionFormat" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsHint" xml:space="preserve">
+    <value>{0} keyboard action IDs have duplicate controller bindings.</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>Currently duplicated keyboard action bindings are:</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsUnknownSource" xml:space="preserve">
+    <value>(unknown source)</value>
+  </data>
+  <data name="KeyboardActionPicker_DialogTitle" xml:space="preserve">
+    <value>Select keyboard action</value>
+  </data>
+  <data name="KeyboardActionPicker_SearchPlaceholder" xml:space="preserve">
+    <value>Search by action id, description, or key...</value>
+  </data>
+  <data name="Dialog_Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="KeyboardActionPicker_SearchLabel" xml:space="preserve">
+    <value>Search:</value>
+  </data>
+  <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
+    <value>Select keyboard key</value>
+  </data>
+  <data name="Undo_Action" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Redo_Action" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="MappingCatalogActionId_Empty" xml:space="preserve">
+    <value>None (Direct Input)</value>
+  </data>
+  <data name="ElevationRelaunch_TargetMessageFormat" xml:space="preserve">
+    <value>The selected target '{0}' is running as administrator.
+
+This mapper is not elevated, so Windows UIPI can block injected input.
+
+Relaunch this tool as administrator now?</value>
+  </data>
+  <data name="MappingCatalogSummaryItemCycleFormat" xml:space="preserve">
+    <value>Item Cycle (1-{0}, {1})</value>
+  </data>
+  <data name="UpdateDownloadSpeed_GigabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} GB/s</value>
+  </data>
+  <data name="UpdateDownloadSpeed_MegabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} MB/s</value>
+  </data>
+  <data name="UpdateDownloadSpeed_KilobytesPerSecondFormat" xml:space="preserve">
+    <value>{0} KB/s</value>
+  </data>
+  <data name="UpdateDownloadSpeed_BytesPerSecondFormat" xml:space="preserve">
+    <value>{0} B/s</value>
+  </data>
+  <data name="HoldOutputActionId" xml:space="preserve">
+    <value>Long press action</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldDialogTitle" xml:space="preserve">
+    <value>Select long press action</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldSearchPlaceholder" xml:space="preserve">
+    <value>Search long press action by id, description, or key...</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldManualInputLabel" xml:space="preserve">
+    <value>Select long press key</value>
+  </data>
+  <data name="WorkspaceSave_AttentionTooltip" xml:space="preserve">
+    <value>Save this template to keep your unsaved changes.</value>
+  </data>
+  <data name="TargetProcessRefreshTooltip" xml:space="preserve">
+    <value>Re-scan for a running process matching the name above (useful if you opened this tool before starting the game).</value>
+  </data>
+  <data name="TargetProcessRefresh_AttentionTooltip" xml:space="preserve">
+    <value>No matching process found yet — click to re-detect.</value>
+  </data>
+  <data name="TrayIcon_Tooltip" xml:space="preserve">
+    <value>Gamepad Mapping — running in the background</value>
+  </data>
+  <data name="TrayMenu_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="TrayMenu_Exit" xml:space="preserve">
+    <value>Exit</value>
   </data>
 </root>

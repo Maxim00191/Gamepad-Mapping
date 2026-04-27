@@ -75,9 +75,13 @@
                                         Margin="0,0,8,0"
                                         Visibility="{Binding IsTemplateWorkspaceDirty, Converter={StaticResource BoolToVis}}">
                                 <StackPanel.ToolTip>
-                                    <TextBlock MaxWidth="320"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceUnsavedIndicator]}" />
+                                    <ToolTip Background="{DynamicResource AppTooltipBackgroundBrush}"
+                                             BorderBrush="{DynamicResource AppTooltipBorderBrush}"
+                                             Foreground="{DynamicResource AppTextBrush}">
+                                        <TextBlock MaxWidth="320"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding Source={StaticResource Loc}, Path=[WorkspaceUnsavedIndicator]}" />
+                                    </ToolTip>
                                 </StackPanel.ToolTip>
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
                                            Text="&#xE7BA;"
@@ -253,7 +257,9 @@
                                 VerticalContentAlignment="Center"
                                 Margin="0,0,8,6"
                                 Content="{Binding Source={StaticResource Loc}, Path=[SaveProfile]}"
-                                Command="{Binding ProfileTemplatePanel.SaveProfileCommand}" />
+                                Command="{Binding ProfileTemplatePanel.SaveProfileCommand}"
+                                ToolTip="{Binding ProfileTemplatePanel.SaveProfileToolTip}"
+                                behaviors:ButtonAttentionAssist.IsSoftWarningHighlighted="{Binding ProfileTemplatePanel.ShouldHighlightSaveProfileButton}" />
                         <Button Height="32"
                                 MinWidth="72"
                                 Padding="10,0"
@@ -390,6 +396,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" MinWidth="100" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
                                        Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
@@ -401,6 +408,22 @@
                                      VerticalContentAlignment="Center"
                                      Text="{Binding ProcessTargetPanel.TemplateTargetProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="{Binding Source={StaticResource Loc}, Path=[TargetProcessNameToolTip]}" />
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    MinWidth="36"
+                                    Width="36"
+                                    Height="32"
+                                    Margin="8,0,0,0"
+                                    Padding="0"
+                                    Command="{Binding ProcessTargetPanel.RefreshDeclaredProcessTargetCommand}"
+                                    ToolTip="{Binding ProcessTargetPanel.TargetProcessRefreshToolTip}"
+                                    behaviors:ButtonAttentionAssist.IsSoftWarningHighlighted="{Binding ProcessTargetPanel.ShouldHighlightTargetProcessRefresh}">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                           Text="&#xE72C;"
+                                           FontSize="14"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Button>
                         </Grid>
                         <TextBlock Text="{Binding ProcessTargetPanel.TargetStatusText}"
                                    TextWrapping="Wrap"
@@ -469,7 +492,10 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2Zm1,15h-2v-2h2v2Zm0-4h-2V7h2v6Z"
                                   Fill="#EB5757" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Validation Errors" Foreground="#EB5757" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileCatalogValidationErrorsTitle]}"
+                                       Foreground="#EB5757"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding CatalogPanel.ValidationErrors}">
                             <ItemsControl.ItemTemplate>

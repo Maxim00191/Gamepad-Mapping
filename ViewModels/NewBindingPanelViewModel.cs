@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -130,11 +131,9 @@ public partial class NewBindingPanelViewModel : ObservableObject
         {
             if (!GamepadChordInput.TryParseTriggerMatchThreshold(NewBindingAnalogThresholdText, out var th))
             {
-                MessageBox.Show(
+                _mainViewModel.UserDialogService.ShowInfo(
                     AppUiLocalization.GetString("TriggerChordThresholdRequiredMessage"),
-                    AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    AppUiLocalization.GetString("MappingEditorSaveFailedTitle"));
                 return;
             }
 
@@ -155,9 +154,9 @@ public partial class NewBindingPanelViewModel : ObservableObject
         if (AppUiLocalization.TryTranslationService() is { } ts)
             CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
 
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
+        _mainViewModel.MappingsWorkspace.History.RecordCheckpoint();
         _mainViewModel.Mappings.Add(entry);
-        _mainViewModel.SelectedMapping = entry;
+        _mainViewModel.SelectMappingFromScope(entry, WorkspaceSelectionScope.Mappings);
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 

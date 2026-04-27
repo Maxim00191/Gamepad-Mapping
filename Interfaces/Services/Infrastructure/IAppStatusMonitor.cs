@@ -8,6 +8,7 @@ public interface IAppStatusMonitor : IDisposable
     event EventHandler<AppStatusChangedEventArgs>? StatusChanged;
     AppTargetingState CurrentState { get; }
     string CurrentStatusText { get; }
+    /// <summary>Cached result of the last targeting evaluation; safe to read from the gamepad polling thread.</summary>
     bool CanSendOutput { get; }
     void UpdateTarget(ProcessInfo? selectedTargetProcess, bool isProcessTargetingEnabled);
     void UpdateGracePeriod(int gracePeriodMs);

@@ -17,15 +17,17 @@ using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Core;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
+using GamepadMapperGUI.Services.Storage;
 using Newtonsoft.Json;
 using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Interfaces.Services.Editing;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Editing;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
-using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
-using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Radial;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
@@ -35,7 +37,8 @@ using Gamepad_Mapping.Services.ControllerVisual;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class MainViewModel : ObservableObject, IDisposable, IProfileSelectionInterlock
+public partial class MainViewModel : ObservableObject, IDisposable, IProfileSelectionInterlock, IWorkspaceState,
+    IActiveEditorWorkspaceProvider
 {
     private readonly Dispatcher _dispatcher;
     private readonly IUiSynchronization _uiSync;
@@ -64,6 +67,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly IUpdateInstallerService _updateInstallerService;
     private readonly IUpdateNotificationService _updateNotificationService;
     private readonly IAppToastService _appToastService;
+    private readonly IUserDialogService _userDialogService;
     private readonly AppToastViewModel _toastHost;
     private readonly IKeyboardEmulator? _keyboardEmulatorOverride;
     private readonly IMouseEmulator? _mouseEmulatorOverride;
@@ -77,10 +81,20 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly IMappingsForLogicalControlQuery _mappingsForLogicalControlQuery;
     private readonly Debouncer _communityListingDescriptionDebouncer;
     private readonly Debouncer _workspaceDirtyDebouncer;
-    private readonly IProfileTemplateEditHistoryService _templateEditHistory;
+    private readonly ILaunchInitialToastScheduler _launchInitialToastScheduler;
+    private readonly IMainShellVisibility? _mainShellVisibility;
+    private readonly IItemSelectionDialogService _itemSelectionDialogService;
+    private readonly IKeyboardActionSelectionBuilder _keyboardActionSelectionBuilder;
+    private readonly IProfileDomainService _profileDomainService;
+    private WorkspaceSelectionScope _activeSelectionScope;
     private WorkspaceObservableMutationWatcher? _workspaceMutationWatcher;
     private string? _workspacePersistenceBaselineJson;
     private bool _suppressProfileSelectionInterlock;
+
+    private MappingListEditorWorkspace _mappingsWorkspace = null!;
+    private KeyboardActionsEditorWorkspace _keyboardActionsWorkspace = null!;
+    private RadialMenusEditorWorkspace _radialMenusWorkspace = null!;
+    private ActiveEditorWorkspaceProvider _activeEditorWorkspaceProvider = null!;
 
     public UpdateViewModel UpdatePanel { get; }
     public AppToastViewModel ToastHost => _toastHost;
@@ -98,7 +112,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public IControllerVisualLayoutHelper ControllerVisualLayoutHelper => _controllerVisualLayoutHelper;
 
     public IMappingsForLogicalControlQuery MappingsForLogicalControlQuery => _mappingsForLogicalControlQuery;
-
+    public IItemSelectionDialogService ItemSelectionDialogService => _itemSelectionDialogService;
+    public IKeyboardActionSelectionBuilder KeyboardActionSelectionBuilder => _keyboardActionSelectionBuilder;
+    public IUserDialogService UserDialogService => _userDialogService;
     public MainViewModel(
         IProfileService? profileService = null,
         IGamepadReader? gamepadReader = null,
@@ -121,6 +137,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IUpdateQuotaPolicyProvider? updateQuotaPolicyProvider = null,
         IUpdateNotificationService? updateNotificationService = null,
         IAppToastService? appToastService = null,
+        IUserDialogService? userDialogService = null,
         IKeyboardEmulator? keyboardEmulator = null,
         IMouseEmulator? mouseEmulator = null,
         IXInput? xinput = null,
@@ -130,11 +147,17 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IControllerVisualLayoutSource? controllerVisualLayoutSource = null,
         IControllerVisualLoader? controllerVisualLoader = null,
         IControllerVisualLayoutHelper? controllerVisualLayoutHelper = null,
-        IRadialMenuHud? radialMenuHud = null)
+        IRadialMenuHud? radialMenuHud = null,
+        ILaunchInitialToastScheduler? launchInitialToastScheduler = null,
+        IUiOrchestrator? uiOrchestrator = null,
+        IItemSelectionDialogService? itemSelectionDialogService = null,
+        IProfileDomainService? profileDomainService = null,
+        IMainShellVisibility? mainShellVisibility = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
 
+        _mainShellVisibility = mainShellVisibility;
         _keyboardEmulatorOverride = keyboardEmulator;
         _mouseEmulatorOverride = mouseEmulator;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
@@ -147,21 +170,22 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
                 : NullRadialMenuHud.Instance);
         _settingsService = settingsService ?? new SettingsService();
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
-        _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory();
+        _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory(
+            getGamepadPollingIntervalMs: () => GamepadInputStreamConstraints.ClampPollingIntervalMs(_settingsOrchestrator.Settings.GamepadPollingIntervalMs));
         var appSettings = _settingsOrchestrator.Settings;
 
         _processNameDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
         _communityListingDescriptionDebouncer = new Debouncer(TimeSpan.FromMilliseconds(1200));
         _workspaceDirtyDebouncer = new Debouncer(TimeSpan.FromMilliseconds(80));
-
-        _templateEditHistory = new ProfileTemplateEditHistoryService(
-            BuildWorkspaceTemplateSnapshot,
-            ApplyWorkspaceTemplateSnapshot,
-            () => SelectedTemplate is not null);
+        _profileDomainService = profileDomainService ?? new ProfileDomainService();
+        _activeSelectionScope = WorkspaceSelectionScope.None;
+        _appToastService = appToastService ?? new AppToastService();
+        _userDialogService = userDialogService ?? new UserDialogService();
+        _toastHost = new AppToastViewModel(_appToastService);
 
         _profileService = profileService ?? new ProfileService(settingsService: _settingsService, appSettings: appSettings);
         _processTargetService = processTargetService ?? new ProcessTargetService();
-        _profileOrchestrator = new ProfileOrchestrator(_profileService, _processTargetService)
+        _profileOrchestrator = new ProfileOrchestrator(_profileService, _processTargetService, _appToastService)
         {
             SelectionInterlock = this
         };
@@ -184,8 +208,6 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _updateService = updateService ?? new UpdateService(sharedGitHubContentService, _settingsService, appSettings, resolvedUpdateVersionCacheService);
         _updateInstallerService = updateInstallerService ?? new UpdateInstallerService();
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
-        _appToastService = appToastService ?? new AppToastService();
-        _toastHost = new AppToastViewModel(_appToastService);
 
         _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
         _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
@@ -200,7 +222,11 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
         _mappingsForLogicalControlQuery = new MappingsForLogicalControlQuery(_controllerVisualService);
 
-        _uiOrchestrator = new UiOrchestrator(_appToastService, _dispatcher);
+        _uiOrchestrator = uiOrchestrator ?? new UiOrchestrator(_appToastService, _dispatcher, _mainShellVisibility);
+        _itemSelectionDialogService = itemSelectionDialogService ?? new ItemSelectionDialogService();
+        _keyboardActionSelectionBuilder = new KeyboardActionSelectionBuilder();
+        _launchInitialToastScheduler = launchInitialToastScheduler
+            ?? new LaunchInitialToastScheduler(_appToastService, _updateNotificationService, _settingsOrchestrator);
 
         UpdatePanel = new UpdateViewModel(
             _updateService,
@@ -209,7 +235,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _localFileService,
             _updateInstallerService,
             updateQuotaService ?? new UpdateQuotaService(updateQuotaPolicyProvider ?? new StaticUpdateQuotaPolicyProvider(), trustedUtcTimeService ?? new TrustedUtcTimeService()),
-            resolvedUpdateVersionCacheService);
+            resolvedUpdateVersionCacheService,
+            _userDialogService);
 
         var initialLeftDeadzone = ResolveStickDeadzone(appSettings.LeftThumbstickDeadzone, appSettings.ThumbstickDeadzone);
         var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, appSettings.ThumbstickDeadzone);
@@ -225,10 +252,18 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             appSettings.RightTriggerOuterDeadzone,
             dzShape);
         _gamepadService = new GamepadService(reader);
-        
+        _gamepadService.ApplyInputStreamTuning(
+            appSettings.GamepadPollingIntervalMs,
+            appSettings.AnalogChangeEpsilon);
+
         _keyboardCaptureService = keyboardCaptureService ?? new KeyboardCaptureService();
-        _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService);
-        _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(_processTargetService, _elevationHandler, initialGracePeriodMs: appSettings.FocusGracePeriodMs);
+        _elevationHandler = elevationHandler ?? new ElevationHandlerService(_processTargetService, _userDialogService);
+        var statusPollMs = Math.Clamp(appSettings.AppStatusPollIntervalMs, 20, 5000);
+        _appStatusMonitor = appStatusMonitor ?? new AppStatusMonitor(
+            _processTargetService,
+            _elevationHandler,
+            TimeSpan.FromMilliseconds(statusPollMs),
+            appSettings.FocusGracePeriodMs);
 
         var engine = mappingEngine ?? CreateMappingEngine();
         _mappingManager = new MappingManager(engine, _profileService);
@@ -251,7 +286,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         _profileService.ProfilesLoaded += (_, _) => OnPropertyChanged(nameof(AvailableTemplates));
         _appStatusMonitor.StatusChanged += (_, args) => _uiOrchestrator.UpdateStatus(args.State, args.StatusText);
-        _gamepadService.OnInputFrame += frame => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.EvaluateNow());
+        // Use cached CanSendOutput (updated by AppStatusMonitor's timer). Do not call EvaluateNow() per frame — it runs
+        // expensive foreground/process checks and would execute at gamepad polling rate.
+        _gamepadService.OnInputFrame += frame => _mappingManager.ProcessInputFrame(frame, _appStatusMonitor.CanSendOutput);
 
         _uiOrchestrator.PropertyChanged += (s, e) => {
             OnPropertyChanged(e.PropertyName);
@@ -264,6 +301,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         _profileOrchestrator.LoadSelectedTemplate();
         StartGamepad();
+        SetWorkspaceSelectionScope(GetWorkspaceSelectionScopeForTab(ProfileListTabIndex));
         RefreshRightPanelSurface();
         RuleClipboard.RefreshCommandStates();
         _dispatcher.BeginInvoke(ScheduleInitialToasts, DispatcherPriority.Loaded);
@@ -276,8 +314,151 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     public MappingEntry? SelectedMapping
     {
-        get => _mappingManager.SelectedMapping;
-        set => _mappingManager.SelectedMapping = value;
+        get => MappingSelection.SelectedItem;
+        set => MappingSelection.SelectedItem = value;
+    }
+
+    public KeyboardActionDefinition? SelectedKeyboardAction
+    {
+        get => KeyboardActionSelection.SelectedItem;
+        set => KeyboardActionSelection.SelectedItem = value;
+    }
+
+    public RadialMenuDefinition? SelectedRadialMenu
+    {
+        get => RadialMenuSelection.SelectedItem;
+        set => RadialMenuSelection.SelectedItem = value;
+    }
+
+    public WorkspaceSelectionScope ActiveWorkspaceSelectionScope => _activeSelectionScope;
+
+    public bool IsCreatingNewMapping
+    {
+        get => MappingEditorPanel.IsCreatingNewMapping;
+        set => MappingEditorPanel.IsCreatingNewMapping = value;
+    }
+
+    public void SetWorkspaceSelectionScope(WorkspaceSelectionScope scope)
+    {
+        if (_activeSelectionScope == scope)
+        {
+            RefreshRightPanelSurface();
+            RuleClipboard?.RefreshCommandStates();
+            return;
+        }
+
+        _activeSelectionScope = scope;
+        OnPropertyChanged(nameof(ActiveWorkspaceSelectionScope));
+        OnPropertyChanged(nameof(ActiveEditorWorkspace));
+        RefreshRightPanelSurface();
+        RuleClipboard?.RefreshCommandStates();
+    }
+
+    public void SelectMappingFromScope(MappingEntry? mapping, WorkspaceSelectionScope scope) =>
+        MappingSelection.SelectedItem = mapping;
+
+    public void UpdateMappingSelectionFromScope(IEnumerable<object> items, WorkspaceSelectionScope scope) =>
+        MappingSelection.UpdateSelection(items);
+
+    public void SelectAllMappingsFromScope(WorkspaceSelectionScope scope) =>
+        MappingSelection.SelectAll(Mappings);
+
+    public void SelectKeyboardActionFromScope(KeyboardActionDefinition? action, WorkspaceSelectionScope scope) =>
+        KeyboardActionSelection.SelectedItem = action;
+
+    public void UpdateKeyboardActionSelectionFromScope(IEnumerable<object> items, WorkspaceSelectionScope scope) =>
+        KeyboardActionSelection.UpdateSelection(items);
+
+    public void SelectAllKeyboardActionsFromScope(WorkspaceSelectionScope scope) =>
+        KeyboardActionSelection.SelectAll(KeyboardActions);
+
+    public void SelectRadialMenuFromScope(RadialMenuDefinition? radialMenu, WorkspaceSelectionScope scope) =>
+        RadialMenuSelection.SelectedItem = radialMenu;
+
+    public void UpdateRadialMenuSelectionFromScope(IEnumerable<object> items, WorkspaceSelectionScope scope) =>
+        RadialMenuSelection.UpdateSelection(items);
+
+    public void SelectAllRadialMenusFromScope(WorkspaceSelectionScope scope) =>
+        RadialMenuSelection.SelectAll(RadialMenus);
+
+    public void NotifyConfigurationChanged(ProfileRuleClipboardKind kind)
+    {
+        if (kind == ProfileRuleClipboardKind.Mapping)
+            MappingEditorPanel.NotifyConfigurationChanged();
+    }
+
+    public bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
+        => MappingEditorPanel.TryBuildMappingFromEditorFields(out entry, out messageKey);
+
+    public bool TryApplyAnalogThreshold(MappingEntry entry, string thresholdText)
+    {
+        var oldText = MappingEditorPanel.EditAnalogThresholdText;
+        MappingEditorPanel.EditAnalogThresholdText = thresholdText;
+        try
+        {
+            return MappingEditorPanel.TryApplyAnalogThreshold(entry);
+        }
+        finally
+        {
+            MappingEditorPanel.EditAnalogThresholdText = oldText;
+        }
+    }
+
+    public void ApplyDescriptionPairToMapping(MappingEntry entry, string primary, string secondary)
+    {
+        var oldP = MappingEditorPanel.EditBindingDescriptionPrimary;
+        var oldS = MappingEditorPanel.EditBindingDescriptionSecondary;
+        MappingEditorPanel.EditBindingDescriptionPrimary = primary;
+        MappingEditorPanel.EditBindingDescriptionSecondary = secondary;
+        try
+        {
+            MappingEditorPanel.ApplyDescriptionPairToMapping(entry);
+        }
+        finally
+        {
+            MappingEditorPanel.EditBindingDescriptionPrimary = oldP;
+            MappingEditorPanel.EditBindingDescriptionSecondary = oldS;
+        }
+    }
+
+    public void SyncCatalogOutputKindFromSelection() => CatalogPanel.SyncCatalogOutputKindFromSelection();
+
+    public void PullKeyboardCatalogDescriptionPair(out string primary, out string secondary)
+    {
+        primary = CatalogPanel.KeyboardCatalogDescriptionPrimary;
+        secondary = CatalogPanel.KeyboardCatalogDescriptionSecondary;
+    }
+
+    public void PushKeyboardCatalogDescriptionPair(string primary, string secondary)
+    {
+        var a = SelectedKeyboardAction;
+        if (a is null) return;
+        var d = a.Descriptions;
+        var b = a.Description;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), primary, secondary);
+        a.Descriptions = d;
+        a.Description = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyKeyboardAction(a, ts);
+    }
+
+    public void PullRadialMenuDisplayNamePair(out string primary, out string secondary)
+    {
+        primary = CatalogPanel.RadialMenuDisplayNamePrimary;
+        secondary = CatalogPanel.RadialMenuDisplayNameSecondary;
+    }
+
+    public void PushRadialMenuDisplayNamePair(string primary, string secondary)
+    {
+        var rm = SelectedRadialMenu;
+        if (rm is null) return;
+        var d = rm.DisplayNames;
+        var b = rm.DisplayName;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), primary, secondary);
+        rm.DisplayNames = d;
+        rm.DisplayName = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyRadialMenu(rm, ts);
     }
 
     public bool IsGamepadRunning => _gamepadService.IsRunning;
@@ -287,8 +468,33 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         VisualEditor = 0,
         Mappings = 1,
         KeyboardActions = 2,
-        RadialMenus = 3
+        RadialMenus = 3,
+        Community = 4,
     }
+
+    /// <summary>
+    /// Which catalog/mapping rule list is active for workspace commands (copy, paste, delete, select-all).
+    /// Visual and Mappings tabs share the mapping list; Community has no rule clipboard scope.
+    /// </summary>
+    public ProfileRuleClipboardKind? ActiveWorkspaceRuleClipboardKind => _activeSelectionScope switch
+    {
+        WorkspaceSelectionScope.Mappings or WorkspaceSelectionScope.VisualSurface => ProfileRuleClipboardKind.Mapping,
+        WorkspaceSelectionScope.KeyboardCatalog => ProfileRuleClipboardKind.KeyboardAction,
+        WorkspaceSelectionScope.RadialMenuCatalog => ProfileRuleClipboardKind.RadialMenu,
+        _ => null
+    };
+
+    /// <inheritdoc />
+    public IEditorWorkspace ActiveEditorWorkspace =>
+        _activeEditorWorkspaceProvider?.ActiveEditorWorkspace ?? InactiveEditorWorkspace.Instance;
+
+    public MappingListEditorWorkspace ActiveMappingListEditor => _mappingsWorkspace;
+
+    public MappingListEditorWorkspace MappingsWorkspace => _mappingsWorkspace;
+
+    public KeyboardActionsEditorWorkspace KeyboardActionsWorkspace => _keyboardActionsWorkspace;
+
+    public RadialMenusEditorWorkspace RadialMenusWorkspace => _radialMenusWorkspace;
 
     [ObservableProperty]
     private int _profileListTabIndex;
@@ -303,8 +509,19 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     partial void OnProfileListTabIndexChanged(int value)
     {
         IsVisualMode = value == (int)MainProfileWorkspaceTab.VisualEditor;
+        OnPropertyChanged(nameof(SelectedMapping));
+        SetWorkspaceSelectionScope(GetWorkspaceSelectionScopeForTab(value));
+        MappingEditorPanel?.RefreshWorkspaceSelectionMirror();
+        if (!IsVisualMode && VisualEditorPanel?.ClearVisualSelectionCommand.CanExecute(null) == true)
+        {
+            VisualEditorPanel.ClearVisualSelectionCommand.Execute(null);
+        }
         RefreshRightPanelSurface();
-        RuleClipboard.RefreshCommandStates();
+        OnPropertyChanged(nameof(ActiveEditorWorkspace));
+        RuleClipboard?.RefreshCommandStates();
+
+        if (value == (int)MainProfileWorkspaceTab.Community)
+            _ = CommunityCatalogPanel.EnsureCommunityCatalogIndexWhenEmptyAsync();
     }
 
     [ObservableProperty]
@@ -319,6 +536,10 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public CommunityCatalogViewModel CommunityCatalogPanel { get; private set; } = null!;
     public GamepadMonitorViewModel GamepadMonitorPanel { get; private set; } = null!;
     public ProcessTargetPanelViewModel ProcessTargetPanel { get; private set; } = null!;
+
+    public ISelectionService<MappingEntry> MappingSelection => _mappingsWorkspace.Selection;
+    public ISelectionService<KeyboardActionDefinition> KeyboardActionSelection => _keyboardActionsWorkspace.Selection;
+    public ISelectionService<RadialMenuDefinition> RadialMenuSelection => _radialMenusWorkspace.Selection;
 
     [ObservableProperty]
     private bool isWorkspaceHeaderExpanded = true;
@@ -346,13 +567,10 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void OnMappingManagerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(SelectedMapping))
-        {
-            OnPropertyChanged(nameof(SelectedMapping));
-            RefreshRightPanelSurface();
-            RuleClipboard?.RefreshCommandStates();
-        }
     }
+
+    public void ShowInfoToast(string titleKey, string messageKey, params object[] args) =>
+        _appToastService.ShowInfo(titleKey, messageKey, args);
 
     private void OnProfileOrchestratorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -373,21 +591,71 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void OnTemplateLoaded(GameProfileTemplate? template)
     {
-        _templateEditHistory.Clear();
+        App.Logger.Info($"Template loaded: {template?.DisplayName ?? "null"}");
+        _appToastService.LogDebug($"Template loaded: {template?.DisplayName ?? "null"}");
+        WorkspaceDebugTrace.Log("template", $"OnTemplateLoaded begin: {template?.DisplayName ?? "null"}");
+        using var validationScope = CatalogPanel.SuspendValidationRefresh();
         if (template is null)
         {
+            ClearWorkspaceCollections();
+            ResetWorkspaceEditingSession(selectFirstItems: false, clearClipboard: false);
             _workspacePersistenceBaselineJson = null;
             IsTemplateWorkspaceDirty = false;
             return;
         }
 
         _mappingManager.LoadTemplate(template);
+        var scope = GetWorkspaceSelectionScopeForTab(ProfileListTabIndex);
+        SetWorkspaceSelectionScope(scope);
+        ResetWorkspaceEditingSession(selectFirstItems: true, clearClipboard: false);
+
         ApplyDeclaredProcessTarget();
         UpdateTemplateToggleDisplayNames();
-        CatalogPanel.ResetSelection();
+        MappingEditorPanel.RefreshStatusDiagnostics();
         RefreshRightPanelSurface();
         CaptureWorkspacePersistenceBaseline();
         RefreshTemplateWorkspaceDirtyState();
+        WorkspaceDebugTrace.Log(
+            "template",
+            $"OnTemplateLoaded end: mappings={Mappings.Count}, selectedMapping={(SelectedMapping?.Id ?? "null")}");
+    }
+
+    /// <summary>
+    /// Clears undo/redo and selection state across all editor workspaces.
+    /// Called after template load/switch to guarantee the right panel and selection mirrors
+    /// are fully rehydrated from the newly loaded workspace payload.
+    /// </summary>
+    private void ResetWorkspaceEditingSession(bool selectFirstItems, bool clearClipboard)
+    {
+        _mappingsWorkspace.History.Clear();
+        _keyboardActionsWorkspace.History.Clear();
+        _radialMenusWorkspace.History.Clear();
+
+        if (clearClipboard)
+        {
+            _mappingsWorkspace.ClearClipboard();
+            _keyboardActionsWorkspace.ClearClipboard();
+            _radialMenusWorkspace.ClearClipboard();
+        }
+
+        MappingEditorPanel.IsCreatingNewMapping = false;
+
+        MappingSelection.ResetTo(selectFirstItems ? Mappings.FirstOrDefault() : null);
+        KeyboardActionSelection.ResetTo(selectFirstItems ? KeyboardActions.FirstOrDefault() : null);
+        RadialMenuSelection.ResetTo(selectFirstItems ? RadialMenus.FirstOrDefault() : null);
+        CatalogPanel.SelectedRadialSlot = null;
+
+        MappingEditorPanel.RefreshWorkspaceSelectionMirror();
+        CatalogPanel.RefreshWorkspaceSelectionMirrors();
+        RefreshRightPanelSurface();
+        RuleClipboard?.RefreshCommandStates();
+    }
+
+    private void ClearWorkspaceCollections()
+    {
+        Mappings.Clear();
+        KeyboardActions.Clear();
+        RadialMenus.Clear();
     }
 
     private void ApplyDeclaredProcessTarget()
@@ -399,9 +667,19 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void SyncAppStatusMonitor() => _appStatusMonitor.UpdateTarget(SelectedTargetProcess, IsProcessTargetingEnabled);
 
+    /// <summary>Re-resolves the declared process name and re-evaluates foreground targeting (for example after the game starts).</summary>
+    [RelayCommand]
+    private void RefreshDeclaredProcessTarget()
+    {
+        ApplyDeclaredProcessTarget();
+        SyncAppStatusMonitor();
+    }
+
     partial void OnSelectedTargetProcessChanged(ProcessInfo? value)
     {
-        if (value is not null) _elevationHandler.CheckAndPromptElevation(value);
+        if (value is not null && _elevationHandler.CheckAndPromptElevation(value))
+            return;
+
         IsProcessTargetingEnabled = value is not null;
         SyncAppStatusMonitor();
     }
@@ -419,7 +697,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     partial void OnLeadKeyReleaseSuppressMsSettingChanged(int value) => UpdateSetting(s => s.LeadKeyReleaseSuppressMs = Math.Clamp(value, 50, 10_000));
 
     [ObservableProperty] private int gamepadPollingIntervalMs;
-    partial void OnGamepadPollingIntervalMsChanged(int value) => UpdateSetting(s => s.GamepadPollingIntervalMs = Math.Clamp(value, 5, 30));
+    partial void OnGamepadPollingIntervalMsChanged(int value) => UpdateSetting(
+        s => s.GamepadPollingIntervalMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(value),
+        s => _gamepadService.ApplyInputStreamTuning(s.GamepadPollingIntervalMs, s.AnalogChangeEpsilon));
 
     [ObservableProperty] private int radialMenuConfirmModeIndex;
     partial void OnRadialMenuConfirmModeIndexChanged(int value) => UpdateSetting(s => s.RadialMenuConfirmMode = value == 0 ? "returnStickToCenter" : "releaseGuideKey");
@@ -464,7 +744,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     }
 
     [ObservableProperty] private float analogChangeEpsilon;
-    partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(s => s.AnalogChangeEpsilon = Math.Clamp(value, 0.001f, 0.1f));
+    partial void OnAnalogChangeEpsilonChanged(float value) => UpdateSetting(
+        s => s.AnalogChangeEpsilon = GamepadInputStreamConstraints.ClampAnalogChangeEpsilon(value),
+        s => _gamepadService.ApplyInputStreamTuning(s.GamepadPollingIntervalMs, s.AnalogChangeEpsilon));
 
     [ObservableProperty] private int keyboardTapHoldDurationMs;
     partial void OnKeyboardTapHoldDurationMsChanged(int value) => UpdateSetting(s => s.KeyboardTapHoldDurationMs = Math.Clamp(value, 20, 100));
@@ -573,11 +855,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private void RecreateGamepadReaderForCurrentSource()
     {
         var api = _settingsOrchestrator.Settings.GamepadSourceApi;
-        IGamepadSource source = api switch
+        if (string.Equals(api, GamepadSourceApiIds.DualSense, StringComparison.OrdinalIgnoreCase))
         {
-            GamepadSourceApiIds.DualSense => throw new NotImplementedException("DualSense source not yet implemented."),
-            _ => new XInputSource(new XInputService())
-        };
+            Gamepad_Mapping.App.Logger.Warning("DualSense source is not implemented yet. Falling back to XInput.");
+        }
+
+        IGamepadSource source = new XInputSource(new XInputService());
 
         var dzShape = ThumbstickDeadzoneShapeParser.Parse(_settingsOrchestrator.Settings.ThumbstickDeadzoneShape);
         var reader = new GamepadReader(
@@ -591,6 +874,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             dzShape);
 
         _gamepadService.ReplaceReader(reader);
+        _gamepadService.ApplyInputStreamTuning(
+            _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
+            _settingsOrchestrator.Settings.AnalogChangeEpsilon);
         OnPropertyChanged(nameof(IsGamepadRunning));
     }
 
@@ -648,6 +934,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         OnPropertyChanged(nameof(RadialSlotHudLinePrimaryColumnHeader));
         OnPropertyChanged(nameof(RadialSlotHudLineSecondaryColumnHeader));
         RefreshControllerVisualOverlays();
+        if (!GamepadMonitorPanel.IsGamepadRunning)
+            GamepadMonitorPanel.RefreshLocalizedIdleMonitorDefaults();
     }
 
     /// <summary>When true, the primary description field in editors is Chinese and the optional field is English.</summary>
@@ -667,6 +955,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public string RadialSlotHudLineSecondaryColumnHeader =>
         AppUiLocalization.OptionalAlternateLanguageDescriptionCaption();
 
+    private void DetachEditorWorkspaceHooks(IEditorWorkspace workspace)
+    {
+        workspace.History.HistoryChanged -= OnAnyEditorWorkspaceHistoryChanged;
+        workspace.StateChanged -= OnEditorWorkspaceStateChanged;
+    }
+
     public void Dispose()
     {
         if (Application.Current?.Resources["Loc"] is TranslationService catalogTranslationService)
@@ -675,7 +969,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _communityListingDescriptionDebouncer.Cancel();
         _workspaceDirtyDebouncer.Cancel();
         _workspaceMutationWatcher?.Dispose();
-        _templateEditHistory.HistoryChanged -= OnTemplateEditHistoryChanged;
+        DetachEditorWorkspaceHooks(_mappingsWorkspace);
+        DetachEditorWorkspaceHooks(_keyboardActionsWorkspace);
+        DetachEditorWorkspaceHooks(_radialMenusWorkspace);
         if (_mappingManager is INotifyPropertyChanged mappingNotify)
             mappingNotify.PropertyChanged -= OnMappingManagerPropertyChanged;
         GamepadMonitorPanel.PropertyChanged -= OnGamepadMonitorPanelSettingsChanged;
@@ -685,6 +981,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _mappingManager.Dispose();
         _radialMenuHud.Dispose();
         _appStatusMonitor.Dispose();
+        CommunityCatalogPanel.Dispose();
+        UpdatePanel.Dispose();
+        _appToastService.NotifyApplicationExiting();
         _toastHost.Dispose();
     }
 
@@ -725,7 +1024,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         if (_dispatcher.CheckAccess())
             Apply();
         else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Normal);
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     private void ShowTemplateSwitchHud(string profileDisplayName)
@@ -748,20 +1047,37 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _settingsOrchestrator.Settings.InputEmulationApi,
             () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings));
 
-    private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse) =>
-        new MappingEngine(
+    private Action<string> MarshaledGamepadMonitorSetter(Action<string> apply) =>
+        s =>
+        {
+            if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+                return;
+            _uiSync.Post(() => apply(s), UiPostPriority.Background);
+        };
+
+    private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse)
+    {
+        Action<string> setMappedOutput = MarshaledGamepadMonitorSetter(s => GamepadMonitorPanel.LastMappedOutput = s);
+        Action<string> setMappingStatus = MarshaledGamepadMonitorSetter(s => GamepadMonitorPanel.LastMappingStatus = s);
+
+        return new MappingEngine(
             keyboard,
             mouse,
             () => _appStatusMonitor.CanSendOutput,
             _uiSync,
-            v => GamepadMonitorPanel.LastMappedOutput = v,
-            v => GamepadMonitorPanel.LastMappingStatus = v,
+            setMappedOutput,
+            setMappingStatus,
             OnComboHud,
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
-            pid => _dispatcher.BeginInvoke(() => _profileOrchestrator.RequestTemplateSwitch(pid)),
+            pid => _dispatcher.BeginInvoke(() => _profileOrchestrator.RequestTemplateSwitch(pid), DispatcherPriority.Background),
             profileService: _profileService,
-            setComboHudGateHint: s => _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
+            setComboHudGateHint: s =>
+            {
+                if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+                    return;
+                _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty, DispatcherPriority.Background);
+            },
             comboHudGateMessageFactory: _settingsOrchestrator.GetComboHudGateMessageFactory(),
             radialMenuHud: _radialMenuHud,
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
@@ -771,11 +1087,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             getMouseLookSmoothing: () => _settingsOrchestrator.Settings.MouseLookSmoothing,
             getMouseLookSettleMagnitude: () => _settingsOrchestrator.Settings.MouseLookSettleMagnitude,
             getMouseLookReboundSuppression: () => _settingsOrchestrator.Settings.MouseLookReboundSuppression,
-            getGamepadPollingIntervalMs: () => _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
+            getGamepadPollingIntervalMs: () => GamepadInputStreamConstraints.ClampPollingIntervalMs(_settingsOrchestrator.Settings.GamepadPollingIntervalMs),
             getAnalogChangeEpsilon: () => _settingsOrchestrator.Settings.AnalogChangeEpsilon,
             getAnalogHysteresisPressExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisPressExtra,
             getAnalogHysteresisReleaseExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisReleaseExtra,
             getKeyboardTapHoldDurationMs: () => _settingsOrchestrator.Settings.KeyboardTapHoldDurationMs);
+    }
 
     private void RecreateMappingEngineForCurrentInputApi()
     {
@@ -789,22 +1106,46 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private static string NormalizeInputEmulationApiId(string? raw) =>
         string.IsNullOrWhiteSpace(raw) ? InputEmulationApiIds.Win32 : raw.Trim();
 
+    private void HandleWorkspaceSelectionChanged()
+    {
+        _mappingManager.SelectedMapping = MappingSelection.SelectedItem;
+        OnPropertyChanged(nameof(SelectedMapping));
+        OnPropertyChanged(nameof(SelectedKeyboardAction));
+        OnPropertyChanged(nameof(SelectedRadialMenu));
+        MappingEditorPanel?.RefreshWorkspaceSelectionMirror();
+        CatalogPanel?.RefreshWorkspaceSelectionMirrors();
+        RefreshRightPanelSurface();
+        RuleClipboard?.RefreshCommandStates();
+    }
+
     // Helper methods for UI refresh
     internal void RefreshRightPanelSurface()
     {
-        var isVisualTab = ProfileListTabIndex == (int)MainProfileWorkspaceTab.VisualEditor;
-        var mappingSurfaceTab = isVisualTab || ProfileListTabIndex == (int)MainProfileWorkspaceTab.Mappings;
         var hasMappingEditorContext = SelectedMapping is not null || MappingEditorPanel.IsCreatingNewMapping;
-        
-        // P5: Persistent detail pane logic - if we are in visual tab and have a selected element, show mapping details
-        var showMapping = mappingSurfaceTab
-            && (hasMappingEditorContext || (isVisualTab && HasSelectedVisualControl()));
-        var showKeyboard = ProfileListTabIndex == (int)MainProfileWorkspaceTab.KeyboardActions
-            && CatalogPanel.SelectedKeyboardAction is not null;
-        var showRadial = ProfileListTabIndex == (int)MainProfileWorkspaceTab.RadialMenus
-            && CatalogPanel.SelectedRadialMenu is not null;
+        var next = _activeSelectionScope switch
+        {
+            WorkspaceSelectionScope.Mappings => hasMappingEditorContext
+                ? ProfileRightPanelSurface.Mapping
+                : ProfileRightPanelSurface.None,
+            WorkspaceSelectionScope.VisualSurface => hasMappingEditorContext || HasSelectedVisualControl()
+                ? ProfileRightPanelSurface.Mapping
+                : ProfileRightPanelSurface.None,
+            WorkspaceSelectionScope.KeyboardCatalog => SelectedKeyboardAction is not null
+                ? ProfileRightPanelSurface.KeyboardAction
+                : ProfileRightPanelSurface.None,
+            WorkspaceSelectionScope.RadialMenuCatalog => SelectedRadialMenu is not null
+                ? ProfileRightPanelSurface.RadialMenu
+                : ProfileRightPanelSurface.None,
+            _ => ProfileRightPanelSurface.None
+        };
 
-        RightPanelSurface = showMapping ? ProfileRightPanelSurface.Mapping : showKeyboard ? ProfileRightPanelSurface.KeyboardAction : showRadial ? ProfileRightPanelSurface.RadialMenu : ProfileRightPanelSurface.None;
+        if (RightPanelSurface == next)
+        {
+            OnPropertyChanged(nameof(RightPanelSurface));
+            return;
+        }
+
+        RightPanelSurface = next;
     }
 
     private bool HasSelectedVisualControl() =>
@@ -857,10 +1198,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         CatalogDescriptionLocalizer.ApplyOpenTemplateCollections(KeyboardActions, Mappings, RadialMenus, ts);
     }
 
-    public IProfileTemplateEditHistoryService TemplateEditHistory => _templateEditHistory;
-
-    /// <summary>Captures the current template workspace for undo/redo (mappings, catalogs, combo leads).</summary>
-    public void RecordTemplateWorkspaceCheckpoint() => _templateEditHistory.RecordCheckpoint();
+    /// <summary>Captures an undo checkpoint for the currently active editor tab.</summary>
+    public void RecordTemplateWorkspaceCheckpoint() => ActiveEditorWorkspace.History.RecordCheckpoint();
 
     /// <summary>Coalesces dirty checks after rapid mutations (grid cells, collections, undo stack).</summary>
     public void ScheduleTemplateWorkspaceDirtyRefresh() =>
@@ -938,80 +1277,105 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         }
     }
 
+    /// <summary>
+    /// When the user closes the main window with unsaved template edits, prompts to save, discard, or cancel.
+    /// </summary>
+    /// <returns>True if the window close should be cancelled.</returns>
+    public bool ShouldCancelCloseDueToUnsavedWorkspace()
+    {
+        var shouldContinue = TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedExitPrompt",
+            showSaveFailureDialog: true);
+        return !shouldContinue;
+    }
+
+    public bool IsApplicationShutdownPending { get; private set; }
+
+    public void BeginApplicationShutdown() => IsApplicationShutdownPending = true;
+
+    public bool TryPrepareShutdownAfterWorkspacePrompt() =>
+        TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedExitPrompt",
+            showSaveFailureDialog: true);
+
+    public void OnMainWindowHiddenToTray() => _mainShellVisibility?.NotifyPrimaryShellHiddenToTray();
+
+    public void OnMainWindowRestoredFromTray()
+    {
+        _mainShellVisibility?.NotifyPrimaryShellShownFromTray();
+        _appStatusMonitor.EvaluateNow();
+    }
+
+    private MessageBoxResult ShowUnsavedWorkspaceDialog(string localizedMessage)
+    {
+        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
+        return _userDialogService.Show(
+            localizedMessage,
+            title,
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Warning);
+    }
+
+    private void ShowWorkspaceSaveFailedIfNeeded(string? err)
+    {
+        if (string.IsNullOrWhiteSpace(err))
+            return;
+
+        var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
+        _userDialogService.ShowError(
+            string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
+            title);
+    }
+
     /// <summary>Reload from disk without changing the selected template row (discard in-memory edits).</summary>
     public bool ConfirmDiscardOrSaveBeforeReloadFromDisk()
     {
-        if (!IsTemplateWorkspaceDirty)
-            return true;
-
-        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedReloadPrompt");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-        switch (result)
-        {
-            case MessageBoxResult.Yes:
-                return TryPersistWorkspaceTemplateToDisk(out _);
-            case MessageBoxResult.No:
-                return true;
-            default:
-                return false;
-        }
+        return TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedReloadPrompt",
+            showSaveFailureDialog: false);
     }
 
     /// <summary>Confirm before refreshing the template list from disk while the editor may have unsaved edits.</summary>
     public bool ConfirmDiscardOrSaveBeforeTemplateMetadataRefresh()
     {
-        if (!IsTemplateWorkspaceDirty)
-            return true;
-
-        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedRefreshTemplatesListPrompt");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-        switch (result)
-        {
-            case MessageBoxResult.Yes:
-                return TryPersistWorkspaceTemplateToDisk(out _);
-            case MessageBoxResult.No:
-                ReloadSelectedTemplate();
-                return true;
-            default:
-                return false;
-        }
+        return TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedRefreshTemplatesListPrompt",
+            showSaveFailureDialog: false,
+            onDiscardConfirmed: ReloadSelectedTemplate);
     }
 
     bool IProfileSelectionInterlock.AllowSelectTemplate(TemplateOption? current, TemplateOption? proposed)
     {
         if (_suppressProfileSelectionInterlock)
             return true;
+
+        return TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedSwitchPrompt",
+            showSaveFailureDialog: true);
+    }
+
+    private bool TryContinueAfterUnsavedWorkspacePrompt(
+        string messageLocalizationKey,
+        bool showSaveFailureDialog,
+        Action? onDiscardConfirmed = null)
+    {
         if (!IsTemplateWorkspaceDirty)
             return true;
 
-        var title = AppUiLocalization.GetString("WorkspaceUnsavedChangesTitle");
-        var message = AppUiLocalization.GetString("WorkspaceUnsavedSwitchPrompt");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-        switch (result)
+        var result = ShowUnsavedWorkspaceDialog(AppUiLocalization.GetString(messageLocalizationKey));
+        if (result == MessageBoxResult.No)
         {
-            case MessageBoxResult.Yes:
-                if (!TryPersistWorkspaceTemplateToDisk(out var err))
-                {
-                    if (!string.IsNullOrWhiteSpace(err))
-                    {
-                        MessageBox.Show(
-                            string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err),
-                            title,
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    }
-
-                    return false;
-                }
-
-                return true;
-            case MessageBoxResult.No:
-                return true;
-            default:
-                return false;
+            onDiscardConfirmed?.Invoke();
+            return true;
         }
+
+        if (result != MessageBoxResult.Yes)
+            return false;
+
+        var saved = TryPersistWorkspaceTemplateToDisk(out var err);
+        if (!saved && showSaveFailureDialog)
+            ShowWorkspaceSaveFailedIfNeeded(err);
+        return saved;
     }
 
     void IProfileSelectionInterlock.NotifySelectedTemplateBindingRefresh()
@@ -1021,6 +1385,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         else
             _dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(SelectedTemplate)));
     }
+
+    /// <summary>
+    /// Current in-memory profile workspace as a <see cref="GameProfileTemplate"/> for validation and UI diagnostics.
+    /// Reflects unsaved edits; does not read from disk.
+    /// </summary>
+    public GameProfileTemplate? GetWorkspaceTemplateSnapshot() => BuildWorkspaceTemplateSnapshot();
 
     private GameProfileTemplate? BuildWorkspaceTemplateSnapshot()
     {
@@ -1053,20 +1423,43 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         };
     }
 
-    private void ApplyWorkspaceTemplateSnapshot(GameProfileTemplate template)
+    private static bool IdEquals(string? a, string? b) =>
+        string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    private static WorkspaceSelectionScope GetWorkspaceSelectionScopeForTab(int tabIndex) =>
+        tabIndex switch
+        {
+            (int)MainProfileWorkspaceTab.VisualEditor => WorkspaceSelectionScope.VisualSurface,
+            (int)MainProfileWorkspaceTab.Mappings => WorkspaceSelectionScope.Mappings,
+            (int)MainProfileWorkspaceTab.KeyboardActions => WorkspaceSelectionScope.KeyboardCatalog,
+            (int)MainProfileWorkspaceTab.RadialMenus => WorkspaceSelectionScope.RadialMenuCatalog,
+            _ => WorkspaceSelectionScope.None
+        };
+
+    private static bool IdMatchesAny(string? id, IEnumerable<string> candidates)
     {
-        _profileOrchestrator.ComboLeadButtonsPersist = template.ComboLeadButtons?.ToList();
-        _mappingManager.LoadTemplate(template);
-        UpdateTemplateToggleDisplayNames();
-        CatalogPanel.ResetSelection();
-        RefreshAfterRulePastedFromClipboard();
-        RuleClipboard.RefreshCommandStates();
+        foreach (var c in candidates)
+        {
+            if (IdEquals(id, c))
+                return true;
+        }
+
+        return false;
     }
 
-    private void OnTemplateEditHistoryChanged(object? sender, EventArgs e)
+    private void OnAnyEditorWorkspaceHistoryChanged(object? sender, EventArgs e)
     {
         RuleClipboard?.RefreshCommandStates();
         ScheduleTemplateWorkspaceDirtyRefresh();
+    }
+
+    private void OnEditorWorkspaceStateChanged(object? sender, EventArgs e) =>
+        RuleClipboard?.RefreshCommandStates();
+
+    private void AttachEditorWorkspaceHooks(IEditorWorkspace workspace)
+    {
+        workspace.History.HistoryChanged += OnAnyEditorWorkspaceHistoryChanged;
+        workspace.StateChanged += OnEditorWorkspaceStateChanged;
     }
 
     private static string? NormalizeWorkspaceOptionalField(string? value)
@@ -1140,7 +1533,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         AvailableGamepadApis.Clear();
         AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.XInput, _settingsOrchestrator.Localize("GamepadSourceXInputLabel")));
-        AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.DualSense, _settingsOrchestrator.Localize("GamepadSourceDualSenseLabel")));
+
+        if (!string.Equals(appSettings.GamepadSourceApi, GamepadSourceApiIds.XInput, StringComparison.OrdinalIgnoreCase))
+        {
+            appSettings.GamepadSourceApi = GamepadSourceApiIds.XInput;
+            _settingsOrchestrator.SaveSettings();
+        }
 
         SyncInputApiUi(NormalizeInputEmulationApiId(appSettings.InputEmulationApi));
         SyncGamepadSourceUi(appSettings.GamepadSourceApi ?? GamepadSourceApiIds.XInput);
@@ -1148,6 +1546,30 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)
     {
+        _mappingsWorkspace = new MappingListEditorWorkspace(
+            EditorWorkspaceKind.Mappings,
+            this,
+            _profileDomainService,
+            _appToastService);
+        _keyboardActionsWorkspace = new KeyboardActionsEditorWorkspace(
+            this,
+            _profileDomainService,
+            _appToastService);
+        _radialMenusWorkspace = new RadialMenusEditorWorkspace(
+            this,
+            _profileDomainService,
+            _appToastService);
+        _activeEditorWorkspaceProvider = new ActiveEditorWorkspaceProvider(
+            () => ProfileListTabIndex,
+            new Dictionary<EditorWorkspaceKind, IEditorWorkspace>
+            {
+                [EditorWorkspaceKind.Mappings] = _mappingsWorkspace,
+                [EditorWorkspaceKind.KeyboardActions] = _keyboardActionsWorkspace,
+                [EditorWorkspaceKind.RadialMenus] = _radialMenusWorkspace
+            });
+        MappingSelection.SelectionChanged += (_, _) => HandleWorkspaceSelectionChanged();
+        KeyboardActionSelection.SelectionChanged += (_, _) => HandleWorkspaceSelectionChanged();
+        RadialMenuSelection.SelectionChanged += (_, _) => HandleWorkspaceSelectionChanged();
         MappingEditorPanel = new MappingEditorViewModel(this);
         VisualEditorPanel = new VisualEditorViewModel(
             this,
@@ -1165,19 +1587,25 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _communityTemplateUploadService,
             _communityTemplateComplianceService,
             _appToastService,
+            _userDialogService,
             s.CommunityCatalogRefreshCooldownSeconds);
-        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
+        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _mainShellVisibility, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);
-        var clipboardService = new ProfileRuleClipboardService();
-        RuleClipboard = new ProfileRuleClipboardViewModel(this, clipboardService, _appToastService, _templateEditHistory);
-        _templateEditHistory.HistoryChanged += OnTemplateEditHistoryChanged;
+        RuleClipboard = new ProfileRuleClipboardViewModel(this);
+        AttachEditorWorkspaceHooks(_mappingsWorkspace);
+        AttachEditorWorkspaceHooks(_keyboardActionsWorkspace);
+        AttachEditorWorkspaceHooks(_radialMenusWorkspace);
         _workspaceMutationWatcher = new WorkspaceObservableMutationWatcher(
             Mappings,
             KeyboardActions,
             RadialMenus,
-            ScheduleTemplateWorkspaceDirtyRefresh);
+            () => {
+                ScheduleTemplateWorkspaceDirtyRefresh();
+                MappingEditorPanel.RefreshStatusDiagnostics();
+                CatalogPanel.NotifyWorkspaceStateChanged();
+            });
         MappingEditorPanel.PropertyChanged += OnMappingEditorClipboardRelatedPropertyChanged;
         CatalogPanel.PropertyChanged += OnCatalogPanelClipboardRelatedPropertyChanged;
         RefreshControllerVisualOverlays();
@@ -1191,9 +1619,6 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void OnCatalogPanelClipboardRelatedPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(ProfileCatalogPanelViewModel.SelectedKeyboardAction)
-            or nameof(ProfileCatalogPanelViewModel.SelectedRadialMenu))
-            RuleClipboard.RefreshCommandStates();
     }
 
     private void ApplyGamepadMonitorInitialUiState(AppSettings s)
@@ -1232,11 +1657,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             UpdateSetting(s => s.GamepadMonitorVisible = GamepadMonitorPanel.IsMonitorExpanderExpanded);
     }
 
-    private void ScheduleInitialToasts()
-    {
-        if (App.LaunchUpdateSuccessArgs is not null)
-            _uiOrchestrator.ShowToast(_settingsOrchestrator.Localize("UpdateSuccessToastTitle"), _settingsOrchestrator.FormatUpdateSuccessMessage(App.LaunchUpdateSuccessArgs.Value.ReleaseTag));
-    }
+    private void ScheduleInitialToasts() => _launchInitialToastScheduler.ScheduleInitial();
 
     private ICommunityTemplateUploadService ResolveDefaultCommunityTemplateUploadService(
         AppSettings settings,
@@ -1245,7 +1666,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         var ticketProvider = new CommunityUploadTicketTokenProvider(
             settings,
             new WebView2RuntimeAvailability(),
-            _settingsOrchestrator.Localize);
+            _settingsOrchestrator.Localize,
+            _userDialogService);
         return new CommunityTemplateWorkerUploadService(settings, null, compliance, ticketProvider);
     }
 }

@@ -4,7 +4,9 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -28,6 +30,7 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     private GamepadMonitorUiSnapshot _pendingSnapshot;
     private DispatcherTimer? _uiRefreshTimer;
     private readonly Dispatcher _uiDispatcher;
+    private readonly IMainShellVisibility? _mainShellVisibility;
 
     public GamepadMonitorViewModel(
         ICommand stopGamepadCommand,
@@ -46,6 +49,7 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
         Action<int, double>? comboHudChromeChanged = null,
         double initialTemplateSwitchHudSeconds = 3.0,
         Action<double>? templateSwitchHudChanged = null,
+        IMainShellVisibility? mainShellVisibility = null,
         Dispatcher? uiDispatcher = null)
     {
         StopGamepadCommand = stopGamepadCommand;
@@ -55,7 +59,10 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
         _triggerDeadzonesChanged = triggerDeadzonesChanged;
         _comboHudChromeChanged = comboHudChromeChanged;
         _templateSwitchHudChanged = templateSwitchHudChanged;
+        _mainShellVisibility = mainShellVisibility;
         _uiDispatcher = uiDispatcher ?? Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        if (_mainShellVisibility is not null)
+            _mainShellVisibility.PrimaryShellHiddenToTrayChanged += OnPrimaryShellHiddenToTrayChanged;
         leftThumbstickDeadzone = initialLeftThumbstickDeadzone;
         rightThumbstickDeadzone = initialRightThumbstickDeadzone;
         leftTriggerInnerDeadzone = initialLeftTriggerInnerDeadzone;
@@ -103,9 +110,30 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     partial void OnIsGamepadRunningChanged(bool value)
     {
         if (value)
-            StartUiRefreshTimer();
+            RefreshUiRefreshTimerForShellState();
         else
             StopUiRefreshTimer();
+    }
+
+    private void OnPrimaryShellHiddenToTrayChanged(object? sender, EventArgs e)
+    {
+        void Apply() => RefreshUiRefreshTimerForShellState();
+
+        if (_uiDispatcher.CheckAccess())
+            Apply();
+        else
+            _uiDispatcher.BeginInvoke(Apply, DispatcherPriority.Normal);
+    }
+
+    private void RefreshUiRefreshTimerForShellState()
+    {
+        if (!IsGamepadRunning)
+            return;
+
+        if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+            StopUiRefreshTimer();
+        else
+            StartUiRefreshTimer();
     }
 
     private void StartUiRefreshTimer()
@@ -147,7 +175,19 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
         LastButtonReleased = snap.LastButtonReleased;
     }
 
-    public void Dispose() => StopUiRefreshTimer();
+    public void Dispose()
+    {
+        if (_mainShellVisibility is not null)
+            _mainShellVisibility.PrimaryShellHiddenToTrayChanged -= OnPrimaryShellHiddenToTrayChanged;
+        StopUiRefreshTimer();
+    }
+
+    /// <summary>Re-applies idle monitor labels after UI culture changes. Prefer calling when the gamepad reader is stopped.</summary>
+    public void RefreshLocalizedIdleMonitorDefaults()
+    {
+        LastMappedOutput = AppUiLocalization.GetString("GamepadMonitor_LastMappedOutputNone");
+        LastMappingStatus = AppUiLocalization.GetString("GamepadMonitor_WaitingForInputStatus");
+    }
 
     [ObservableProperty]
     private bool isGamepadRunning;
@@ -159,10 +199,10 @@ public partial class GamepadMonitorViewModel : ObservableObject, IDisposable
     private string lastButtonReleased = string.Empty;
 
     [ObservableProperty]
-    private string lastMappedOutput = "None";
+    private string lastMappedOutput = AppUiLocalization.GetString("GamepadMonitor_LastMappedOutputNone");
 
     [ObservableProperty]
-    private string lastMappingStatus = "Waiting for gamepad input";
+    private string lastMappingStatus = AppUiLocalization.GetString("GamepadMonitor_WaitingForInputStatus");
 
     /// <summary>Non-empty when combo HUD preview is suppressed because output dispatch is blocked (targeting / focus / UIPI).</summary>
     [ObservableProperty]

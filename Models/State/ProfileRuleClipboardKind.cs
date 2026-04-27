@@ -1,6 +1,6 @@
 namespace GamepadMapperGUI.Models;
 
-/// <summary>Which template rule type is stored in <see cref="ProfileRuleClipboardEnvelope"/>.</summary>
+/// <summary>Identifies a template rule category for UI routing and mapping-engine notifications.</summary>
 public enum ProfileRuleClipboardKind
 {
     Mapping = 1,

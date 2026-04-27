@@ -220,7 +220,7 @@
     <value>更新所选映射</value>
   </data>
   <data name="HoldBindHelp" xml:space="preserve">
-    <value>长按绑定（可选）：触发方式必须为 Tap。按住按钮达到阈值后发送一次长按键；快速松开则发送短按键。仅支持按钮组合（组合中不含 LT/RT）。</value>
+    <value>长按绑定（可选）：必须将短按触发方式设为Tap。按住按钮达到阈值后发送一次长按键；快速松开则发送短按键。仅支持按钮组合（组合中不含 LT/RT）。</value>
   </data>
   <data name="HoldOutputLongPress" xml:space="preserve">
     <value>长按输出（长按）</value>
@@ -355,7 +355,7 @@
     <value>用于 Xbox 和兼容控制器的标准 Windows API。</value>
   </data>
   <data name="GamepadSourceDualSenseLabel" xml:space="preserve">
-    <value>DualSense (PlayStation 5)</value>
+    <value>DualSense (PlayStation 5) (暂不支持)</value>
   </data>
   <data name="GamepadSourceDualSenseHint" xml:space="preserve">
     <value>原生支持 DualSense 功能（自适应触发器等）。尚未实现。</value>
@@ -508,7 +508,7 @@
     <value>动作 Id</value>
   </data>
   <data name="MappingActionIdManual" xml:space="preserve">
-    <value>（手动按键）</value>
+    <value>（手动输入按键）</value>
   </data>
   <data name="CatalogColumnIcon" xml:space="preserve">
     <value>图标</value>
@@ -1029,7 +1029,7 @@
     <value>作者文件夹</value>
   </data>
   <data name="CommunityUpload_ListingDescriptionLabel" xml:space="preserve">
-    <value>列表说明</value>
+    <value>模板说明</value>
   </data>
   <data name="CommunityUpload_TokenFootnote" xml:space="preserve">
     <value>上传仅支持 Cloudflare Worker + Turnstile 握手。如不存在相关配置，则需在 local_settings.json 中填写 communityProfilesUploadWorkerUrl 或 Turnstile 相关信息。</value>
@@ -1133,7 +1133,7 @@
     <value>社区说明</value>
   </data>
   <data name="TemplateCommunityDescriptionHudTitle" xml:space="preserve">
-    <value>模板使用说明</value>
+    <value>模板说明</value>
   </data>
   <data name="TemplateCommunityDescriptionHudHint" xml:space="preserve">
     <value>此模板的简述：</value>
@@ -1246,13 +1246,13 @@
     <value>复制失败</value>
   </data>
   <data name="ProfileRuleClipboard_CopyFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>复制到剪贴板失败: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedTitle" xml:space="preserve">
     <value>粘贴失败</value>
   </data>
   <data name="ProfileRuleClipboard_PasteFailedMessage" xml:space="preserve">
-    <value>{0}</value>
+    <value>从剪贴板粘贴失败: {0}</value>
   </data>
   <data name="ProfileRuleClipboard_PayloadInvalid" xml:space="preserve">
     <value>无法读取已复制的规则数据。</value>
@@ -1422,5 +1422,198 @@
   </data>
   <data name="WorkspaceSave_ErrorTitle" xml:space="preserve">
     <value>保存失败</value>
+  </data>
+  <data name="Dialog_ErrorTitle" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Profile_DeleteConfirmTitle" xml:space="preserve">
+    <value>确认删除</value>
+  </data>
+  <data name="Profile_DeleteConfirmMessage" xml:space="preserve">
+    <value>删除配置文件“{0}”（{1}）？</value>
+  </data>
+  <data name="ProfileOperation_DeleteFailed" xml:space="preserve">
+    <value>删除配置文件失败：{0}</value>
+  </data>
+  <data name="ProfileOperation_ReloadTemplatesFailed" xml:space="preserve">
+    <value>重新加载模板列表失败：{0}</value>
+  </data>
+  <data name="ProfileOperation_CreateFailed" xml:space="preserve">
+    <value>创建配置文件失败：{0}</value>
+  </data>
+  <data name="MappingEditorUnknownKeyboardActionId" xml:space="preserve">
+    <value>未知的 keyboardActions ID“{0}”。</value>
+  </data>
+  <data name="MappingEditorCatalogDialogTitle" xml:space="preserve">
+    <value>目录</value>
+  </data>
+  <data name="GamepadMonitor_LastMappedOutputNone" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="GamepadMonitor_WaitingForInputStatus" xml:space="preserve">
+    <value>等待手柄输入</value>
+  </data>
+  <data name="UpdateInstallModeValue_Fx" xml:space="preserve">
+    <value>fx</value>
+  </data>
+  <data name="UpdateInstallModeValue_Single" xml:space="preserve">
+    <value>single</value>
+  </data>
+  <data name="UpdateInstallModeValue_Unknown" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="RadialMenu_DefaultDisplayName" xml:space="preserve">
+    <value>环形菜单</value>
+  </data>
+  <data name="MainWindow_TitleFormat" xml:space="preserve">
+    <value>Gamepad Mapping v{0}</value>
+  </data>
+  <data name="StartupDiagnostics_FatalErrorTitle" xml:space="preserve">
+    <value>致命错误</value>
+  </data>
+  <data name="StartupDiagnostics_UnknownError" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="StartupDiagnostics_FatalErrorBodyFormat" xml:space="preserve">
+    <value>发生致命错误，应用程序将关闭。
+
+错误：{0}
+
+请查看日志以获取更多详细信息。</value>
+  </data>
+  <data name="AppStatus_NoTargetOutputSuppressed" xml:space="preserve">
+    <value>未选择目标进程 — 输出已抑制</value>
+  </data>
+  <data name="AppStatus_TargetRequiresAdminFormat" xml:space="preserve">
+    <value>目标需要管理员权限：{0}（PID {1}）</value>
+  </data>
+  <data name="AppStatus_ConnectedFormat" xml:space="preserve">
+    <value>已连接：{0}（PID {1}）</value>
+  </data>
+  <data name="AppStatus_ConnectedGraceFormat" xml:space="preserve">
+    <value>已连接（宽限期）：{0}（PID {1}）</value>
+  </data>
+  <data name="AppStatus_WaitingForegroundFormat" xml:space="preserve">
+    <value>等待目标进程处于前台：{0}（PID {1}）</value>
+  </data>
+  <data name="TemplateSwitchHud_Title" xml:space="preserve">
+    <value>已切换配置</value>
+  </data>
+  <data name="ElevationRelaunch_Title" xml:space="preserve">
+    <value>以管理员身份运行</value>
+  </data>
+  <data name="ElevationRelaunch_Message" xml:space="preserve">
+    <value>当前前台目标进程似乎以管理员身份运行。
+
+为避免 Windows UIPI 阻止输入，是否以管理员身份重新启动本工具？</value>
+  </data>
+  <data name="DebugCornerToast_Title" xml:space="preserve">
+    <value>调试：角落通知</value>
+  </data>
+  <data name="DebugCornerToast_Message" xml:space="preserve">
+    <value>已使用 --debug-toast 启动。可手动关闭或等待自动隐藏；不会执行更新或欢迎流程。</value>
+  </data>
+  <data name="CommunityCatalog_AutoGettingUpdates" xml:space="preserve">
+    <value>正在自动获取更新</value>
+  </data>
+  <data name="ProfileCatalogValidationErrorsTitle" xml:space="preserve">
+    <value>校验错误</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithDescriptionFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="ProfileMappingUnusedCatalogActionIdsTooltipLineWithoutDescriptionFormat" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsHint" xml:space="preserve">
+    <value>{0} 个键盘动作 ID 存在重复的控制器绑定。</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipTitle" xml:space="preserve">
+    <value>当前重复的键盘动作绑定如下：</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator" xml:space="preserve">
+    <value>，</value>
+  </data>
+  <data name="ProfileMappingDuplicateCatalogActionIdsUnknownSource" xml:space="preserve">
+    <value>（未知来源）</value>
+  </data>
+  <data name="KeyboardActionPicker_DialogTitle" xml:space="preserve">
+    <value>选择键盘动作</value>
+  </data>
+  <data name="KeyboardActionPicker_SearchPlaceholder" xml:space="preserve">
+    <value>可按动作ID、描述或按键搜索...</value>
+  </data>
+  <data name="Dialog_Select" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="KeyboardActionPicker_SearchLabel" xml:space="preserve">
+    <value>搜索：</value>
+  </data>
+  <data name="KeyboardActionPicker_ManualInputLabel" xml:space="preserve">
+    <value>选择按键</value>
+  </data>
+    <data name="MappingCatalogActionId_Empty" xml:space="preserve">
+    <value>无（直接输入）</value>
+  </data>
+  <data name="Undo_Action" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Redo_Action" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="ElevationRelaunch_TargetMessageFormat" xml:space="preserve">
+    <value>所选目标“{0}”正在以管理员身份运行。
+
+当前映射器未提权，Windows UIPI 可能会阻止输入注入。
+
+是否立即以管理员身份重新启动本工具？</value>
+  </data>
+  <data name="MappingCatalogSummaryItemCycleFormat" xml:space="preserve">
+    <value>循环道具（1-{0}，{1}）</value>
+  </data>
+  <data name="UpdateDownloadSpeed_GigabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} GB/秒</value>
+  </data>
+  <data name="UpdateDownloadSpeed_MegabytesPerSecondFormat" xml:space="preserve">
+    <value>{0} MB/秒</value>
+  </data>
+  <data name="UpdateDownloadSpeed_KilobytesPerSecondFormat" xml:space="preserve">
+    <value>{0} KB/秒</value>
+  </data>
+  <data name="UpdateDownloadSpeed_BytesPerSecondFormat" xml:space="preserve">
+    <value>{0} B/秒</value>
+  </data>
+  <data name="HoldOutputActionId" xml:space="preserve">
+    <value>长按动作</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldDialogTitle" xml:space="preserve">
+    <value>选择长按动作</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldSearchPlaceholder" xml:space="preserve">
+    <value>按动作 ID、描述或按键搜索长按动作...</value>
+  </data>
+  <data name="KeyboardActionPicker_HoldManualInputLabel" xml:space="preserve">
+    <value>选择长按按键</value>
+  </data>
+  <data name="WorkspaceSave_AttentionTooltip" xml:space="preserve">
+    <value>保存此模板以保留工作区中的更改。</value>
+  </data>
+  <data name="TargetProcessRefreshTooltip" xml:space="preserve">
+    <value>根据上方名称重新查找正在运行的进程（若先打开本工具再启动游戏，请点此）。</value>
+  </data>
+  <data name="TargetProcessRefresh_AttentionTooltip" xml:space="preserve">
+    <value>尚未找到匹配的进程 — 点击以重新检测。</value>
+  </data>
+  <data name="TrayIcon_Tooltip" xml:space="preserve">
+    <value>手柄映射 — 正在后台运行</value>
+  </data>
+  <data name="TrayMenu_Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="TrayMenu_Exit" xml:space="preserve">
+    <value>退出</value>
   </data>
 </root>

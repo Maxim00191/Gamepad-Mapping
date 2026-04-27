@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Threading;
+using System.Diagnostics;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -31,6 +32,37 @@ public sealed class AppToastService : IAppToastService
         ArgumentNullException.ThrowIfNull(request);
         _dispatcher.BeginInvoke(() => ShowCore(request), DispatcherPriority.Normal);
     }
+
+    public void ShowError(string titleKey, string messageKey, params object[] args)
+    {
+        Show(new AppToastRequest
+        {
+            Title = AppUiLocalization.GetString(titleKey),
+            Message = args.Length > 0 ? string.Format(AppUiLocalization.GetString(messageKey), args) : AppUiLocalization.GetString(messageKey),
+            AutoHideSeconds = 10
+        });
+    }
+
+    public void ShowInfo(string titleKey, string messageKey, params object[] args)
+    {
+        Show(new AppToastRequest
+        {
+            Title = AppUiLocalization.GetString(titleKey),
+            Message = args.Length > 0 ? string.Format(AppUiLocalization.GetString(messageKey), args) : AppUiLocalization.GetString(messageKey),
+            AutoHideSeconds = 5
+        });
+    }
+
+    [Conditional("DEBUG")]
+    public void LogDebug(string message)
+    {
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        var logLine = $"[{timestamp}] [DEBUG] {message}";
+        System.Diagnostics.Debug.WriteLine(logLine);
+        Gamepad_Mapping.App.Logger.Debug(message);
+    }
+
+    void IAppToastService.LogDebug(string message) => LogDebug(message);
 
     public void DismissCurrent()
     {

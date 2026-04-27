@@ -5,13 +5,14 @@ namespace GamepadMapping.Tests.Models;
 public class ControllerMappingOverlayLabelModeParserTests
 {
     [Theory]
-    [InlineData(null, ControllerMappingOverlayPrimaryLabelMode.ActionSummary)]
-    [InlineData("", ControllerMappingOverlayPrimaryLabelMode.ActionSummary)]
+    [InlineData(null, ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
+    [InlineData("", ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
     [InlineData("actionSummary", ControllerMappingOverlayPrimaryLabelMode.ActionSummary)]
     [InlineData("physicalControl", ControllerMappingOverlayPrimaryLabelMode.PhysicalControl)]
     [InlineData("PHYSICALCONTROL", ControllerMappingOverlayPrimaryLabelMode.PhysicalControl)]
     [InlineData("actionAndPhysical", ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
     [InlineData("ACTIONANDPHYSICAL", ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
+    [InlineData("unexpectedValue", ControllerMappingOverlayPrimaryLabelMode.ActionAndPhysicalControl)]
     public void Parse_maps_expected_mode(string? raw, ControllerMappingOverlayPrimaryLabelMode expected) =>
         Assert.Equal(expected, ControllerMappingOverlayLabelModeParser.Parse(raw));
 

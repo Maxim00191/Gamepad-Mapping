@@ -1,19 +1,27 @@
 using System.Collections.Generic;
+using System.Linq;
 using GamepadMapperGUI.Core.Emulation.Noise;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Models;
 using Moq;
 
 namespace GamepadMapping.Tests.Core.Emulation.Noise;
 
 public sealed class HumanizingMouseEmulatorTests
 {
+    private static (Mock<IMouseEmulator> Inner, List<(int Dx, int Dy)> Recorded) CreateInnerRecorder()
+    {
+        var recorded = new List<(int Dx, int Dy)>();
+        var inner = new Mock<IMouseEmulator>();
+        inner.Setup(m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()))
+            .Callback<int, int, float, GamepadBindingType?>((dx, dy, mag, _) => recorded.Add((dx, dy)));
+        return (inner, recorded);
+    }
+
     [Fact]
     public void MoveBy_LargeDelta_SubdividesAndSumsToAdjustedDelta()
     {
-        var inner = new Mock<IMouseEmulator>();
-        var recorded = new List<(int Dx, int Dy)>();
-        inner.Setup(m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
-            .Callback<int, int, float>((dx, dy, mag) => recorded.Add((dx, dy)));
+        var (inner, recorded) = CreateInnerRecorder();
 
         var noise = new Mock<IHumanInputNoiseController>();
         noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
@@ -46,7 +54,7 @@ public sealed class HumanizingMouseEmulatorTests
         var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
         emu.MoveBy(2, 2);
 
-        inner.Verify(m => m.MoveBy(2, 2, 1.0f), Times.Once());
+        inner.Verify(m => m.MoveBy(2, 2, 1.0f, null), Times.Once());
     }
 
     [Fact]
@@ -59,6 +67,95 @@ public sealed class HumanizingMouseEmulatorTests
         var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
         emu.MoveBy(0, 0);
 
-        inner.Verify(m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()), Times.Never());
+        inner.Verify(m => m.MoveBy(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>(), It.IsAny<GamepadBindingType?>()), Times.Never());
+    }
+
+    [Fact]
+    public void MoveBy_LargeDelta_CapsSubMovesPerPoll()
+    {
+        var (inner, recorded) = CreateInnerRecorder();
+
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        emu.MoveBy(80, 0);
+
+        Assert.Equal(MouseLookMotionConstraints.MaxSubMovesPerGamepadPoll, recorded.Count);
+        Assert.True(recorded.Sum(t => t.Dx) < 80);
+    }
+
+    [Fact]
+    public void ClearPendingSubdivision_DropsCarryBeforeNextMechanicalMove()
+    {
+        var (inner, recorded) = CreateInnerRecorder();
+
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        emu.MoveBy(80, 0);
+        recorded.Clear();
+
+        ((IPendingMouseSubdivisionState)emu).ClearPendingSubdivision();
+        emu.MoveBy(3, 0);
+
+        Assert.Equal(3, recorded.Sum(t => t.Dx));
+    }
+
+    [Fact]
+    public void ClearPendingSubdivision_LeftOnly_PreservesRightStickCarry()
+    {
+        var (inner, recorded) = CreateInnerRecorder();
+
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        emu.MoveBy(80, 0, 1.0f, GamepadBindingType.RightThumbstick);
+        recorded.Clear();
+
+        ((IPendingMouseSubdivisionState)emu).ClearPendingSubdivision(GamepadBindingType.LeftThumbstick);
+        emu.MoveBy(3, 0, 1.0f, GamepadBindingType.RightThumbstick);
+
+        // If carry had been cleared, a delta of 3 would stay below subdivision span and emit ~3 px total.
+        Assert.True(recorded.Sum(t => t.Dx) > 12, "right-stick carry should survive clearing the left scope only");
+    }
+
+    [Fact]
+    public void TryPlanMouseLookMove_NoNoise_BelowSubdivideSpan_IsDirect()
+    {
+        var inner = new Mock<IMouseEmulator>();
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        var kind = emu.TryPlanMouseLookMove(3, 0, 1.0f, out int tx, out int ty, out int nSteps);
+
+        Assert.Equal(HumanizingMouseEmulator.MouseLookPlanKind.Direct, kind);
+        Assert.Equal(3, tx);
+        Assert.Equal(0, ty);
+        Assert.Equal(0, nSteps);
+    }
+
+    [Fact]
+    public void TryPlanMouseLookMove_NoNoise_AboveSubdivideSpan_IsSubdivided()
+    {
+        var inner = new Mock<IMouseEmulator>();
+        var noise = new Mock<IHumanInputNoiseController>();
+        noise.Setup(n => n.AdjustMouseMove(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<float>()))
+            .Returns((int x, int y, float mag) => (x, y));
+
+        var emu = new HumanizingMouseEmulator(inner.Object, noise.Object);
+        var kind = emu.TryPlanMouseLookMove(10, -3, 1.0f, out int tx, out int ty, out int nSteps);
+
+        Assert.Equal(HumanizingMouseEmulator.MouseLookPlanKind.Subdivided, kind);
+        Assert.Equal(10, tx);
+        Assert.Equal(-3, ty);
+        Assert.True(nSteps >= 2);
     }
 }

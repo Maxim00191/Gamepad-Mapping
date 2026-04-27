@@ -14,12 +14,13 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
 {
     private readonly IAppToastService _toastService;
     private readonly Dispatcher _dispatcher;
+    private readonly IMainShellVisibility? _mainShellVisibility;
     private ComboHudWindow? _comboHudWindow;
     private TemplateSwitchHudWindow? _templateSwitchHudWindow;
     private DispatcherTimer? _templateSwitchHudTimer;
 
     [ObservableProperty]
-    private string _targetStatusText = "No target selected - output suppressed";
+    private string _targetStatusText = AppUiLocalization.GetString("AppStatus_NoTargetOutputSuppressed");
 
     [ObservableProperty]
     private AppTargetingState _targetState = AppTargetingState.NoTargetSelected;
@@ -27,17 +28,34 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
     [ObservableProperty]
     private bool _isTemplateSwitchHudActive;
 
-    public UiOrchestrator(IAppToastService toastService, Dispatcher dispatcher)
+    public UiOrchestrator(IAppToastService toastService, Dispatcher dispatcher, IMainShellVisibility? mainShellVisibility = null)
     {
         _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+        _mainShellVisibility = mainShellVisibility;
     }
 
+    private void RunOnDispatcher(Action apply, DispatcherPriority priority = DispatcherPriority.Background)
+    {
+        if (_dispatcher.CheckAccess())
+            apply();
+        else
+            _dispatcher.BeginInvoke(apply, priority);
+    }
+
+    /// <inheritdoc cref="IUiOrchestrator.UpdateStatus"/>
     public void UpdateStatus(AppTargetingState state, string statusText)
     {
-        _dispatcher.VerifyAccess();
-        TargetState = state;
-        TargetStatusText = statusText;
+        void Apply()
+        {
+            if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+                return;
+
+            TargetState = state;
+            TargetStatusText = statusText;
+        }
+
+        RunOnDispatcher(Apply);
     }
 
     public void ShowComboHud(ComboHudContent? content, byte alpha, double shadowOpacity, string placement)
@@ -45,7 +63,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         if (!Enum.TryParse<ComboHudPlacement>(placement, true, out var p))
             p = ComboHudPlacement.BottomRight;
 
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (content is null)
             {
@@ -58,7 +76,9 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
 
             _comboHudWindow ??= new ComboHudWindow();
             _comboHudWindow.ShowHud(content, alpha, shadowOpacity, p);
-        });
+        }
+
+        RunOnDispatcher(Apply);
     }
 
     public void ShowTemplateSwitchHud(string profileDisplayName, double seconds, byte alpha, double shadowOpacity, string placement, Action onFinished)
@@ -66,7 +86,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         if (!Enum.TryParse<ComboHudPlacement>(placement, true, out var p))
             p = ComboHudPlacement.BottomRight;
 
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (_templateSwitchHudTimer != null)
             {
@@ -92,19 +112,21 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
                 onFinished?.Invoke();
             };
 
-            var title = "Profile switched";
+            var title = AppUiLocalization.GetString("TemplateSwitchHud_Title");
             var line = new ComboHudLine($"→ {profileDisplayName}", null);
             var content = new ComboHudContent(title, new[] { line });
 
             _templateSwitchHudWindow ??= new TemplateSwitchHudWindow();
             _templateSwitchHudWindow.ShowHud(content, alpha, shadowOpacity, p);
             _templateSwitchHudTimer.Start();
-        });
+        }
+
+        RunOnDispatcher(Apply);
     }
 
     public void HideAllHuds()
     {
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (_templateSwitchHudTimer != null)
             {
@@ -114,16 +136,20 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             IsTemplateSwitchHudActive = false;
             _comboHudWindow?.HideHud();
             _templateSwitchHudWindow?.HideHud();
-        });
+        }
+
+        RunOnDispatcher(Apply);
     }
 
     public void ApplyHudVisuals(byte alpha, double shadowOpacity)
     {
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (_comboHudWindow is { IsVisible: true })
                 _comboHudWindow.ApplyVisualSettings(alpha, shadowOpacity);
-        });
+        }
+
+        RunOnDispatcher(Apply);
     }
 
     public void ShowToast(string title, string message, Action? onClosed = null)
@@ -136,14 +162,6 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             OnClosed = onClosed,
             InvokeOnClosedWhenExitingApplication = true
         });
-    }
-
-    public bool? ShowActionEditDialog(MappingEntry mapping)
-    {
-        // This would be implemented in the actual application code to show a window.
-        // For the sake of this task, I'll assume the contract is enough for now 
-        // as I cannot create new Windows/XAML files easily without knowing the project's Window base classes.
-        return null;
     }
 
     public void Dispose()

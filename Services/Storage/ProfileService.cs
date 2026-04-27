@@ -34,13 +34,15 @@ public partial class ProfileService : IProfileService
     private readonly IFileSystem _fileSystem;
     private readonly IPathProvider _pathProvider;
     private readonly AppSettings _settings;
+    private readonly IProfileDomainService _domainService;
 
     public ProfileService(
         ISettingsService? settingsService = null,
         TranslationService? translationService = null,
         IFileSystem? fileSystem = null,
         IPathProvider? pathProvider = null,
-        AppSettings? appSettings = null)
+        AppSettings? appSettings = null,
+        IProfileDomainService? domainService = null)
     {
         _fileSystem = fileSystem ?? new PhysicalFileSystem();
         _pathProvider = pathProvider ?? new AppPathProvider();
@@ -49,6 +51,7 @@ public partial class ProfileService : IProfileService
             ?? Application.Current?.Resources["Loc"] as TranslationService
             ?? new TranslationService();
         _settings = appSettings ?? _settingsService.LoadSettings();
+        _domainService = domainService ?? new ProfileDomainService();
     }
 
     public string DefaultProfileId => _settings.DefaultProfileId;
@@ -271,23 +274,10 @@ public partial class ProfileService : IProfileService
 
     public string CreateUniqueProfileId(string templateGroupId, string? displayName, string? catalogFolder = null)
     {
-        var normalizedTemplateGroupId = EnsureValidTemplateGroupId(templateGroupId);
-        var displaySegment = SlugSegment(displayName);
-        var baseId = string.IsNullOrWhiteSpace(displaySegment)
-            ? normalizedTemplateGroupId
-            : $"{normalizedTemplateGroupId}__{displaySegment}";
-
-        if (!TemplateJsonExistsInCatalog(catalogFolder, baseId))
-            return baseId;
-
-        var index = 2;
-        while (true)
-        {
-            var candidate = $"{baseId}-{index}";
-            if (!TemplateJsonExistsInCatalog(catalogFolder, candidate))
-                return candidate;
-            index++;
-        }
+        var existingIds = AvailableTemplates
+            .Where(t => string.Equals(t.CatalogSubfolder, catalogFolder, StringComparison.OrdinalIgnoreCase))
+            .Select(t => t.ProfileId);
+        return _domainService.CreateUniqueProfileId(templateGroupId, displayName, existingIds);
     }
 
     public void SaveTemplate(GameProfileTemplate template, bool allowOverwrite = true)
@@ -315,7 +305,7 @@ public partial class ProfileService : IProfileService
             if (string.IsNullOrWhiteSpace(template.TemplateGroupId))
                 throw new InvalidOperationException("Cannot allocate a profile id without templateGroupId when profileId is empty.");
             template.ProfileId = CreateUniqueProfileId(
-                EnsureValidTemplateGroupId(template.TemplateGroupId),
+                template.TemplateGroupId,
                 template.DisplayName,
                 template.TemplateCatalogFolder);
         }
@@ -328,7 +318,7 @@ public partial class ProfileService : IProfileService
         if (g.Length == 0 || string.Equals(g, template.ProfileId, StringComparison.OrdinalIgnoreCase))
             template.TemplateGroupId = null;
         else
-            template.TemplateGroupId = EnsureValidTemplateGroupId(g);
+            template.TemplateGroupId = (template.TemplateGroupId ?? string.Empty).Trim();
 
         var templatePath = AppPaths.TemplateCatalogPaths.GetTemplateJsonPath(
             templatesDir, template.TemplateCatalogFolder, template.ProfileId);
@@ -360,8 +350,7 @@ public partial class ProfileService : IProfileService
 
     public IValidationResult ValidateTemplate(GameProfileTemplate template)
     {
-        var validator = new ProfileValidator();
-        return validator.Validate(template);
+        return _domainService.ValidateTemplate(template);
     }
 
     public static string EnsureValidProfileId(string profileId)

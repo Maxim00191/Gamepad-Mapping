@@ -61,6 +61,7 @@ public partial class MappingManager : ObservableObject, IMappingManager
     {
         if (template is null) return;
 
+        SelectedMapping = null;
         KeyboardActions.Clear();
         RadialMenus.Clear();
         foreach (var a in template.KeyboardActions ?? []) KeyboardActions.Add(a);
@@ -72,7 +73,6 @@ public partial class MappingManager : ObservableObject, IMappingManager
         Mappings.Clear();
         foreach (var mapping in template.Mappings) Mappings.Add(mapping);
         _mappingsSnapshot = Mappings.ToList();
-        SelectedMapping = Mappings.FirstOrDefault();
     }
 
     public void ProcessInputFrame(InputFrame frame, bool allowOutput)

@@ -6,7 +6,6 @@ using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using Microsoft.Win32;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
@@ -69,43 +68,11 @@ public partial class App : Application
             EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnWindowLoaded));
             ApplyChromeTheme();
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
-            CheckStartupElevationCompatibility();
+            if (ShouldAbortStartupForElevationRelaunch())
+                return;
 
-            var gitHubContentService = new GitHubContentService();
-            var localFileService = new LocalFileService();
-            var updateInstallerService = new UpdateInstallerService();
-            var settingsService = new SettingsService();
-            var appSettings = settingsService.LoadSettingsInternal();
-            var profileService = new ProfileService(settingsService: settingsService, appSettings: appSettings);
-            var updateVersionCacheService = new UpdateVersionCacheService();
-            var trustedUtcTimeService = new TrustedUtcTimeService();
-            var updateQuotaPolicyProvider = new StaticUpdateQuotaPolicyProvider();
-            var updateQuotaService = new UpdateQuotaService(updateQuotaPolicyProvider, trustedUtcTimeService);
-            var appToastService = new AppToastService();
+            var (mainViewModel, appToastService) = ApplicationComposition.BuildMainViewModel();
             ToastService = appToastService;
-            var xinputService = new XInputService();
-            var gamepadSource = new XInputSource(xinputService);
-            var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
-            var mainViewModel = new MainViewModel(
-                profileService: profileService,
-                gitHubContentService: gitHubContentService,
-                communityService: new CommunityTemplateService(
-                    profileService,
-                    gitHubContentService,
-                    localFileService,
-                    appSettings,
-                    communityDownloadThrottle),
-                updateService: new UpdateService(gitHubContentService, settingsService, appSettings, updateVersionCacheService),
-                localFileService: localFileService,
-                updateInstallerService: updateInstallerService,
-                updateQuotaService: updateQuotaService,
-                settingsService: settingsService,
-                trustedUtcTimeService: trustedUtcTimeService,
-                updateVersionCacheService: updateVersionCacheService,
-                updateQuotaPolicyProvider: updateQuotaPolicyProvider,
-                appToastService: appToastService,
-                xinput: xinputService,
-                gamepadSource: gamepadSource);
 
             var mainWindow = new MainWindow(mainViewModel);
             MainWindow = mainWindow;
@@ -271,47 +238,28 @@ public partial class App : Application
             translationService.Culture = culture;
     }
 
-    private static void CheckStartupElevationCompatibility()
+    /// <summary>
+    /// If the foreground window is an elevated process while we are not, offer to relaunch elevated.
+    /// When relaunch succeeds, returns true so <see cref="OnStartup"/> does not construct the main window (shutdown is asynchronous).
+    /// </summary>
+    private static bool ShouldAbortStartupForElevationRelaunch()
     {
         var processTargetService = new ProcessTargetService();
         if (processTargetService.IsCurrentProcessElevated())
-            return;
+            return false;
 
         var foregroundPid = processTargetService.GetForegroundProcessId();
         if (foregroundPid <= 0 || !processTargetService.IsProcessElevated(foregroundPid))
-            return;
+            return false;
 
-        var result = MessageBox.Show(
-            "The currently focused target appears to be running as administrator.\n\n" +
-            "To avoid Windows UIPI input blocking, relaunch this tool as administrator?",
-            "Run as administrator",
-            MessageBoxButton.YesNo,
+        var result = new UserDialogService().ConfirmYesNo(
+            AppUiLocalization.GetString("ElevationRelaunch_Message"),
+            AppUiLocalization.GetString("ElevationRelaunch_Title"),
             MessageBoxImage.Information);
-        if (result != MessageBoxResult.Yes)
-            return;
+        if (!result)
+            return false;
 
-        var exePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(exePath))
-            return;
-
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = exePath,
-                UseShellExecute = true,
-                Verb = "runas"
-            });
-            Current?.Shutdown();
-        }
-        catch (Win32Exception)
-        {
-            // User cancelled the UAC prompt.
-        }
-        catch
-        {
-            // Best-effort relaunch only.
-        }
+        return ElevationApplicationRelaunch.TryRelaunchElevatedAndShutdownCurrentApplication();
     }
 }
 

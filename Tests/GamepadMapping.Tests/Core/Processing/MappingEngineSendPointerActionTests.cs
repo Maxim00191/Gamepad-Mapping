@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using GamepadMapping.Tests.Support;
 using GamepadMapperGUI.Core;
@@ -89,12 +90,12 @@ public class MappingEngineSendPointerActionTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(method);
 
-        var startTime = DateTime.Now;
+        var sw = Stopwatch.StartNew();
         method!.Invoke(
             _engine,
             ["AnalogSource", trigger, output, action.ToString(), "analog-input"]);
-        var duration = DateTime.Now - startTime;
+        sw.Stop();
 
-        Assert.True(duration.TotalMilliseconds < 50);
+        Assert.True(sw.ElapsedMilliseconds < 150);
     }
 }

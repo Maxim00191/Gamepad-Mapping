@@ -21,26 +21,9 @@
             <StackPanel>
                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[CatalogColumnActionId]}"
                            Margin="0,8,0,4" />
-                <ComboBox Margin="0,0,0,4"
-                          ItemsSource="{Binding DataContext.KeyboardActionsForPicker, RelativeSource={RelativeSource AncestorType=UserControl, Mode=FindAncestor}}"
-                          SelectedValuePath="Id"
-                          SelectedValue="{Binding ActionId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <MultiBinding Converter="{StaticResource KeyboardActionPickerLabelConverter}">
-                                        <Binding Path="Id" />
-                                        <Binding Path="ResolvedCatalogDescription" />
-                                        <Binding Source="{StaticResource Loc}" Path="[KeyboardActionPicker_OptionFormat]" />
-                                        <Binding Source="{StaticResource Loc}" Path="[MappingActionIdManual]" />
-                                        <Binding Path="KeyboardKey" />
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+                <Button Margin="0,0,0,4"
+                        Command="{Binding PickCatalogActionCommand}"
+                        Content="{Binding ActionPickerDisplayText}" />
 
                 <TextBlock Text="{Binding CatalogBehaviorSummary}"
                            TextWrapping="Wrap"
@@ -80,8 +63,22 @@
                            FontSize="12">
                     <Run Text="{Binding Source={StaticResource Loc}, Path=[HoldBindHelp], Mode=OneWay}" />
                 </TextBlock>
+                <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldOutputActionId]}" Margin="0,0,0,4" />
+                <Button Margin="0,0,0,4"
+                        Command="{Binding PickHoldCatalogActionCommand}"
+                        Content="{Binding HoldActionPickerDisplayText}" />
                 <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[HoldOutputLongPress]}" Margin="0,0,0,4" />
                 <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HoldActionId}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />

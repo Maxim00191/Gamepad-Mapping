@@ -81,6 +81,8 @@ public partial class ItemCycleActionEditorViewModel : ActionEditorViewModelBase
         var hasBack = backRaw.Length > 0;
         if (hasFwd != hasBack) return false;
 
+        ResetCommonMappingFields(mapping);
+
         if (hasFwd)
         {
             if (!MappingEngine.TryNormalizeMappedOutputStorage(fwdRaw, out var fSt) ||
@@ -105,13 +107,6 @@ public partial class ItemCycleActionEditorViewModel : ActionEditorViewModelBase
                 WithKeys = withKeys
             };
         }
-
-        mapping.TemplateToggle = null;
-        mapping.RadialMenu = null;
-        mapping.ActionId = null;
-        mapping.KeyboardKey = string.Empty;
-        mapping.HoldKeyboardKey = string.Empty;
-        mapping.HoldThresholdMs = null;
 
         return true;
     }

@@ -8,6 +8,11 @@ namespace GamepadMapperGUI.Interfaces.Services.Infrastructure;
 /// </summary>
 public interface IUiSynchronization
 {
+    /// <inheritdoc cref="Post(Action, UiPostPriority)"/>
     void Post(Action action);
+
+    /// <summary>Queues work on the UI dispatcher at the given priority.</summary>
+    void Post(Action action, UiPostPriority priority);
+
     void Send(Action action);
 }

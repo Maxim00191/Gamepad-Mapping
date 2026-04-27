@@ -1,6 +1,7 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -17,9 +18,15 @@ public partial class CommunityTemplateUploadBundleRowViewModel : ObservableObjec
         Template = template;
         _onIncludedChanged = onIncludedChanged;
 
-        var dn = (template.DisplayName ?? string.Empty).Trim();
         var pid = (template.ProfileId ?? string.Empty).Trim();
-        TitleLine = dn.Length > 0 ? dn : (pid.Length > 0 ? pid : storageKey);
+        var baseline = (template.DisplayName ?? string.Empty).Trim();
+        if (baseline.Length == 0)
+            baseline = pid.Length > 0 ? pid : storageKey;
+
+        TitleLine = CommunityTemplateDisplayLabels.ResolveGameProfileTemplateTitle(
+            template,
+            baseline,
+            AppUiLocalization.TryTranslationService());
         SubtitleLine = storageKey;
     }
 

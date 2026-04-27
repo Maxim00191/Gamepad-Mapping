@@ -31,6 +31,8 @@ internal sealed class RadialMenuController : IRadialMenuController
     private MappingEntry? _openMapping;
     private string _sourceToken = string.Empty;
     private int _selectedIndex = -1;
+    /// <summary>Last index passed to <see cref="IRadialMenuHud.UpdateSelection"/>; avoids flooding the UI dispatcher at gamepad poll rate.</summary>
+    private int _lastPostedRadialSelectionToHud = int.MinValue;
     private HashSet<GamepadButtons> _activeChord = [];
 
     private bool _prevStickEngaged;
@@ -86,7 +88,7 @@ internal sealed class RadialMenuController : IRadialMenuController
             }
             if (changed)
             {
-                _ui.Post(() => _radialMenuHud.UpdateSelection(value));
+                _ui.Post(() => _radialMenuHud.UpdateSelection(value), UiPostPriority.Background);
             }
         }
     }
@@ -146,7 +148,11 @@ internal sealed class RadialMenuController : IRadialMenuController
 
                     _selectedIndex = index;
                     _lastSectorWhileEngaged = index;
-                    indexToNotify = index;
+                    if (index != _lastPostedRadialSelectionToHud)
+                    {
+                        _lastPostedRadialSelectionToHud = index;
+                        indexToNotify = index;
+                    }
                 }
             }
             else
@@ -163,7 +169,11 @@ internal sealed class RadialMenuController : IRadialMenuController
                 else if (_selectedIndex != -1)
                 {
                     _selectedIndex = -1;
-                    indexToNotify = -1;
+                    if (_lastPostedRadialSelectionToHud != -1)
+                    {
+                        _lastPostedRadialSelectionToHud = -1;
+                        indexToNotify = -1;
+                    }
                 }
             }
 
@@ -178,7 +188,8 @@ internal sealed class RadialMenuController : IRadialMenuController
 
         if (indexToNotify.HasValue)
         {
-            _ui.Post(() => _radialMenuHud.UpdateSelection(indexToNotify.Value));
+            var idx = indexToNotify.Value;
+            _ui.Post(() => _radialMenuHud.UpdateSelection(idx), UiPostPriority.Background);
         }
     }
 
@@ -289,9 +300,10 @@ internal sealed class RadialMenuController : IRadialMenuController
                 ? definition.ResolvedDisplayName.Trim()
                 : (definition.DisplayName ?? string.Empty).Trim();
             _registerActiveAction(this);
+            _lastPostedRadialSelectionToHud = int.MinValue;
         }
 
-        _ui.Post(() => _radialMenuHud.ShowMenu(displayName, items));
+        _ui.Post(() => _radialMenuHud.ShowMenu(displayName, items), UiPostPriority.Background);
         return true;
     }
 
@@ -402,5 +414,6 @@ internal sealed class RadialMenuController : IRadialMenuController
         _prevStickEngaged = false;
         _stickEverEngagedWhileOpen = false;
         _lastSectorWhileEngaged = -1;
+        _lastPostedRadialSelectionToHud = int.MinValue;
     }
 }

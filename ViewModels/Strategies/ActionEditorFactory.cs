@@ -19,7 +19,11 @@ public class ActionEditorFactory : IActionEditorFactory
     {
         return actionType switch
         {
-            MappingActionType.Keyboard => new KeyboardActionEditorViewModel(_mainViewModel.KeyboardCaptureService, _mainViewModel.KeyboardActions),
+            MappingActionType.Keyboard => new KeyboardActionEditorViewModel(
+                _mainViewModel.KeyboardCaptureService,
+                _mainViewModel.KeyboardActions,
+                _mainViewModel.ItemSelectionDialogService,
+                _mainViewModel.KeyboardActionSelectionBuilder),
             MappingActionType.ItemCycle => new ItemCycleActionEditorViewModel(_mainViewModel.KeyboardCaptureService),
             MappingActionType.TemplateToggle => new TemplateToggleActionEditorViewModel(_mainViewModel.GetProfileService(), _mainViewModel.SelectedTemplate?.StorageKey),
             MappingActionType.RadialMenu => new RadialMenuActionEditorViewModel(),

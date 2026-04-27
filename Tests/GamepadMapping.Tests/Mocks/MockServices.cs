@@ -10,10 +10,10 @@ namespace GamepadMapping.Tests.Mocks;
 public class MockElevationHandler : IElevationHandler
 {
     public Func<ProcessInfo, bool> IsBlockedByUipiFunc { get; set; } = _ => false;
-    public Action<ProcessInfo> CheckAndPromptElevationFunc { get; set; } = _ => { };
+    public Func<ProcessInfo, bool> CheckAndPromptElevationFunc { get; set; } = _ => false;
 
     public bool IsBlockedByUipi(ProcessInfo target) => IsBlockedByUipiFunc(target);
-    public void CheckAndPromptElevation(ProcessInfo target) => CheckAndPromptElevationFunc(target);
+    public bool CheckAndPromptElevation(ProcessInfo target) => CheckAndPromptElevationFunc(target);
 }
 
 public class MockProcessTargetService : IProcessTargetService

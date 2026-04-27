@@ -153,7 +153,6 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
                 mainKey,
                 _getKeyboardTapHoldDurationMs(),
                 cancellationToken: ct),
-            a => _ui.Post(a),
             setMappedOutput,
             setMappingStatus);
 

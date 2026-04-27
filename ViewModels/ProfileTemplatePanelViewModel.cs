@@ -87,6 +87,13 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
 
     public int MappingCount => _mainViewModel.MappingCount;
 
+    public bool ShouldHighlightSaveProfileButton => _mainViewModel.IsTemplateWorkspaceDirty;
+
+    public string? SaveProfileToolTip =>
+        ShouldHighlightSaveProfileButton
+            ? AppUiLocalization.GetString("WorkspaceSave_AttentionTooltip")
+            : null;
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateProfileCommand))]
     private string newProfileTemplateGroupId = string.Empty;
@@ -117,11 +124,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (!_mainViewModel.TryPersistWorkspaceTemplateToDisk(out var err))
         {
             var title = AppUiLocalization.GetString("WorkspaceSave_ErrorTitle");
-            MessageBox.Show(
+            _mainViewModel.UserDialogService.ShowError(
                 string.Format(AppUiLocalization.GetString("WorkspaceSave_FailedMessage"), err ?? string.Empty),
-                title,
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+                title);
             return;
         }
 
@@ -137,13 +142,15 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         if (string.Equals(SelectedTemplate.ProfileId, _profileService.DefaultProfileId, StringComparison.OrdinalIgnoreCase))
             return;
 
-        var ok = MessageBox.Show(
-            $"Delete profile '{SelectedTemplate.DisplayName}' ({SelectedTemplate.TemplateGroupId})?",
-            "Confirm delete",
-            MessageBoxButton.YesNo,
+        var ok = _mainViewModel.UserDialogService.ConfirmYesNo(
+            string.Format(
+                AppUiLocalization.GetString("Profile_DeleteConfirmMessage"),
+                SelectedTemplate.DisplayName,
+                SelectedTemplate.TemplateGroupId),
+            AppUiLocalization.GetString("Profile_DeleteConfirmTitle"),
             MessageBoxImage.Warning);
 
-        if (ok != MessageBoxResult.Yes)
+        if (!ok)
             return;
 
         try
@@ -154,7 +161,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to delete profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _mainViewModel.UserDialogService.ShowError(
+                string.Format(AppUiLocalization.GetString("ProfileOperation_DeleteFailed"), ex.Message),
+                AppUiLocalization.GetString("Dialog_ErrorTitle"));
         }
     }
 
@@ -172,7 +181,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to reload templates: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _mainViewModel.UserDialogService.ShowError(
+                string.Format(AppUiLocalization.GetString("ProfileOperation_ReloadTemplatesFailed"), ex.Message),
+                AppUiLocalization.GetString("Dialog_ErrorTitle"));
         }
     }
 
@@ -217,7 +228,9 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to create profile: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _mainViewModel.UserDialogService.ShowError(
+                string.Format(AppUiLocalization.GetString("ProfileOperation_CreateFailed"), ex.Message),
+                AppUiLocalization.GetString("Dialog_ErrorTitle"));
         }
     }
 
@@ -273,6 +286,10 @@ public partial class ProfileTemplatePanelViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.MappingCount):
                 OnPropertyChanged(nameof(MappingCount));
+                break;
+            case nameof(MainViewModel.IsTemplateWorkspaceDirty):
+                OnPropertyChanged(nameof(ShouldHighlightSaveProfileButton));
+                OnPropertyChanged(nameof(SaveProfileToolTip));
                 break;
         }
     }

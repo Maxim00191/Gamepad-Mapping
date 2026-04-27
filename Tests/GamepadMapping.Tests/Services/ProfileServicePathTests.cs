@@ -8,7 +8,6 @@ using GamepadMapperGUI.Services.Radial;
 using GamepadMapping.Tests.Mocks;
 using Xunit;
 using System;
-using System.IO;
 
 namespace GamepadMapping.Tests.Services;
 
@@ -62,19 +61,17 @@ public class ProfileServicePathTests
         var templateGroupId = "mygame";
         var displayName = "Conflict";
         var expectedBaseId = "mygame__conflict";
-        
+
         var service = new ProfileService(new MockSettingsService(), null, mockFs, mockPath);
-        var templatesDir = service.LoadTemplateDirectory();
-        
-        var conflictPath = Path.Combine(templatesDir, $"{expectedBaseId}.json");
-        mockFs.WriteAllText(conflictPath, "{}", System.Text.Encoding.UTF8);
-        
+
+        // CreateUniqueProfileId resolves conflicts against in-memory AvailableTemplates, not raw disk files.
+        service.AvailableTemplates.Add(new TemplateOption { ProfileId = expectedBaseId, TemplateGroupId = templateGroupId });
+
         var profileId = service.CreateUniqueProfileId(templateGroupId, displayName);
         Assert.Equal($"{expectedBaseId}-2", profileId);
-        
-        var conflictPath2 = Path.Combine(templatesDir, $"{expectedBaseId}-2.json");
-        mockFs.WriteAllText(conflictPath2, "{}", System.Text.Encoding.UTF8);
-        
+
+        service.AvailableTemplates.Add(new TemplateOption { ProfileId = $"{expectedBaseId}-2", TemplateGroupId = templateGroupId });
+
         var profileId3 = service.CreateUniqueProfileId(templateGroupId, displayName);
         Assert.Equal($"{expectedBaseId}-3", profileId3);
     }

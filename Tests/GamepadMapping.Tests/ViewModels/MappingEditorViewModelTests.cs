@@ -6,11 +6,15 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Services.Infrastructure;
+using GamepadMapperGUI.Services.Input;
+using GamepadMapperGUI.Services.Storage;
 using Moq;
 using System.Collections.ObjectModel;
 using GamepadMapperGUI.Core;
 using System.Windows.Input;
 using GamepadMapperGUI.Interfaces.Core;
+using System.Collections.Generic;
 
 namespace GamepadMapping.Tests.ViewModels;
 
@@ -19,6 +23,7 @@ public class MappingEditorViewModelTests
     private readonly Mock<IProfileService> _profileServiceMock;
     private readonly Mock<IKeyboardCaptureService> _keyboardCaptureServiceMock;
     private readonly Mock<ISettingsService> _settingsServiceMock;
+    private readonly Mock<IItemSelectionDialogService> _itemSelectionDialogServiceMock;
     private readonly MainViewModel _mainViewModel;
 
     public MappingEditorViewModelTests()
@@ -26,6 +31,7 @@ public class MappingEditorViewModelTests
         _profileServiceMock = new Mock<IProfileService>();
         _keyboardCaptureServiceMock = new Mock<IKeyboardCaptureService>();
         _settingsServiceMock = new Mock<ISettingsService>();
+        _itemSelectionDialogServiceMock = new Mock<IItemSelectionDialogService>();
         _profileServiceMock.Setup(p => p.AvailableTemplates).Returns(new ObservableCollection<TemplateOption>());
         _keyboardCaptureServiceMock.Setup(k => k.KeyboardKeyCapturePrompt).Returns("Prompt");
         _settingsServiceMock.Setup(s => s.LoadSettings()).Returns(new AppSettings());
@@ -38,8 +44,40 @@ public class MappingEditorViewModelTests
             elevationHandler: new Mock<IElevationHandler>().Object,
             appStatusMonitor: new Mock<IAppStatusMonitor>().Object,
             mappingEngine: new Mock<IMappingEngine>().Object,
-            settingsService: _settingsServiceMock.Object
-        );
+            settingsService: _settingsServiceMock.Object,
+            itemSelectionDialogService: _itemSelectionDialogServiceMock.Object,
+            profileDomainService: new ProfileDomainService());
+
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+    }
+
+    [Fact]
+    public void HasAnyProfileMappingStatusHints_AggregatesStatusFlags()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        vm.HasUnusedActionIds = false;
+        vm.HasDuplicateActionIds = false;
+        vm.HasValidationError = false;
+        vm.HasValidationWarning = false;
+        Assert.False(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasUnusedActionIds = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasUnusedActionIds = false;
+        vm.HasDuplicateActionIds = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasDuplicateActionIds = false;
+        vm.HasValidationError = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasValidationError = false;
+        vm.HasValidationWarning = true;
+        Assert.True(vm.HasAnyProfileMappingStatusHints);
+
+        vm.HasValidationWarning = false;
+        Assert.False(vm.HasAnyProfileMappingStatusHints);
     }
 
     [Fact]
@@ -132,6 +170,50 @@ public class MappingEditorViewModelTests
     }
 
     [Fact]
+    public void VisualSelection_UpdatesSharedMappingWorkspaceSelection()
+    {
+        var a = new MappingEntry
+        {
+            Description = "RowA",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        var b = new MappingEntry
+        {
+            Description = "RowB",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        };
+        _mainViewModel.Mappings.Add(a);
+        _mainViewModel.Mappings.Add(b);
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+        _mainViewModel.SelectMappingFromScope(a, GamepadMapperGUI.Models.State.WorkspaceSelectionScope.Mappings);
+
+        _mainViewModel.VisualEditorPanel.ControllerVisual.SelectedElementName = "B";
+
+        Assert.Null(_mainViewModel.SelectedMapping);
+        Assert.Equal(ProfileRightPanelSurface.None, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void AddMappingCommand_CreatesUndoEntry_ForCreateModeWorkspaceState()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var template = new TemplateOption { ProfileId = "test", TemplateGroupId = "group", DisplayName = "Test" };
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(template))
+            .Returns(new GameProfileTemplate { ProfileId = "test", DisplayName = "Test", Mappings = [] });
+        _mainViewModel.SelectedTemplate = template;
+
+        vm.AddMappingCommand.Execute(null);
+
+        Assert.True(vm.IsCreatingNewMapping);
+        Assert.True(_mainViewModel.ActiveMappingListEditor.History.CanUndo);
+
+        _mainViewModel.ActiveMappingListEditor.History.Undo();
+
+        Assert.False(vm.IsCreatingNewMapping);
+    }
+
+    [Fact]
     public void SelectedActionType_ChangesEditor()
     {
         var vm = _mainViewModel.MappingEditorPanel;
@@ -140,6 +222,509 @@ public class MappingEditorViewModelTests
         
         Assert.IsType<ItemCycleActionEditorViewModel>(vm.CurrentActionEditor);
         Assert.False(vm.EditKeyboardAndHoldSectionsEnabled);
+    }
+
+    [Fact]
+    public void PickMappingActionIdCommand_AssignsSelectedCatalogActionId()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+
+        _itemSelectionDialogServiceMock
+            .Setup(s => s.Select(It.IsAny<System.Windows.Window?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<Gamepad_Mapping.Models.State.SelectionDialogItem>>(), It.IsAny<string?>()))
+            .Returns("jump");
+
+        vm.PickMappingActionIdCommand.Execute(entry);
+
+        Assert.Equal("jump", entry.ActionId);
+    }
+
+    [Fact]
+    public void PickHoldCatalogActionCommand_AssignsHoldActionIdInEditor()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+            KeyboardKey = "Space"
+        };
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        vm.SyncFromSelection(entry);
+
+        var editor = Assert.IsType<KeyboardActionEditorViewModel>(vm.CurrentActionEditor);
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "hold_jump", KeyboardKey = "LeftShift" });
+        _itemSelectionDialogServiceMock
+            .Setup(s => s.Select(It.IsAny<System.Windows.Window?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<Gamepad_Mapping.Models.State.SelectionDialogItem>>(), It.IsAny<string?>()))
+            .Returns("hold_jump");
+
+        editor.PickHoldCatalogActionCommand.Execute(null);
+
+        Assert.Equal("hold_jump", editor.HoldActionId);
+    }
+
+    [Fact]
+    public void UpdateSelectedBinding_WhenHoldActionSelected_StoresHoldActionId()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        vm.SyncFromSelection(entry);
+
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "tap_jump", KeyboardKey = "Space" });
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "hold_jump", KeyboardKey = "LeftShift" });
+
+        var editor = Assert.IsType<KeyboardActionEditorViewModel>(vm.CurrentActionEditor);
+        editor.ActionId = "tap_jump";
+        editor.HoldActionId = "hold_jump";
+        editor.HoldKeyboardKey = string.Empty;
+        editor.HoldThresholdText = "400";
+
+        vm.UpdateSelectedBindingCommand.Execute(null);
+
+        Assert.Equal("hold_jump", entry.HoldActionId);
+        Assert.Equal("LeftShift", entry.HoldKeyboardKey);
+        Assert.Equal(400, entry.HoldThresholdMs);
+    }
+
+    [Fact]
+    public void UpdateSelectedBinding_WhenHoldManualModeUsed_ClearsHoldActionFields()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        var entry = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" },
+            HoldActionId = "legacy_hold"
+        };
+        _mainViewModel.Mappings.Add(entry);
+        _mainViewModel.SelectedMapping = entry;
+        vm.SyncFromSelection(entry);
+
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "tap_jump", KeyboardKey = "Space" });
+        var editor = Assert.IsType<KeyboardActionEditorViewModel>(vm.CurrentActionEditor);
+        editor.ActionId = "tap_jump";
+        editor.HoldActionId = string.Empty;
+        editor.HoldKeyboardKey = string.Empty;
+        editor.HoldThresholdText = "350";
+
+        vm.UpdateSelectedBindingCommand.Execute(null);
+
+        Assert.Null(entry.HoldActionId);
+        Assert.Equal(string.Empty, entry.HoldKeyboardKey);
+        Assert.Null(entry.HoldThresholdMs);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenActionIsBoundMultipleTimes_ShowsDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LB+A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.RightTrigger, Value = nameof(GamepadBindingType.RightTrigger) }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.True(vm.HasDuplicateActionIds);
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
+        Assert.Equal("jump: LB+A, RightTrigger", vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenActionIsRepeatedOnSameSource_HidesDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.False(vm.HasDuplicateActionIds);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenActionIsBoundOnce_HidesDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.False(vm.HasDuplicateActionIds);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenMappingSourceChanges_KeepsDuplicateBannerAccurate()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        var first = new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        var second = new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LB" }
+        };
+        _mainViewModel.Mappings.Add(first);
+        _mainViewModel.Mappings.Add(second);
+
+        vm.RefreshStatusDiagnostics();
+        Assert.True(vm.HasDuplicateActionIds);
+
+        second.From.Value = "RB";
+
+        Assert.True(vm.HasDuplicateActionIds);
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
+        Assert.Equal("jump: A, RB", vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenMappingsUseUnknownActionIds_DoesNotShowDuplicateBanner()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "unknown_action",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "unknown_action",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.False(vm.HasDuplicateActionIds);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsHint);
+        Assert.Equal(string.Empty, vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void RefreshStatusDiagnostics_WhenMultipleActionsHaveDuplicateBindings_ShowsOneLinePerAction()
+    {
+        var vm = _mainViewModel.MappingEditorPanel;
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "dash", KeyboardKey = "LeftShift" });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "jump",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "dash",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "LB" }
+        });
+        _mainViewModel.Mappings.Add(new MappingEntry
+        {
+            ActionId = "dash",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "RB" }
+        });
+
+        vm.RefreshStatusDiagnostics();
+
+        Assert.True(vm.HasDuplicateActionIds);
+        Assert.False(string.IsNullOrWhiteSpace(vm.DuplicateActionIdsHint));
+        Assert.Equal("dash: LB, RB" + Environment.NewLine + "jump: A, B", vm.DuplicateActionIdsTooltip);
+    }
+
+    [Fact]
+    public void CatalogResetSelection_DoesNotChangeActiveWorkspaceScope()
+    {
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+
+        _mainViewModel.CatalogPanel.ResetSelection();
+
+        Assert.Equal(
+            GamepadMapperGUI.Models.State.WorkspaceSelectionScope.Mappings,
+            _mainViewModel.ActiveWorkspaceSelectionScope);
+    }
+
+    [Fact]
+    public void OffTabKeyboardSelection_DoesNotStealMappingsRightPanel()
+    {
+        var mapping = new MappingEntry
+        {
+            Description = "Mapped",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        _mainViewModel.Mappings.Add(mapping);
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+        _mainViewModel.SelectMappingFromScope(mapping, GamepadMapperGUI.Models.State.WorkspaceSelectionScope.Mappings);
+
+        _mainViewModel.KeyboardActions.Add(new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" });
+        _mainViewModel.SelectKeyboardActionFromScope(
+            _mainViewModel.KeyboardActions[0],
+            GamepadMapperGUI.Models.State.WorkspaceSelectionScope.KeyboardCatalog);
+
+        Assert.Equal(
+            GamepadMapperGUI.Models.State.WorkspaceSelectionScope.Mappings,
+            _mainViewModel.ActiveWorkspaceSelectionScope);
+        Assert.Equal(ProfileRightPanelSurface.Mapping, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void KeyboardTabSelection_ShowsKeyboardRightPanel()
+    {
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.KeyboardActions;
+        var action = new KeyboardActionDefinition { Id = "jump", KeyboardKey = "Space" };
+        _mainViewModel.KeyboardActions.Add(action);
+
+        _mainViewModel.SelectKeyboardActionFromScope(
+            action,
+            GamepadMapperGUI.Models.State.WorkspaceSelectionScope.KeyboardCatalog);
+
+        Assert.Equal(ProfileRightPanelSurface.KeyboardAction, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void ActiveWorkspaceRuleClipboardKind_MatchesWorkspaceTab()
+    {
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.VisualEditor;
+        Assert.Equal(ProfileRuleClipboardKind.Mapping, _mainViewModel.ActiveWorkspaceRuleClipboardKind);
+
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+        Assert.Equal(ProfileRuleClipboardKind.Mapping, _mainViewModel.ActiveWorkspaceRuleClipboardKind);
+
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.KeyboardActions;
+        Assert.Equal(ProfileRuleClipboardKind.KeyboardAction, _mainViewModel.ActiveWorkspaceRuleClipboardKind);
+
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.RadialMenus;
+        Assert.Equal(ProfileRuleClipboardKind.RadialMenu, _mainViewModel.ActiveWorkspaceRuleClipboardKind);
+
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Community;
+        Assert.Null(_mainViewModel.ActiveWorkspaceRuleClipboardKind);
+    }
+
+    [Fact]
+    public void TemplateSwitch_OnMappingsTab_RehydratesSelectionAndMappingEditor()
+    {
+        var templateA = new TemplateOption { ProfileId = "a", TemplateGroupId = "g", DisplayName = "Template A" };
+        var templateB = new TemplateOption { ProfileId = "b", TemplateGroupId = "g", DisplayName = "Template B" };
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "a")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "a",
+                DisplayName = "Template A",
+                Mappings =
+                [
+                    new MappingEntry
+                    {
+                        Description = "From A",
+                        From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+                    }
+                ]
+            });
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "b")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "b",
+                DisplayName = "Template B",
+                Mappings =
+                [
+                    new MappingEntry
+                    {
+                        Description = "From B",
+                        From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+                    }
+                ]
+            });
+
+        _mainViewModel.SelectedTemplate = templateA;
+        _mainViewModel.SelectedTemplate = templateB;
+
+        Assert.NotNull(_mainViewModel.SelectedMapping);
+        Assert.Equal("From B", _mainViewModel.MappingEditorPanel.EditBindingDescriptionPrimary);
+        Assert.Equal("B", _mainViewModel.MappingEditorPanel.InputTrigger.EditBindingFromButton);
+        Assert.Equal(ProfileRightPanelSurface.Mapping, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void ResetTo_SameReference_ReplaysSelectionChangedAndRefreshesEditor()
+    {
+        var mapping = new MappingEntry
+        {
+            Description = "Mapped",
+            From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+        };
+        _mainViewModel.Mappings.Add(mapping);
+        _mainViewModel.MappingSelection.ResetTo(mapping);
+        Assert.Equal("Mapped", _mainViewModel.MappingEditorPanel.EditBindingDescriptionPrimary);
+
+        _mainViewModel.MappingSelection.ResetTo(null);
+        _mainViewModel.MappingSelection.ResetTo(mapping);
+
+        Assert.Same(mapping, _mainViewModel.SelectedMapping);
+        Assert.Equal("Mapped", _mainViewModel.MappingEditorPanel.EditBindingDescriptionPrimary);
+        Assert.Equal(ProfileRightPanelSurface.Mapping, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void TemplateSwitch_OnKeyboardTab_SelectsFirstKeyboardAction()
+    {
+        var templateA = new TemplateOption { ProfileId = "a", TemplateGroupId = "g", DisplayName = "Template A" };
+        var templateB = new TemplateOption { ProfileId = "b", TemplateGroupId = "g", DisplayName = "Template B" };
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.KeyboardActions;
+
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "a")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "a",
+                DisplayName = "Template A",
+                Mappings = [],
+                KeyboardActions = [new KeyboardActionDefinition { Id = "act-a", KeyboardKey = "Space", Description = "A" }]
+            });
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "b")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "b",
+                DisplayName = "Template B",
+                Mappings = [],
+                KeyboardActions = [new KeyboardActionDefinition { Id = "act-b", KeyboardKey = "Enter", Description = "B" }]
+            });
+
+        _mainViewModel.SelectedTemplate = templateA;
+        _mainViewModel.SelectedTemplate = templateB;
+
+        Assert.NotNull(_mainViewModel.SelectedKeyboardAction);
+        Assert.Equal("act-b", _mainViewModel.SelectedKeyboardAction?.Id);
+        Assert.Equal(ProfileRightPanelSurface.KeyboardAction, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void TemplateSwitch_OnRadialTab_SelectsFirstRadialMenu()
+    {
+        var templateA = new TemplateOption { ProfileId = "a", TemplateGroupId = "g", DisplayName = "Template A" };
+        var templateB = new TemplateOption { ProfileId = "b", TemplateGroupId = "g", DisplayName = "Template B" };
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.RadialMenus;
+
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "a")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "a",
+                DisplayName = "Template A",
+                Mappings = [],
+                RadialMenus = [new RadialMenuDefinition { Id = "radial-a", DisplayName = "A", Items = new ObservableCollection<RadialMenuItem>() }]
+            });
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "b")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "b",
+                DisplayName = "Template B",
+                Mappings = [],
+                RadialMenus = [new RadialMenuDefinition { Id = "radial-b", DisplayName = "B", Items = new ObservableCollection<RadialMenuItem>() }]
+            });
+
+        _mainViewModel.SelectedTemplate = templateA;
+        _mainViewModel.SelectedTemplate = templateB;
+
+        Assert.NotNull(_mainViewModel.SelectedRadialMenu);
+        Assert.Equal("radial-b", _mainViewModel.SelectedRadialMenu?.Id);
+        Assert.Equal(ProfileRightPanelSurface.RadialMenu, _mainViewModel.RightPanelSurface);
+    }
+
+    [Fact]
+    public void TemplateSwitch_ClearsWorkspaceSessionState_AndRehydratesSelection()
+    {
+        var templateA = new TemplateOption { ProfileId = "a", TemplateGroupId = "g", DisplayName = "Template A" };
+        var templateB = new TemplateOption { ProfileId = "b", TemplateGroupId = "g", DisplayName = "Template B" };
+        _mainViewModel.ProfileListTabIndex = (int)MainViewModel.MainProfileWorkspaceTab.Mappings;
+
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "a")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "a",
+                DisplayName = "Template A",
+                Mappings =
+                [
+                    new MappingEntry
+                    {
+                        Description = "From A",
+                        From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "A" }
+                    }
+                ]
+            });
+        _profileServiceMock
+            .Setup(p => p.LoadSelectedTemplate(It.Is<TemplateOption>(t => t.ProfileId == "b")))
+            .Returns(new GameProfileTemplate
+            {
+                ProfileId = "b",
+                DisplayName = "Template B",
+                Mappings =
+                [
+                    new MappingEntry
+                    {
+                        Description = "From B",
+                        From = new GamepadBinding { Type = GamepadBindingType.Button, Value = "B" }
+                    }
+                ]
+            });
+
+        _mainViewModel.SelectedTemplate = templateA;
+        _mainViewModel.MappingEditorPanel.AddMappingCommand.Execute(null);
+        Assert.True(_mainViewModel.MappingEditorPanel.IsCreatingNewMapping);
+        Assert.True(_mainViewModel.ActiveMappingListEditor.History.CanUndo);
+
+        _mainViewModel.SelectedTemplate = templateB;
+
+        Assert.False(_mainViewModel.MappingEditorPanel.IsCreatingNewMapping);
+        Assert.False(_mainViewModel.ActiveMappingListEditor.History.CanUndo);
+        Assert.False(_mainViewModel.ActiveMappingListEditor.History.CanRedo);
+        Assert.NotNull(_mainViewModel.SelectedMapping);
+        Assert.Equal("From B", _mainViewModel.MappingEditorPanel.EditBindingDescriptionPrimary);
+        Assert.Equal("B", _mainViewModel.MappingEditorPanel.InputTrigger.EditBindingFromButton);
+        Assert.Equal(ProfileRightPanelSurface.Mapping, _mainViewModel.RightPanelSurface);
     }
 }
 

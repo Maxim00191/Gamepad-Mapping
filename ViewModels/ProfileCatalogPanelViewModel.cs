@@ -6,6 +6,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 
 using System.Windows.Input;
@@ -15,6 +16,7 @@ using GamepadMapperGUI.Interfaces.Services.Storage;
 using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
+using Gamepad_Mapping.Utils;
 
 namespace Gamepad_Mapping.ViewModels;
 
@@ -23,18 +25,20 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     private readonly MainViewModel _main;
     private readonly IKeyboardCaptureService _keyboardCaptureService;
     private bool _syncingCatalogOutputKind;
-    private bool _workspaceKeyboardSelectionSync;
-    private bool _workspaceRadialSelectionSync;
+    private int _validationSuspendDepth;
+    private bool _validationRefreshPending;
 
     public ProfileCatalogPanelViewModel(MainViewModel mainViewModel)
     {
         _main = mainViewModel;
         _keyboardCaptureService = _main.KeyboardCaptureService;
         _keyboardCaptureService.PropertyChanged += KeyboardCaptureServiceOnPropertyChanged;
-        _main.KeyboardActions.CollectionChanged += (_, _) => ValidateCurrentState();
-        _main.RadialMenus.CollectionChanged += (_, _) => ValidateCurrentState();
+        _main.KeyboardActions.CollectionChanged += (_, _) => PullKeyboardCatalogDescriptionPair();
+        _main.RadialMenus.CollectionChanged += (_, _) => PullRadialMenuDisplayNamePair();
         if (AppUiLocalization.TryTranslationService() is { } loc)
             loc.PropertyChanged += CatalogTranslationServiceOnPropertyChanged;
+        _main.KeyboardActionSelection.SelectionChanged += (_, _) => RefreshWorkspaceSelectionMirrors();
+        _main.RadialMenuSelection.SelectionChanged += (_, _) => RefreshWorkspaceSelectionMirrors();
     }
 
     private void CatalogTranslationServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -43,6 +47,26 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
             return;
         PullKeyboardCatalogDescriptionPair();
         PullRadialMenuDisplayNamePair();
+    }
+
+    public void RefreshWorkspaceSelectionMirrors()
+    {
+        WorkspaceSelectedKeyboardActions.Clear();
+        foreach (var item in _main.KeyboardActionSelection.SelectedItems)
+            WorkspaceSelectedKeyboardActions.Add(item);
+
+        WorkspaceSelectedRadialMenus.Clear();
+        foreach (var item in _main.RadialMenuSelection.SelectedItems)
+            WorkspaceSelectedRadialMenus.Add(item);
+
+        OnPropertyChanged(nameof(SelectedKeyboardAction));
+        OnPropertyChanged(nameof(SelectedRadialMenu));
+        var keyboard = _main.SelectedKeyboardAction;
+        var radial = _main.SelectedRadialMenu;
+        WorkspaceDebugTrace.Log("selection", $"keyboard catalog selection → {(keyboard?.Id ?? "(null)")}");
+        WorkspaceDebugTrace.Log("selection", $"radial menu selection → {(radial?.Id ?? "(null)")}");
+        OnSelectedKeyboardActionChanged(keyboard);
+        OnSelectedRadialMenuChanged(radial);
     }
 
     public ObservableCollection<TemplateOption> AvailableProfileTemplates => _main.AvailableTemplates;
@@ -60,8 +84,11 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (_syncingCatalogOutputKind || SelectedKeyboardAction is null)
             return;
 
-        SelectedKeyboardAction.ApplyCatalogOutputKind(value);
-        ValidateCurrentState();
+        _main.KeyboardActionsWorkspace.History.ExecuteTransaction(() =>
+        {
+            SelectedKeyboardAction.ApplyCatalogOutputKind(value);
+            RequestValidationRefresh();
+        });
     }
 
     private void NotifyCatalogOutputKindSectionVisibility()
@@ -101,7 +128,13 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
         _keyboardCaptureService.BeginCapture(
             AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.CatalogActionOutput),
-            key => SelectedKeyboardAction.KeyboardKey = key.ToString());
+            key =>
+            {
+                _main.KeyboardActionsWorkspace.History.ExecuteTransaction(() =>
+                {
+                    SelectedKeyboardAction.KeyboardKey = key.ToString();
+                });
+            });
     }
 
     [RelayCommand]
@@ -110,7 +143,13 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (SelectedKeyboardAction?.ItemCycle is null) return;
         _keyboardCaptureService.BeginCapture(
             AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleForward),
-            key => SelectedKeyboardAction.ItemCycle.LoopForwardKey = key.ToString());
+            key =>
+            {
+                _main.KeyboardActionsWorkspace.History.ExecuteTransaction(() =>
+                {
+                    SelectedKeyboardAction.ItemCycle.LoopForwardKey = key.ToString();
+                });
+            });
     }
 
     [RelayCommand]
@@ -119,12 +158,18 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (SelectedKeyboardAction?.ItemCycle is null) return;
         _keyboardCaptureService.BeginCapture(
             AppUiLocalization.GetString(AppUiLocalization.KeyboardCapturePromptKeys.ItemCycleBackward),
-            key => SelectedKeyboardAction.ItemCycle.LoopBackwardKey = key.ToString());
+            key =>
+            {
+                _main.KeyboardActionsWorkspace.History.ExecuteTransaction(() =>
+                {
+                    SelectedKeyboardAction.ItemCycle.LoopBackwardKey = key.ToString();
+                });
+            });
     }
 
     private void ValidateCurrentState()
     {
-        var profile = _main.GetProfileService().LoadSelectedTemplate(_main.SelectedTemplate);
+        var profile = _main.GetWorkspaceTemplateSnapshot();
         if (profile == null)
         {
             ValidationErrors.Clear();
@@ -134,6 +179,14 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         }
 
         var result = _main.GetProfileService().ValidateTemplate(profile);
+        if (result is null)
+        {
+            ValidationErrors.Clear();
+            ValidationWarnings.Clear();
+            NotifyValidationPresenceChanged();
+            return;
+        }
+
         ValidationErrors.Clear();
         foreach (var e in result.Errors)
             ValidationErrors.Add(e);
@@ -141,6 +194,38 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         foreach (var w in result.Warnings)
             ValidationWarnings.Add(w);
         NotifyValidationPresenceChanged();
+    }
+
+    public IDisposable SuspendValidationRefresh()
+    {
+        _validationSuspendDepth++;
+        return new ValidationRefreshScope(this);
+    }
+
+    private void ResumeValidationRefresh()
+    {
+        if (_validationSuspendDepth == 0)
+            return;
+
+        _validationSuspendDepth--;
+        if (_validationSuspendDepth == 0 && _validationRefreshPending)
+        {
+            _validationRefreshPending = false;
+            ValidateCurrentState();
+        }
+    }
+
+    public void NotifyWorkspaceStateChanged() => RequestValidationRefresh();
+
+    private void RequestValidationRefresh()
+    {
+        if (_validationSuspendDepth > 0)
+        {
+            _validationRefreshPending = true;
+            return;
+        }
+
+        ValidateCurrentState();
     }
 
     private void NotifyValidationPresenceChanged()
@@ -169,114 +254,44 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
 
     public void ResetSelection()
     {
-        _workspaceKeyboardSelectionSync = true;
-        _workspaceRadialSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedKeyboardActions.Clear();
-            WorkspaceSelectedRadialMenus.Clear();
-            SelectedKeyboardAction = null;
-            SelectedRadialMenu = null;
-            SelectedRadialSlot = null;
-        }
-        finally
-        {
-            _workspaceKeyboardSelectionSync = false;
-            _workspaceRadialSelectionSync = false;
-        }
+        _main.KeyboardActionSelection.ResetTo(null);
+        _main.RadialMenuSelection.ResetTo(null);
+        SelectedRadialSlot = null;
     }
 
     public void NotifyWorkspaceKeyboardSelectionFromGrid(IReadOnlyList<object> items)
     {
-        _workspaceKeyboardSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedKeyboardActions.Clear();
-            foreach (var o in items)
-            {
-                if (o is KeyboardActionDefinition k)
-                    WorkspaceSelectedKeyboardActions.Add(k);
-            }
-
-            SelectedKeyboardAction = WorkspaceSelectedKeyboardActions.Count > 0
-                ? WorkspaceSelectedKeyboardActions[^1]
-                : null;
-        }
-        finally
-        {
-            _workspaceKeyboardSelectionSync = false;
-        }
-
-        _main.RuleClipboard?.RefreshCommandStates();
+        _main.KeyboardActionSelection.UpdateSelection(items);
     }
 
     public void NotifyWorkspaceRadialSelectionFromGrid(IReadOnlyList<object> items)
     {
-        _workspaceRadialSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedRadialMenus.Clear();
-            foreach (var o in items)
-            {
-                if (o is RadialMenuDefinition r)
-                    WorkspaceSelectedRadialMenus.Add(r);
-            }
-
-            SelectedRadialMenu = WorkspaceSelectedRadialMenus.Count > 0
-                ? WorkspaceSelectedRadialMenus[^1]
-                : null;
-        }
-        finally
-        {
-            _workspaceRadialSelectionSync = false;
-        }
-
-        _main.RuleClipboard?.RefreshCommandStates();
+        _main.RadialMenuSelection.UpdateSelection(items);
     }
 
     public void SelectAllKeyboardActionsForWorkspace()
     {
-        _workspaceKeyboardSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedKeyboardActions.Clear();
-            foreach (var a in KeyboardActions)
-                WorkspaceSelectedKeyboardActions.Add(a);
-            SelectedKeyboardAction = KeyboardActions.Count > 0 ? KeyboardActions[^1] : null;
-        }
-        finally
-        {
-            _workspaceKeyboardSelectionSync = false;
-        }
-
-        _main.RuleClipboard?.RefreshCommandStates();
+        _main.KeyboardActionSelection.SelectAll(_main.KeyboardActions);
     }
 
     public void SelectAllRadialMenusForWorkspace()
     {
-        _workspaceRadialSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedRadialMenus.Clear();
-            foreach (var r in RadialMenus)
-                WorkspaceSelectedRadialMenus.Add(r);
-            SelectedRadialMenu = RadialMenus.Count > 0 ? RadialMenus[^1] : null;
-        }
-        finally
-        {
-            _workspaceRadialSelectionSync = false;
-        }
-
-        _main.RuleClipboard?.RefreshCommandStates();
+        _main.RadialMenuSelection.SelectAll(_main.RadialMenus);
     }
 
     public IReadOnlyList<string> JoystickStickOptions { get; } = new[] { "LeftStick", "RightStick" };
 
-    [ObservableProperty]
-    private KeyboardActionDefinition? selectedKeyboardAction;
+    public KeyboardActionDefinition? SelectedKeyboardAction
+    {
+        get => _main.SelectedKeyboardAction;
+        set => _main.KeyboardActionSelection.SelectedItem = value;
+    }
 
-    [ObservableProperty]
-    private RadialMenuDefinition? selectedRadialMenu;
+    public RadialMenuDefinition? SelectedRadialMenu
+    {
+        get => _main.SelectedRadialMenu;
+        set => _main.RadialMenuSelection.SelectedItem = value;
+    }
 
     [ObservableProperty]
     private RadialMenuItem? selectedRadialSlot;
@@ -304,6 +319,19 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     partial void OnRadialMenuDisplayNamePrimaryChanged(string value) => PushRadialMenuDisplayNamePair();
 
     partial void OnRadialMenuDisplayNameSecondaryChanged(string value) => PushRadialMenuDisplayNamePair();
+
+    [ObservableProperty]
+    private string _radialMenuJoystick = "RightStick";
+
+    partial void OnRadialMenuJoystickChanged(string value)
+    {
+        if (SelectedRadialMenu is null) return;
+        _main.RadialMenusWorkspace.History.ExecuteTransaction(() =>
+        {
+            SelectedRadialMenu.Joystick = value;
+            _main.RadialMenusWorkspace.UpdateSelectedFromCatalog();
+        });
+    }
 
     private void PullKeyboardCatalogDescriptionPair()
     {
@@ -333,14 +361,7 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (_syncingKeyboardDescriptionPair || SelectedKeyboardAction is null)
             return;
 
-        var a = SelectedKeyboardAction;
-        var d = a.Descriptions;
-        var b = a.Description;
-        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), KeyboardCatalogDescriptionPrimary, KeyboardCatalogDescriptionSecondary);
-        a.Descriptions = d;
-        a.Description = b;
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-            CatalogDescriptionLocalizer.ApplyKeyboardAction(a, ts);
+        _main.KeyboardActionsWorkspace.UpdateSelectedFromCatalog();
     }
 
     private void PullRadialMenuDisplayNamePair()
@@ -371,41 +392,18 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         if (_syncingRadialDisplayNamePair || SelectedRadialMenu is null)
             return;
 
-        var rm = SelectedRadialMenu;
-        var d = rm.DisplayNames;
-        var b = rm.DisplayName;
-        UiCultureDescriptionPair.WritePair(ref d, ref b, AppUiLocalization.EditorUiCulture(), RadialMenuDisplayNamePrimary, RadialMenuDisplayNameSecondary);
-        rm.DisplayNames = d;
-        rm.DisplayName = b;
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-            CatalogDescriptionLocalizer.ApplyRadialMenu(rm, ts);
+        _main.RadialMenusWorkspace.UpdateSelectedFromCatalog();
     }
 
-    partial void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value)
+    private void OnSelectedKeyboardActionChanged(KeyboardActionDefinition? value)
     {
-        if (!_workspaceKeyboardSelectionSync)
-        {
-            _workspaceKeyboardSelectionSync = true;
-            try
-            {
-                WorkspaceSelectedKeyboardActions.Clear();
-                if (value is not null)
-                    WorkspaceSelectedKeyboardActions.Add(value);
-            }
-            finally
-            {
-                _workspaceKeyboardSelectionSync = false;
-            }
-        }
-
         SyncCatalogOutputKindFromSelection();
         PullKeyboardCatalogDescriptionPair();
         _main.RefreshRightPanelSurface();
-        ValidateCurrentState();
         _main.RuleClipboard?.RefreshCommandStates();
     }
 
-    private void SyncCatalogOutputKindFromSelection()
+    public void SyncCatalogOutputKindFromSelection()
     {
         _syncingCatalogOutputKind = true;
         try
@@ -418,70 +416,35 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
         }
     }
 
-    partial void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)
+    private void OnSelectedRadialMenuChanged(RadialMenuDefinition? value)
     {
-        if (!_workspaceRadialSelectionSync)
-        {
-            _workspaceRadialSelectionSync = true;
-            try
-            {
-                WorkspaceSelectedRadialMenus.Clear();
-                if (value is not null)
-                    WorkspaceSelectedRadialMenus.Add(value);
-            }
-            finally
-            {
-                _workspaceRadialSelectionSync = false;
-            }
-        }
-
         PullRadialMenuDisplayNamePair();
         _main.RefreshRightPanelSurface();
-        ValidateCurrentState();
         _main.RuleClipboard?.RefreshCommandStates();
     }
 
     [RelayCommand]
     private void AddKeyboardAction()
     {
-        _main.RecordTemplateWorkspaceCheckpoint();
-        _main.KeyboardActions.Add(new KeyboardActionDefinition
-        {
-            Id = NextKeyboardActionId(),
-            KeyboardKey = string.Empty,
-            Description = string.Empty
-        });
+        _main.KeyboardActionsWorkspace.AddNewAction();
     }
 
     [RelayCommand]
     private void RemoveKeyboardAction()
     {
-        if (SelectedKeyboardAction is null)
-            return;
-        _main.RecordTemplateWorkspaceCheckpoint();
-        _main.KeyboardActions.Remove(SelectedKeyboardAction);
+        _main.KeyboardActionsWorkspace.Delete();
     }
 
     [RelayCommand]
     private void AddRadialMenu()
     {
-        _main.RecordTemplateWorkspaceCheckpoint();
-        _main.RadialMenus.Add(new RadialMenuDefinition
-        {
-            Id = NextRadialMenuId(),
-            DisplayName = "Radial",
-            Joystick = "RightStick",
-            Items = new ObservableCollection<RadialMenuItem>()
-        });
+        _main.RadialMenusWorkspace.AddNewMenu();
     }
 
     [RelayCommand]
     private void RemoveRadialMenu()
     {
-        if (SelectedRadialMenu is null)
-            return;
-        _main.RecordTemplateWorkspaceCheckpoint();
-        _main.RadialMenus.Remove(SelectedRadialMenu);
+        _main.RadialMenusWorkspace.Delete();
     }
 
     [RelayCommand]
@@ -489,8 +452,12 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedRadialMenu is null)
             return;
-        _main.RecordTemplateWorkspaceCheckpoint();
-        SelectedRadialMenu.Items.Add(new RadialMenuItem { ActionId = string.Empty });
+        
+        _main.RadialMenusWorkspace.History.ExecuteTransaction(() =>
+        {
+            SelectedRadialMenu.Items.Add(new RadialMenuItem { ActionId = string.Empty });
+            _main.RadialMenusWorkspace.UpdateSelectedFromCatalog();
+        });
     }
 
     [RelayCommand]
@@ -498,32 +465,29 @@ public partial class ProfileCatalogPanelViewModel : ObservableObject
     {
         if (SelectedRadialMenu is null || SelectedRadialSlot is null)
             return;
-        _main.RecordTemplateWorkspaceCheckpoint();
-        SelectedRadialMenu.Items.Remove(SelectedRadialSlot);
+        
+        _main.RadialMenusWorkspace.History.ExecuteTransaction(() =>
+        {
+            SelectedRadialMenu.Items.Remove(SelectedRadialSlot);
+            _main.RadialMenusWorkspace.UpdateSelectedFromCatalog();
+        });
     }
 
-    private string NextKeyboardActionId()
+    private sealed class ValidationRefreshScope : IDisposable
     {
-        for (var n = 1; n < 10_000; n++)
+        private ProfileCatalogPanelViewModel? _owner;
+
+        public ValidationRefreshScope(ProfileCatalogPanelViewModel owner) => _owner = owner;
+
+        public void Dispose()
         {
-            var id = $"action{n}";
-            if (_main.KeyboardActions.All(a => !string.Equals(a.Id, id, StringComparison.OrdinalIgnoreCase)))
-                return id;
+            var owner = _owner;
+            if (owner is null)
+                return;
+
+            _owner = null;
+            owner.ResumeValidationRefresh();
         }
-
-        return $"action{Guid.NewGuid():N}"[..12];
-    }
-
-    private string NextRadialMenuId()
-    {
-        for (var n = 1; n < 10_000; n++)
-        {
-            var id = $"radial{n}";
-            if (_main.RadialMenus.All(r => !string.Equals(r.Id, id, StringComparison.OrdinalIgnoreCase)))
-                return id;
-        }
-
-        return $"radial{Guid.NewGuid():N}"[..12];
     }
 }
 

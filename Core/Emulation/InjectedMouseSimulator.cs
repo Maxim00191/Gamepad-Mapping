@@ -200,7 +200,8 @@ public sealed class InjectedMouseSimulator : IMouseEmulator
     public void WheelUp() => SendMouseInput(InjectedInputMouseOptions.Wheel, (uint)WheelDelta);
     public void WheelDown() => SendMouseInput(InjectedInputMouseOptions.Wheel, unchecked((uint)-WheelDelta));
 
-    public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f) => SendMouseInput(InjectedInputMouseOptions.Move, 0, deltaX, deltaY);
+    public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f, GamepadBindingType? moveSubdivisionScope = null) =>
+        SendMouseInput(InjectedInputMouseOptions.Move, 0, deltaX, deltaY);
 
     private void SendMouseInput(InjectedInputMouseOptions options, uint mouseData = 0, int dx = 0, int dy = 0)
     {

@@ -21,6 +21,11 @@ public interface IGamepadService : IDisposable
     void SetTriggerDeadzones(float leftInner, float leftOuter, float rightInner, float rightOuter);
 
     /// <summary>
+    /// Applies poll cadence and analog emission epsilon to the underlying reader (clamped via <c>GamepadInputStreamConstraints</c>).
+    /// </summary>
+    void ApplyInputStreamTuning(int pollingIntervalMs, float analogChangeEpsilon);
+
+    /// <summary>
     /// Replaces the underlying reader.
     /// </summary>
     void ReplaceReader(IGamepadReader reader);

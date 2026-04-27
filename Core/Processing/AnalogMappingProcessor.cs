@@ -9,6 +9,7 @@ using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Core.Input;
+using GamepadMapperGUI.Core.Emulation.Noise;
 
 namespace GamepadMapperGUI.Core;
 
@@ -102,8 +103,8 @@ internal sealed class AnalogMappingProcessor
                 {
                     pipe.PreReleaseSignX = ToSign(pipe.LastRawX);
                     pipe.PreReleaseSignY = ToSign(pipe.LastRawY);
-                    var pollMs = Math.Clamp(_getGamepadPollingIntervalMs(), 5, 30);
-                    var frames = (int)MathF.Ceiling(65f / pollMs);
+                    var pollMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(_getGamepadPollingIntervalMs());
+                    var frames = (int)MathF.Ceiling((float)MouseLookMotionConstraints.ReboundSuppressionCalibrationWindowMs / pollMs);
                     pipe.ReboundFramesRemaining = Math.Max(2, frames);
                 }
             }
@@ -114,6 +115,7 @@ internal sealed class AnalogMappingProcessor
             pipe.LastRawY = 0f;
             pipe.WasAboveSettle = false;
             _analogProcessor.ClearMouseLookResidual(sourceType);
+            ResetMouseSubdivisionIfApplicable(sourceType);
         }
 
         var mouseDeltaX = 0f;
@@ -178,7 +180,7 @@ internal sealed class AnalogMappingProcessor
             }
             else
             {
-                var pollMs = Math.Clamp(_getGamepadPollingIntervalMs(), 5, 30);
+                var pollMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(_getGamepadPollingIntervalMs());
                 var dtSec = pollMs / 1000f;
                 var sm = smoothing * smoothing;
                 var tauSec = 0.004f + (0.10f - 0.004f) * sm;
@@ -319,6 +321,7 @@ internal sealed class AnalogMappingProcessor
         _analogProcessor.Reset();
         _mouseLookLeft = default;
         _mouseLookRight = default;
+        ResetMouseSubdivisionIfApplicable(null);
     }
 
     private void ReleaseAnalogOutputsForSourceThumbstick(GamepadBindingType sourceType)
@@ -329,6 +332,13 @@ internal sealed class AnalogMappingProcessor
         _analogProcessor.RemoveAnalogKeyboardStateForBinding(sourceType);
         ref var pipe = ref GetMouseLookPipelineRef(sourceType);
         pipe = default;
+        ResetMouseSubdivisionIfApplicable(sourceType);
+    }
+
+    private void ResetMouseSubdivisionIfApplicable(GamepadBindingType? thumbstickScope)
+    {
+        if (_mouseEmulator is IPendingMouseSubdivisionState s)
+            s.ClearPendingSubdivision(thumbstickScope);
     }
 
     private void HandleAnalogOutput(MappingEntry mapping, AnalogSourceDefinition source, Vector2 stickValue, DispatchedOutput output, string baseLabel)
@@ -394,6 +404,6 @@ internal sealed class AnalogMappingProcessor
     private void SendMouseLookDelta(GamepadBindingType thumbstickSource, float deltaX, float deltaY, float stickMagnitude)
     {
         var delta = _analogProcessor.AccumulateMouseLookDelta(thumbstickSource, deltaX, deltaY);
-        _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy, stickMagnitude);
+        _mouseEmulator.MoveBy(delta.PixelDx, delta.PixelDy, stickMagnitude, thumbstickSource);
     }
 }

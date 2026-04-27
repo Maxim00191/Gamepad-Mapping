@@ -16,15 +16,18 @@ public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketT
     private readonly AppSettings _settings;
     private readonly IWebView2RuntimeAvailability _webView2Runtime;
     private readonly Func<string, string> _localize;
+    private readonly IUserDialogService _userDialogService;
 
     public CommunityUploadTicketTokenProvider(
         AppSettings settings,
         IWebView2RuntimeAvailability? webView2Runtime = null,
-        Func<string, string>? localizeString = null)
+        Func<string, string>? localizeString = null,
+        IUserDialogService? userDialogService = null)
     {
         _settings = settings;
         _webView2Runtime = webView2Runtime ?? new WebView2RuntimeAvailability();
         _localize = localizeString ?? (k => k);
+        _userDialogService = userDialogService ?? new UserDialogService();
     }
 
     public Task<string?> GetTurnstileTokenAsync(CancellationToken cancellationToken = default)
@@ -134,10 +137,13 @@ public sealed class CommunityUploadTicketTokenProvider : ICommunityUploadTicketT
             var owner = Application.Current?.MainWindow;
             var title = _localize("WebView2_RuntimeRequired_Title");
             var message = _localize("WebView2_RuntimeRequired_Message");
-            var result = owner is not null
-                ? MessageBox.Show(owner, message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning)
-                : MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (result == MessageBoxResult.Yes)
+            var result = _userDialogService.ConfirmYesNo(
+                message,
+                title,
+                MessageBoxImage.Warning,
+                defaultResult: MessageBoxResult.No,
+                owner: owner);
+            if (result)
                 TryOpenWebView2DownloadPage();
 
             return null;

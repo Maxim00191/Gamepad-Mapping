@@ -66,6 +66,12 @@ public class GamepadService : IGamepadService
         _reader.RightTriggerOuterDeadzone = rightOuter;
     }
 
+    public void ApplyInputStreamTuning(int pollingIntervalMs, float analogChangeEpsilon)
+    {
+        _reader.PollingIntervalMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(pollingIntervalMs);
+        _reader.AnalogChangeEpsilon = GamepadInputStreamConstraints.ClampAnalogChangeEpsilon(analogChangeEpsilon);
+    }
+
     public void ReplaceReader(IGamepadReader reader)
     {
         var wasRunning = _isRunning;

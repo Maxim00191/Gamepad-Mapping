@@ -31,10 +31,28 @@
         <SolidColorBrush x:Key="AppSeparatorBrush" Color="#FFC9C3B8" />
         <SolidColorBrush x:Key="AppGridSplitterBrush" Color="#FFBCB5AA" />
         <SolidColorBrush x:Key="AppGridSplitterHoverBrush" Color="#FFB89428" />
-        <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FFC9A000" />
+        <SolidColorBrush x:Key="AppUnsavedChangesIndicatorBrush" Color="#FF6D4714" />
+        <SolidColorBrush x:Key="AppSoftWarningBorderBrush" Color="#FF92400E" />
+        <SolidColorBrush x:Key="AppSemanticWarningForegroundBrush" Color="#FF9A3412" />
+        <SolidColorBrush x:Key="AppSemanticErrorForegroundBrush" Color="#FFB91C1C" />
         <SolidColorBrush x:Key="AppHudTitleBrush" Color="#FF242220" />
         <SolidColorBrush x:Key="AppHudDetailBrush" Color="#FF5F5A54" />
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
+        <SolidColorBrush x:Key="AppTooltipBackgroundBrush" Color="#FFFDFBF7" />
+        <SolidColorBrush x:Key="AppTooltipBorderBrush" Color="#FF504C46" />
+        <Storyboard x:Key="SoftWarningBreathingBorderStoryboard">
+            <DoubleAnimation Storyboard.TargetName="SoftWarningBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0.4"
+                             To="1"
+                             Duration="0:0:0.95"
+                             AutoReverse="True"
+                             RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction>
+                    <SineEase EasingMode="EaseInOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
         <SolidColorBrush x:Key="VisualWorkspacePanelBackgroundBrush" Color="#FFD4CEC4" />
         <SolidColorBrush x:Key="VisualWorkspacePanelBorderBrush" Color="#FF8F887E" />
         <SolidColorBrush x:Key="VisualWorkspaceListItemBackgroundBrush" Color="#FFDFD9D0" />
@@ -45,7 +63,7 @@
         <SolidColorBrush x:Key="VisualWorkspaceHintBarBackgroundBrush" Color="#CCBEB6A8" />
         <SolidColorBrush x:Key="VisualWorkspaceHintBarBorderBrush" Color="#FF8F887E" />
         <SolidColorBrush x:Key="VisualWorkspaceHintBarPrimaryForegroundBrush" Color="#FF24221E" />
-        <SolidColorBrush x:Key="VisualWorkspaceHintBarSecondaryForegroundBrush" Color="#FF736E66" />
+        <SolidColorBrush x:Key="VisualWorkspaceHintBarSecondaryForegroundBrush" Color="#FF524E46" />
         <SolidColorBrush x:Key="VisualWorkspaceOverlayLeaderMutedStrokeBrush" Color="#66302C26" />
         <SolidColorBrush x:Key="VisualWorkspaceOverlayLabelDotBrush" Color="#44302C26" />
         <SolidColorBrush x:Key="VisualWorkspacePathHoverFillBrush" Color="#28000000" />
@@ -124,7 +142,7 @@
         </Style>
 
         <Style x:Key="MainWorkspaceTabItem" TargetType="{x:Type TabItem}">
-            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0,0,4,0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -132,25 +150,46 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type TabItem}">
-                        <Border x:Name="TabBd"
-                                Padding="12,10"
-                                Margin="0,0,4,0"
-                                Background="Transparent"
-                                BorderThickness="0,0,0,2"
-                                BorderBrush="Transparent"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter ContentSource="Header"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
+                        <Grid x:Name="RootGrid" SnapsToDevicePixels="True">
+                            <Border x:Name="TabBd"
+                                    Padding="16,12"
+                                    Margin="0,0,4,0"
+                                    Background="Transparent"
+                                    BorderThickness="0,0,0,3"
+                                    BorderBrush="Transparent"
+                                    CornerRadius="4,4,0,0"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter x:Name="Content"
+                                                  ContentSource="Header"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                            <!-- Highlight bar for selected state -->
+                            <Border x:Name="SelectionIndicator"
+                                    Height="3"
+                                    VerticalAlignment="Bottom"
+                                    Margin="0,0,4,0"
+                                    Background="{DynamicResource AppAccentBrush}"
+                                    Visibility="Collapsed" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBd" Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
-                                <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="TabBd" Property="Background" Value="{DynamicResource AppControlSurfaceAltBrush}" />
                             </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsSelected" Value="False" />
+                                </MultiTrigger.Conditions>
                                 <Setter TargetName="TabBd" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -175,16 +214,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ToggleButton}">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <Border x:Name="SoftWarningBorder"
+                                    BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -200,6 +248,15 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                            <Trigger Property="ui:ButtonAttentionAssist.IsSoftWarningHighlighted" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SoftWarningBreathingStoryboard"
+                                                     Storyboard="{StaticResource SoftWarningBreathingBorderStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="SoftWarningBreathingStoryboard" />
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -219,16 +276,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <Border x:Name="SoftWarningBorder"
+                                    BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -240,6 +306,15 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                            <Trigger Property="ui:ButtonAttentionAssist.IsSoftWarningHighlighted" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SoftWarningBreathingStoryboard"
+                                                     Storyboard="{StaticResource SoftWarningBreathingBorderStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="SoftWarningBreathingStoryboard" />
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -427,16 +502,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}" />
+                            </Border>
+                            <Border x:Name="SoftWarningBorder"
+                                    BorderBrush="{DynamicResource AppSoftWarningBorderBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False"
+                                    Opacity="0"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
@@ -448,6 +532,15 @@
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                            <Trigger Property="ui:ButtonAttentionAssist.IsSoftWarningHighlighted" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="SoftWarningBreathingStoryboard"
+                                                     Storyboard="{StaticResource SoftWarningBreathingBorderStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="SoftWarningBreathingStoryboard" />
+                                </Trigger.ExitActions>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -515,6 +608,30 @@
             <Style.Triggers>
                 <Trigger Property="IsKeyboardFocused" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="AppSelectionDialogListBoxStyle" TargetType="{x:Type ListBox}">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppControlSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+
+        <Style x:Key="AppSelectionDialogListBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource AppSelectionTextBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -817,9 +934,9 @@
         </Style>
 
         <Style TargetType="{x:Type ToolTip}">
-            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppTooltipBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppTooltipBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,6" />
         </Style>
@@ -861,6 +978,80 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <!-- Tray context menu (TrayNotifyIconService): plain text rows; custom template avoids default ScrollViewer (often white) obscuring short menus. -->
+        <Style x:Key="TrayNotifyContextMenuStyle" TargetType="{x:Type ContextMenu}">
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="FontFamily" Value="{DynamicResource {x:Static SystemFonts.MessageFontFamilyKey}}" />
+            <Setter Property="FontSize" Value="{DynamicResource {x:Static SystemFonts.MessageFontSizeKey}}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
+                            <StackPanel IsItemsHost="True"
+                                        Background="Transparent"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle"
+                                        Orientation="Vertical" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TrayNotifyMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="Host"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="0"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Host" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsHighlighted" Value="True" />
+                                    <Condition Property="IsPressed" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Host" Property="Background" Value="{DynamicResource AppControlPressedBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TrayNotifyMenuSeparatorStyle" TargetType="{x:Type Separator}">
+            <Setter Property="Margin" Value="6,2" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource AppSeparatorBrush}" />
         </Style>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <utils:InverseBooleanConverter x:Key="InverseBooleanConverter" />

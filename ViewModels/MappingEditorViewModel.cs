@@ -18,6 +18,7 @@ using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
+using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Storage;
 using GamepadMapperGUI.Services.Update;
@@ -30,11 +31,12 @@ namespace Gamepad_Mapping.ViewModels;
 public partial class MappingEditorViewModel : ObservableObject
 {
     private readonly MainViewModel _mainViewModel;
+    private readonly IItemSelectionDialogService _itemSelectionDialogService;
     private readonly IActionEditorFactory _actionEditorFactory;
     private bool _resolvingActionId;
     private bool _syncingActionEditorFromSelection;
     private readonly HashSet<MappingEntry> _mappingActionIdListeners = [];
-    private bool _workspaceMappingSelectionSync;
+    private readonly Dictionary<MappingEntry, GamepadBinding> _mappingSourceListeners = [];
 
     [ObservableProperty]
     private ActionEditorViewModelBase? _currentActionEditor;
@@ -55,11 +57,23 @@ public partial class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
     }
 
+    partial void OnCurrentActionEditorChanged(ActionEditorViewModelBase? oldValue, ActionEditorViewModelBase? newValue)
+    {
+        if (oldValue != null)
+            oldValue.ConfigurationChanged -= OnActionEditorConfigurationChanged;
+        if (newValue != null)
+            newValue.ConfigurationChanged += OnActionEditorConfigurationChanged;
+    }
+
+    private void OnActionEditorConfigurationChanged(object? sender, EventArgs e) => AutoUpdateMapping();
+
     public MappingEditorViewModel(MainViewModel mainViewModel)
     {
         _mainViewModel = mainViewModel;
+        _itemSelectionDialogService = _mainViewModel.ItemSelectionDialogService;
         _actionEditorFactory = new ActionEditorFactory(_mainViewModel);
         _inputTrigger = new InputTriggerViewModel(_mainViewModel);
+        _inputTrigger.ConfigurationChanged += (_, _) => AutoUpdateMapping();
 
         _mainViewModel.PropertyChanged += MainViewModelOnPropertyChanged;
         if (AppUiLocalization.TryTranslationService() is { } translationService)
@@ -69,14 +83,15 @@ public partial class MappingEditorViewModel : ObservableObject
         _mainViewModel.KeyboardActions.CollectionChanged += (_, _) =>
         {
             RebuildKeyboardActionsPicker();
-            UpdateUnusedActionIds();
-            ValidateCurrentState();
+            RefreshStatusDiagnostics();
         };
+        _mainViewModel.RadialMenus.CollectionChanged += (_, _) => RefreshStatusDiagnostics();
         foreach (var m in _mainViewModel.Mappings)
             AttachMappingActionIdListener(m);
         RebuildKeyboardActionsPicker();
-        UpdateUnusedActionIds();
-        ValidateCurrentState();
+        RefreshStatusDiagnostics();
+
+        _mainViewModel.MappingSelection.SelectionChanged += (_, _) => RefreshWorkspaceSelectionMirror();
 
         // Initialize default editor
         OnSelectedActionTypeChanged(SelectedActionType);
@@ -84,21 +99,40 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void ValidateCurrentState()
     {
-        var profile = _mainViewModel.GetProfileService().LoadSelectedTemplate(_mainViewModel.SelectedTemplate);
-        if (profile == null) return;
-
-        // Update profile with current UI state if we are editing
-        if (SelectedMapping != null)
+        var profile = _mainViewModel.GetWorkspaceTemplateSnapshot();
+        if (profile == null)
         {
-            // This is a bit tricky since we want real-time feedback.
-            // For now, let's validate the whole profile.
+            HasValidationError = false;
+            ValidationError = string.Empty;
+            HasValidationWarning = false;
+            ValidationWarning = string.Empty;
+            return;
         }
 
         var result = _mainViewModel.GetProfileService().ValidateTemplate(profile);
+        if (result is null)
+        {
+            HasValidationError = false;
+            ValidationError = string.Empty;
+            HasValidationWarning = false;
+            ValidationWarning = string.Empty;
+            return;
+        }
+
+        var errors = result.Errors ?? [];
+        var warnings = result.Warnings ?? [];
         HasValidationError = !result.IsValid;
-        ValidationError = string.Join(Environment.NewLine, result.Errors);
-        HasValidationWarning = result.Warnings.Any();
-        ValidationWarning = string.Join(Environment.NewLine, result.Warnings);
+        ValidationError = string.Join(Environment.NewLine, errors);
+        HasValidationWarning = warnings.Any();
+        ValidationWarning = string.Join(Environment.NewLine, warnings);
+    }
+
+    public void RefreshStatusDiagnostics()
+    {
+        var usage = AnalyzeActionUsage();
+        UpdateUnusedActionIds(usage);
+        UpdateDuplicateActionIds(usage);
+        ValidateCurrentState();
     }
 
     [ObservableProperty]
@@ -110,35 +144,28 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private bool hasUnusedActionIds;
 
-    private void UpdateUnusedActionIds()
-    {
-        IKeyboardActionCatalog? catalog = null;
-        if (_mainViewModel.SelectedTemplate != null)
-        {
-            catalog = _mainViewModel.GetProfileService().LoadSelectedTemplate(_mainViewModel.SelectedTemplate);
-        }
+    [ObservableProperty]
+    private string duplicateActionIdsHint = string.Empty;
 
-        if (catalog == null)
+    [ObservableProperty]
+    private string duplicateActionIdsTooltip = string.Empty;
+
+    [ObservableProperty]
+    private bool hasDuplicateActionIds;
+
+    private void UpdateUnusedActionIds(ActionUsageDiagnostics usage)
+    {
+        var profile = _mainViewModel.GetWorkspaceTemplateSnapshot();
+        if (profile is null)
         {
             HasUnusedActionIds = false;
             return;
         }
 
-        var usedInMappings = _mainViewModel.Mappings
-            .Select(m => m.ActionId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var usedInRadialMenus = _mainViewModel.RadialMenus
-            .SelectMany(rm => rm.Items)
-            .Select(item => item.ActionId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var unused = catalog.GetAllActions()
-            .Where(a => !string.IsNullOrWhiteSpace(a.Id) && 
-                        !usedInMappings.Contains(a.Id) && 
-                        !usedInRadialMenus.Contains(a.Id))
+        var unused = profile.GetAllActions()
+            .Where(a => !string.IsNullOrWhiteSpace(a.Id)
+                        && !usage.MappingUsageByActionId.ContainsKey((a.Id ?? string.Empty).Trim())
+                        && !usage.UsedInRadialMenus.Contains((a.Id ?? string.Empty).Trim()))
             .ToList();
 
         HasUnusedActionIds = unused.Count > 0;
@@ -146,14 +173,164 @@ public partial class MappingEditorViewModel : ObservableObject
         {
             UnusedActionIdsHint = string.Format(CultureInfo.CurrentUICulture,
                 AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsHint"), unused.Count);
-            UnusedActionIdsTooltip = string.Join(Environment.NewLine,
-                unused.Select(a => $"{a.Id}: {a.Description}"));
+            UnusedActionIdsTooltip = BuildUnusedActionIdsTooltip(unused);
         }
         else
         {
             UnusedActionIdsHint = string.Empty;
             UnusedActionIdsTooltip = string.Empty;
         }
+    }
+
+    private void UpdateDuplicateActionIds(ActionUsageDiagnostics usage)
+    {
+        var duplicateGroups = usage.MappingUsageByActionId.Values
+            .Select(BuildDuplicateGroup)
+            .Where(group => group is not null)
+            .Select(group => group!)
+            .OrderBy(group => group.ActionId, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        HasDuplicateActionIds = duplicateGroups.Count > 0;
+        if (!HasDuplicateActionIds)
+        {
+            DuplicateActionIdsHint = string.Empty;
+            DuplicateActionIdsTooltip = string.Empty;
+            return;
+        }
+
+        DuplicateActionIdsHint = string.Format(
+            CultureInfo.CurrentUICulture,
+            AppUiLocalization.GetString("ProfileMappingDuplicateCatalogActionIdsHint"),
+            duplicateGroups.Count);
+        DuplicateActionIdsTooltip = BuildDuplicateActionIdsTooltip(duplicateGroups);
+    }
+
+    private static string BuildUnusedActionIdsTooltip(IReadOnlyList<KeyboardActionDefinition> unusedActions)
+    {
+        var translationService = AppUiLocalization.TryTranslationService();
+        var lineWithDescriptionFormat = AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsTooltipLineWithDescriptionFormat");
+        var lineWithoutDescriptionFormat = AppUiLocalization.GetString("ProfileMappingUnusedCatalogActionIdsTooltipLineWithoutDescriptionFormat");
+
+        return string.Join(Environment.NewLine, unusedActions.Select(action =>
+        {
+            var id = (action.Id ?? string.Empty).Trim();
+            var resolvedDescription = ResolveCatalogDescription(action, translationService);
+            return string.IsNullOrWhiteSpace(resolvedDescription)
+                ? string.Format(CultureInfo.CurrentUICulture, lineWithoutDescriptionFormat, id)
+                : string.Format(CultureInfo.CurrentUICulture, lineWithDescriptionFormat, id, resolvedDescription);
+        }));
+    }
+
+    private static string BuildDuplicateActionIdsTooltip(IReadOnlyList<DuplicateActionGroup> duplicateGroups)
+    {
+        var lineFormat = GetLocalizedStringOrDefault("ProfileMappingDuplicateCatalogActionIdsTooltipLineFormat", "{0}: {1}");
+        var bindingSeparator = GetLocalizedStringOrDefault("ProfileMappingDuplicateCatalogActionIdsTooltipBindingSeparator", ", ");
+
+        return string.Join(Environment.NewLine, duplicateGroups.Select(group =>
+        {
+            var joinedSources = string.Join(bindingSeparator, group.SourceLabels);
+            return string.Format(CultureInfo.CurrentUICulture, lineFormat, group.ActionId, joinedSources);
+        }));
+    }
+
+    private static DuplicateActionGroup? BuildDuplicateGroup(List<MappingActionUsage> usages)
+    {
+        if (usages.Count <= 1)
+            return null;
+
+        var sources = CollectDistinctSourceLabels(usages);
+
+        if (sources.Count <= 1)
+            return null;
+
+        return new DuplicateActionGroup(usages[0].ActionId, sources);
+    }
+
+    private static IReadOnlyList<string> CollectDistinctSourceLabels(IEnumerable<MappingActionUsage> usages)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var orderedSources = new List<string>();
+
+        foreach (var source in usages
+                     .Select(usage => usage.SourceLabel)
+                     .Where(label => !string.IsNullOrWhiteSpace(label)))
+        {
+            if (seen.Add(source))
+                orderedSources.Add(source);
+        }
+
+        return orderedSources;
+    }
+
+    private ActionUsageDiagnostics AnalyzeActionUsage()
+    {
+        var keyboardActionIds = _mainViewModel.KeyboardActions
+            .Select(action => (action.Id ?? string.Empty).Trim())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var mappingUsageByActionId = new Dictionary<string, List<MappingActionUsage>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var mapping in _mainViewModel.Mappings)
+        {
+            var actionId = (mapping.ActionId ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(actionId) || !keyboardActionIds.Contains(actionId))
+                continue;
+
+            if (!mappingUsageByActionId.TryGetValue(actionId, out var list))
+            {
+                list = [];
+                mappingUsageByActionId[actionId] = list;
+            }
+
+            list.Add(new MappingActionUsage(actionId, FormatControllerBindingLabel(mapping)));
+        }
+
+        var usedInRadialMenus = _mainViewModel.RadialMenus
+            .SelectMany(rm => rm.Items)
+            .Select(item => (item.ActionId ?? string.Empty).Trim())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return new ActionUsageDiagnostics(mappingUsageByActionId, usedInRadialMenus);
+    }
+
+    private static string FormatControllerBindingLabel(MappingEntry mapping)
+    {
+        var from = mapping.From;
+        var value = (from?.Value ?? string.Empty).Trim();
+        if (from is null)
+            return GetLocalizedStringOrDefault("ProfileMappingDuplicateCatalogActionIdsUnknownSource", "(unknown source)");
+
+        return string.IsNullOrWhiteSpace(value) ? from.Type.ToString() : value;
+    }
+
+    private static string GetLocalizedStringOrDefault(string resourceKey, string fallback)
+    {
+        var localized = AppUiLocalization.GetString(resourceKey);
+        return string.IsNullOrWhiteSpace(localized) || string.Equals(localized, resourceKey, StringComparison.Ordinal)
+            ? fallback
+            : localized;
+    }
+
+    private sealed record MappingActionUsage(string ActionId, string SourceLabel);
+
+    private sealed record DuplicateActionGroup(string ActionId, IReadOnlyList<string> SourceLabels);
+
+    private sealed record ActionUsageDiagnostics(
+        Dictionary<string, List<MappingActionUsage>> MappingUsageByActionId,
+        HashSet<string> UsedInRadialMenus);
+
+    private static string ResolveCatalogDescription(KeyboardActionDefinition action, TranslationService? translationService)
+    {
+        if (translationService is null)
+            return (action.Description ?? string.Empty).Trim();
+
+        return TemplateCatalogDisplayResolver.Resolve(
+            action.Description ?? string.Empty,
+            action.Descriptions,
+            action.DescriptionKey,
+            translationService);
     }
 
     /// <summary>Keyboard catalog for the current profile (same as <see cref="MainViewModel.KeyboardActions"/>).</summary>
@@ -173,65 +350,34 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public MappingEntry? SelectedMapping
     {
-        get => _mainViewModel.SelectedMapping;
-        set => _mainViewModel.SelectedMapping = value;
+        get => _mainViewModel.MappingSelection.SelectedItem;
+        set => _mainViewModel.MappingSelection.SelectedItem = value;
     }
 
     public void NotifyWorkspaceMappingSelectionFromGrid(IReadOnlyList<object> items)
     {
-        _workspaceMappingSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedMappings.Clear();
-            foreach (var o in items)
-            {
-                if (o is MappingEntry m)
-                    WorkspaceSelectedMappings.Add(m);
-            }
-
-            SelectedMapping = WorkspaceSelectedMappings.Count > 0
-                ? WorkspaceSelectedMappings[^1]
-                : null;
-        }
-        finally
-        {
-            _workspaceMappingSelectionSync = false;
-        }
-
-        _mainViewModel.RuleClipboard?.RefreshCommandStates();
+        _mainViewModel.MappingSelection.UpdateSelection(items);
     }
 
     public void SelectAllMappingsForWorkspace()
     {
-        _workspaceMappingSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedMappings.Clear();
-            foreach (var m in Mappings)
-                WorkspaceSelectedMappings.Add(m);
-            SelectedMapping = Mappings.Count > 0 ? Mappings[^1] : null;
-        }
-        finally
-        {
-            _workspaceMappingSelectionSync = false;
-        }
-
-        _mainViewModel.RuleClipboard?.RefreshCommandStates();
+        _mainViewModel.MappingSelection.SelectAll(_mainViewModel.Mappings);
     }
 
     private void SyncWorkspaceMappingsFromPrimary()
     {
-        _workspaceMappingSelectionSync = true;
-        try
-        {
-            WorkspaceSelectedMappings.Clear();
-            if (SelectedMapping is not null)
-                WorkspaceSelectedMappings.Add(SelectedMapping);
-        }
-        finally
-        {
-            _workspaceMappingSelectionSync = false;
-        }
+        // No longer needed as SelectionService handles this
+    }
+
+    /// <summary>Refreshes the selected mappings mirror and editor from workspace selection.</summary>
+    internal void RefreshWorkspaceSelectionMirror()
+    {
+        WorkspaceSelectedMappings.Clear();
+        foreach (var item in _mainViewModel.MappingSelection.SelectedItems)
+            WorkspaceSelectedMappings.Add(item);
+
+        OnPropertyChanged(nameof(SelectedMapping));
+        SyncFromSelection(_mainViewModel.MappingSelection.SelectedItem);
     }
 
     public ObservableCollection<string> AvailableGamepadButtons => _mainViewModel.AvailableGamepadButtons;
@@ -250,15 +396,31 @@ public partial class MappingEditorViewModel : ObservableObject
     [ObservableProperty]
     private TriggerMoment editBindingTrigger = TriggerMoment.Tap;
 
+    partial void OnEditBindingTriggerChanged(TriggerMoment value) => AutoUpdateMapping();
+
     [ObservableProperty]
     private string editBindingDescriptionPrimary = string.Empty;
+
+    partial void OnEditBindingDescriptionPrimaryChanged(string value) => AutoUpdateMapping();
 
     [ObservableProperty]
     private string editBindingDescriptionSecondary = string.Empty;
 
+    partial void OnEditBindingDescriptionSecondaryChanged(string value) => AutoUpdateMapping();
+
     /// <summary>Trigger match threshold for LT/RT chords (0–1, exclusive of 0); shown when <see cref="InputTriggerViewModel.SourceInvolvesTrigger"/> is true.</summary>
     [ObservableProperty]
     private string editAnalogThresholdText = string.Empty;
+
+    partial void OnEditAnalogThresholdTextChanged(string value) => AutoUpdateMapping();
+
+    private void AutoUpdateMapping()
+    {
+        if (_isSyncingFromSelection || _syncingActionEditorFromSelection || IsCreatingNewMapping || SelectedMapping is null)
+            return;
+
+        _mainViewModel.ActiveMappingListEditor.UpdateSelectedFromEditorFields();
+    }
 
     [ObservableProperty]
     private string validationError = string.Empty;
@@ -271,6 +433,22 @@ public partial class MappingEditorViewModel : ObservableObject
 
     [ObservableProperty]
     private bool hasValidationWarning;
+
+    /// <summary>True when any profile mapping status row should be shown (unused actions, duplicates, validation).</summary>
+    public bool HasAnyProfileMappingStatusHints =>
+        HasUnusedActionIds || HasDuplicateActionIds || HasValidationError || HasValidationWarning;
+
+    partial void OnHasUnusedActionIdsChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
+    partial void OnHasDuplicateActionIdsChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
+    partial void OnHasValidationErrorChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
+
+    partial void OnHasValidationWarningChanged(bool value) =>
+        OnPropertyChanged(nameof(HasAnyProfileMappingStatusHints));
 
     [ObservableProperty]
     private bool isCreatingNewMapping;
@@ -293,18 +471,50 @@ public partial class MappingEditorViewModel : ObservableObject
     public string KeyboardKeyCapturePrompt => _mainViewModel.KeyboardCaptureService.KeyboardKeyCapturePrompt;
 
     private ICommand? _recordKeyboardKeyCommand;
-    public ICommand RecordKeyboardKeyCommand => _recordKeyboardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as KeyboardActionEditorViewModel)?.RecordKeyboardKeyCommand.Execute(null));
+    public ICommand RecordKeyboardKeyCommand => _recordKeyboardKeyCommand ??= new RelayCommand(() =>
+    {
+        var editor = CurrentActionEditor as KeyboardActionEditorViewModel;
+        if (editor is null) return;
+        _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+        {
+            editor.RecordKeyboardKeyCommand.Execute(null);
+        });
+    });
 
     private ICommand? _recordHoldKeyboardKeyCommand;
-    public ICommand RecordHoldKeyboardKeyCommand => _recordHoldKeyboardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as KeyboardActionEditorViewModel)?.RecordHoldKeyboardKeyCommand.Execute(null));
+    public ICommand RecordHoldKeyboardKeyCommand => _recordHoldKeyboardKeyCommand ??= new RelayCommand(() =>
+    {
+        var editor = CurrentActionEditor as KeyboardActionEditorViewModel;
+        if (editor is null) return;
+        _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+        {
+            editor.RecordHoldKeyboardKeyCommand.Execute(null);
+        });
+    });
 
     private ICommand? _recordItemCycleForwardKeyCommand;
     public ICommand RecordItemCycleForwardKeyCommand =>
-        _recordItemCycleForwardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as ItemCycleActionEditorViewModel)?.RecordForwardKeyCommand.Execute(null));
+        _recordItemCycleForwardKeyCommand ??= new RelayCommand(() =>
+        {
+            var editor = CurrentActionEditor as ItemCycleActionEditorViewModel;
+            if (editor is null) return;
+            _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+            {
+                editor.RecordForwardKeyCommand.Execute(null);
+            });
+        });
 
     private ICommand? _recordItemCycleBackwardKeyCommand;
     public ICommand RecordItemCycleBackwardKeyCommand =>
-        _recordItemCycleBackwardKeyCommand ??= new RelayCommand(() => (CurrentActionEditor as ItemCycleActionEditorViewModel)?.RecordBackwardKeyCommand.Execute(null));
+        _recordItemCycleBackwardKeyCommand ??= new RelayCommand(() =>
+        {
+            var editor = CurrentActionEditor as ItemCycleActionEditorViewModel;
+            if (editor is null) return;
+            _mainViewModel.ActiveMappingListEditor.History.ExecuteTransaction(() =>
+            {
+                editor.RecordBackwardKeyCommand.Execute(null);
+            });
+        });
 
     private ICommand? _updateSelectedBindingCommand;
     public ICommand UpdateSelectedBindingCommand => _updateSelectedBindingCommand ??= new RelayCommand(UpdateSelectedBinding);
@@ -321,64 +531,102 @@ public partial class MappingEditorViewModel : ObservableObject
     private ICommand? _cancelCreateNewMappingCommand;
     public ICommand CancelCreateNewMappingCommand => _cancelCreateNewMappingCommand ??= new RelayCommand(CancelCreateNewMapping);
 
+    private ICommand? _pickMappingActionIdCommand;
+    public ICommand PickMappingActionIdCommand =>
+        _pickMappingActionIdCommand ??= new RelayCommand<MappingEntry>(PickMappingActionId);
+
+    private bool _isSyncingFromSelection;
+
     public void SyncFromSelection(MappingEntry? value)
     {
-        if (value is not null)
-            IsCreatingNewMapping = false;
-
-        // Avoid wiping the "new mapping" draft when we clear table selection for create mode.
-        if (value is null && IsCreatingNewMapping)
-            return;
-
-        InputTrigger.SyncFrom(value ?? new MappingEntry());
-        EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
-        if (value is not null)
+        if (_isSyncingFromSelection) return;
+        _isSyncingFromSelection = true;
+        try
         {
-            var ui = AppUiLocalization.EditorUiCulture();
-            EditBindingDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(value.Descriptions, value.Description, ui);
-            EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(value.Descriptions, value.Description, ui);
-        }
-        else
-        {
-            EditBindingDescriptionPrimary = string.Empty;
-            EditBindingDescriptionSecondary = string.Empty;
-        }
-        EditAnalogThresholdText = value?.AnalogThreshold is { } t
-            ? t.ToString("G", CultureInfo.InvariantCulture)
-            : string.Empty;
+            if (value is not null)
+                IsCreatingNewMapping = false;
 
-        if (value is not null)
-        {
-            _syncingActionEditorFromSelection = true;
-            try
+            // Avoid wiping the "new mapping" draft when we clear table selection for create mode.
+            if (value is null && IsCreatingNewMapping)
+                return;
+
+            InputTrigger.SyncFrom(value ?? new MappingEntry());
+            EditBindingTrigger = value?.Trigger ?? TriggerMoment.Tap;
+            if (value is not null)
             {
-                if (!string.IsNullOrWhiteSpace(value.ActionId))
+                var ui = AppUiLocalization.EditorUiCulture();
+                EditBindingDescriptionPrimary = UiCultureDescriptionPair.ReadPrimary(value.Descriptions, value.Description, ui);
+                EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(value.Descriptions, value.Description, ui);
+            }
+            else
+            {
+                EditBindingDescriptionPrimary = string.Empty;
+                EditBindingDescriptionSecondary = string.Empty;
+            }
+            EditAnalogThresholdText = value?.AnalogThreshold is { } t
+                ? t.ToString("G", CultureInfo.InvariantCulture)
+                : string.Empty;
+
+            if (value is not null)
+            {
+                _syncingActionEditorFromSelection = true;
+                try
                 {
-                    SelectedActionType = MappingActionType.Keyboard;
-                    var keyboardEditor = _actionEditorFactory.Create(MappingActionType.Keyboard);
-                    keyboardEditor.SyncFrom(value);
-                    CurrentActionEditor = keyboardEditor;
+                    if (!string.IsNullOrWhiteSpace(value.ActionId))
+                    {
+                        SelectedActionType = MappingActionType.Keyboard;
+                        if (CurrentActionEditor is KeyboardActionEditorViewModel keyboardEditor)
+                        {
+                            keyboardEditor.SyncFrom(value);
+                        }
+                        else
+                        {
+                            keyboardEditor = (KeyboardActionEditorViewModel)_actionEditorFactory.Create(MappingActionType.Keyboard);
+                            keyboardEditor.SyncFrom(value);
+                            CurrentActionEditor = keyboardEditor;
+                        }
+                    }
+                    else
+                    {
+                        SelectedActionType = value.ActionType;
+                        var expectedType = value.ActionType switch
+                        {
+                            MappingActionType.Keyboard => typeof(KeyboardActionEditorViewModel),
+                            MappingActionType.ItemCycle => typeof(ItemCycleActionEditorViewModel),
+                            MappingActionType.TemplateToggle => typeof(TemplateToggleActionEditorViewModel),
+                            MappingActionType.RadialMenu => typeof(RadialMenuActionEditorViewModel),
+                            _ => null
+                        };
+
+                        if (CurrentActionEditor != null && CurrentActionEditor.GetType() == expectedType)
+                        {
+                            CurrentActionEditor.SyncFrom(value);
+                        }
+                        else
+                        {
+                            CurrentActionEditor = _actionEditorFactory.CreateForMapping(value);
+                        }
+                    }
                 }
-                else
+                finally
                 {
-                    SelectedActionType = value.ActionType;
-                    CurrentActionEditor = _actionEditorFactory.CreateForMapping(value);
+                    _syncingActionEditorFromSelection = false;
                 }
             }
-            finally
+            else
             {
-                _syncingActionEditorFromSelection = false;
+                SelectedActionType = MappingActionType.Keyboard;
+                CurrentActionEditor = _actionEditorFactory.Create(SelectedActionType);
+                CurrentActionEditor.Clear();
             }
-        }
-        else
-        {
-            SelectedActionType = MappingActionType.Keyboard;
-            CurrentActionEditor = _actionEditorFactory.Create(SelectedActionType);
-            CurrentActionEditor.Clear();
-        }
 
-        OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
-        OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
+            OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
+            OnPropertyChanged(nameof(EditBindingKeyboardKeyIsReadOnly));
+        }
+        finally
+        {
+            _isSyncingFromSelection = false;
+        }
     }
 
     private void RebuildKeyboardActionsPicker()
@@ -391,7 +639,6 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void OnMappingsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        UpdateUnusedActionIds();
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
@@ -420,19 +667,59 @@ public partial class MappingEditorViewModel : ObservableObject
     private void AttachMappingActionIdListener(MappingEntry m)
     {
         if (_mappingActionIdListeners.Add(m))
+        {
             m.PropertyChanged += OnMappingEntryPropertyChanged;
+            AttachSourceListener(m, m.From);
+        }
     }
 
     private void DetachMappingActionIdListener(MappingEntry m)
     {
         if (_mappingActionIdListeners.Remove(m))
+        {
             m.PropertyChanged -= OnMappingEntryPropertyChanged;
+            DetachSourceListener(m);
+        }
+    }
+
+    private void AttachSourceListener(MappingEntry mapping, GamepadBinding? source)
+    {
+        if (source is null)
+            return;
+
+        _mappingSourceListeners[mapping] = source;
+        source.PropertyChanged += OnMappingSourcePropertyChanged;
+    }
+
+    private void DetachSourceListener(MappingEntry mapping)
+    {
+        if (!_mappingSourceListeners.TryGetValue(mapping, out var source))
+            return;
+
+        source.PropertyChanged -= OnMappingSourcePropertyChanged;
+        _mappingSourceListeners.Remove(mapping);
+    }
+
+    private void RewireSourceListener(MappingEntry mapping)
+    {
+        DetachSourceListener(mapping);
+        AttachSourceListener(mapping, mapping.From);
+    }
+
+    private void OnMappingSourcePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(GamepadBinding.Type) or nameof(GamepadBinding.Value))
+            RefreshStatusDiagnostics();
     }
 
     private void OnMappingEntryPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MappingEntry.ActionId))
-            UpdateUnusedActionIds();
+        if (e.PropertyName is nameof(MappingEntry.ActionId) or nameof(MappingEntry.From))
+        {
+            if (e.PropertyName == nameof(MappingEntry.From) && sender is MappingEntry mapping)
+                RewireSourceListener(mapping);
+            RefreshStatusDiagnostics();
+        }
 
         if (e.PropertyName != nameof(MappingEntry.ActionId) || sender is not MappingEntry m)
             return;
@@ -462,11 +749,10 @@ public partial class MappingEditorViewModel : ObservableObject
             string.Equals((a.Id ?? string.Empty).Trim(), id, StringComparison.OrdinalIgnoreCase));
         if (def is null)
         {
-            MessageBox.Show(
-                $"Unknown keyboardActions id '{id}'.",
-                "Catalog",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            _mainViewModel.ShowInfoToast(
+                "MappingEditorCatalogDialogTitle",
+                "MappingEditorUnknownKeyboardActionId",
+                id);
             _resolvingActionId = true;
             try
             {
@@ -503,10 +789,9 @@ public partial class MappingEditorViewModel : ObservableObject
 
     private void BeginCreateNewMapping()
     {
+        _mainViewModel.ActiveMappingListEditor.BeginCreateNewMapping();
+        
         IsMappingDetailsExpanderExpanded = true;
-        IsCreatingNewMapping = true;
-        _mainViewModel.SelectedMapping = null;
-
         InputTrigger.Clear();
         EditBindingTrigger = TriggerMoment.Tap;
         EditBindingDescriptionPrimary = string.Empty;
@@ -519,36 +804,19 @@ public partial class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(EditKeyboardAndHoldSectionsEnabled));
     }
 
+    public void NotifyConfigurationChanged() => ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+
     private void SaveNewMapping()
     {
-        if (!TryBuildMappingFromEditorFields(out var entry, out var messageKey))
-        {
-            MessageBox.Show(
-                AppUiLocalization.GetString(messageKey ?? "MappingEditorSaveFailedGeneric"),
-                AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
-        }
-
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
-
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
-        _mainViewModel.Mappings.Add(entry);
-        _mainViewModel.SelectedMapping = entry;
-        IsCreatingNewMapping = false;
-        InputTrigger.ShowSourceKindChangedHint = false;
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        _mainViewModel.ActiveMappingListEditor.SaveNewMapping();
     }
 
-    private void CancelCreateNewMapping()
+    private void UpdateSelectedBinding()
     {
-        IsCreatingNewMapping = false;
-        SyncFromSelection(SelectedMapping);
+        _mainViewModel.ActiveMappingListEditor.UpdateSelectedFromEditorFields();
     }
 
-    private bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
+    public bool TryBuildMappingFromEditorFields(out MappingEntry entry, out string? messageKey)
     {
         messageKey = null;
         entry = new MappingEntry();
@@ -577,7 +845,7 @@ public partial class MappingEditorViewModel : ObservableObject
         return true;
     }
 
-    private bool TryApplyAnalogThreshold(MappingEntry entry)
+    public bool TryApplyAnalogThreshold(MappingEntry entry)
     {
         var fromType = entry.From?.Type;
 
@@ -628,45 +896,45 @@ public partial class MappingEditorViewModel : ObservableObject
         return true;
     }
 
-    private void UpdateSelectedBinding()
+    public void ApplyDescriptionPairToMapping(MappingEntry entry)
     {
-        if (SelectedMapping is null)
-            return;
-
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
-
-        if (!InputTrigger.ApplyTo(SelectedMapping))
-            return;
-
-        if (!TryApplyAnalogThreshold(SelectedMapping))
-        {
-            MessageBox.Show(
-                AppUiLocalization.GetString("TriggerChordThresholdRequiredMessage"),
-                AppUiLocalization.GetString("MappingEditorSaveFailedTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
-        }
-
-        SelectedMapping.Trigger = EditBindingTrigger;
-        ApplyDescriptionPairToMapping(SelectedMapping);
-
-        if (CurrentActionEditor?.ApplyTo(SelectedMapping) != true)
-            return;
-
-        InputTrigger.ShowSourceKindChangedHint = false;
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        var ui = AppUiLocalization.EditorUiCulture();
+        var d = entry.Descriptions;
+        var b = entry.Description;
+        UiCultureDescriptionPair.WritePair(ref d, ref b, ui, EditBindingDescriptionPrimary, EditBindingDescriptionSecondary);
+        entry.Descriptions = d;
+        entry.Description = b;
+        if (AppUiLocalization.TryTranslationService() is { } ts)
+            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
     }
 
     private void RemoveSelectedMapping()
     {
-        if (SelectedMapping is null)
+        _mainViewModel.ActiveMappingListEditor.Delete();
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CancelCreateNewMapping()
+    {
+        IsCreatingNewMapping = false;
+        SyncFromSelection(SelectedMapping);
+    }
+
+    private void PickMappingActionId(MappingEntry? mapping)
+    {
+        if (mapping is null)
             return;
 
-        _mainViewModel.RecordTemplateWorkspaceCheckpoint();
-        _mainViewModel.Mappings.Remove(SelectedMapping);
-        _mainViewModel.SelectedMapping = _mainViewModel.Mappings.FirstOrDefault();
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        var selected = _itemSelectionDialogService.Select(
+            Application.Current?.MainWindow,
+            AppUiLocalization.GetString("KeyboardActionPicker_DialogTitle"),
+            AppUiLocalization.GetString("KeyboardActionPicker_SearchPlaceholder"),
+            _mainViewModel.KeyboardActionSelectionBuilder.BuildSelectionItems(_mainViewModel.KeyboardActions),
+            mapping.ActionId);
+        if (selected is null)
+            return;
+
+        mapping.ActionId = selected;
     }
 
     private void KeyboardCaptureServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -679,8 +947,9 @@ public partial class MappingEditorViewModel : ObservableObject
     {
         if (e.PropertyName == nameof(TranslationService.Culture))
         {
-            UpdateUnusedActionIds();
+            RefreshStatusDiagnostics();
             RefreshMappingDescriptionEditFields();
+            CurrentActionEditor?.OnLocalizationChanged();
         }
     }
 
@@ -693,35 +962,16 @@ public partial class MappingEditorViewModel : ObservableObject
         EditBindingDescriptionSecondary = UiCultureDescriptionPair.ReadSecondary(SelectedMapping.Descriptions, SelectedMapping.Description, ui);
     }
 
-    private void ApplyDescriptionPairToMapping(MappingEntry entry)
-    {
-        var ui = AppUiLocalization.EditorUiCulture();
-        var d = entry.Descriptions;
-        var b = entry.Description;
-        UiCultureDescriptionPair.WritePair(ref d, ref b, ui, EditBindingDescriptionPrimary, EditBindingDescriptionSecondary);
-        entry.Descriptions = d;
-        entry.Description = b;
-        if (AppUiLocalization.TryTranslationService() is { } ts)
-            CatalogDescriptionLocalizer.ApplyMappingDescription(entry, ts);
-    }
-
     private void MainViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
             case nameof(MainViewModel.RadialMenus):
-                UpdateUnusedActionIds();
+                RefreshStatusDiagnostics();
                 break;
             case nameof(MainViewModel.Mappings):
                 OnPropertyChanged(nameof(Mappings));
-                UpdateUnusedActionIds();
-                break;
-            case nameof(MainViewModel.SelectedMapping):
-                OnPropertyChanged(nameof(SelectedMapping));
-                if (!_workspaceMappingSelectionSync)
-                    SyncWorkspaceMappingsFromPrimary();
-                SyncFromSelection(SelectedMapping);
-                _mainViewModel.RuleClipboard?.RefreshCommandStates();
+                RefreshStatusDiagnostics();
                 break;
             case nameof(MainViewModel.AvailableGamepadButtons):
                 OnPropertyChanged(nameof(AvailableGamepadButtons));
@@ -734,7 +984,7 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.SelectedTemplate):
                 OnPropertyChanged(nameof(AvailableRadialMenus));
-                UpdateUnusedActionIds();
+                RefreshStatusDiagnostics();
                 break;
         }
     }

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
@@ -10,6 +12,14 @@ public class CommunityTemplateInfo
 
     [JsonProperty("displayName")]
     public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>Optional <c>displayNameKey</c> from the source template JSON for .resx lookup (same as <see cref="GameProfileTemplate.DisplayNameKey"/>).</summary>
+    [JsonProperty("displayNameKey", NullValueHandling = NullValueHandling.Ignore)]
+    public string DisplayNameKey { get; set; } = string.Empty;
+
+    /// <summary>Optional per-culture titles from the published index (same keys as <see cref="GameProfileTemplate.DisplayNames"/>).</summary>
+    [JsonProperty("displayNames", NullValueHandling = NullValueHandling.Ignore)]
+    public Dictionary<string, string>? DisplayNames { get; set; }
 
     [JsonProperty("author")]
     public string Author { get; set; } = string.Empty;

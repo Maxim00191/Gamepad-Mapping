@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Gamepad_Mapping.ViewModels;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.Views;
@@ -10,9 +11,11 @@ namespace Gamepad_Mapping.Views;
 public partial class CommunityTemplateUploadWindow
 {
     private bool _uploadCommitInFlight;
+    private readonly IUserDialogService _userDialogService;
 
-    public CommunityTemplateUploadWindow()
+    public CommunityTemplateUploadWindow(IUserDialogService? userDialogService = null)
     {
+        _userDialogService = userDialogService ?? new UserDialogService();
         InitializeComponent();
     }
 
@@ -26,22 +29,29 @@ public partial class CommunityTemplateUploadWindow
 
         _uploadCommitInFlight = true;
 
-        var loc = Application.Current?.Resources["Loc"] as TranslationService;
-        var title = loc?["CommunityUpload_ButtonUpload"] ?? "Upload";
+        var title = AppUiLocalization.GetString("CommunityUpload_ButtonUpload");
 
         Mouse.OverrideCursor = Cursors.Wait;
         try
         {
-            var (ok, err) = await vm.TryCommitAsync(CancellationToken.None).ConfigureAwait(true);
+            var (ok, err) = await vm.TryCommitAsync(CancellationToken.None);
             if (!ok)
             {
-                var message = err ?? loc?["CommunityUpload_Error_InvalidInput"] ?? "Invalid input.";
-                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                var message = err ?? AppUiLocalization.GetString("CommunityUpload_Error_InvalidInput");
+                _userDialogService.ShowWarning(message, title);
                 return;
             }
         }
         catch (TaskCanceledException)
         {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Gamepad_Mapping.App.Logger.Warning($"Community upload validation failed: {ex.Message}");
+            _userDialogService.ShowError(
+                string.Format(AppUiLocalization.GetString("CommunityCatalog_StatusUploadFailed"), ex.Message),
+                title);
             return;
         }
         finally

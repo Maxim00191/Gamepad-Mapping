@@ -23,13 +23,8 @@ public partial class RadialMenuActionEditorViewModel : ActionEditorViewModelBase
         var rmId = (RadialMenuId ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(rmId)) return false;
 
-        mapping.ItemCycle = null;
-        mapping.TemplateToggle = null;
+        ResetCommonMappingFields(mapping);
         mapping.RadialMenu = new RadialMenuBinding { RadialMenuId = rmId };
-        mapping.ActionId = null;
-        mapping.KeyboardKey = string.Empty;
-        mapping.HoldKeyboardKey = string.Empty;
-        mapping.HoldThresholdMs = null;
 
         return true;
     }

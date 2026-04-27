@@ -19,15 +19,24 @@ using Gamepad_Mapping.Views;
 
 namespace Gamepad_Mapping.ViewModels;
 
-public partial class CommunityCatalogViewModel : ObservableObject
+public partial class CommunityCatalogViewModel : ObservableObject, IDisposable
 {
+    private enum CommunityCatalogIndexLoadKind
+    {
+        AutomaticOnFirstOpen,
+        UserManualRefresh,
+    }
+
     private readonly TimeSpan _refreshCooldownDuration;
 
     private readonly ICommunityTemplateService _communityService;
     private readonly ICommunityTemplateUploadService _uploadService;
     private readonly ICommunityTemplateUploadComplianceService _complianceService;
     private readonly IAppToastService _appToastService;
+    private readonly IUserDialogService _userDialogService;
     private readonly MainViewModel _main;
+    private readonly TranslationService? _translationService;
+    private readonly CancellationTokenSource _lifetimeCts = new();
     private CommunityUploadDialogMemory? _uploadDialogMemory;
     private DateTime _refreshCooldownEndsUtc = DateTime.MinValue;
     private DispatcherTimer? _refreshCooldownTimer;
@@ -57,6 +66,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
         ICommunityTemplateUploadService uploadService,
         ICommunityTemplateUploadComplianceService complianceService,
         IAppToastService appToastService,
+        IUserDialogService userDialogService,
         int communityCatalogRefreshCooldownSeconds = 10)
     {
         _main = main;
@@ -64,11 +74,13 @@ public partial class CommunityCatalogViewModel : ObservableObject
         _uploadService = uploadService;
         _complianceService = complianceService;
         _appToastService = appToastService;
+        _userDialogService = userDialogService;
         var seconds = Math.Clamp(communityCatalogRefreshCooldownSeconds, 0, 600);
         _refreshCooldownDuration = TimeSpan.FromSeconds(seconds);
 
-        if (AppUiLocalization.TryTranslationService() is { } loc)
-            loc.PropertyChanged += OnTranslationServicePropertyChanged;
+        _translationService = AppUiLocalization.TryTranslationService();
+        if (_translationService is not null)
+            _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
     }
 
     private void OnTranslationServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -90,6 +102,18 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 Math.Max(0, RefreshCooldownSecondsRemaining))
             : Localize("Refresh");
 
+    /// <summary>
+    /// When the user opens the Community workspace tab and no index is in memory yet,
+    /// fetches the published index once (same network behavior as refresh, without cooldown).
+    /// </summary>
+    public Task EnsureCommunityCatalogIndexWhenEmptyAsync()
+    {
+        if (_cachedCommunityIndex is not null || IsLoading)
+            return Task.CompletedTask;
+
+        return FetchAndApplyCommunityIndexAsync(CommunityCatalogIndexLoadKind.AutomaticOnFirstOpen);
+    }
+
     [RelayCommand(CanExecute = nameof(CanRefreshTemplates))]
     public async Task RefreshTemplatesAsync()
     {
@@ -102,16 +126,33 @@ public partial class CommunityCatalogViewModel : ObservableObject
             StartRefreshCooldownTimer();
         }
 
+        await FetchAndApplyCommunityIndexAsync(CommunityCatalogIndexLoadKind.UserManualRefresh);
+    }
+
+    private async Task FetchAndApplyCommunityIndexAsync(CommunityCatalogIndexLoadKind kind)
+    {
+        if (IsLoading)
+            return;
+
+        var manual = kind == CommunityCatalogIndexLoadKind.UserManualRefresh;
+
         IsLoading = true;
-        StatusMessage = Localize("CommunityCatalog_LoadingTemplates");
-        FolderGroups.Clear();
-        _cachedCommunityIndex = null;
-        RefreshTemplatesCommand.NotifyCanExecuteChanged();
+        StatusMessage = manual
+            ? Localize("CommunityCatalog_LoadingTemplates")
+            : Localize("CommunityCatalog_AutoGettingUpdates");
+
+        if (manual)
+        {
+            FolderGroups.Clear();
+            _cachedCommunityIndex = null;
+        }
+
+        NotifyRefreshAndTemplateCommands();
 
         try
         {
             var templates = await _communityService.GetCommunityIndexSnapshotAsync(
-                CancellationToken.None,
+                _lifetimeCts.Token,
                 CommunityIndexFetchBehavior.PreferFreshIndex);
 
             if (templates is null)
@@ -123,15 +164,26 @@ public partial class CommunityCatalogViewModel : ObservableObject
             _cachedCommunityIndex = templates;
             await ApplySearchAndPopulateAsync();
         }
-        catch
+        catch (OperationCanceledException)
         {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Gamepad_Mapping.App.Logger.Warning($"Failed to load community catalog index: {ex.Message}");
             StatusMessage = Localize("CommunityCatalog_LoadFailed");
         }
         finally
         {
             IsLoading = false;
-            RefreshTemplatesCommand.NotifyCanExecuteChanged();
+            NotifyRefreshAndTemplateCommands();
         }
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        NotifyRefreshAndTemplateCommands();
+        UploadToCommunityCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSearchQueryChanged(string value)
@@ -148,12 +200,14 @@ public partial class CommunityCatalogViewModel : ObservableObject
             return;
 
         var filtered = CommunityTemplateIndexSearch.Filter(_cachedCommunityIndex, SearchQuery);
-        PopulateFolderGroupsFromTemplates(filtered);
+        PopulateFolderGroupsFromTemplates(filtered, AppUiLocalization.TryTranslationService());
         await RefreshLocalInstallFlagsAsync();
         UpdateCatalogStatusMessage(filtered.Count);
     }
 
-    private void PopulateFolderGroupsFromTemplates(IReadOnlyList<CommunityTemplateInfo> templates)
+    private void PopulateFolderGroupsFromTemplates(
+        IReadOnlyList<CommunityTemplateInfo> templates,
+        TranslationService? translationService)
     {
         FolderGroups.Clear();
 
@@ -167,11 +221,11 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 folderGroup
                     .GroupBy(t => ResolveAuthorName(t.Author))
                     .OrderBy(static g => g.Key, StringComparer.OrdinalIgnoreCase)
-                    .Select(static authorGroup =>
+                    .Select(authorGroup =>
                     {
                         var templatesByName = new ObservableCollection<CommunityCatalogTemplateItemViewModel>(
                             authorGroup
-                                .OrderBy(static t => t.DisplayName, StringComparer.OrdinalIgnoreCase)
+                                .OrderBy(t => CommunityTemplateDisplayLabels.ResolveDisplayName(t, translationService), StringComparer.OrdinalIgnoreCase)
                                 .Select(static t => new CommunityCatalogTemplateItemViewModel(t)));
                         return new CommunityCatalogAuthorGroupViewModel(authorGroup.Key, templatesByName);
                     }));
@@ -272,9 +326,8 @@ public partial class CommunityCatalogViewModel : ObservableObject
         var template = templateItem.Template;
 
         IsLoading = true;
-        StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloading"), template.DisplayName);
-        DownloadTemplateCommand.NotifyCanExecuteChanged();
-        DeleteTemplateCommand.NotifyCanExecuteChanged();
+        StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloading"), CommunityTemplateUiTitle(template));
+        NotifyTemplateMutationCommands();
 
         try
         {
@@ -284,18 +337,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 var message = precheck.HasSameFolderIdAndName
                     ? string.Format(
                         Localize("CommunityCatalog_OverwriteWarningExact"),
-                        template.DisplayName)
+                        CommunityTemplateUiTitle(template))
                     : string.Format(
                         Localize("CommunityCatalog_OverwriteWarning"),
-                        template.DisplayName);
-                var result = MessageBox.Show(
+                        CommunityTemplateUiTitle(template));
+                var result = _userDialogService.ConfirmYesNo(
                     message,
                     Localize("CommunityCatalog_OverwriteTitle"),
-                    MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
-                if (result != MessageBoxResult.Yes)
+                if (!result)
                 {
-                    StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadCanceled"), template.DisplayName);
+                    StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadCanceled"), CommunityTemplateUiTitle(template));
                     return;
                 }
             }
@@ -303,13 +355,13 @@ public partial class CommunityCatalogViewModel : ObservableObject
             var outcome = await _communityService.DownloadTemplateAsync(template, allowOverwrite: true);
             if (outcome.Success)
             {
-                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloaded"), template.DisplayName);
+                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloaded"), CommunityTemplateUiTitle(template));
                 templateItem.IsInstalledLocally = true;
                 _main.RefreshTemplates(template.Id);
-                DeleteTemplateCommand.NotifyCanExecuteChanged();
+                NotifyTemplateMutationCommands();
                 ShowToast(
                     Localize("CommunityCatalog_DownloadToastTitle"),
-                    string.Format(Localize("CommunityCatalog_DownloadToastMessage"), template.DisplayName));
+                    string.Format(Localize("CommunityCatalog_DownloadToastMessage"), CommunityTemplateUiTitle(template)));
             }
             else if (outcome.ThrottleReason != CommunityTemplateDownloadThrottleReason.None)
             {
@@ -324,21 +376,21 @@ public partial class CommunityCatalogViewModel : ObservableObject
             }
             else
             {
-                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadFailed"), template.DisplayName);
+                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadFailed"), CommunityTemplateUiTitle(template));
                 ShowToast(
                     Localize("CommunityCatalog_DownloadFailedToastTitle"),
-                    string.Format(Localize("CommunityCatalog_DownloadFailedToastMessage"), template.DisplayName));
+                    string.Format(Localize("CommunityCatalog_DownloadFailedToastMessage"), CommunityTemplateUiTitle(template)));
             }
         }
-        catch
+        catch (Exception ex)
         {
-            StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadError"), template.DisplayName);
+            Gamepad_Mapping.App.Logger.Warning($"Failed to download community template '{template.Id}': {ex.Message}");
+            StatusMessage = string.Format(Localize("CommunityCatalog_StatusDownloadError"), CommunityTemplateUiTitle(template));
         }
         finally
         {
             IsLoading = false;
-            DownloadTemplateCommand.NotifyCanExecuteChanged();
-            DeleteTemplateCommand.NotifyCanExecuteChanged();
+            NotifyTemplateMutationCommands();
         }
     }
 
@@ -350,19 +402,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
         if (templateItem?.Template == null) return;
 
         var template = templateItem.Template;
-        var confirm = MessageBox.Show(
-            string.Format(Localize("CommunityCatalog_DeleteConfirmMessage"), template.DisplayName),
+        var confirm = _userDialogService.ConfirmYesNo(
+            string.Format(Localize("CommunityCatalog_DeleteConfirmMessage"), CommunityTemplateUiTitle(template)),
             Localize("CommunityCatalog_DeleteConfirmTitle"),
-            MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
-        if (confirm != MessageBoxResult.Yes)
+        if (!confirm)
             return;
 
         IsLoading = true;
-        StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleting"), template.DisplayName);
-        DownloadTemplateCommand.NotifyCanExecuteChanged();
-        DeleteTemplateCommand.NotifyCanExecuteChanged();
+        StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleting"), CommunityTemplateUiTitle(template));
+        NotifyTemplateMutationCommands();
 
         try
         {
@@ -370,33 +420,33 @@ public partial class CommunityCatalogViewModel : ObservableObject
             if (deleted)
             {
                 templateItem.IsInstalledLocally = false;
-                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleted"), template.DisplayName);
+                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleted"), CommunityTemplateUiTitle(template));
                 _main.RefreshTemplates();
-                DeleteTemplateCommand.NotifyCanExecuteChanged();
+                NotifyTemplateMutationCommands();
                 ShowToast(
                     Localize("CommunityCatalog_DeleteToastTitle"),
-                    string.Format(Localize("CommunityCatalog_DeleteToastMessage"), template.DisplayName));
+                    string.Format(Localize("CommunityCatalog_DeleteToastMessage"), CommunityTemplateUiTitle(template)));
             }
             else
             {
-                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleteNotFound"), template.DisplayName);
+                StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleteNotFound"), CommunityTemplateUiTitle(template));
                 ShowToast(
                     Localize("CommunityCatalog_DeleteFailedToastTitle"),
-                    string.Format(Localize("CommunityCatalog_DeleteFailedToastMessage"), template.DisplayName));
+                    string.Format(Localize("CommunityCatalog_DeleteFailedToastMessage"), CommunityTemplateUiTitle(template)));
             }
         }
-        catch
+        catch (Exception ex)
         {
-            StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleteError"), template.DisplayName);
+            Gamepad_Mapping.App.Logger.Warning($"Failed to delete local community template '{template.Id}': {ex.Message}");
+            StatusMessage = string.Format(Localize("CommunityCatalog_StatusDeleteError"), CommunityTemplateUiTitle(template));
             ShowToast(
                 Localize("CommunityCatalog_DeleteFailedToastTitle"),
-                string.Format(Localize("CommunityCatalog_DeleteFailedToastMessage"), template.DisplayName));
+                string.Format(Localize("CommunityCatalog_DeleteFailedToastMessage"), CommunityTemplateUiTitle(template)));
         }
         finally
         {
             IsLoading = false;
-            DownloadTemplateCommand.NotifyCanExecuteChanged();
-            DeleteTemplateCommand.NotifyCanExecuteChanged();
+            NotifyTemplateMutationCommands();
         }
     }
 
@@ -409,11 +459,9 @@ public partial class CommunityCatalogViewModel : ObservableObject
         var sel = _main.SelectedTemplate;
         if (sel is null)
         {
-            MessageBox.Show(
+            _userDialogService.ShowInfo(
                 Localize("CommunityCatalog_UploadSelectTemplateFirst"),
-                Localize("CommunityUpload_WindowTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                Localize("CommunityUpload_WindowTitle"));
             return;
         }
 
@@ -425,28 +473,32 @@ public partial class CommunityCatalogViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            _userDialogService.ShowWarning(
                 string.Format(Localize("CommunityCatalog_UploadCollectFailed"), ex.Message),
-                Localize("CommunityUpload_WindowTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                Localize("CommunityUpload_WindowTitle"));
             return;
         }
 
         if (bundleEntries.Count == 0)
         {
-            MessageBox.Show(
+            _userDialogService.ShowInfo(
                 Localize("CommunityCatalog_UploadNoTemplates"),
-                Localize("CommunityUpload_WindowTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                Localize("CommunityUpload_WindowTitle"));
             return;
         }
 
         var primaryTemplate = _main.GetProfileService().LoadSelectedTemplate(sel);
-        var publishedIndex = await _communityService
-            .GetCommunityIndexSnapshotAsync(CancellationToken.None, CommunityIndexFetchBehavior.PreferFreshIndex)
-            .ConfigureAwait(true);
+        IReadOnlyList<CommunityTemplateInfo>? publishedIndex;
+        try
+        {
+            publishedIndex = await _communityService
+                .GetCommunityIndexSnapshotAsync(_lifetimeCts.Token, CommunityIndexFetchBehavior.PreferFreshIndex)
+                .ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
         var bundleFingerprint = CommunityUploadBundleFingerprint.Compute(bundleEntries);
         var dialogVm = new CommunityTemplateUploadDialogViewModel(
             _complianceService,
@@ -466,7 +518,7 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 dialogVm.ListingDescription = (primaryTemplate?.CommunityListingDescription ?? string.Empty).Trim();
             }
 
-            var dialog = new CommunityTemplateUploadWindow
+            var dialog = new CommunityTemplateUploadWindow(_userDialogService)
             {
                 Owner = Application.Current?.MainWindow,
                 DataContext = dialogVm
@@ -507,17 +559,15 @@ public partial class CommunityCatalogViewModel : ObservableObject
                 {
                     var failureMessage = BuildUploadFailureMessage(result);
                     StatusMessage = failureMessage;
-                    MessageBox.Show(
+                    _userDialogService.ShowWarning(
                         failureMessage,
-                        Localize("CommunityUpload_WindowTitle"),
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                        Localize("CommunityUpload_WindowTitle"));
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = string.Format(Localize("CommunityCatalog_StatusUploadFailed"), ex.Message);
-                MessageBox.Show(ex.Message, Localize("CommunityUpload_WindowTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+                _userDialogService.ShowError(ex.Message, Localize("CommunityUpload_WindowTitle"));
             }
             finally
             {
@@ -540,13 +590,37 @@ public partial class CommunityCatalogViewModel : ObservableObject
             .SelectMany(static author => author.Templates)
             .ToList();
 
-        foreach (var templateItem in allTemplateItems)
-            templateItem.IsInstalledLocally = await _communityService.IsTemplateDownloadedAsync(templateItem.Template);
+        var installChecks = allTemplateItems
+            .Select(async templateItem => new
+            {
+                templateItem,
+                isInstalled = await _communityService.IsTemplateDownloadedAsync(templateItem.Template).ConfigureAwait(true)
+            })
+            .ToArray();
+
+        var results = await Task.WhenAll(installChecks).ConfigureAwait(true);
+        foreach (var result in results)
+            result.templateItem.IsInstalledLocally = result.isInstalled;
 
         DeleteTemplateCommand.NotifyCanExecuteChanged();
     }
 
+    private static string CommunityTemplateUiTitle(CommunityTemplateInfo template) =>
+        CommunityTemplateDisplayLabels.ResolveDisplayName(template, AppUiLocalization.TryTranslationService());
+
     private static string Localize(string key) => AppUiLocalization.GetString(key);
+
+    private void NotifyRefreshAndTemplateCommands()
+    {
+        RefreshTemplatesCommand.NotifyCanExecuteChanged();
+        NotifyTemplateMutationCommands();
+    }
+
+    private void NotifyTemplateMutationCommands()
+    {
+        DownloadTemplateCommand.NotifyCanExecuteChanged();
+        DeleteTemplateCommand.NotifyCanExecuteChanged();
+    }
 
     private void ShowToast(string title, string message)
     {
@@ -554,8 +628,17 @@ public partial class CommunityCatalogViewModel : ObservableObject
         {
             Title = title,
             Message = message,
-            AutoHideSeconds = 5
+            AutoHideSeconds = AppToastDefaults.AutoHideSeconds
         });
+    }
+
+    public void Dispose()
+    {
+        if (_translationService is not null)
+            _translationService.PropertyChanged -= OnTranslationServicePropertyChanged;
+        StopRefreshCooldownTimer();
+        _lifetimeCts.Cancel();
+        _lifetimeCts.Dispose();
     }
 
     private string ResolveFolderName(string? catalogFolder)

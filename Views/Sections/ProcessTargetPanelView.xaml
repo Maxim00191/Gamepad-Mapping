@@ -1,6 +1,7 @@
 <UserControl x:Class="Gamepad_Mapping.Views.Sections.ProcessTargetPanelView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors">
     <Border Style="{StaticResource SectionCardBorder}">
         <StackPanel>
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProcessTarget]}"
@@ -14,10 +15,33 @@
 
             <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TargetProcessNameLabel]}"
                        Margin="0,0,0,4" />
-            <TextBox Text="{Binding TemplateTargetProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     MinHeight="32"
-                     VerticalContentAlignment="Center"
-                     ToolTip="{Binding Source={StaticResource Loc}, Path=[TargetProcessNameToolTip]}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                         Text="{Binding TemplateTargetProcessName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         MinHeight="32"
+                         VerticalContentAlignment="Center"
+                         ToolTip="{Binding Source={StaticResource Loc}, Path=[TargetProcessNameToolTip]}" />
+                <Button Grid.Column="1"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        MinWidth="36"
+                        Width="36"
+                        Height="32"
+                        Margin="8,0,0,0"
+                        Padding="0"
+                        Command="{Binding RefreshDeclaredProcessTargetCommand}"
+                        ToolTip="{Binding TargetProcessRefreshToolTip}"
+                        behaviors:ButtonAttentionAssist.IsSoftWarningHighlighted="{Binding ShouldHighlightTargetProcessRefresh}">
+                    <TextBlock FontFamily="Segoe MDL2 Assets"
+                               Text="&#xE72C;"
+                               FontSize="14"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Button>
+            </Grid>
 
             <TextBlock Margin="0,10,0,0"
                        FontSize="11"
