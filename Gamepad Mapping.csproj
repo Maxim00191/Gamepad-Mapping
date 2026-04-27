@@ -33,6 +33,7 @@
     <Content Include="Assets\ControllerSvg\**\*.svg" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\ControllerSvg\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Profiles\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Automation\**\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

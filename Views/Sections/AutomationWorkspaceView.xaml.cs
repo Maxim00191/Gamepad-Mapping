@@ -5,7 +5,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using Gamepad_Mapping.ViewModels;
 
 namespace Gamepad_Mapping.Views.Sections;
@@ -15,7 +14,7 @@ public partial class AutomationWorkspaceView
     public AutomationWorkspaceView()
     {
         InitializeComponent();
-        _selectionPressTimer.Tick += SelectionPressTimer_Tick;
+        Loaded += AutomationWorkspaceView_Loaded;
     }
 
     private AutomationWorkspaceViewModel? WorkspaceVm => DataContext as AutomationWorkspaceViewModel;
@@ -31,8 +30,8 @@ public partial class AutomationWorkspaceView
     private Point _nodeDragLastCanvasPoint;
     private Point _selectionStartCanvasPoint;
     private Point _selectionStartScreenPoint;
-    private readonly DispatcherTimer _selectionPressTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
-    private const double SelectionLongPressMoveTolerance = 6d;
+    private bool _isMiniMapDragging;
+    private const double SelectionDragStartTolerance = 6d;
 
     private void PaletteRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -437,10 +436,10 @@ public partial class AutomationWorkspaceView
         if (_isLeftPressActive && !_isSelectionMarqueeActive)
         {
             var current = e.GetPosition(this);
-            if ((current - _selectionStartScreenPoint).Length > SelectionLongPressMoveTolerance)
+            if (Mouse.LeftButton == MouseButtonState.Pressed &&
+                (current - _selectionStartScreenPoint).Length > SelectionDragStartTolerance)
             {
-                _selectionPressTimer.Stop();
-                _isLeftPressActive = false;
+                BeginSelectionRectangle();
             }
         }
 
@@ -477,13 +476,10 @@ public partial class AutomationWorkspaceView
         _isLeftPressActive = true;
         _selectionStartCanvasPoint = ToLogicalCanvasPoint(e.GetPosition(CanvasSurface));
         _selectionStartScreenPoint = e.GetPosition(this);
-        _selectionPressTimer.Stop();
-        _selectionPressTimer.Start();
     }
 
     private void CanvasSurface_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        _selectionPressTimer.Stop();
         _isLeftPressActive = false;
 
         if (!_isSelectionMarqueeActive)
@@ -492,21 +488,6 @@ public partial class AutomationWorkspaceView
         CommitSelectionRectangle(ToLogicalCanvasPoint(e.GetPosition(CanvasSurface)));
         EndSelectionRectangle();
         e.Handled = true;
-    }
-
-    private void SelectionPressTimer_Tick(object? sender, EventArgs e)
-    {
-        _selectionPressTimer.Stop();
-        if (!_isLeftPressActive || _isSelectionMarqueeActive)
-            return;
-
-        _isSelectionMarqueeActive = true;
-        SelectionRectOverlay.Visibility = Visibility.Visible;
-        Canvas.SetLeft(SelectionRectOverlay, _selectionStartCanvasPoint.X);
-        Canvas.SetTop(SelectionRectOverlay, _selectionStartCanvasPoint.Y);
-        SelectionRectOverlay.Width = 0;
-        SelectionRectOverlay.Height = 0;
-        Mouse.Capture(this, CaptureMode.SubTree);
     }
 
     private void UpdateSelectionRectangle(Point currentCanvasPoint)
@@ -557,14 +538,24 @@ public partial class AutomationWorkspaceView
 
     private void AutomationRoot_Unloaded(object sender, RoutedEventArgs e)
     {
-        _selectionPressTimer.Stop();
         EndConnectionDrag();
         EndMiddlePanning(releaseCaptureIfIdle: false);
         EndNodeDrag(releaseCaptureIfIdle: false);
+        _isMiniMapDragging = false;
     }
 
     private void AutomationRoot_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (WorkspaceVm is not null &&
+            e.Key == Key.Escape &&
+            WorkspaceVm.IsAutomationRunInProgress &&
+            WorkspaceVm.EmergencyStopCommand.CanExecute(null))
+        {
+            WorkspaceVm.EmergencyStopCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
         if (WorkspaceVm is null || e.Key != Key.Delete)
         {
             if (e.Key == Key.Escape && _isConnectionDragActive)
@@ -604,7 +595,6 @@ public partial class AutomationWorkspaceView
         if (_isNodeDragActive)
             EndNodeDrag();
 
-        _selectionPressTimer.Stop();
         _isLeftPressActive = false;
         if (_isSelectionMarqueeActive)
             EndSelectionRectangle();
@@ -723,10 +713,9 @@ public partial class AutomationWorkspaceView
         if (_isSelectionMarqueeActive)
             EndSelectionRectangle();
 
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
-            WorkspaceVm.ToggleNodeSelection(node);
-        else
-            WorkspaceVm.SelectSingleNode(node);
+        WorkspaceVm.SelectNodeForPointerDown(
+            node,
+            toggleSelection: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
         AutomationRoot.Focus();
 
         if (_isConnectionDragActive || _isMiddlePanning || _isSelectionMarqueeActive)
@@ -782,5 +771,92 @@ public partial class AutomationWorkspaceView
         var suppressSnap = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
         WorkspaceVm.DragNode(_draggingNode, dx, dy, suppressSnap);
         e.Handled = true;
+    }
+
+    private void BeginSelectionRectangle()
+    {
+        if (_isSelectionMarqueeActive)
+            return;
+
+        _isSelectionMarqueeActive = true;
+        SelectionRectOverlay.Visibility = Visibility.Visible;
+        Canvas.SetLeft(SelectionRectOverlay, _selectionStartCanvasPoint.X);
+        Canvas.SetTop(SelectionRectOverlay, _selectionStartCanvasPoint.Y);
+        SelectionRectOverlay.Width = 0;
+        SelectionRectOverlay.Height = 0;
+        Mouse.Capture(this, CaptureMode.SubTree);
+    }
+
+    private void AutomationWorkspaceView_Loaded(object sender, RoutedEventArgs e)
+    {
+        UpdateOverviewViewportFromScroll();
+    }
+
+    private void CanvasScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        UpdateOverviewViewportFromScroll();
+    }
+
+    private void UpdateOverviewViewportFromScroll()
+    {
+        if (WorkspaceVm is null)
+            return;
+
+        var zoom = GetCurrentZoom();
+        var viewportLeft = CanvasScrollViewer.HorizontalOffset / zoom;
+        var viewportTop = CanvasScrollViewer.VerticalOffset / zoom;
+        var viewportWidth = CanvasScrollViewer.ViewportWidth / zoom;
+        var viewportHeight = CanvasScrollViewer.ViewportHeight / zoom;
+        WorkspaceVm.SetViewportRect(viewportLeft, viewportTop, viewportWidth, viewportHeight);
+    }
+
+    private void MiniMapViewportHost_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (WorkspaceVm is null || MiniMapViewportHost.ActualWidth <= 0 || MiniMapViewportHost.ActualHeight <= 0)
+            return;
+
+        _isMiniMapDragging = true;
+        Mouse.Capture(MiniMapViewportHost, CaptureMode.Element);
+        CenterViewportOnMiniMapPoint(e.GetPosition(MiniMapViewportHost));
+        e.Handled = true;
+    }
+
+    private void MiniMapViewportHost_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isMiniMapDragging || e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        CenterViewportOnMiniMapPoint(e.GetPosition(MiniMapViewportHost));
+        e.Handled = true;
+    }
+
+    private void MiniMapViewportHost_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isMiniMapDragging)
+            return;
+
+        _isMiniMapDragging = false;
+        if (Mouse.Captured == MiniMapViewportHost)
+            Mouse.Capture(null);
+        e.Handled = true;
+    }
+
+    private void CenterViewportOnMiniMapPoint(Point miniMapPoint)
+    {
+        if (WorkspaceVm is null || MiniMapViewportHost.ActualWidth <= 0 || MiniMapViewportHost.ActualHeight <= 0)
+            return;
+
+        var ratioX = Math.Clamp(miniMapPoint.X / MiniMapViewportHost.ActualWidth, 0d, 1d);
+        var ratioY = Math.Clamp(miniMapPoint.Y / MiniMapViewportHost.ActualHeight, 0d, 1d);
+        var targetX = ratioX * AutomationWorkspaceViewModel.CanvasLogicalWidth;
+        var targetY = ratioY * AutomationWorkspaceViewModel.CanvasLogicalHeight;
+        var zoom = GetCurrentZoom();
+        var halfViewportWidth = CanvasScrollViewer.ViewportWidth / (2d * zoom);
+        var halfViewportHeight = CanvasScrollViewer.ViewportHeight / (2d * zoom);
+        var left = Math.Clamp(targetX - halfViewportWidth, 0d, AutomationWorkspaceViewModel.CanvasLogicalWidth);
+        var top = Math.Clamp(targetY - halfViewportHeight, 0d, AutomationWorkspaceViewModel.CanvasLogicalHeight);
+        CanvasScrollViewer.ScrollToHorizontalOffset(left * zoom);
+        CanvasScrollViewer.ScrollToVerticalOffset(top * zoom);
+        UpdateOverviewViewportFromScroll();
     }
 }

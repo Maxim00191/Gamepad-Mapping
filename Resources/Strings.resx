@@ -2336,4 +2336,22 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationWorkspace_BackgroundRunCompletedToast" xml:space="preserve">
     <value>Background automation check completed.</value>
   </data>
+  <data name="AutomationWorkspace_MiniMapHint" xml:space="preserve">
+    <value>Drag or click to jump viewport</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStop" xml:space="preserve">
+    <value>Emergency Stop</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStopTooltip" xml:space="preserve">
+    <value>Immediately stop the currently running automation script.</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStopRequestedLog" xml:space="preserve">
+    <value>[Emergency Stop] Cancellation requested.</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStopToast" xml:space="preserve">
+    <value>Automation run stopped.</value>
+  </data>
+  <data name="AutomationWorkspace_RunAlreadyInProgressLog" xml:space="preserve">
+    <value>[Run] Another automation run is already in progress.</value>
+  </data>
 </root>

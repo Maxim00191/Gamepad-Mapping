@@ -223,5 +223,22 @@ public static class AppPaths
             return root;
         }
     }
+
+    public static string GetAutomationImportDirectory()
+    {
+        var installAssetsAutomation = Path.Combine(ResolveContentRoot(), "Assets", "Automation");
+        try
+        {
+            if (!Directory.Exists(installAssetsAutomation))
+                Directory.CreateDirectory(installAssetsAutomation);
+            return installAssetsAutomation;
+        }
+        catch
+        {
+            // ignore and fallback
+        }
+
+        return GetAutomationWorkspaceStorageDirectory();
+    }
 }
 

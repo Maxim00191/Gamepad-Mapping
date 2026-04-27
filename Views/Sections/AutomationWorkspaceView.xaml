@@ -228,6 +228,11 @@
                                 Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}" />
                         <Button Margin="0,0,8,4"
                                 Padding="10,4"
+                                Command="{Binding EmergencyStopCommand}"
+                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStop]}"
+                                ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStopTooltip]}" />
+                        <Button Margin="0,0,8,4"
+                                Padding="10,4"
                                 Command="{Binding DeleteSelectedCommand}"
                                 Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Delete]}" />
                         <CheckBox Margin="10,6,8,4"
@@ -262,9 +267,10 @@
                                   HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   Margin="8,0,8,8"
+                                  ScrollChanged="CanvasScrollViewer_ScrollChanged"
                                   PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
-                        <Grid Width="4200"
-                              Height="4200"
+                        <Grid Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
+                              Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}"
                               ClipToBounds="False">
                             <Grid.Background>
                                 <DrawingBrush TileMode="Tile"
@@ -295,8 +301,8 @@
                             </Grid.RenderTransform>
 
                             <Canvas x:Name="CanvasSurface"
-                                    Width="4200"
-                                    Height="4200"
+                                    Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
+                                    Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}"
                                     AllowDrop="True"
                                     Background="Transparent"
                                     DragOver="CanvasSurface_DragOver"
@@ -309,8 +315,8 @@
 
                                 <ItemsControl Canvas.ZIndex="0"
                                               ItemsSource="{Binding EdgeDisplays}"
-                                              Width="4200"
-                                              Height="4200">
+                                              Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
+                                              Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <Canvas />
@@ -383,8 +389,8 @@
 
                                 <ItemsControl Canvas.ZIndex="1"
                                               ItemsSource="{Binding CanvasNodes}"
-                                              Width="4200"
-                                              Height="4200">
+                                              Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
+                                              Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <Canvas />
@@ -636,19 +642,84 @@
                 <Border VerticalAlignment="Bottom"
                         HorizontalAlignment="Right"
                         Margin="12"
-                        Padding="6"
+                        Padding="6,6,6,4"
                         CornerRadius="4"
                         Background="#CC202020"
                         BorderBrush="{DynamicResource AppBorderBrush}"
                         BorderThickness="1"
-                        Width="140"
-                        Height="100"
+                        Width="220"
+                        Height="156"
                         Visibility="{Binding ShowMinimap, Converter={StaticResource BoolToVis}}">
-                    <TextBlock HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource AppSecondaryTextBrush}"
-                               FontSize="11"
-                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_MiniMap]}" />
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                x:Name="MiniMapViewportHost"
+                                ClipToBounds="True"
+                                BorderBrush="#60606060"
+                                BorderThickness="1"
+                                Background="#38000000"
+                                PreviewMouseLeftButtonDown="MiniMapViewportHost_PreviewMouseLeftButtonDown"
+                                PreviewMouseMove="MiniMapViewportHost_PreviewMouseMove"
+                                PreviewMouseLeftButtonUp="MiniMapViewportHost_PreviewMouseLeftButtonUp">
+                            <Viewbox Stretch="Uniform">
+                                <Canvas Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
+                                        Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}">
+                                    <ItemsControl ItemsSource="{Binding CanvasNodes}"
+                                                  IsHitTestVisible="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:AutomationCanvasNodeViewModel}">
+                                                <Rectangle Width="{Binding NodeVisualWidth}"
+                                                           Height="{Binding EstimatedVisualHeight}"
+                                                           RadiusX="4"
+                                                           RadiusY="4"
+                                                           StrokeThickness="1"
+                                                           Stroke="#B0C0C0C0">
+                                                    <Rectangle.Style>
+                                                        <Style TargetType="Rectangle">
+                                                            <Setter Property="Fill" Value="#60A0A0A0" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding VisualState}" Value="{x:Static vm:AutomationCanvasVisualState.Selected}">
+                                                                    <Setter Property="Fill" Value="#90C98A00" />
+                                                                    <Setter Property="Stroke" Value="#FFE4B54A" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Rectangle.Style>
+                                                </Rectangle>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Rectangle Canvas.Left="{Binding OverviewViewportLeft}"
+                                               Canvas.Top="{Binding OverviewViewportTop}"
+                                               Width="{Binding OverviewViewportWidth}"
+                                               Height="{Binding OverviewViewportHeight}"
+                                               Fill="#205FA4FF"
+                                               Stroke="#FF5FA4FF"
+                                               StrokeThickness="14" />
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,6,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                   FontSize="10.5"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_MiniMapHint]}" />
+                    </Grid>
                 </Border>
             </Grid>
         </Border>

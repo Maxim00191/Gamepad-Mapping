@@ -22,6 +22,8 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class AutomationWorkspaceViewModel : ObservableObject
 {
+    public const double CanvasLogicalWidth = 4200;
+    public const double CanvasLogicalHeight = 4200;
     public const double NodeVisualWidth = 280;
     public const double NodeVisualMinHeight = 186;
     public const double NodeVisualMaxWidth = 520;
@@ -57,6 +59,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly Dictionary<string, (double X, double Y)> _portAnchorsByKey = [];
     private readonly Dictionary<string, (double OffsetX, double OffsetY)> _portAnchorOffsetsByKey = [];
     private readonly Dictionary<Guid, (double X, double Y)> _nodeDragRawPositions = [];
+    private readonly object _runStateSync = new();
+    private CancellationTokenSource? _activeRunCts;
     private AutomationConnectionDragState? _connectionDrag;
     public AutomationWorkspaceViewModel(
         INodeTypeRegistry registry,
@@ -138,6 +142,18 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private bool _showMinimap;
 
     [ObservableProperty]
+    private double _overviewViewportLeft;
+
+    [ObservableProperty]
+    private double _overviewViewportTop;
+
+    [ObservableProperty]
+    private double _overviewViewportWidth = CanvasLogicalWidth;
+
+    [ObservableProperty]
+    private double _overviewViewportHeight = CanvasLogicalHeight;
+
+    [ObservableProperty]
     private bool _isConnectionPreviewVisible;
 
     [ObservableProperty]
@@ -166,6 +182,22 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     partial void OnIsBackgroundCheckRunningChanged(bool value) =>
         RunCurrentScriptInBackgroundCommand.NotifyCanExecuteChanged();
+
+    [ObservableProperty]
+    private bool _isAutomationRunInProgress;
+
+    partial void OnIsAutomationRunInProgressChanged(bool value)
+    {
+        RunSmokeOnceCommand.NotifyCanExecuteChanged();
+        RunCurrentScriptInBackgroundCommand.NotifyCanExecuteChanged();
+        EmergencyStopCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnZoomChanged(double value)
+    {
+        // Keep the viewport values in sync with zoom-dependent dimensions.
+        SetViewportRect(OverviewViewportLeft, OverviewViewportTop, OverviewViewportWidth, OverviewViewportHeight);
+    }
 
     private void OnCanvasNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
         ShowMinimap = CanvasNodes.Count >= 8;
@@ -257,7 +289,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         var dlg = new OpenFileDialog
         {
             Filter = "JSON (*.json)|*.json",
-            InitialDirectory = AppPaths.GetAutomationWorkspaceStorageDirectory()
+            InitialDirectory = AppPaths.GetAutomationImportDirectory()
         };
 
         if (dlg.ShowDialog() != true)
@@ -436,6 +468,24 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         DeleteSelectedCommand.NotifyCanExecuteChanged();
     }
 
+    public void SelectNodeForPointerDown(AutomationCanvasNodeViewModel node, bool toggleSelection)
+    {
+        if (toggleSelection)
+        {
+            ToggleNodeSelection(node);
+            return;
+        }
+
+        if (!_selectedNodeIds.Contains(node.Id) || _selectedNodeIds.Count <= 1)
+        {
+            SelectSingleNode(node);
+            return;
+        }
+
+        if (!ReferenceEquals(SelectedNode, node))
+            SelectedNode = node;
+    }
+
     public void SetNodeHover(Guid nodeId, bool isHovered)
     {
         if (_nodeVmById.TryGetValue(nodeId, out var node))
@@ -480,6 +530,18 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         SelectedNode = CanvasNodes.FirstOrDefault(n => _selectedNodeIds.Contains(n.Id));
         ApplySelectionVisualStates();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
+    }
+
+    public void SetViewportRect(double viewportLeft, double viewportTop, double viewportWidth, double viewportHeight)
+    {
+        var clampedWidth = Math.Clamp(viewportWidth, 1d, CanvasLogicalWidth);
+        var clampedHeight = Math.Clamp(viewportHeight, 1d, CanvasLogicalHeight);
+        var clampedLeft = Math.Clamp(viewportLeft, 0d, CanvasLogicalWidth - clampedWidth);
+        var clampedTop = Math.Clamp(viewportTop, 0d, CanvasLogicalHeight - clampedHeight);
+        OverviewViewportLeft = clampedLeft;
+        OverviewViewportTop = clampedTop;
+        OverviewViewportWidth = clampedWidth;
+        OverviewViewportHeight = clampedHeight;
     }
 
     public bool DisconnectPortConnections(Guid nodeId, string portId, bool isOutputPort)
@@ -531,7 +593,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
         PushUndoCheckpoint();
         _dragUndoSessionNodeId = node.Id;
-        _nodeDragRawPositions[node.Id] = (node.X, node.Y);
+        _nodeDragRawPositions.Clear();
+        foreach (var dragNode in ResolveDragNodes(node))
+            _nodeDragRawPositions[dragNode.Id] = (dragNode.X, dragNode.Y);
     }
 
     public void EndNodeMoveSession(AutomationCanvasNodeViewModel node)
@@ -543,15 +607,29 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     public void DragNode(AutomationCanvasNodeViewModel node, double dx, double dy, bool suppressSnap)
     {
-        if (!_nodeDragRawPositions.TryGetValue(node.Id, out var raw))
-            raw = (node.X, node.Y);
+        var dragNodes = ResolveDragNodes(node).ToArray();
+        if (dragNodes.Length == 0)
+            return;
 
-        var nx = raw.X + dx;
-        var ny = raw.Y + dy;
-        _nodeDragRawPositions[node.Id] = (nx, ny);
-        var (sx, sy) = ApplySnap(nx, ny, suppressSnap);
-        node.X = sx;
-        node.Y = sy;
+        foreach (var dragNode in dragNodes)
+        {
+            if (!_nodeDragRawPositions.TryGetValue(dragNode.Id, out var raw))
+                raw = (dragNode.X, dragNode.Y);
+
+            var nx = raw.X + dx;
+            var ny = raw.Y + dy;
+            _nodeDragRawPositions[dragNode.Id] = (nx, ny);
+            var (sx, sy) = ApplySnap(nx, ny, suppressSnap);
+            dragNode.X = sx;
+            dragNode.Y = sy;
+        }
+    }
+
+    private IEnumerable<AutomationCanvasNodeViewModel> ResolveDragNodes(AutomationCanvasNodeViewModel anchor)
+    {
+        if (_selectedNodeIds.Count > 1 && _selectedNodeIds.Contains(anchor.Id))
+            return CanvasNodes.Where(n => _selectedNodeIds.Contains(n.Id));
+        return [anchor];
     }
 
     private (double X, double Y) ApplySnap(double x, double y, bool bypassSnap)
@@ -1311,7 +1389,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         enc.Save(fs);
     }
 
-    [RelayCommand]
+    private bool CanRunSmokeOnce() => !IsAutomationRunInProgress;
+
+    [RelayCommand(CanExecute = nameof(CanRunSmokeOnce))]
     private async Task RunSmokeOnceAsync()
     {
         await ExecuteScriptRunAsync(
@@ -1321,7 +1401,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             showFailureDialog: true);
     }
 
-    private bool CanRunCurrentScriptInBackground() => !IsBackgroundCheckRunning;
+    private bool CanRunCurrentScriptInBackground() =>
+        !IsBackgroundCheckRunning && !IsAutomationRunInProgress;
 
     [RelayCommand(CanExecute = nameof(CanRunCurrentScriptInBackground))]
     private async Task RunCurrentScriptInBackgroundAsync()
@@ -1342,6 +1423,22 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         {
             IsBackgroundCheckRunning = false;
         }
+    }
+
+    private bool CanEmergencyStop() => IsAutomationRunInProgress;
+
+    [RelayCommand(CanExecute = nameof(CanEmergencyStop))]
+    private void EmergencyStop()
+    {
+        CancellationTokenSource? cts;
+        lock (_runStateSync)
+            cts = _activeRunCts;
+
+        if (cts is null)
+            return;
+
+        AppendAutomationLog(Local("AutomationWorkspace_EmergencyStopRequestedLog"));
+        cts.Cancel();
     }
 
     [RelayCommand]
@@ -1534,11 +1631,17 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         string successToastMessageResourceKey,
         bool showFailureDialog)
     {
+        if (!TryBeginAutomationRun(out var cancellationToken))
+        {
+            AppendAutomationLog(Local("AutomationWorkspace_RunAlreadyInProgressLog"));
+            return;
+        }
+
         AppendAutomationLog(startLogLine);
         try
         {
             var documentSnapshot = _serializer.Deserialize(_serializer.Serialize(_document));
-            var result = await _scriptRunner.RunDocumentOnceAsync(documentSnapshot);
+            var result = await _scriptRunner.RunDocumentOnceAsync(documentSnapshot, cancellationToken);
             AppendRunResultLogs(result);
 
             var message = ResolveResultMessage(result);
@@ -1555,12 +1658,57 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                     Local(toastTitleResourceKey));
             }
         }
+        catch (OperationCanceledException)
+        {
+            var result = new AutomationSmokeRunResult
+            {
+                Ok = false,
+                MessageResourceKey = "AutomationSmoke_Cancelled"
+            };
+            AppendRunResultLogs(result);
+            _toast.ShowInfo(toastTitleResourceKey, "AutomationWorkspace_EmergencyStopToast");
+        }
         catch (Exception ex)
         {
             AppendAutomationLog(ex.Message);
             if (showFailureDialog)
                 _dialogs.ShowError(ex.Message, Local(toastTitleResourceKey));
         }
+        finally
+        {
+            EndAutomationRun();
+        }
+    }
+
+    private bool TryBeginAutomationRun(out CancellationToken token)
+    {
+        lock (_runStateSync)
+        {
+            if (_activeRunCts is not null)
+            {
+                token = default;
+                return false;
+            }
+
+            _activeRunCts = new CancellationTokenSource();
+            token = _activeRunCts.Token;
+        }
+
+        IsAutomationRunInProgress = true;
+        return true;
+    }
+
+    private void EndAutomationRun()
+    {
+        CancellationTokenSource? toDispose;
+        lock (_runStateSync)
+        {
+            toDispose = _activeRunCts;
+            _activeRunCts = null;
+        }
+
+        IsAutomationRunInProgress = false;
+        toDispose?.Dispose();
     }
 
     private void AppendRunResultLogs(AutomationSmokeRunResult result)

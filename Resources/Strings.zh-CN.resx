@@ -2336,4 +2336,22 @@
   <data name="AutomationWorkspace_BackgroundRunCompletedToast" xml:space="preserve">
     <value>后台自动化检查已完成。</value>
   </data>
+  <data name="AutomationWorkspace_MiniMapHint" xml:space="preserve">
+    <value>拖动或点击以跳转视口</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStop" xml:space="preserve">
+    <value>紧急停止</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStopTooltip" xml:space="preserve">
+    <value>立即停止当前正在运行的自动化脚本。</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStopRequestedLog" xml:space="preserve">
+    <value>[紧急停止] 已请求取消。</value>
+  </data>
+  <data name="AutomationWorkspace_EmergencyStopToast" xml:space="preserve">
+    <value>自动化运行已停止。</value>
+  </data>
+  <data name="AutomationWorkspace_RunAlreadyInProgressLog" xml:space="preserve">
+    <value>[运行] 当前已有自动化任务在执行。</value>
+  </data>
 </root>
