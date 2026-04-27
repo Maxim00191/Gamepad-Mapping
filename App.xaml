@@ -338,7 +338,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Padding" Value="2" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ToggleButton}">
@@ -353,13 +353,13 @@
                                 </Grid.ColumnDefinitions>
                                 <Border x:Name="ChevronHost"
                                         Grid.Column="0"
-                                        Width="26"
-                                        Height="26"
-                                        CornerRadius="4"
+                                        Width="16"
+                                        Height="16"
+                                        CornerRadius="3"
                                         VerticalAlignment="Center">
                                     <Path x:Name="ChevronPath"
-                                          Width="9"
-                                          Height="6"
+                                          Width="7"
+                                          Height="4"
                                           Stretch="Uniform"
                                           Fill="{DynamicResource AppSecondaryTextBrush}"
                                           Data="M 0 1 L 4.5 5 L 9 1"
@@ -372,7 +372,7 @@
                                     </Path>
                                 </Border>
                                 <ContentPresenter Grid.Column="1"
-                                                  Margin="8,0,0,0"
+                                                  Margin="4,0,0,0"
                                                   VerticalAlignment="Center"
                                                   RecognizesAccessKey="True" />
                             </Grid>
@@ -427,8 +427,8 @@
                                         CornerRadius="6,6,0,0">
                                     <ToggleButton x:Name="HeaderSite"
                                                   Style="{StaticResource ExpanderHeaderToggleStyle}"
-                                                  MinHeight="40"
-                                                  Padding="10,8"
+                                                  MinHeight="28"
+                                                  Padding="6,2"
                                                   HorizontalContentAlignment="Stretch"
                                                   Focusable="False"
                                                   IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
@@ -440,7 +440,7 @@
                                         DockPanel.Dock="Bottom"
                                         Background="{DynamicResource AppSurfaceBrush}"
                                         CornerRadius="0,0,6,6"
-                                        Padding="12"
+                                        Padding="8"
                                         Visibility="Collapsed">
                                     <ContentPresenter Focusable="False"
                                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"

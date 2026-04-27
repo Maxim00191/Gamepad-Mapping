@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "OpenCV + YOLO26 Smoke Test",
+    "description": "Basic automation flow for import/smoke-run validation with image detection and output branching.",
+    "version": "1.0.0",
+    "dependencies": [
+      {
+        "id": "opencv",
+        "kind": "native",
+        "required": true,
+        "version": "4.x",
+        "notes": "Provides image processing and matching primitives."
+      },
+      {
+        "id": "yolo26",
+        "kind": "model",
+        "required": true,
+        "version": "26.x",
+        "notes": "Provides object detection capabilities for advanced automation scenarios."
+      }
+    ],
+    "pathTokens": {
+      "workspaceRoot": "${workspaceRoot}",
+      "assetsRoot": "${workspaceRoot}/Assets",
+      "sampleRoot": "${workspaceRoot}/Assets/Automation/Samples"
+    }
+  },
+  "nodes": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "nodeTypeId": "perception.capture_screen",
+      "x": 120,
+      "y": 140,
+      "properties": {
+        "captureMode": "full"
+      }
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "nodeTypeId": "perception.find_image",
+      "x": 440,
+      "y": 140,
+      "properties": {
+        "findImageNeedlePath": "${sampleRoot}/needle-demo.png",
+        "findImageConfidence": 0.85,
+        "findImageTimeoutMs": 500
+      }
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "nodeTypeId": "logic.branch_image",
+      "x": 760,
+      "y": 140,
+      "properties": {}
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "nodeTypeId": "output.keyboard_key",
+      "x": 1080,
+      "y": 70,
+      "properties": {
+        "keyboardKey": "Space",
+        "keyboardActionMode": "tap"
+      }
+    },
+    {
+      "id": "55555555-5555-5555-5555-555555555555",
+      "nodeTypeId": "debug.log",
+      "x": 1080,
+      "y": 230,
+      "properties": {
+        "logMessage": "YOLO26/OpenCV smoke test: target not found."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
+      "sourceNodeId": "11111111-1111-1111-1111-111111111111",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "22222222-2222-2222-2222-222222222222",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
+      "sourceNodeId": "11111111-1111-1111-1111-111111111111",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "22222222-2222-2222-2222-222222222222",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3",
+      "sourceNodeId": "22222222-2222-2222-2222-222222222222",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "33333333-3333-3333-3333-333333333333",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "aaaaaaa4-aaaa-aaaa-aaaa-aaaaaaaaaaa4",
+      "sourceNodeId": "22222222-2222-2222-2222-222222222222",
+      "sourcePortId": "probe.image",
+      "targetNodeId": "33333333-3333-3333-3333-333333333333",
+      "targetPortId": "probe.image"
+    },
+    {
+      "id": "aaaaaaa5-aaaa-aaaa-aaaa-aaaaaaaaaaa5",
+      "sourceNodeId": "33333333-3333-3333-3333-333333333333",
+      "sourcePortId": "branch.match",
+      "targetNodeId": "44444444-4444-4444-4444-444444444444",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "aaaaaaa6-aaaa-aaaa-aaaa-aaaaaaaaaaa6",
+      "sourceNodeId": "33333333-3333-3333-3333-333333333333",
+      "sourcePortId": "branch.miss",
+      "targetNodeId": "55555555-5555-5555-5555-555555555555",
+      "targetPortId": "flow.in"
+    }
+  ]
+}

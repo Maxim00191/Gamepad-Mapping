@@ -13,10 +13,12 @@ public static class AutomationNodePropertyKeys
     public const string CaptureRoiCachePath = "captureRoiCachePath";
 
     public const string KeyboardKey = "keyboardKey";
+    public const string KeyboardActionId = "keyboardActionId";
     public const string KeyboardActionMode = "keyboardActionMode";
     public const string KeyboardHoldMilliseconds = "keyboardHoldMs";
 
     public const string MouseUseMatchPosition = "mouseUseMatchPosition";
+    public const string MouseActionId = "mouseActionId";
     public const string MouseActionMode = "mouseActionMode";
     public const string MouseCoordinateMode = "mouseCoordinateMode";
     public const string MouseAbsoluteX = "mouseAbsoluteX";

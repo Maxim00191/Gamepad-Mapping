@@ -43,6 +43,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationEdgeGeometryBuilder _edgeGeometryBuilder;
     private readonly IAutomationPortLabelService _portLabelService;
     private readonly IAutomationNodeLayoutMetricsService _nodeLayoutMetricsService;
+    private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
 
     private AutomationGraphDocument _document = new();
     private Guid? _dragUndoSessionNodeId;
@@ -70,7 +71,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationNodeInlineEditorSchemaService inlineEditorSchema,
         IAutomationEdgeGeometryBuilder edgeGeometryBuilder,
         IAutomationPortLabelService portLabelService,
-        IAutomationNodeLayoutMetricsService nodeLayoutMetricsService)
+        IAutomationNodeLayoutMetricsService nodeLayoutMetricsService,
+        IAutomationOutputActionSelectionService outputActionSelectionService)
     {
         _registry = registry;
         _serializer = serializer;
@@ -86,6 +88,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _edgeGeometryBuilder = edgeGeometryBuilder;
         _portLabelService = portLabelService;
         _nodeLayoutMetricsService = nodeLayoutMetricsService;
+        _outputActionSelectionService = outputActionSelectionService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
@@ -632,9 +635,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                     ? Local(definition.PlaceholderResourceKey)
                     : "",
                 ActionKind = definition.ActionKind,
-                ActionLabel = definition.ActionLabelResourceKey is not null
-                    ? Local(definition.ActionLabelResourceKey)
-                    : ""
+                ActionLabel = ResolveInlineActionLabel(node, definition)
             };
             switch (definition.Kind)
             {
@@ -672,6 +673,27 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             node.InputPorts.Select(p => p.DisplayLabel).ToArray(),
             node.OutputPorts.Select(p => p.DisplayLabel).ToArray(),
             node.InlineEditors.Count));
+    }
+
+    private string ResolveInlineActionLabel(
+        AutomationCanvasNodeViewModel node,
+        AutomationNodeInlineEditorDefinition definition)
+    {
+        if (definition.ActionKind == AutomationNodeInlineEditorActionKind.PickKeyboardActionId)
+        {
+            var actionId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.KeyboardActionId);
+            return _outputActionSelectionService.BuildKeyboardActionPickerDisplayText(actionId);
+        }
+
+        if (definition.ActionKind == AutomationNodeInlineEditorActionKind.PickMouseActionId)
+        {
+            var actionId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.MouseActionId);
+            return _outputActionSelectionService.BuildMouseActionPickerDisplayText(actionId);
+        }
+
+        return definition.ActionLabelResourceKey is not null
+            ? Local(definition.ActionLabelResourceKey)
+            : "";
     }
 
     private void OnNodePositionChanged(object? sender, EventArgs e)
@@ -1356,7 +1378,60 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 ClearCaptureRegionForNode(node);
                 break;
             }
+            case AutomationNodeInlineEditorActionKind.PickKeyboardActionId:
+            {
+                PickKeyboardActionForNode(node);
+                break;
+            }
+            case AutomationNodeInlineEditorActionKind.PickMouseActionId:
+            {
+                PickMouseActionForNode(node);
+                break;
+            }
         }
+    }
+
+    private void PickKeyboardActionForNode(AutomationCanvasNodeViewModel node)
+    {
+        var props = node.State.Properties ??= new JsonObject();
+        var currentActionId = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.KeyboardActionId);
+        var selected = _outputActionSelectionService.PickKeyboardActionId(Application.Current?.MainWindow, currentActionId);
+        if (selected is null)
+            return;
+
+        var nextActionId = selected.Trim();
+        var previousActionId = currentActionId?.Trim() ?? string.Empty;
+        if (string.Equals(previousActionId, nextActionId, StringComparison.Ordinal))
+            return;
+
+        PushUndoCheckpoint();
+        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.KeyboardActionId, nextActionId);
+        if (_outputActionSelectionService.TryResolveKeyboardAction(nextActionId, out var resolvedKey))
+            AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.KeyboardKey, resolvedKey);
+        PopulateInlineEditors(node);
+    }
+
+    private void PickMouseActionForNode(AutomationCanvasNodeViewModel node)
+    {
+        var props = node.State.Properties ??= new JsonObject();
+        var currentActionId = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.MouseActionId);
+        var selected = _outputActionSelectionService.PickMouseActionId(Application.Current?.MainWindow, currentActionId);
+        if (selected is null)
+            return;
+
+        var nextActionId = selected.Trim();
+        var previousActionId = currentActionId?.Trim() ?? string.Empty;
+        if (string.Equals(previousActionId, nextActionId, StringComparison.Ordinal))
+            return;
+
+        PushUndoCheckpoint();
+        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.MouseActionId, nextActionId);
+        if (_outputActionSelectionService.TryResolveMouseAction(nextActionId, out var resolvedAction))
+        {
+            AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.MouseActionMode, resolvedAction.ActionMode);
+            AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.MouseButton, resolvedAction.Button);
+        }
+        PopulateInlineEditors(node);
     }
 
     [RelayCommand]

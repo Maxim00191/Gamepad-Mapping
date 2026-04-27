@@ -2150,4 +2150,70 @@
   <data name="AutomationPortLabel_Message" xml:space="preserve">
     <value>消息</value>
   </data>
+  <data name="AutomationInlineEditor_KeyboardActionId" xml:space="preserve">
+    <value>动作 ID</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionIdButton" xml:space="preserve">
+    <value>选择动作 ID</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionId" xml:space="preserve">
+    <value>鼠标动作 ID</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionIdButton" xml:space="preserve">
+    <value>选择鼠标动作 ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Keyboard_None" xml:space="preserve">
+    <value>手动输入</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_None" xml:space="preserve">
+    <value>手动鼠标配置</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Keyboard_DialogTitle" xml:space="preserve">
+    <value>选择键盘动作 ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_DialogTitle" xml:space="preserve">
+    <value>选择鼠标动作 ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Keyboard_SearchPlaceholder" xml:space="preserve">
+    <value>搜索动作 ID 或描述</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_SearchPlaceholder" xml:space="preserve">
+    <value>搜索鼠标动作 ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftClick" xml:space="preserve">
+    <value>左键单击</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftPress" xml:space="preserve">
+    <value>左键按下</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftRelease" xml:space="preserve">
+    <value>左键释放</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftHold" xml:space="preserve">
+    <value>左键按住</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightClick" xml:space="preserve">
+    <value>右键单击</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightPress" xml:space="preserve">
+    <value>右键按下</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightRelease" xml:space="preserve">
+    <value>右键释放</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightHold" xml:space="preserve">
+    <value>右键按住</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddleClick" xml:space="preserve">
+    <value>中键单击</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddlePress" xml:space="preserve">
+    <value>中键按下</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddleRelease" xml:space="preserve">
+    <value>中键释放</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddleHold" xml:space="preserve">
+    <value>中键按住</value>
+  </data>
 </root>

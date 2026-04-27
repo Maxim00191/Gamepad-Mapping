@@ -82,7 +82,11 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             return Fail("AutomationSmoke_NoRoot", null, log);
 
         var root = roots[0];
-        log.Add($"root={root}");
+        var rootNode = _index.GetNode(root);
+        var rootRef = rootNode is null
+            ? AutomationLogFormatter.NodeId(root)
+            : AutomationLogFormatter.NodeRef(rootNode.NodeTypeId, rootNode.Id);
+        log.Add($"[run] root={rootRef}");
 
         try
         {
@@ -127,11 +131,20 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
 
             var node = _index.GetNode(current) ?? throw new InvalidOperationException("node_missing");
 
-            log.Add($"{step}:{node.NodeTypeId}");
+            log.Add($"[step:{step}] enter {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
 
             var next = ExecuteAndGetNext(context, node, log, ct);
             if (next is null)
+            {
+                log.Add($"[step:{step}] completed terminal_node={AutomationLogFormatter.NodeId(node.Id)}");
                 return;
+            }
+
+            var nextNode = _index.GetNode(next.Value);
+            var nextRef = nextNode is null
+                ? AutomationLogFormatter.NodeId(next.Value)
+                : AutomationLogFormatter.NodeRef(nextNode.NodeTypeId, nextNode.Id);
+            log.Add($"[step:{step}] next={nextRef}");
 
             current = next.Value;
         }
@@ -144,10 +157,11 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         ct.ThrowIfCancellationRequested();
         if (_handlersByNodeType.TryGetValue(node.NodeTypeId, out var handler))
         {
+            log.Add($"[handler] execute {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
             return handler.Execute(context, node, log, ct);
         }
 
-        log.Add($"skip:{node.NodeTypeId}");
+        log.Add($"[handler] missing type={node.NodeTypeId} for_node={AutomationLogFormatter.NodeId(node.Id)} fallback=true");
         var fallbackPort = GetFirstExecOutPort(node.NodeTypeId);
         return string.IsNullOrEmpty(fallbackPort)
             ? null

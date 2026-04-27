@@ -15,18 +15,21 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         var keyText = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardKey);
         if (!AutomationKeyboardKeyParser.TryParse(keyText, out var key))
         {
-            log.Add("keyboard:bad_key");
+            log.Add($"[keyboard_key] invalid_key key_text='{keyText}'");
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
         var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardActionMode);
+        var normalizedMode = string.IsNullOrWhiteSpace(mode) ? "tap" : mode.Trim().ToLowerInvariant();
         if (string.Equals(mode, "press", StringComparison.OrdinalIgnoreCase))
         {
             context.Keyboard.KeyDown(key);
+            log.Add($"[keyboard_key] action=press key={key}");
         }
         else if (string.Equals(mode, "release", StringComparison.OrdinalIgnoreCase))
         {
             context.Keyboard.KeyUp(key);
+            log.Add($"[keyboard_key] action=release key={key}");
         }
         else if (string.Equals(mode, "hold", StringComparison.OrdinalIgnoreCase))
         {
@@ -37,10 +40,12 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
             context.Keyboard.KeyDown(key);
             Task.Delay(holdMs, cancellationToken).GetAwaiter().GetResult();
             context.Keyboard.KeyUp(key);
+            log.Add($"[keyboard_key] action=hold key={key} hold_ms={holdMs}");
         }
         else
         {
             context.Keyboard.TapKey(key);
+            log.Add($"[keyboard_key] action=tap key={key} requested_mode={normalizedMode}");
         }
 
         return context.GetExecutionTarget(node.Id, "flow.out");

@@ -86,6 +86,15 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "output.keyboard_key",
+                    PropertyKey = AutomationNodePropertyKeys.KeyboardActionId,
+                    LabelResourceKey = "AutomationInlineEditor_KeyboardActionId",
+                    Kind = AutomationNodeInlineEditorKind.Action,
+                    ActionKind = AutomationNodeInlineEditorActionKind.PickKeyboardActionId,
+                    ActionLabelResourceKey = "AutomationInlineEditor_KeyboardActionIdButton"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.keyboard_key",
                     PropertyKey = AutomationNodePropertyKeys.KeyboardKey,
                     LabelResourceKey = "AutomationInlineEditor_KeyboardKey",
                     PlaceholderResourceKey = "AutomationInlineEditor_KeyboardKeyPlaceholder",
@@ -114,6 +123,15 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
             ],
             ["output.mouse_click"] =
             [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.mouse_click",
+                    PropertyKey = AutomationNodePropertyKeys.MouseActionId,
+                    LabelResourceKey = "AutomationInlineEditor_MouseActionId",
+                    Kind = AutomationNodeInlineEditorKind.Action,
+                    ActionKind = AutomationNodeInlineEditorActionKind.PickMouseActionId,
+                    ActionLabelResourceKey = "AutomationInlineEditor_MouseActionIdButton"
+                },
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "output.mouse_click",

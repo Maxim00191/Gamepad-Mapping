@@ -19,7 +19,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var sourceNodeId = context.Index.GetDataSource(node.Id, "haystack.image");
         if (sourceNodeId is not { } source || !context.TryGetCapture(source, out var bitmap, out var originX, out var originY))
         {
-            log.Add("find_image:no_haystack");
+            log.Add("[find_image] missing_haystack_input");
             context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0));
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
@@ -29,6 +29,12 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var timeoutMs = (int)AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageTimeoutMs, 500);
         var options = new AutomationImageProbeOptions(tolerance, timeoutMs);
         var needle = AutomationImageProbe.TryLoadBitmapFromPath(needlePath);
+        var sourceNode = context.Index.GetNode(source);
+        var sourceRef = sourceNode is null
+            ? AutomationLogFormatter.NodeId(source)
+            : AutomationLogFormatter.NodeRef(sourceNode.NodeTypeId, sourceNode.Id);
+        log.Add($"[find_image] haystack_source={sourceRef} haystack_origin=({originX},{originY}) haystack_size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
+        log.Add($"[find_image] needle_path={needlePath} needle_loaded={(needle is not null ? "true" : "false")} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs}");
         var raw = context.Probe.Probe(bitmap, originX, originY, needle, options);
         var result = raw with
         {
@@ -36,6 +42,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             Confidence = raw.Matched ? Math.Clamp(confidence, 0, 1) : 0
         };
         context.StoreProbeResult(node.Id, result);
+        log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2}");
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 }

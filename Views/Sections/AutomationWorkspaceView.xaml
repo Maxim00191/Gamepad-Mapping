@@ -59,7 +59,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" MinWidth="180" />
             <ColumnDefinition Width="*" MinWidth="320" />
-            <ColumnDefinition Width="260" MinWidth="220" />
+            <ColumnDefinition Width="340" MinWidth="280" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0"
@@ -651,57 +651,76 @@
 
         <Border Grid.Column="2"
                 Margin="8,0,0,0"
-                Style="{StaticResource SectionCardBorder}"
-                Padding="12">
-            <DockPanel LastChildFill="True">
-                <TextBlock DockPanel.Dock="Top"
-                           Style="{StaticResource WorkspaceSectionTitleStyle}"
-                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Inspector]}" />
-                <StackPanel DockPanel.Dock="Top"
-                            Margin="0,8,0,8">
-                    <TextBlock FontWeight="SemiBold"
+                Padding="0"
+                Style="{StaticResource SectionCardBorder}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False"
+                          Padding="14">
+                <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Inspector]}" />
+                    <TextBlock Margin="0,8,0,0"
+                               FontWeight="SemiBold"
+                               FontSize="14"
                                Text="{Binding SelectedNode.Title, TargetNullValue=''}" />
                     <TextBlock Margin="0,4,0,0"
-                               FontSize="11"
+                               FontSize="12"
                                Foreground="{DynamicResource AppSecondaryTextBrush}"
                                Text="{Binding SelectedNode.NodeTypeId, TargetNullValue=''}" />
                 </StackPanel>
-                <StackPanel DockPanel.Dock="Top">
-                    <StackPanel>
-                        <TextBlock Margin="0,8,0,4"
-                                   FontWeight="SemiBold"
-                                   Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiPreview]}" />
-                        <Border Margin="0,2,0,8"
-                                Padding="4"
-                                HorizontalAlignment="Left"
-                                CornerRadius="4"
-                                Background="{DynamicResource AppSurfaceBrush}"
-                                BorderBrush="{DynamicResource AppBorderBrush}"
-                                BorderThickness="1">
-                            <Image MaxWidth="200"
-                                   MaxHeight="120"
-                                   Stretch="Uniform"
+
+                <StackPanel Grid.Row="1"
+                            Margin="0,14,0,0">
+                    <TextBlock Margin="0,0,0,6"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiPreview]}" />
+                    <Border Padding="6"
+                            MinHeight="150"
+                            CornerRadius="6"
+                            Background="{DynamicResource AppSurfaceBrush}"
+                            BorderBrush="{DynamicResource AppBorderBrush}"
+                            BorderThickness="1">
+                        <Grid>
+                            <Image Stretch="Uniform"
                                    Source="{Binding RoiInspectorThumbnail}" />
-                        </Border>
+                        </Grid>
+                    </Border>
                 </StackPanel>
-                </StackPanel>
-                <DockPanel Margin="0,12,0,0"
-                           LastChildFill="True">
-                    <TextBlock DockPanel.Dock="Top"
+
+                <Grid Grid.Row="2"
+                      Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0"
                                Margin="0,0,0,6"
                                FontWeight="SemiBold"
+                               FontSize="13"
                                Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_AutomationLog]}" />
-                    <TextBox MinHeight="72"
-                             MaxHeight="160"
+                    <TextBox Grid.Row="1"
+                             MinHeight="220"
+                             Padding="8"
                              VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled"
                              TextWrapping="Wrap"
                              AcceptsReturn="True"
                              IsReadOnly="True"
                              FontFamily="Consolas"
-                             FontSize="11"
+                             FontSize="12.5"
                              Text="{Binding AutomationRunLog}" />
-                </DockPanel>
-            </DockPanel>
+                </Grid>
+                </Grid>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>

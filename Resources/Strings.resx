@@ -2150,4 +2150,70 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationPortLabel_Message" xml:space="preserve">
     <value>Message</value>
   </data>
+  <data name="AutomationInlineEditor_KeyboardActionId" xml:space="preserve">
+    <value>Action ID</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionIdButton" xml:space="preserve">
+    <value>Select Action ID</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionId" xml:space="preserve">
+    <value>Mouse Action ID</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionIdButton" xml:space="preserve">
+    <value>Select Mouse Action ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Keyboard_None" xml:space="preserve">
+    <value>Manual input</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_None" xml:space="preserve">
+    <value>Manual mouse setup</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Keyboard_DialogTitle" xml:space="preserve">
+    <value>Select keyboard action ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_DialogTitle" xml:space="preserve">
+    <value>Select mouse action ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Keyboard_SearchPlaceholder" xml:space="preserve">
+    <value>Search action ID or description</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_SearchPlaceholder" xml:space="preserve">
+    <value>Search mouse action ID</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftClick" xml:space="preserve">
+    <value>Left Click</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftPress" xml:space="preserve">
+    <value>Left Press</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftRelease" xml:space="preserve">
+    <value>Left Release</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_LeftHold" xml:space="preserve">
+    <value>Left Hold</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightClick" xml:space="preserve">
+    <value>Right Click</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightPress" xml:space="preserve">
+    <value>Right Press</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightRelease" xml:space="preserve">
+    <value>Right Release</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_RightHold" xml:space="preserve">
+    <value>Right Hold</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddleClick" xml:space="preserve">
+    <value>Middle Click</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddlePress" xml:space="preserve">
+    <value>Middle Press</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddleRelease" xml:space="preserve">
+    <value>Middle Release</value>
+  </data>
+  <data name="AutomationOutputActionPicker_Mouse_MiddleHold" xml:space="preserve">
+    <value>Middle Hold</value>
+  </data>
 </root>

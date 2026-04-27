@@ -17,6 +17,7 @@ public sealed class CaptureScreenNodeHandler : IAutomationRuntimeNodeHandler
             context.TryGetCapture(cachedNodeId, out var cachedBitmap, out var cachedOriginX, out var cachedOriginY))
         {
             context.StoreCapture(node.Id, cachedBitmap, cachedOriginX, cachedOriginY);
+            log.Add($"[capture_screen] reused_cache source={AutomationLogFormatter.NodeId(cachedNodeId)} origin=({cachedOriginX},{cachedOriginY}) size={cachedBitmap.PixelWidth}x{cachedBitmap.PixelHeight}");
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
@@ -31,12 +32,14 @@ public sealed class CaptureScreenNodeHandler : IAutomationRuntimeNodeHandler
 
             var bitmap = context.Capture.CaptureRectanglePhysical(roi.X, roi.Y, roi.Width, roi.Height);
             context.StoreCapture(node.Id, bitmap, roi.X, roi.Y);
+            log.Add($"[capture_screen] mode=roi rect=({roi.X},{roi.Y},{roi.Width},{roi.Height}) size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
         var metrics = AutomationVirtualScreenNative.GetPhysicalVirtualScreen();
         var fullBitmap = context.Capture.CaptureVirtualScreenPhysical();
         context.StoreCapture(node.Id, fullBitmap, metrics.PhysicalOriginX, metrics.PhysicalOriginY);
+        log.Add($"[capture_screen] mode=full origin=({metrics.PhysicalOriginX},{metrics.PhysicalOriginY}) size={fullBitmap.PixelWidth}x{fullBitmap.PixelHeight}");
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 }
