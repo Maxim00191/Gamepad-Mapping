@@ -1616,4 +1616,535 @@ Relaunch this tool as administrator now?</value>
   <data name="TrayMenu_Exit" xml:space="preserve">
     <value>Exit</value>
   </data>
+  <data name="ProfileTabAutomation" xml:space="preserve">
+    <value>Automation</value>
+  </data>
+  <data name="AutomationWorkspace_Palette" xml:space="preserve">
+    <value>Node library</value>
+  </data>
+  <data name="AutomationWorkspace_ComingSoon" xml:space="preserve">
+    <value>Recently used &amp; favorites will appear here in a future release. Double‑click or drag nodes onto the canvas.</value>
+  </data>
+  <data name="AutomationWorkspace_NodeLibraryHint" xml:space="preserve">
+    <value>Double-click to spawn in viewport center, drag to place manually, and star nodes to pin favorites.</value>
+  </data>
+  <data name="AutomationWorkspace_ToggleFavorite" xml:space="preserve">
+    <value>Toggle favorite</value>
+  </data>
+  <data name="AutomationWorkspace_FavoriteTag" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="AutomationWorkspace_RecentTag" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="AutomationWorkspace_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="AutomationWorkspace_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="AutomationWorkspace_Import" xml:space="preserve">
+    <value>Import JSON…</value>
+  </data>
+  <data name="AutomationWorkspace_Export" xml:space="preserve">
+    <value>Export JSON…</value>
+  </data>
+  <data name="AutomationWorkspace_Delete" xml:space="preserve">
+    <value>Delete node</value>
+  </data>
+  <data name="AutomationWorkspace_GridSnap" xml:space="preserve">
+    <value>Align to grid</value>
+  </data>
+  <data name="AutomationWorkspace_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="AutomationWorkspace_MiniMap" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="AutomationWorkspace_Inspector" xml:space="preserve">
+    <value>Inspector</value>
+  </data>
+  <data name="AutomationWorkspace_LinkTarget" xml:space="preserve">
+    <value>Link to node</value>
+  </data>
+  <data name="AutomationWorkspace_CreateLink" xml:space="preserve">
+    <value>Create execution link</value>
+  </data>
+  <data name="AutomationWorkspace_ImportTitle" xml:space="preserve">
+    <value>Import automation graph</value>
+  </data>
+  <data name="AutomationWorkspace_ImportOk" xml:space="preserve">
+    <value>The graph was loaded successfully.</value>
+  </data>
+  <data name="AutomationWorkspace_ImportFailedFormat" xml:space="preserve">
+    <value>Could not load the graph: {0}</value>
+  </data>
+  <data name="AutomationWorkspace_ExportTitle" xml:space="preserve">
+    <value>Export automation graph</value>
+  </data>
+  <data name="AutomationWorkspace_ExportOk" xml:space="preserve">
+    <value>The graph was exported successfully.</value>
+  </data>
+  <data name="AutomationWorkspace_ExportFailedFormat" xml:space="preserve">
+    <value>Could not save the graph: {0}</value>
+  </data>
+  <data name="AutomationTopology_CycleDetected" xml:space="preserve">
+    <value>Execution graph contains a cycle — remove or rewiring execution edges so the automation can halt.</value>
+  </data>
+  <data name="AutomationTopology_DataCycleDetected" xml:space="preserve">
+    <value>Data graph contains a cycle — remove circular data dependencies before running automation.</value>
+  </data>
+  <data name="AutomationConnection_SourcePortNotFound" xml:space="preserve">
+    <value>The selected source port does not exist on this node.</value>
+  </data>
+  <data name="AutomationConnection_TargetPortNotFound" xml:space="preserve">
+    <value>The selected input port does not exist on this node.</value>
+  </data>
+  <data name="AutomationConnection_TypeMismatch" xml:space="preserve">
+    <value>Incompatible connection — port types must match.</value>
+  </data>
+  <data name="AutomationConnection_InvalidDirection" xml:space="preserve">
+    <value>Incompatible connection — links must flow from output to input.</value>
+  </data>
+  <data name="AutomationConnection_NodeMissing" xml:space="preserve">
+    <value>Cannot connect — one or both nodes are missing from the graph.</value>
+  </data>
+  <data name="AutomationConnection_GenericRejected" xml:space="preserve">
+    <value>This connection cannot be created.</value>
+  </data>
+  <data name="AutomationConnection_ExecutionOutAlreadyConnected" xml:space="preserve">
+    <value>This execution output is already connected. Remove the existing link first.</value>
+  </data>
+  <data name="AutomationConnection_TargetInputAlreadyConnected" xml:space="preserve">
+    <value>This input already has a source link.</value>
+  </data>
+  <data name="AutomationWorkspace_LinkRejectedTitle" xml:space="preserve">
+    <value>Cannot link nodes</value>
+  </data>
+  <data name="AutomationNode_Display_Loop" xml:space="preserve">
+    <value>Loop</value>
+  </data>
+  <data name="AutomationNode_Summary_Loop" xml:space="preserve">
+    <value>Repeats the connected execution branch.</value>
+  </data>
+  <data name="AutomationNode_Display_CaptureScreen" xml:space="preserve">
+    <value>Capture screen</value>
+  </data>
+  <data name="AutomationNode_Summary_CaptureScreen" xml:space="preserve">
+    <value>Grabs pixels for downstream vision checks.</value>
+  </data>
+  <data name="AutomationNode_Display_Delay" xml:space="preserve">
+    <value>Delay</value>
+  </data>
+  <data name="AutomationNode_Summary_Delay" xml:space="preserve">
+    <value>Pauses execution for a fixed duration.</value>
+  </data>
+  <data name="AutomationNode_Display_BranchImage" xml:space="preserve">
+    <value>Branch on image</value>
+  </data>
+  <data name="AutomationNode_Summary_BranchImage" xml:space="preserve">
+    <value>Routes execution depending on visual match logic.</value>
+  </data>
+  <data name="AutomationNode_Display_KeyboardKey" xml:space="preserve">
+    <value>Keyboard key</value>
+  </data>
+  <data name="AutomationNode_Summary_KeyboardKey" xml:space="preserve">
+    <value>Sends a keystroke via the emulation stack.</value>
+  </data>
+  <data name="AutomationNode_Display_MouseClick" xml:space="preserve">
+    <value>Mouse click</value>
+  </data>
+  <data name="AutomationNode_Summary_MouseClick" xml:space="preserve">
+    <value>Injects a mouse button click.</value>
+  </data>
+  <data name="AutomationNode_Display_FindImage" xml:space="preserve">
+    <value>Find image</value>
+  </data>
+  <data name="AutomationNode_Summary_FindImage" xml:space="preserve">
+    <value>Looks for a template inside the haystack bitmap.</value>
+  </data>
+  <data name="AutomationWorkspace_PickRoi" xml:space="preserve">
+    <value>Pick capture region…</value>
+  </data>
+  <data name="AutomationWorkspace_RunSmoke" xml:space="preserve">
+    <value>Run graph once</value>
+  </data>
+  <data name="AutomationWorkspace_RoiSavedTitle" xml:space="preserve">
+    <value>Capture region</value>
+  </data>
+  <data name="AutomationWorkspace_RoiSavedOk" xml:space="preserve">
+    <value>Region saved on the selected node.</value>
+  </data>
+  <data name="AutomationWorkspace_RoiPickTitle" xml:space="preserve">
+    <value>Region picker</value>
+  </data>
+  <data name="AutomationWorkspace_AutomationLog" xml:space="preserve">
+    <value>Run log</value>
+  </data>
+  <data name="AutomationWorkspace_RoiPreview" xml:space="preserve">
+    <value>ROI preview</value>
+  </data>
+  <data name="AutomationWorkspace_FindImageNeedle" xml:space="preserve">
+    <value>Template image</value>
+  </data>
+  <data name="AutomationWorkspace_Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="AutomationWorkspace_Tolerance" xml:space="preserve">
+    <value>Tolerance (0-1)</value>
+  </data>
+  <data name="AutomationWorkspace_TimeoutMs" xml:space="preserve">
+    <value>Timeout (ms)</value>
+  </data>
+  <data name="AutomationWorkspace_KeyboardKey" xml:space="preserve">
+    <value>Keyboard key</value>
+  </data>
+  <data name="AutomationWorkspace_MouseUseMatch" xml:space="preserve">
+    <value>Click matched position</value>
+  </data>
+  <data name="AutomationWorkspace_CaptureUseRoi" xml:space="preserve">
+    <value>Capture custom ROI</value>
+  </data>
+  <data name="AutomationWorkspace_ClearRoi" xml:space="preserve">
+    <value>Clear region</value>
+  </data>
+  <data name="AutomationWorkspace_LoopIterations" xml:space="preserve">
+    <value>Loop max iterations</value>
+  </data>
+  <data name="AutomationWorkspace_DelayMs" xml:space="preserve">
+    <value>Delay (ms)</value>
+  </data>
+  <data name="AutomationWorkspace_ApplyNodeSettings" xml:space="preserve">
+    <value>Apply node settings</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureUseRoi" xml:space="preserve">
+    <value>Capture custom ROI</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageNeedlePath" xml:space="preserve">
+    <value>Template image path</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageNeedlePathPlaceholder" xml:space="preserve">
+    <value>Select a template image</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTolerance" xml:space="preserve">
+    <value>Tolerance (0.01-0.9)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTimeoutMs" xml:space="preserve">
+    <value>Timeout (ms)</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardKey" xml:space="preserve">
+    <value>Keyboard key token</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardKeyPlaceholder" xml:space="preserve">
+    <value>Example: Space or LeftCtrl+K</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseUseMatchPosition" xml:space="preserve">
+    <value>Click matched position</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopMaxIterations" xml:space="preserve">
+    <value>Loop max iterations</value>
+  </data>
+  <data name="AutomationInlineEditor_DelayMilliseconds" xml:space="preserve">
+    <value>Delay (ms)</value>
+  </data>
+  <data name="AutomationSmoke_Title" xml:space="preserve">
+    <value>Automation run</value>
+  </data>
+  <data name="AutomationSmoke_Start" xml:space="preserve">
+    <value>Starting smoke run…</value>
+  </data>
+  <data name="AutomationSmoke_CompletedToast" xml:space="preserve">
+    <value>Finished without aborting.</value>
+  </data>
+  <data name="AutomationSmoke_Cancelled" xml:space="preserve">
+    <value>Cancelled.</value>
+  </data>
+  <data name="AutomationSmoke_Cycle" xml:space="preserve">
+    <value>Cannot run while the execution graph has a cycle.</value>
+  </data>
+  <data name="AutomationSmoke_NoRoot" xml:space="preserve">
+    <value>No execution entry node — every node has an incoming execution link.</value>
+  </data>
+  <data name="AutomationSmoke_EmptyRoi" xml:space="preserve">
+    <value>A capture screen node is set to ROI mode but has no rectangle.</value>
+  </data>
+  <data name="AutomationSmoke_Completed" xml:space="preserve">
+    <value>Completed.</value>
+  </data>
+  <data name="AutomationSmoke_RunFailed" xml:space="preserve">
+    <value>Run aborted.</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Perception" xml:space="preserve">
+    <value>Perception</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="AutomationWorkspace_Group_ControlFlow" xml:space="preserve">
+    <value>Control Flow</value>
+  </data>
+  <data name="AutomationWorkspace_Group_MathLogic" xml:space="preserve">
+    <value>Math and Logic</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Variables" xml:space="preserve">
+    <value>Variables</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Debug" xml:space="preserve">
+    <value>Debug</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="AutomationNode_Display_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="AutomationNode_Display_Subtract" xml:space="preserve">
+    <value>Subtract</value>
+  </data>
+  <data name="AutomationNode_Display_Multiply" xml:space="preserve">
+    <value>Multiply</value>
+  </data>
+  <data name="AutomationNode_Display_Divide" xml:space="preserve">
+    <value>Divide</value>
+  </data>
+  <data name="AutomationNode_Display_GreaterThan" xml:space="preserve">
+    <value>Greater Than</value>
+  </data>
+  <data name="AutomationNode_Display_LessThan" xml:space="preserve">
+    <value>Less Than</value>
+  </data>
+  <data name="AutomationNode_Display_Equals" xml:space="preserve">
+    <value>Equals</value>
+  </data>
+  <data name="AutomationNode_Display_And" xml:space="preserve">
+    <value>AND</value>
+  </data>
+  <data name="AutomationNode_Display_Or" xml:space="preserve">
+    <value>OR</value>
+  </data>
+  <data name="AutomationNode_Display_Not" xml:space="preserve">
+    <value>NOT</value>
+  </data>
+  <data name="AutomationNode_Display_Random" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="AutomationNode_Display_GetVariable" xml:space="preserve">
+    <value>Get Variable</value>
+  </data>
+  <data name="AutomationNode_Display_SetVariable" xml:space="preserve">
+    <value>Set Variable</value>
+  </data>
+  <data name="AutomationNode_Display_BranchBool" xml:space="preserve">
+    <value>Branch (Bool)</value>
+  </data>
+  <data name="AutomationNode_Display_Switch" xml:space="preserve">
+    <value>Switch</value>
+  </data>
+  <data name="AutomationNode_Display_LoopControl" xml:space="preserve">
+    <value>Loop Control</value>
+  </data>
+  <data name="AutomationNode_Display_Log" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="AutomationNode_Summary_MathBinary" xml:space="preserve">
+    <value>Calculates a value from two numeric inputs.</value>
+  </data>
+  <data name="AutomationNode_Summary_Comparison" xml:space="preserve">
+    <value>Compares two numeric values and outputs a boolean.</value>
+  </data>
+  <data name="AutomationNode_Summary_BooleanBinary" xml:space="preserve">
+    <value>Combines two booleans with a logical operation.</value>
+  </data>
+  <data name="AutomationNode_Summary_BooleanUnary" xml:space="preserve">
+    <value>Transforms one boolean input.</value>
+  </data>
+  <data name="AutomationNode_Summary_Random" xml:space="preserve">
+    <value>Outputs a random integer in configured range.</value>
+  </data>
+  <data name="AutomationNode_Summary_GetVariable" xml:space="preserve">
+    <value>Reads a value from the automation blackboard.</value>
+  </data>
+  <data name="AutomationNode_Summary_SetVariable" xml:space="preserve">
+    <value>Writes a value to the automation blackboard.</value>
+  </data>
+  <data name="AutomationNode_Summary_BranchBool" xml:space="preserve">
+    <value>Routes execution by boolean condition.</value>
+  </data>
+  <data name="AutomationNode_Summary_Switch" xml:space="preserve">
+    <value>Routes execution by matching an input value.</value>
+  </data>
+  <data name="AutomationNode_Summary_LoopControl" xml:space="preserve">
+    <value>Requests break or continue for active loop.</value>
+  </data>
+  <data name="AutomationNode_Summary_Log" xml:space="preserve">
+    <value>Writes a message to run log.</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureActions" xml:space="preserve">
+    <value>Capture Actions</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionMode" xml:space="preserve">
+    <value>Keyboard Mode</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionModePlaceholder" xml:space="preserve">
+    <value>tap | press | release | hold</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardHoldMs" xml:space="preserve">
+    <value>Hold Milliseconds</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseCoordinateMode" xml:space="preserve">
+    <value>Coordinate Mode</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseCoordinateModePlaceholder" xml:space="preserve">
+    <value>dynamic | absolute | relative</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseAbsoluteX" xml:space="preserve">
+    <value>Absolute X</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseAbsoluteY" xml:space="preserve">
+    <value>Absolute Y</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseRelativeX" xml:space="preserve">
+    <value>Relative Delta X</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseRelativeY" xml:space="preserve">
+    <value>Relative Delta Y</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseHumanizeRadius" xml:space="preserve">
+    <value>Humanize Radius (px)</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionMode" xml:space="preserve">
+    <value>Mouse Mode</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionModePlaceholder" xml:space="preserve">
+    <value>click | press | release | hold</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseButton" xml:space="preserve">
+    <value>Mouse Button</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseButtonPlaceholder" xml:space="preserve">
+    <value>left | right | middle</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseHoldMs" xml:space="preserve">
+    <value>Hold Milliseconds</value>
+  </data>
+  <data name="AutomationInlineEditor_DelayMinMilliseconds" xml:space="preserve">
+    <value>Min Delay (ms)</value>
+  </data>
+  <data name="AutomationInlineEditor_DelayMaxMilliseconds" xml:space="preserve">
+    <value>Max Delay (ms)</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableName" xml:space="preserve">
+    <value>Variable Name</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableNamePlaceholder" xml:space="preserve">
+    <value>score</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableValue" xml:space="preserve">
+    <value>Fallback Value</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableValuePlaceholder" xml:space="preserve">
+    <value>Used when no input port is linked</value>
+  </data>
+  <data name="AutomationInlineEditor_SwitchCaseValue" xml:space="preserve">
+    <value>Match Case</value>
+  </data>
+  <data name="AutomationInlineEditor_SwitchCaseValuePlaceholder" xml:space="preserve">
+    <value>case value</value>
+  </data>
+  <data name="AutomationInlineEditor_LogMessage" xml:space="preserve">
+    <value>Log Message</value>
+  </data>
+  <data name="AutomationInlineEditor_LogMessagePlaceholder" xml:space="preserve">
+    <value>Message when input is empty</value>
+  </data>
+  <data name="AutomationPortLabel_FlowIn" xml:space="preserve">
+    <value>Flow In</value>
+  </data>
+  <data name="AutomationPortLabel_FlowOut" xml:space="preserve">
+    <value>Flow Out</value>
+  </data>
+  <data name="AutomationPortLabel_LoopBody" xml:space="preserve">
+    <value>Loop Body</value>
+  </data>
+  <data name="AutomationPortLabel_ScreenImage" xml:space="preserve">
+    <value>Screen Image</value>
+  </data>
+  <data name="AutomationPortLabel_HaystackImage" xml:space="preserve">
+    <value>Haystack Image</value>
+  </data>
+  <data name="AutomationPortLabel_ProbeImage" xml:space="preserve">
+    <value>Probe Image</value>
+  </data>
+  <data name="AutomationPortLabel_ResultFound" xml:space="preserve">
+    <value>Found</value>
+  </data>
+  <data name="AutomationPortLabel_ResultX" xml:space="preserve">
+    <value>X Coordinate</value>
+  </data>
+  <data name="AutomationPortLabel_ResultY" xml:space="preserve">
+    <value>Y Coordinate</value>
+  </data>
+  <data name="AutomationPortLabel_ResultCount" xml:space="preserve">
+    <value>Match Count</value>
+  </data>
+  <data name="AutomationPortLabel_CoordX" xml:space="preserve">
+    <value>X Coordinate</value>
+  </data>
+  <data name="AutomationPortLabel_CoordY" xml:space="preserve">
+    <value>Y Coordinate</value>
+  </data>
+  <data name="AutomationPortLabel_BranchMatch" xml:space="preserve">
+    <value>Match Branch</value>
+  </data>
+  <data name="AutomationPortLabel_BranchMiss" xml:space="preserve">
+    <value>Miss Branch</value>
+  </data>
+  <data name="AutomationPortLabel_BranchTrue" xml:space="preserve">
+    <value>True Branch</value>
+  </data>
+  <data name="AutomationPortLabel_BranchFalse" xml:space="preserve">
+    <value>False Branch</value>
+  </data>
+  <data name="AutomationPortLabel_Left" xml:space="preserve">
+    <value>Left Value</value>
+  </data>
+  <data name="AutomationPortLabel_Right" xml:space="preserve">
+    <value>Right Value</value>
+  </data>
+  <data name="AutomationPortLabel_Value" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="AutomationPortLabel_ValueNumber" xml:space="preserve">
+    <value>Number Value</value>
+  </data>
+  <data name="AutomationPortLabel_ValueBool" xml:space="preserve">
+    <value>Boolean Value</value>
+  </data>
+  <data name="AutomationPortLabel_ValueString" xml:space="preserve">
+    <value>String Value</value>
+  </data>
+  <data name="AutomationPortLabel_Condition" xml:space="preserve">
+    <value>Condition</value>
+  </data>
+  <data name="AutomationPortLabel_Input" xml:space="preserve">
+    <value>Input</value>
+  </data>
+  <data name="AutomationPortLabel_Output" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="AutomationPortLabel_DataInput" xml:space="preserve">
+    <value>Data In</value>
+  </data>
+  <data name="AutomationPortLabel_DataOutput" xml:space="preserve">
+    <value>Data Out</value>
+  </data>
+  <data name="AutomationPortLabel_CaseMatch" xml:space="preserve">
+    <value>Case Match</value>
+  </data>
+  <data name="AutomationPortLabel_CaseDefault" xml:space="preserve">
+    <value>Default Case</value>
+  </data>
+  <data name="AutomationPortLabel_Message" xml:space="preserve">
+    <value>Message</value>
+  </data>
 </root>

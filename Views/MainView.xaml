@@ -18,6 +18,15 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
         <utils:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <utils:BooleanToGridLengthConverter x:Key="MainWorkspacePrimaryColumnWidthConverter"
+                                            TrueLength="8*"
+                                            FalseLength="*" />
+        <utils:BooleanToGridLengthConverter x:Key="MainWorkspaceSplitterColumnWidthConverter"
+                                            TrueLength="6"
+                                            FalseLength="0" />
+        <utils:BooleanToGridLengthConverter x:Key="MainWorkspaceRightPaneColumnWidthConverter"
+                                            TrueLength="2*"
+                                            FalseLength="0" />
     </UserControl.Resources>
    <Grid>
        <Grid Margin="12"
@@ -475,9 +484,10 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="8*" MinWidth="340" />
-                <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="2*" MinWidth="280" />
+                <ColumnDefinition Width="{Binding IsRightEditorPaneVisible, Converter={StaticResource MainWorkspacePrimaryColumnWidthConverter}}"
+                                  MinWidth="340" />
+                <ColumnDefinition Width="{Binding IsRightEditorPaneVisible, Converter={StaticResource MainWorkspaceSplitterColumnWidthConverter}}" />
+                <ColumnDefinition Width="{Binding IsRightEditorPaneVisible, Converter={StaticResource MainWorkspaceRightPaneColumnWidthConverter}}" />
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Row="0"
@@ -626,12 +636,22 @@
                             <sections:CommunityCatalogView DataContext="{Binding CommunityCatalogPanel}" />
                         </Grid>
                     </TabItem>
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[ProfileTabAutomation]}" />
+                        </TabItem.Header>
+                        <Grid Margin="0"
+                              VerticalAlignment="Stretch">
+                            <sections:AutomationWorkspaceView DataContext="{Binding AutomationWorkspacePanel}" />
+                        </Grid>
+                    </TabItem>
                 </TabControl>
             </Border>
 
             <GridSplitter Grid.Row="1"
                           Grid.Column="1"
                           Width="6"
+                          Visibility="{Binding IsRightEditorPaneVisible, Converter={StaticResource BoolToVis}}"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           ResizeDirection="Columns"
@@ -641,6 +661,8 @@
             <Border Grid.Row="1"
                     Grid.Column="2"
                     Margin="12,0,0,0"
+                    MinWidth="280"
+                    Visibility="{Binding IsRightEditorPaneVisible, Converter={StaticResource BoolToVis}}"
                     ClipToBounds="True"
                     Style="{StaticResource SectionCardBorder}">
                 <Border.Resources>

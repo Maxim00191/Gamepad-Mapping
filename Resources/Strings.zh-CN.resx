@@ -1616,4 +1616,535 @@
   <data name="TrayMenu_Exit" xml:space="preserve">
     <value>退出</value>
   </data>
+  <data name="ProfileTabAutomation" xml:space="preserve">
+    <value>自动化</value>
+  </data>
+  <data name="AutomationWorkspace_Palette" xml:space="preserve">
+    <value>节点库</value>
+  </data>
+  <data name="AutomationWorkspace_ComingSoon" xml:space="preserve">
+    <value>“最近使用”和“收藏”将在后续版本提供。双击节点或拖到画布上即可添加。</value>
+  </data>
+  <data name="AutomationWorkspace_NodeLibraryHint" xml:space="preserve">
+    <value>双击可在当前视口中心创建节点，拖拽可手动放置，点星标可固定收藏。</value>
+  </data>
+  <data name="AutomationWorkspace_ToggleFavorite" xml:space="preserve">
+    <value>切换收藏</value>
+  </data>
+  <data name="AutomationWorkspace_FavoriteTag" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="AutomationWorkspace_RecentTag" xml:space="preserve">
+    <value>最近使用</value>
+  </data>
+  <data name="AutomationWorkspace_Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="AutomationWorkspace_Redo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="AutomationWorkspace_Import" xml:space="preserve">
+    <value>导入 JSON…</value>
+  </data>
+  <data name="AutomationWorkspace_Export" xml:space="preserve">
+    <value>导出 JSON…</value>
+  </data>
+  <data name="AutomationWorkspace_Delete" xml:space="preserve">
+    <value>删除节点</value>
+  </data>
+  <data name="AutomationWorkspace_GridSnap" xml:space="preserve">
+    <value>对齐网格</value>
+  </data>
+  <data name="AutomationWorkspace_Zoom" xml:space="preserve">
+    <value>缩放</value>
+  </data>
+  <data name="AutomationWorkspace_MiniMap" xml:space="preserve">
+    <value>概览</value>
+  </data>
+  <data name="AutomationWorkspace_Inspector" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="AutomationWorkspace_LinkTarget" xml:space="preserve">
+    <value>链接到节点</value>
+  </data>
+  <data name="AutomationWorkspace_CreateLink" xml:space="preserve">
+    <value>创建执行流连接</value>
+  </data>
+  <data name="AutomationWorkspace_ImportTitle" xml:space="preserve">
+    <value>导入自动化图</value>
+  </data>
+  <data name="AutomationWorkspace_ImportOk" xml:space="preserve">
+    <value>图已成功加载。</value>
+  </data>
+  <data name="AutomationWorkspace_ImportFailedFormat" xml:space="preserve">
+    <value>无法加载图：{0}</value>
+  </data>
+  <data name="AutomationWorkspace_ExportTitle" xml:space="preserve">
+    <value>导出自动化图</value>
+  </data>
+  <data name="AutomationWorkspace_ExportOk" xml:space="preserve">
+    <value>图已成功导出。</value>
+  </data>
+  <data name="AutomationWorkspace_ExportFailedFormat" xml:space="preserve">
+    <value>无法保存图：{0}</value>
+  </data>
+  <data name="AutomationTopology_CycleDetected" xml:space="preserve">
+    <value>执行图存在环路 — 请移除或改接执行边，以便自动化能够结束。</value>
+  </data>
+  <data name="AutomationTopology_DataCycleDetected" xml:space="preserve">
+    <value>数据图存在环路 — 请移除循环数据依赖后再运行自动化。</value>
+  </data>
+  <data name="AutomationConnection_SourcePortNotFound" xml:space="preserve">
+    <value>所选源端口在该节点上不存在。</value>
+  </data>
+  <data name="AutomationConnection_TargetPortNotFound" xml:space="preserve">
+    <value>所选输入端口在该节点上不存在。</value>
+  </data>
+  <data name="AutomationConnection_TypeMismatch" xml:space="preserve">
+    <value>连接不兼容 — 端口类型必须匹配。</value>
+  </data>
+  <data name="AutomationConnection_InvalidDirection" xml:space="preserve">
+    <value>连接不兼容 — 必须从输出连到输入。</value>
+  </data>
+  <data name="AutomationConnection_NodeMissing" xml:space="preserve">
+    <value>无法连接 — 图中缺少一个或两个节点。</value>
+  </data>
+  <data name="AutomationConnection_GenericRejected" xml:space="preserve">
+    <value>无法创建此连接。</value>
+  </data>
+  <data name="AutomationConnection_ExecutionOutAlreadyConnected" xml:space="preserve">
+    <value>该执行输出端口已连接，请先移除现有连线。</value>
+  </data>
+  <data name="AutomationConnection_TargetInputAlreadyConnected" xml:space="preserve">
+    <value>该输入端口已有来源连线。</value>
+  </data>
+  <data name="AutomationWorkspace_LinkRejectedTitle" xml:space="preserve">
+    <value>无法链接节点</value>
+  </data>
+  <data name="AutomationNode_Display_Loop" xml:space="preserve">
+    <value>循环</value>
+  </data>
+  <data name="AutomationNode_Summary_Loop" xml:space="preserve">
+    <value>重复执行所连接的分支。</value>
+  </data>
+  <data name="AutomationNode_Display_CaptureScreen" xml:space="preserve">
+    <value>截取屏幕</value>
+  </data>
+  <data name="AutomationNode_Summary_CaptureScreen" xml:space="preserve">
+    <value>抓取像素供后续视觉判断使用。</value>
+  </data>
+  <data name="AutomationNode_Display_Delay" xml:space="preserve">
+    <value>延时</value>
+  </data>
+  <data name="AutomationNode_Summary_Delay" xml:space="preserve">
+    <value>按固定时长暂停执行。</value>
+  </data>
+  <data name="AutomationNode_Display_BranchImage" xml:space="preserve">
+    <value>按图像分支</value>
+  </data>
+  <data name="AutomationNode_Summary_BranchImage" xml:space="preserve">
+    <value>根据图像匹配逻辑切换执行路径。</value>
+  </data>
+  <data name="AutomationNode_Display_KeyboardKey" xml:space="preserve">
+    <value>键盘按键</value>
+  </data>
+  <data name="AutomationNode_Summary_KeyboardKey" xml:space="preserve">
+    <value>通过模拟栈发送按键。</value>
+  </data>
+  <data name="AutomationNode_Display_MouseClick" xml:space="preserve">
+    <value>鼠标点击</value>
+  </data>
+  <data name="AutomationNode_Summary_MouseClick" xml:space="preserve">
+    <value>注入鼠标按键点击。</value>
+  </data>
+  <data name="AutomationNode_Display_FindImage" xml:space="preserve">
+    <value>查找图像</value>
+  </data>
+  <data name="AutomationNode_Summary_FindImage" xml:space="preserve">
+    <value>在图像中查找模板。</value>
+  </data>
+  <data name="AutomationWorkspace_PickRoi" xml:space="preserve">
+    <value>选取截取区域…</value>
+  </data>
+  <data name="AutomationWorkspace_RunSmoke" xml:space="preserve">
+    <value>运行一次图</value>
+  </data>
+  <data name="AutomationWorkspace_RoiSavedTitle" xml:space="preserve">
+    <value>截取区域</value>
+  </data>
+  <data name="AutomationWorkspace_RoiSavedOk" xml:space="preserve">
+    <value>已保存到所选节点。</value>
+  </data>
+  <data name="AutomationWorkspace_RoiPickTitle" xml:space="preserve">
+    <value>区域选取</value>
+  </data>
+  <data name="AutomationWorkspace_AutomationLog" xml:space="preserve">
+    <value>运行日志</value>
+  </data>
+  <data name="AutomationWorkspace_RoiPreview" xml:space="preserve">
+    <value>ROI 预览</value>
+  </data>
+  <data name="AutomationWorkspace_FindImageNeedle" xml:space="preserve">
+    <value>模板图像</value>
+  </data>
+  <data name="AutomationWorkspace_Browse" xml:space="preserve">
+    <value>浏览…</value>
+  </data>
+  <data name="AutomationWorkspace_Tolerance" xml:space="preserve">
+    <value>容差 (0-1)</value>
+  </data>
+  <data name="AutomationWorkspace_TimeoutMs" xml:space="preserve">
+    <value>超时 (毫秒)</value>
+  </data>
+  <data name="AutomationWorkspace_KeyboardKey" xml:space="preserve">
+    <value>键盘按键</value>
+  </data>
+  <data name="AutomationWorkspace_MouseUseMatch" xml:space="preserve">
+    <value>点击匹配位置</value>
+  </data>
+  <data name="AutomationWorkspace_CaptureUseRoi" xml:space="preserve">
+    <value>使用自定义 ROI 截图</value>
+  </data>
+  <data name="AutomationWorkspace_ClearRoi" xml:space="preserve">
+    <value>清除区域</value>
+  </data>
+  <data name="AutomationWorkspace_LoopIterations" xml:space="preserve">
+    <value>循环最大次数</value>
+  </data>
+  <data name="AutomationWorkspace_DelayMs" xml:space="preserve">
+    <value>延时（毫秒）</value>
+  </data>
+  <data name="AutomationWorkspace_ApplyNodeSettings" xml:space="preserve">
+    <value>应用节点设置</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureUseRoi" xml:space="preserve">
+    <value>使用自定义截图区域</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageNeedlePath" xml:space="preserve">
+    <value>模板图像路径</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageNeedlePathPlaceholder" xml:space="preserve">
+    <value>选择模板图像</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTolerance" xml:space="preserve">
+    <value>容差 (0.01-0.9)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTimeoutMs" xml:space="preserve">
+    <value>超时 (毫秒)</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardKey" xml:space="preserve">
+    <value>键盘按键令牌</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardKeyPlaceholder" xml:space="preserve">
+    <value>示例：Space 或 LeftCtrl+K</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseUseMatchPosition" xml:space="preserve">
+    <value>点击匹配位置</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopMaxIterations" xml:space="preserve">
+    <value>循环最大次数</value>
+  </data>
+  <data name="AutomationInlineEditor_DelayMilliseconds" xml:space="preserve">
+    <value>延迟 (毫秒)</value>
+  </data>
+  <data name="AutomationSmoke_Title" xml:space="preserve">
+    <value>自动化运行</value>
+  </data>
+  <data name="AutomationSmoke_Start" xml:space="preserve">
+    <value>开始冒烟运行…</value>
+  </data>
+  <data name="AutomationSmoke_CompletedToast" xml:space="preserve">
+    <value>已结束。</value>
+  </data>
+  <data name="AutomationSmoke_Cancelled" xml:space="preserve">
+    <value>已取消。</value>
+  </data>
+  <data name="AutomationSmoke_Cycle" xml:space="preserve">
+    <value>执行图存在环路时无法运行。</value>
+  </data>
+  <data name="AutomationSmoke_NoRoot" xml:space="preserve">
+    <value>没有入口节点 — 每个节点都有入边。</value>
+  </data>
+  <data name="AutomationSmoke_EmptyRoi" xml:space="preserve">
+    <value>截取节点为 ROI 模式但未定义矩形。</value>
+  </data>
+  <data name="AutomationSmoke_Completed" xml:space="preserve">
+    <value>完成。</value>
+  </data>
+  <data name="AutomationSmoke_RunFailed" xml:space="preserve">
+    <value>运行中止。</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Perception" xml:space="preserve">
+    <value>感知</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Action" xml:space="preserve">
+    <value>动作</value>
+  </data>
+  <data name="AutomationWorkspace_Group_ControlFlow" xml:space="preserve">
+    <value>控制流</value>
+  </data>
+  <data name="AutomationWorkspace_Group_MathLogic" xml:space="preserve">
+    <value>数学与逻辑</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Variables" xml:space="preserve">
+    <value>变量</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Debug" xml:space="preserve">
+    <value>调试</value>
+  </data>
+  <data name="AutomationWorkspace_Group_Other" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="AutomationNode_Display_Add" xml:space="preserve">
+    <value>加法</value>
+  </data>
+  <data name="AutomationNode_Display_Subtract" xml:space="preserve">
+    <value>减法</value>
+  </data>
+  <data name="AutomationNode_Display_Multiply" xml:space="preserve">
+    <value>乘法</value>
+  </data>
+  <data name="AutomationNode_Display_Divide" xml:space="preserve">
+    <value>除法</value>
+  </data>
+  <data name="AutomationNode_Display_GreaterThan" xml:space="preserve">
+    <value>大于</value>
+  </data>
+  <data name="AutomationNode_Display_LessThan" xml:space="preserve">
+    <value>小于</value>
+  </data>
+  <data name="AutomationNode_Display_Equals" xml:space="preserve">
+    <value>等于</value>
+  </data>
+  <data name="AutomationNode_Display_And" xml:space="preserve">
+    <value>与</value>
+  </data>
+  <data name="AutomationNode_Display_Or" xml:space="preserve">
+    <value>或</value>
+  </data>
+  <data name="AutomationNode_Display_Not" xml:space="preserve">
+    <value>非</value>
+  </data>
+  <data name="AutomationNode_Display_Random" xml:space="preserve">
+    <value>随机数</value>
+  </data>
+  <data name="AutomationNode_Display_GetVariable" xml:space="preserve">
+    <value>读变量</value>
+  </data>
+  <data name="AutomationNode_Display_SetVariable" xml:space="preserve">
+    <value>写变量</value>
+  </data>
+  <data name="AutomationNode_Display_BranchBool" xml:space="preserve">
+    <value>布尔分支</value>
+  </data>
+  <data name="AutomationNode_Display_Switch" xml:space="preserve">
+    <value>多路分支</value>
+  </data>
+  <data name="AutomationNode_Display_LoopControl" xml:space="preserve">
+    <value>循环控制</value>
+  </data>
+  <data name="AutomationNode_Display_Log" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="AutomationNode_Summary_MathBinary" xml:space="preserve">
+    <value>对两个数值输入进行计算并输出结果。</value>
+  </data>
+  <data name="AutomationNode_Summary_Comparison" xml:space="preserve">
+    <value>比较两个数值并输出布尔结果。</value>
+  </data>
+  <data name="AutomationNode_Summary_BooleanBinary" xml:space="preserve">
+    <value>对两个布尔值进行逻辑运算。</value>
+  </data>
+  <data name="AutomationNode_Summary_BooleanUnary" xml:space="preserve">
+    <value>对单个布尔输入进行变换。</value>
+  </data>
+  <data name="AutomationNode_Summary_Random" xml:space="preserve">
+    <value>在设定范围内输出随机整数。</value>
+  </data>
+  <data name="AutomationNode_Summary_GetVariable" xml:space="preserve">
+    <value>从自动化黑板读取变量值。</value>
+  </data>
+  <data name="AutomationNode_Summary_SetVariable" xml:space="preserve">
+    <value>将变量值写入自动化黑板。</value>
+  </data>
+  <data name="AutomationNode_Summary_BranchBool" xml:space="preserve">
+    <value>根据布尔条件路由执行流。</value>
+  </data>
+  <data name="AutomationNode_Summary_Switch" xml:space="preserve">
+    <value>根据输入值匹配路由执行流。</value>
+  </data>
+  <data name="AutomationNode_Summary_LoopControl" xml:space="preserve">
+    <value>对当前循环请求 break 或 continue。</value>
+  </data>
+  <data name="AutomationNode_Summary_Log" xml:space="preserve">
+    <value>将消息写入运行日志。</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureActions" xml:space="preserve">
+    <value>截图操作</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionMode" xml:space="preserve">
+    <value>键盘模式</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionModePlaceholder" xml:space="preserve">
+    <value>tap | press | release | hold</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardHoldMs" xml:space="preserve">
+    <value>按住时长（毫秒）</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseCoordinateMode" xml:space="preserve">
+    <value>坐标模式</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseCoordinateModePlaceholder" xml:space="preserve">
+    <value>dynamic | absolute | relative</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseAbsoluteX" xml:space="preserve">
+    <value>绝对坐标 X</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseAbsoluteY" xml:space="preserve">
+    <value>绝对坐标 Y</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseRelativeX" xml:space="preserve">
+    <value>相对位移 X</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseRelativeY" xml:space="preserve">
+    <value>相对位移 Y</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseHumanizeRadius" xml:space="preserve">
+    <value>人性化半径（像素）</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionMode" xml:space="preserve">
+    <value>鼠标动作模式</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionModePlaceholder" xml:space="preserve">
+    <value>click | press | release | hold</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseButton" xml:space="preserve">
+    <value>鼠标按键</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseButtonPlaceholder" xml:space="preserve">
+    <value>left | right | middle</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseHoldMs" xml:space="preserve">
+    <value>按住时长（毫秒）</value>
+  </data>
+  <data name="AutomationInlineEditor_DelayMinMilliseconds" xml:space="preserve">
+    <value>最小延时（毫秒）</value>
+  </data>
+  <data name="AutomationInlineEditor_DelayMaxMilliseconds" xml:space="preserve">
+    <value>最大延时（毫秒）</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableName" xml:space="preserve">
+    <value>变量名</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableNamePlaceholder" xml:space="preserve">
+    <value>score</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableValue" xml:space="preserve">
+    <value>兜底值</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableValuePlaceholder" xml:space="preserve">
+    <value>未连接输入端口时使用</value>
+  </data>
+  <data name="AutomationInlineEditor_SwitchCaseValue" xml:space="preserve">
+    <value>匹配值</value>
+  </data>
+  <data name="AutomationInlineEditor_SwitchCaseValuePlaceholder" xml:space="preserve">
+    <value>case 值</value>
+  </data>
+  <data name="AutomationInlineEditor_LogMessage" xml:space="preserve">
+    <value>日志消息</value>
+  </data>
+  <data name="AutomationInlineEditor_LogMessagePlaceholder" xml:space="preserve">
+    <value>输入为空时使用此消息</value>
+  </data>
+  <data name="AutomationPortLabel_FlowIn" xml:space="preserve">
+    <value>流程输入</value>
+  </data>
+  <data name="AutomationPortLabel_FlowOut" xml:space="preserve">
+    <value>流程输出</value>
+  </data>
+  <data name="AutomationPortLabel_LoopBody" xml:space="preserve">
+    <value>循环体</value>
+  </data>
+  <data name="AutomationPortLabel_ScreenImage" xml:space="preserve">
+    <value>屏幕图像</value>
+  </data>
+  <data name="AutomationPortLabel_HaystackImage" xml:space="preserve">
+    <value>待检图像</value>
+  </data>
+  <data name="AutomationPortLabel_ProbeImage" xml:space="preserve">
+    <value>探测图像</value>
+  </data>
+  <data name="AutomationPortLabel_ResultFound" xml:space="preserve">
+    <value>是否找到</value>
+  </data>
+  <data name="AutomationPortLabel_ResultX" xml:space="preserve">
+    <value>X 坐标</value>
+  </data>
+  <data name="AutomationPortLabel_ResultY" xml:space="preserve">
+    <value>Y 坐标</value>
+  </data>
+  <data name="AutomationPortLabel_ResultCount" xml:space="preserve">
+    <value>匹配数量</value>
+  </data>
+  <data name="AutomationPortLabel_CoordX" xml:space="preserve">
+    <value>X 坐标</value>
+  </data>
+  <data name="AutomationPortLabel_CoordY" xml:space="preserve">
+    <value>Y 坐标</value>
+  </data>
+  <data name="AutomationPortLabel_BranchMatch" xml:space="preserve">
+    <value>匹配分支</value>
+  </data>
+  <data name="AutomationPortLabel_BranchMiss" xml:space="preserve">
+    <value>未命中分支</value>
+  </data>
+  <data name="AutomationPortLabel_BranchTrue" xml:space="preserve">
+    <value>真分支</value>
+  </data>
+  <data name="AutomationPortLabel_BranchFalse" xml:space="preserve">
+    <value>假分支</value>
+  </data>
+  <data name="AutomationPortLabel_Left" xml:space="preserve">
+    <value>左值</value>
+  </data>
+  <data name="AutomationPortLabel_Right" xml:space="preserve">
+    <value>右值</value>
+  </data>
+  <data name="AutomationPortLabel_Value" xml:space="preserve">
+    <value>值</value>
+  </data>
+  <data name="AutomationPortLabel_ValueNumber" xml:space="preserve">
+    <value>数值</value>
+  </data>
+  <data name="AutomationPortLabel_ValueBool" xml:space="preserve">
+    <value>布尔值</value>
+  </data>
+  <data name="AutomationPortLabel_ValueString" xml:space="preserve">
+    <value>字符串值</value>
+  </data>
+  <data name="AutomationPortLabel_Condition" xml:space="preserve">
+    <value>条件</value>
+  </data>
+  <data name="AutomationPortLabel_Input" xml:space="preserve">
+    <value>输入</value>
+  </data>
+  <data name="AutomationPortLabel_Output" xml:space="preserve">
+    <value>输出</value>
+  </data>
+  <data name="AutomationPortLabel_DataInput" xml:space="preserve">
+    <value>数据输入</value>
+  </data>
+  <data name="AutomationPortLabel_DataOutput" xml:space="preserve">
+    <value>数据输出</value>
+  </data>
+  <data name="AutomationPortLabel_CaseMatch" xml:space="preserve">
+    <value>匹配分支</value>
+  </data>
+  <data name="AutomationPortLabel_CaseDefault" xml:space="preserve">
+    <value>默认分支</value>
+  </data>
+  <data name="AutomationPortLabel_Message" xml:space="preserve">
+    <value>消息</value>
+  </data>
 </root>

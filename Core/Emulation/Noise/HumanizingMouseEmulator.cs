@@ -17,7 +17,7 @@ namespace GamepadMapperGUI.Core.Emulation.Noise;
 /// When <see cref="IMouseSubMoveStepDelayer"/> is the immediate implementation, sub-moves run synchronously (legacy tests).
 /// With <see cref="HardwareStyledMouseSubMoveStepDelayer"/>, sub-moves are emitted over wall-clock time on per-scope background workers using a per-batch <see cref="IMouseSubMoveScheduleSession"/> so injections are spaced within a poll-interval budget (HID-like cadence, not a single burst). Enqueueing does not block the gamepad reader thread on prior sub-move delays.
 /// </remarks>
-public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMouseSubdivisionState
+public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMouseSubdivisionState, IVirtualScreenMouse
 {
     internal enum MouseLookPlanKind
     {
@@ -420,5 +420,11 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
         down();
         await Task.Delay(_noise.AdjustDelayMs(ClickHoldMs), cancellationToken).ConfigureAwait(false);
         up();
+    }
+
+    void IVirtualScreenMouse.MoveCursorToVirtualScreenPixels(int physicalX, int physicalY)
+    {
+        if (_inner is IVirtualScreenMouse v)
+            v.MoveCursorToVirtualScreenPixels(physicalX, physicalY);
     }
 }

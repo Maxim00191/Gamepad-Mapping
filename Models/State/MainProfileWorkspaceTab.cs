@@ -7,4 +7,5 @@ public enum MainProfileWorkspaceTab
     KeyboardActions = 2,
     RadialMenus = 3,
     Community = 4,
+    Automation = 5,
 }
