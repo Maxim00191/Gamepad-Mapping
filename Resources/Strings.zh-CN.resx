@@ -297,6 +297,9 @@
   <data name="AppSettingsTabRadialHud" xml:space="preserve">
     <value>转盘 / HUD</value>
   </data>
+  <data name="ExitOnCloseLabel" xml:space="preserve">
+    <value>关闭时直接退出（而不是隐藏到系统托盘）</value>
+  </data>
   <data name="AppSettingsThemeSection" xml:space="preserve">
     <value>外观</value>
   </data>

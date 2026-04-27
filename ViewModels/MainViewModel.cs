@@ -795,6 +795,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         RefreshControllerVisualOverlays();
     }
 
+    [ObservableProperty] private bool exitOnClose;
+    partial void OnExitOnCloseChanged(bool value) => UpdateSetting(s => s.ExitOnClose = value);
+
     public event EventHandler? FocusMappingDetailsFirstFieldRequested;
 
     public void RequestFocusMappingDetailsFirstField() =>
@@ -1536,6 +1539,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         };
         ControllerMappingOverlayShowSecondary = appSettings.ControllerMappingOverlayShowSecondary;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
+        ExitOnClose = appSettings.ExitOnClose;
 
         AvailableInputApis.Clear();
         AvailableInputApis.Add(new InputApiOption(InputEmulationApiIds.Win32, _settingsOrchestrator.Localize("InputApiWin32Label")));

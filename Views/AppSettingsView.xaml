@@ -49,6 +49,9 @@
                                       SelectedItem="{Binding SelectedUiLanguage, Mode=TwoWay}"
                                       DisplayMemberPath="DisplayName" />
                         </UniformGrid>
+                        <CheckBox Content="{Binding Source={StaticResource Loc}, Path=[ExitOnCloseLabel]}"
+                                  IsChecked="{Binding ExitOnClose, Mode=TwoWay}"
+                                  Margin="0,4,0,8" />
                         <Separator Margin="0,4,0,8" />
                         <sections:UpdatesPanelView DataContext="{Binding UpdatePanel}" />
                     </StackPanel>

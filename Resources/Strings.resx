@@ -297,6 +297,9 @@
   <data name="AppSettingsTabRadialHud" xml:space="preserve">
     <value>Radial / HUD</value>
   </data>
+  <data name="ExitOnCloseLabel" xml:space="preserve">
+    <value>Exit app when closing (instead of hiding to tray)</value>
+  </data>
   <data name="AppSettingsThemeSection" xml:space="preserve">
     <value>Appearance</value>
   </data>
