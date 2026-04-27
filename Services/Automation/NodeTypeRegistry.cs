@@ -376,6 +376,8 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
         BuildBranchBoolNode(),
         BuildSwitchNode(),
         BuildLoopControlNode(),
+        BuildPidControllerNode(),
+        BuildKeyStateNode(),
         BuildLogNode()
     ];
 
@@ -571,4 +573,40 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             ]
         }
     ;
+
+    private static AutomationNodeTypeDefinition BuildPidControllerNode() =>
+        new()
+        {
+            Id = "control.pid_controller",
+            DisplayNameResourceKey = "AutomationNode_Display_PidController",
+            SummaryResourceKey = "AutomationNode_Summary_PidController",
+            GlyphFontGlyph = "\uEC8A",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "current.value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
+                new AutomationPortDescriptor { Id = "target.value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "control.signal", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildKeyStateNode() =>
+        new()
+        {
+            Id = "output.key_state",
+            DisplayNameResourceKey = "AutomationNode_Display_KeyState",
+            SummaryResourceKey = "AutomationNode_Summary_KeyState",
+            GlyphFontGlyph = "\uE765",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.in", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true },
+                new AutomationPortDescriptor { Id = "result.pressed", PortType = AutomationPortType.Boolean, FlowKind = AutomationPortFlowKind.Data, IsOutput = true }
+            ]
+        };
 }

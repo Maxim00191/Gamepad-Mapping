@@ -20,6 +20,7 @@ public sealed class AutomationPortLabelService : IAutomationPortLabelService
             "result.x" => "AutomationPortLabel_ResultX",
             "result.y" => "AutomationPortLabel_ResultY",
             "result.count" => "AutomationPortLabel_ResultCount",
+            "result.pressed" => "AutomationPortLabel_ResultPressed",
             "coord.x" => "AutomationPortLabel_CoordX",
             "coord.y" => "AutomationPortLabel_CoordY",
             "branch.match" => "AutomationPortLabel_BranchMatch",
@@ -37,6 +38,9 @@ public sealed class AutomationPortLabelService : IAutomationPortLabelService
             "case.match" => "AutomationPortLabel_CaseMatch",
             "case.default" => "AutomationPortLabel_CaseDefault",
             "message" => "AutomationPortLabel_Message",
+            "current.value" => "AutomationPortLabel_CurrentValue",
+            "target.value" => "AutomationPortLabel_TargetValue",
+            "control.signal" => "AutomationPortLabel_ControlSignal",
             _ => flowKind == AutomationPortFlowKind.Execution
                 ? (isOutputPort ? "AutomationPortLabel_Output" : "AutomationPortLabel_Input")
                 : (isOutputPort ? "AutomationPortLabel_DataOutput" : "AutomationPortLabel_DataInput")

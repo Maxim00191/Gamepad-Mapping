@@ -28,8 +28,15 @@ public sealed class AutomationGraphSmokeRunnerTests
             .Setup(s => s.CaptureRectanglePhysical(10, 12, 40, 36))
             .Returns(bitmap);
         probeService
-            .Setup(p => p.Probe(bitmap, 10, 12, null, It.IsAny<AutomationImageProbeOptions>()))
-            .Returns(new AutomationImageProbeResult(true, 142, 218));
+            .Setup(p => p.ProbeAsync(
+                bitmap,
+                10,
+                12,
+                null,
+                It.IsAny<AutomationImageProbeOptions>(),
+                It.IsAny<AutomationVisionAlgorithmKind>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 142, 218)));
         virtualMouse
             .Setup(v => v.MoveCursorToVirtualScreenPixels(142, 218));
         mouse.Setup(m => m.LeftClick());

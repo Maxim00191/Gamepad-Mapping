@@ -63,6 +63,15 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithm",
+                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageAlgorithmPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = "template"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
                     PropertyKey = AutomationNodePropertyKeys.FindImageTolerance,
                     LabelResourceKey = "AutomationInlineEditor_FindImageTolerance",
                     Kind = AutomationNodeInlineEditorKind.Double,
@@ -309,6 +318,70 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     PlaceholderResourceKey = "AutomationInlineEditor_LogMessagePlaceholder",
                     Kind = AutomationNodeInlineEditorKind.Text,
                     DefaultTextValue = ""
+                }
+            ],
+            ["control.pid_controller"] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidCurrentValue,
+                    LabelResourceKey = "AutomationInlineEditor_PidCurrentValue",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidTargetValue,
+                    LabelResourceKey = "AutomationInlineEditor_PidTargetValue",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidKp,
+                    LabelResourceKey = "AutomationInlineEditor_PidKp",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "1"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidKi,
+                    LabelResourceKey = "AutomationInlineEditor_PidKi",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidKd,
+                    LabelResourceKey = "AutomationInlineEditor_PidKd",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0"
+                }
+            ],
+            ["output.key_state"] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.key_state",
+                    PropertyKey = AutomationNodePropertyKeys.KeyboardKey,
+                    LabelResourceKey = "AutomationInlineEditor_KeyboardKey",
+                    PlaceholderResourceKey = "AutomationInlineEditor_KeyboardKeyPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = ""
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.key_state",
+                    PropertyKey = AutomationNodePropertyKeys.KeyboardActionMode,
+                    LabelResourceKey = "AutomationInlineEditor_KeyboardActionMode",
+                    PlaceholderResourceKey = "AutomationInlineEditor_KeyboardActionModePlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = "hold"
                 }
             ]
         };

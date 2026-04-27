@@ -2216,4 +2216,49 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationOutputActionPicker_Mouse_MiddleHold" xml:space="preserve">
     <value>Middle Hold</value>
   </data>
+  <data name="AutomationNode_Display_KeyState" xml:space="preserve">
+    <value>Key State</value>
+  </data>
+  <data name="AutomationNode_Summary_KeyState" xml:space="preserve">
+    <value>Holds, releases, or inspects keyboard key state.</value>
+  </data>
+  <data name="AutomationNode_Display_PidController" xml:space="preserve">
+    <value>PID Controller</value>
+  </data>
+  <data name="AutomationNode_Summary_PidController" xml:space="preserve">
+    <value>Computes a continuous control signal from current and target values.</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlgorithm" xml:space="preserve">
+    <value>Vision Algorithm</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlgorithmPlaceholder" xml:space="preserve">
+    <value>template | color_threshold | contour</value>
+  </data>
+  <data name="AutomationInlineEditor_PidCurrentValue" xml:space="preserve">
+    <value>Current Value</value>
+  </data>
+  <data name="AutomationInlineEditor_PidTargetValue" xml:space="preserve">
+    <value>Target Value</value>
+  </data>
+  <data name="AutomationInlineEditor_PidKp" xml:space="preserve">
+    <value>Kp (Proportional)</value>
+  </data>
+  <data name="AutomationInlineEditor_PidKi" xml:space="preserve">
+    <value>Ki (Integral)</value>
+  </data>
+  <data name="AutomationInlineEditor_PidKd" xml:space="preserve">
+    <value>Kd (Derivative)</value>
+  </data>
+  <data name="AutomationPortLabel_CurrentValue" xml:space="preserve">
+    <value>Current Value</value>
+  </data>
+  <data name="AutomationPortLabel_TargetValue" xml:space="preserve">
+    <value>Target Value</value>
+  </data>
+  <data name="AutomationPortLabel_ControlSignal" xml:space="preserve">
+    <value>Control Signal</value>
+  </data>
+  <data name="AutomationPortLabel_ResultPressed" xml:space="preserve">
+    <value>Is Pressed</value>
+  </data>
 </root>

@@ -37,9 +37,9 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
                 AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.KeyboardHoldMilliseconds, 200),
                 1,
                 context.Limits.MaxDelayMilliseconds);
-            context.Keyboard.KeyDown(key);
+            context.InputState.Hold(key);
             Task.Delay(holdMs, cancellationToken).GetAwaiter().GetResult();
-            context.Keyboard.KeyUp(key);
+            context.InputState.Release(key);
             log.Add($"[keyboard_key] action=hold key={key} hold_ms={holdMs}");
         }
         else

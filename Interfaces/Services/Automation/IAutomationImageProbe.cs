@@ -5,10 +5,12 @@ namespace GamepadMapperGUI.Interfaces.Services.Automation;
 
 public interface IAutomationImageProbe
 {
-    AutomationImageProbeResult Probe(
+    ValueTask<AutomationImageProbeResult> ProbeAsync(
         BitmapSource haystack,
         int haystackLeftScreenPx,
         int haystackTopScreenPx,
         BitmapSource? needle,
-        AutomationImageProbeOptions options);
+        AutomationImageProbeOptions options,
+        AutomationVisionAlgorithmKind algorithmKind,
+        CancellationToken cancellationToken);
 }

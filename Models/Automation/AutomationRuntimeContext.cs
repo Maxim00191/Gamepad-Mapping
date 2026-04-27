@@ -17,6 +17,7 @@ public sealed class AutomationRuntimeContext
     private readonly Dictionary<Guid, int> _loopCounters = [];
     private readonly Dictionary<string, AutomationDataValue> _variables = new(StringComparer.Ordinal);
     private readonly Dictionary<(Guid NodeId, string PortId), AutomationDataValue> _dataEvaluationCache = [];
+    private readonly Dictionary<Guid, object> _stateByNodeId = [];
     private readonly Random _random = new();
 
     public required IAutomationScreenCaptureService Capture { get; init; }
@@ -32,6 +33,10 @@ public sealed class AutomationRuntimeContext
     public required IAutomationExecutionGraphIndex Index { get; init; }
 
     public required AutomationExecutionSafetyLimits Limits { get; init; }
+
+    public required IAutomationInputStateManager InputState { get; init; }
+
+    public double DeltaTimeSeconds { get; set; } = 1d / 60d;
 
     public bool RequestBreakLoop { get; private set; }
 
@@ -154,6 +159,17 @@ public sealed class AutomationRuntimeContext
         return value;
     }
 
+    public TState GetOrCreateNodeState<TState>(Guid nodeId, Func<TState> factory)
+        where TState : class
+    {
+        if (_stateByNodeId.TryGetValue(nodeId, out var existing) && existing is TState typed)
+            return typed;
+
+        var created = factory();
+        _stateByNodeId[nodeId] = created;
+        return created;
+    }
+
     private AutomationDataValue EvaluateNodeDataPort(AutomationNodeState node, string sourcePortId) =>
         node.NodeTypeId switch
         {
@@ -170,8 +186,46 @@ public sealed class AutomationRuntimeContext
             "logic.not" => EvaluateBoolNot(node, sourcePortId),
             "math.random" => EvaluateRandom(node, sourcePortId),
             "variables.get" => EvaluateVariableGet(node, sourcePortId),
+            "control.pid_controller" => EvaluatePid(node, sourcePortId),
+            "output.key_state" => EvaluateKeyState(node, sourcePortId),
             _ => AutomationDataValue.Empty
         };
+
+    private AutomationDataValue EvaluatePid(AutomationNodeState node, string sourcePortId)
+    {
+        if (!string.Equals(sourcePortId, "control.signal", StringComparison.Ordinal))
+            return AutomationDataValue.Empty;
+
+        if (!TryResolveNumberInput(node.Id, "current.value", out var current))
+            current = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidCurrentValue, 0d);
+        if (!TryResolveNumberInput(node.Id, "target.value", out var target))
+            target = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidTargetValue, 0d);
+
+        var kp = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKp, 1d);
+        var ki = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKi, 0d);
+        var kd = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKd, 0d);
+
+        var state = GetOrCreateNodeState(node.Id, () => new GamepadMapperGUI.Services.Automation.NodeHandlers.PidControllerState());
+        var dt = Math.Max(DeltaTimeSeconds, 0.0001d);
+        var error = target - current;
+        state.IntegralAccumulator += error * dt;
+        var derivative = state.Initialized ? (error - state.PreviousError) / dt : 0d;
+        state.PreviousError = error;
+        state.Initialized = true;
+
+        var output = (kp * error) + (ki * state.IntegralAccumulator) + (kd * derivative);
+        return new AutomationDataValue(AutomationPortType.Number, output);
+    }
+
+    private AutomationDataValue EvaluateKeyState(AutomationNodeState node, string sourcePortId)
+    {
+        if (!string.Equals(sourcePortId, "result.pressed", StringComparison.Ordinal))
+            return AutomationDataValue.Empty;
+
+        var keyText = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardKey);
+        var pressed = AutomationKeyboardKeyParser.TryParse(keyText, out var key) && InputState.IsHeld(key);
+        return new AutomationDataValue(AutomationPortType.Boolean, pressed);
+    }
 
     private AutomationDataValue EvaluateFindImageOutput(AutomationNodeState node, string sourcePortId)
     {

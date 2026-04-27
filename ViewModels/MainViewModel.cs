@@ -1618,7 +1618,13 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         var automationContractValidator = new AutomationNodeContractValidator();
         var automationSafetyPolicy = new AutomationExecutionSafetyPolicy();
         var (automationKbd, automationMouse) = CreateEmulatorPair();
-        var automationProbe = new AutomationImageProbe(new AutomationTemplateMatcherBruteForce());
+        var templateMatcher = new AutomationTemplateMatcherBruteForce();
+        var visionTemplate = new AutomationTemplateMatchVisionAlgorithm(templateMatcher);
+        var visionThreshold = new AutomationColorThresholdVisionAlgorithm();
+        var visionContour = new AutomationContourVisionAlgorithm(visionThreshold);
+        var visionPipeline = new AutomationVisionPipeline([visionTemplate, visionThreshold, visionContour]);
+        var automationProbe = new AutomationImageProbe(visionPipeline);
+        var automationInputState = new AutomationInputStateManager(automationKbd);
         var automationSmoke = new AutomationGraphSmokeRunner(
             automationCapture,
             automationProbe,
@@ -1628,7 +1634,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationRegistry,
             automationTopology,
             automationContractValidator,
-            automationSafetyPolicy);
+            automationSafetyPolicy,
+            automationInputState);
         AutomationWorkspacePanel = new AutomationWorkspaceViewModel(
             automationRegistry,
             new AutomationGraphJsonSerializer(),

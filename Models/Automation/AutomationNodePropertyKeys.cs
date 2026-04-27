@@ -37,6 +37,7 @@ public static class AutomationNodePropertyKeys
     public const string FindImageRoiNodeRef = "findImageRoiNodeRef";
 
     public const string FindImageNeedlePath = "findImageNeedlePath";
+    public const string FindImageAlgorithm = "findImageAlgorithm";
 
     public const string LoopMaxIterations = "loopMaxIterations";
 
@@ -56,4 +57,10 @@ public static class AutomationNodePropertyKeys
     public const string CompareRight = "compareRight";
     public const string SwitchCaseValue = "switchCaseValue";
     public const string LogMessage = "logMessage";
+
+    public const string PidCurrentValue = "pidCurrentValue";
+    public const string PidTargetValue = "pidTargetValue";
+    public const string PidKp = "pidKp";
+    public const string PidKi = "pidKi";
+    public const string PidKd = "pidKd";
 }

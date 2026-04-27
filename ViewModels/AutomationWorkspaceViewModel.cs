@@ -1676,6 +1676,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
 
         if (nodeTypeId.StartsWith("math.", StringComparison.Ordinal) ||
+            nodeTypeId.StartsWith("control.", StringComparison.Ordinal) ||
             string.Equals(nodeTypeId, "logic.and", StringComparison.Ordinal) ||
             string.Equals(nodeTypeId, "logic.or", StringComparison.Ordinal) ||
             string.Equals(nodeTypeId, "logic.not", StringComparison.Ordinal) ||

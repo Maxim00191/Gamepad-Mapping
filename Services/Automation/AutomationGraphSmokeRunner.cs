@@ -2,6 +2,7 @@ using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation.NodeHandlers;
+using System.Diagnostics;
 
 namespace GamepadMapperGUI.Services.Automation;
 
@@ -16,6 +17,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private readonly IAutomationTopologyAnalyzer _topology;
     private readonly IAutomationNodeContractValidator _contracts;
     private readonly IAutomationExecutionSafetyPolicy _safetyPolicy;
+    private readonly IAutomationInputStateManager _inputState;
     private readonly IReadOnlyDictionary<string, IAutomationRuntimeNodeHandler> _handlersByNodeType;
 
     private AutomationExecutionGraphIndex _index = null!;
@@ -30,7 +32,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         INodeTypeRegistry registry,
         IAutomationTopologyAnalyzer topology,
         IAutomationNodeContractValidator contracts,
-        IAutomationExecutionSafetyPolicy safetyPolicy)
+        IAutomationExecutionSafetyPolicy safetyPolicy,
+        IAutomationInputStateManager? inputState = null)
     {
         _capture = capture;
         _probe = probe;
@@ -41,6 +44,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _topology = topology;
         _contracts = contracts;
         _safetyPolicy = safetyPolicy;
+        _inputState = inputState ?? new AutomationInputStateManager(keyboard);
         _handlersByNodeType = BuildHandlers();
     }
 
@@ -61,7 +65,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             Mouse = _mouse,
             VirtualMouse = _virtualMouse,
             Index = _index,
-            Limits = _limits
+            Limits = _limits,
+            InputState = _inputState
         };
 
         var analysis = _topology.Analyze(document);
@@ -125,9 +130,23 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private void RunFrom(AutomationRuntimeContext context, Guid startNodeId, List<string> log, CancellationToken ct)
     {
         var current = startNodeId;
+        var timer = Stopwatch.StartNew();
+        var lastTick = timer.Elapsed;
+        const double fixedTimestepSeconds = 1d / 60d;
         for (var step = 0; step < _limits.MaxExecutionSteps; step++)
         {
             ct.ThrowIfCancellationRequested();
+            var now = timer.Elapsed;
+            var elapsedSinceLast = now - lastTick;
+            if (elapsedSinceLast.TotalSeconds < fixedTimestepSeconds)
+            {
+                var remaining = TimeSpan.FromSeconds(fixedTimestepSeconds - elapsedSinceLast.TotalSeconds);
+                if (remaining > TimeSpan.Zero)
+                    Task.Delay(remaining, ct).GetAwaiter().GetResult();
+                now = timer.Elapsed;
+            }
+            context.DeltaTimeSeconds = Math.Max((now - lastTick).TotalSeconds, fixedTimestepSeconds);
+            lastTick = now;
 
             var node = _index.GetNode(current) ?? throw new InvalidOperationException("node_missing");
 
@@ -195,7 +214,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             new LoopControlNodeHandler(),
             new DelayNodeHandler(),
             new SetVariableNodeHandler(),
-            new LogNodeHandler()
+            new LogNodeHandler(),
+            new KeyStateNodeHandler()
         ];
         return handlers.ToDictionary(h => h.NodeTypeId, StringComparer.Ordinal);
     }

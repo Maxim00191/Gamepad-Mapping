@@ -7,27 +7,30 @@ using GamepadMapperGUI.Models.Automation;
 
 namespace GamepadMapperGUI.Services.Automation;
 
-public sealed class AutomationImageProbe(IAutomationTemplateMatcher matcher) : IAutomationImageProbe
+public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : IAutomationImageProbe
 {
-    private readonly IAutomationTemplateMatcher _matcher = matcher;
+    private readonly IAutomationVisionPipeline _pipeline = pipeline;
 
-    public AutomationImageProbeResult Probe(
+    public async ValueTask<AutomationImageProbeResult> ProbeAsync(
         BitmapSource haystack,
         int haystackLeftScreenPx,
         int haystackTopScreenPx,
         BitmapSource? needle,
-        AutomationImageProbeOptions options)
+        AutomationImageProbeOptions options,
+        AutomationVisionAlgorithmKind algorithmKind,
+        CancellationToken cancellationToken)
     {
         if (needle is null || needle.PixelWidth <= 0 || needle.PixelHeight <= 0)
             return ProbeCenterFallback(haystack, haystackLeftScreenPx, haystackTopScreenPx);
 
-        var match = _matcher.Match(haystack, needle, options);
-        if (!match.Matched)
+        var frame = new AutomationVisionFrame(haystack, needle, haystackLeftScreenPx, haystackTopScreenPx, options);
+        var result = await _pipeline.ProcessAsync(algorithmKind, frame, cancellationToken);
+        if (!result.Matched)
             return new AutomationImageProbeResult(false, 0, 0);
 
-        var x = haystackLeftScreenPx + match.MatchX + needle.PixelWidth / 2;
-        var y = haystackTopScreenPx + match.MatchY + needle.PixelHeight / 2;
-        return new AutomationImageProbeResult(true, x, y);
+        var x = haystackLeftScreenPx + result.MatchX + needle.PixelWidth / 2;
+        var y = haystackTopScreenPx + result.MatchY + needle.PixelHeight / 2;
+        return new AutomationImageProbeResult(true, x, y, result.MatchCount, result.Confidence);
     }
 
     public static BitmapSource? TryLoadBitmapFromPath(string path)
