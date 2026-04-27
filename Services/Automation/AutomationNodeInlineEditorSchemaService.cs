@@ -383,6 +383,40 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     Kind = AutomationNodeInlineEditorKind.Text,
                     DefaultTextValue = "hold"
                 }
+            ],
+            ["output.human_noise"] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.human_noise",
+                    PropertyKey = AutomationNodePropertyKeys.MouseJitterBaseDeltaX,
+                    LabelResourceKey = "AutomationInlineEditor_MouseJitterBaseDeltaX",
+                    Kind = AutomationNodeInlineEditorKind.Integer,
+                    DefaultTextValue = "0",
+                    MinIntegerValue = -500,
+                    MaxIntegerValue = 500
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.human_noise",
+                    PropertyKey = AutomationNodePropertyKeys.MouseJitterBaseDeltaY,
+                    LabelResourceKey = "AutomationInlineEditor_MouseJitterBaseDeltaY",
+                    Kind = AutomationNodeInlineEditorKind.Integer,
+                    DefaultTextValue = "0",
+                    MinIntegerValue = -500,
+                    MaxIntegerValue = 500
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.human_noise",
+                    PropertyKey = AutomationNodePropertyKeys.MouseJitterStickMagnitude,
+                    LabelResourceKey = "AutomationInlineEditor_MouseJitterStickMagnitude",
+                    PlaceholderResourceKey = "AutomationInlineEditor_MouseJitterStickMagnitudePlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "1.0",
+                    MinDoubleValue = 0,
+                    MaxDoubleValue = 1
+                }
             ]
         };
 }

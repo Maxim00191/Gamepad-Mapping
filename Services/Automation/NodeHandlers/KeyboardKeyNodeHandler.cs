@@ -33,14 +33,18 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         }
         else if (string.Equals(mode, "hold", StringComparison.OrdinalIgnoreCase))
         {
-            var holdMs = Math.Clamp(
+            var nominalHoldMs = Math.Clamp(
                 AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.KeyboardHoldMilliseconds, 200),
+                1,
+                context.Limits.MaxDelayMilliseconds);
+            var holdMs = Math.Clamp(
+                context.HumanNoise?.AdjustTapHoldMs(nominalHoldMs, 10) ?? nominalHoldMs,
                 1,
                 context.Limits.MaxDelayMilliseconds);
             context.InputState.Hold(key);
             Task.Delay(holdMs, cancellationToken).GetAwaiter().GetResult();
             context.InputState.Release(key);
-            log.Add($"[keyboard_key] action=hold key={key} hold_ms={holdMs}");
+            log.Add($"[keyboard_key] action=hold key={key} hold_ms={holdMs} nominal_hold_ms={nominalHoldMs}");
         }
         else
         {

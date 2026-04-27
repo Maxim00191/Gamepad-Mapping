@@ -18,6 +18,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private readonly IAutomationNodeContractValidator _contracts;
     private readonly IAutomationExecutionSafetyPolicy _safetyPolicy;
     private readonly IAutomationInputStateManager _inputState;
+    private readonly IHumanInputNoiseController? _humanNoise;
     private readonly IReadOnlyDictionary<string, IAutomationRuntimeNodeHandler> _handlersByNodeType;
 
     private AutomationExecutionGraphIndex _index = null!;
@@ -33,7 +34,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         IAutomationTopologyAnalyzer topology,
         IAutomationNodeContractValidator contracts,
         IAutomationExecutionSafetyPolicy safetyPolicy,
-        IAutomationInputStateManager? inputState = null)
+        IAutomationInputStateManager? inputState = null,
+        IHumanInputNoiseController? humanNoise = null)
     {
         _capture = capture;
         _probe = probe;
@@ -45,6 +47,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _contracts = contracts;
         _safetyPolicy = safetyPolicy;
         _inputState = inputState ?? new AutomationInputStateManager(keyboard);
+        _humanNoise = humanNoise;
         _handlersByNodeType = BuildHandlers();
     }
 
@@ -66,7 +69,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             VirtualMouse = _virtualMouse,
             Index = _index,
             Limits = _limits,
-            InputState = _inputState
+            InputState = _inputState,
+            HumanNoise = _humanNoise
         };
 
         var analysis = _topology.Analyze(document);
@@ -215,7 +219,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             new DelayNodeHandler(),
             new SetVariableNodeHandler(),
             new LogNodeHandler(),
-            new KeyStateNodeHandler()
+            new KeyStateNodeHandler(),
+            new HumanNoiseNodeHandler()
         ];
         return handlers.ToDictionary(h => h.NodeTypeId, StringComparer.Ordinal);
     }

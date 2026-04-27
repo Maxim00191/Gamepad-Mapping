@@ -36,6 +36,8 @@ public sealed class AutomationRuntimeContext
 
     public required IAutomationInputStateManager InputState { get; init; }
 
+    public IHumanInputNoiseController? HumanNoise { get; init; }
+
     public double DeltaTimeSeconds { get; set; } = 1d / 60d;
 
     public bool RequestBreakLoop { get; private set; }

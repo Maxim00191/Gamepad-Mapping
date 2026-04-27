@@ -27,6 +27,9 @@ public static class AutomationNodePropertyKeys
     public const string MouseRelativeDeltaY = "mouseRelativeDeltaY";
     public const string MouseHumanizeRadiusPx = "mouseHumanizeRadiusPx";
     public const string MouseButton = "mouseButton";
+    public const string MouseJitterBaseDeltaX = "mouseJitterBaseDeltaX";
+    public const string MouseJitterBaseDeltaY = "mouseJitterBaseDeltaY";
+    public const string MouseJitterStickMagnitude = "mouseJitterStickMagnitude";
 
     public const string FindImageTolerance = "findImageTolerance";
     public const string FindImageConfidence = "findImageConfidence";

@@ -2261,4 +2261,22 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationPortLabel_ResultPressed" xml:space="preserve">
     <value>Is Pressed</value>
   </data>
+  <data name="AutomationNode_Display_MouseJitter" xml:space="preserve">
+    <value>Human Noise</value>
+  </data>
+  <data name="AutomationNode_Summary_MouseJitter" xml:space="preserve">
+    <value>Applies human-like noise to a configured mouse delta and emits movement.</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterBaseDeltaX" xml:space="preserve">
+    <value>Base Delta X</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterBaseDeltaY" xml:space="preserve">
+    <value>Base Delta Y</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterStickMagnitude" xml:space="preserve">
+    <value>Stick Magnitude</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterStickMagnitudePlaceholder" xml:space="preserve">
+    <value>0.0 - 1.0</value>
+  </data>
 </root>

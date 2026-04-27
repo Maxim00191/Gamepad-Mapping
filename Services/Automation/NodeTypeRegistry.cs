@@ -378,6 +378,7 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
         BuildLoopControlNode(),
         BuildPidControllerNode(),
         BuildKeyStateNode(),
+        BuildMouseJitterNode(),
         BuildLogNode()
     ];
 
@@ -607,6 +608,23 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             [
                 new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true },
                 new AutomationPortDescriptor { Id = "result.pressed", PortType = AutomationPortType.Boolean, FlowKind = AutomationPortFlowKind.Data, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildMouseJitterNode() =>
+        new()
+        {
+            Id = "output.human_noise",
+            DisplayNameResourceKey = "AutomationNode_Display_MouseJitter",
+            SummaryResourceKey = "AutomationNode_Summary_MouseJitter",
+            GlyphFontGlyph = "\uF8A3",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.in", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
             ]
         };
 }

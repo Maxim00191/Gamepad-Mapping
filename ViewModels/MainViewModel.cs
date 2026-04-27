@@ -25,6 +25,7 @@ using GamepadMapperGUI.Interfaces.Services.Editing;
 using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Editing;
 using GamepadMapperGUI.Interfaces.Services.Radial;
+using GamepadMapperGUI.Core.Emulation.Noise;
 using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Update;
@@ -1060,6 +1061,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _settingsOrchestrator.Settings.InputEmulationApi,
             () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings));
 
+    private IHumanInputNoiseController CreateAutomationHumanNoiseController() =>
+        new HumanInputNoiseController(
+            new NoiseGenerator(Random.Shared.Next()),
+            () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings),
+            new RealTimeProvider());
+
     private Action<string> MarshaledGamepadMonitorSetter(Action<string> apply) =>
         s =>
         {
@@ -1625,6 +1632,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         var visionPipeline = new AutomationVisionPipeline([visionTemplate, visionThreshold, visionContour]);
         var automationProbe = new AutomationImageProbe(visionPipeline);
         var automationInputState = new AutomationInputStateManager(automationKbd);
+        var automationHumanNoise = CreateAutomationHumanNoiseController();
         var automationSmoke = new AutomationGraphSmokeRunner(
             automationCapture,
             automationProbe,
@@ -1635,7 +1643,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationTopology,
             automationContractValidator,
             automationSafetyPolicy,
-            automationInputState);
+            automationInputState,
+            automationHumanNoise);
         AutomationWorkspacePanel = new AutomationWorkspaceViewModel(
             automationRegistry,
             new AutomationGraphJsonSerializer(),

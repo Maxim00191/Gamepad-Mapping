@@ -2261,4 +2261,22 @@
   <data name="AutomationPortLabel_ResultPressed" xml:space="preserve">
     <value>是否按下</value>
   </data>
+  <data name="AutomationNode_Display_MouseJitter" xml:space="preserve">
+    <value>拟人噪声</value>
+  </data>
+  <data name="AutomationNode_Summary_MouseJitter" xml:space="preserve">
+    <value>对配置的鼠标位移应用拟人噪声并输出移动。</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterBaseDeltaX" xml:space="preserve">
+    <value>基础位移 X</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterBaseDeltaY" xml:space="preserve">
+    <value>基础位移 Y</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterStickMagnitude" xml:space="preserve">
+    <value>摇杆幅度</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseJitterStickMagnitudePlaceholder" xml:space="preserve">
+    <value>0.0 - 1.0</value>
+  </data>
 </root>

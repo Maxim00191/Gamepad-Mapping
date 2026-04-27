@@ -266,6 +266,100 @@ public sealed class AutomationGraphSmokeRunnerTests
         Assert.Equal("branch_bool:condition_missing", result.Detail);
     }
 
+    [Fact]
+    public async Task RunOnceAsync_ExecutesMouseJitterNodeWithConfiguredBaseDelta()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        mouse.Setup(m => m.MoveBy(4, -3));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var jitter = CreateNode("output.human_noise", new JsonObject
+        {
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaX] = 4,
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaY] = -3,
+            [AutomationNodePropertyKeys.MouseJitterStickMagnitude] = 0
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [jitter]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        mouse.Verify(m => m.MoveBy(4, -3), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_AppliesHumanNoiseToKeyboardHoldMode()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var noise = new FixedTapHoldNoiseController(adjustedHoldMs: 5);
+        keyboard.Setup(k => k.KeyDown(Key.Space));
+        keyboard.Setup(k => k.KeyUp(Key.Space));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy(),
+            null,
+            noise);
+
+        var keyNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space",
+            [AutomationNodePropertyKeys.KeyboardActionMode] = "hold",
+            [AutomationNodePropertyKeys.KeyboardHoldMilliseconds] = 1
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [keyNode]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        Assert.Contains(result.LogLines, line => line.Contains("hold_ms=5", StringComparison.Ordinal));
+        keyboard.Verify(k => k.KeyDown(Key.Space), Times.Once);
+        keyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
+    }
+
+    private sealed class FixedTapHoldNoiseController(int adjustedHoldMs) : IHumanInputNoiseController
+    {
+        public int AdjustDelayMs(int baseDelayMs) => baseDelayMs;
+
+        public int AdjustTapHoldMs(int nominalMs, int maxDeviationMs) => adjustedHoldMs;
+
+        public (int Dx, int Dy) AdjustMouseMove(int deltaX, int deltaY, float stickMagnitude = 1.0f) =>
+            (deltaX, deltaY);
+    }
+
     private static BitmapSource CreateBitmap() =>
         BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null, new byte[16], 8);
 
