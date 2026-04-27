@@ -82,6 +82,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly Debouncer _communityListingDescriptionDebouncer;
     private readonly Debouncer _workspaceDirtyDebouncer;
     private readonly ILaunchInitialToastScheduler _launchInitialToastScheduler;
+    private readonly IMainShellVisibility? _mainShellVisibility;
     private readonly IItemSelectionDialogService _itemSelectionDialogService;
     private readonly IKeyboardActionSelectionBuilder _keyboardActionSelectionBuilder;
     private readonly IProfileDomainService _profileDomainService;
@@ -150,11 +151,13 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         ILaunchInitialToastScheduler? launchInitialToastScheduler = null,
         IUiOrchestrator? uiOrchestrator = null,
         IItemSelectionDialogService? itemSelectionDialogService = null,
-        IProfileDomainService? profileDomainService = null)
+        IProfileDomainService? profileDomainService = null,
+        IMainShellVisibility? mainShellVisibility = null)
     {
         if ((keyboardEmulator is null) != (mouseEmulator is null))
             throw new ArgumentException("keyboardEmulator and mouseEmulator must both be supplied or both omitted.");
 
+        _mainShellVisibility = mainShellVisibility;
         _keyboardEmulatorOverride = keyboardEmulator;
         _mouseEmulatorOverride = mouseEmulator;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
@@ -219,7 +222,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _controllerVisualLayoutHelper = controllerVisualLayoutHelper ?? new ControllerVisualLayoutHelper();
         _mappingsForLogicalControlQuery = new MappingsForLogicalControlQuery(_controllerVisualService);
 
-        _uiOrchestrator = uiOrchestrator ?? new UiOrchestrator(_appToastService, _dispatcher);
+        _uiOrchestrator = uiOrchestrator ?? new UiOrchestrator(_appToastService, _dispatcher, _mainShellVisibility);
         _itemSelectionDialogService = itemSelectionDialogService ?? new ItemSelectionDialogService();
         _keyboardActionSelectionBuilder = new KeyboardActionSelectionBuilder();
         _launchInitialToastScheduler = launchInitialToastScheduler
@@ -1021,7 +1024,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         if (_dispatcher.CheckAccess())
             Apply();
         else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Normal);
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     private void ShowTemplateSwitchHud(string profileDisplayName)
@@ -1044,20 +1047,28 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _settingsOrchestrator.Settings.InputEmulationApi,
             () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings));
 
-    private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse) =>
-        new MappingEngine(
+    private Action<string> MarshaledGamepadMonitorSetter(Action<string> apply) =>
+        s => _uiSync.Post(() => apply(s), UiPostPriority.Background);
+
+    private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse)
+    {
+        Action<string> setMappedOutput = MarshaledGamepadMonitorSetter(s => GamepadMonitorPanel.LastMappedOutput = s);
+        Action<string> setMappingStatus = MarshaledGamepadMonitorSetter(s => GamepadMonitorPanel.LastMappingStatus = s);
+
+        return new MappingEngine(
             keyboard,
             mouse,
             () => _appStatusMonitor.CanSendOutput,
             _uiSync,
-            v => GamepadMonitorPanel.LastMappedOutput = v,
-            v => GamepadMonitorPanel.LastMappingStatus = v,
+            setMappedOutput,
+            setMappingStatus,
             OnComboHud,
             _profileService.ModifierGraceMs,
             _profileService.LeadKeyReleaseSuppressMs,
-            pid => _dispatcher.BeginInvoke(() => _profileOrchestrator.RequestTemplateSwitch(pid)),
+            pid => _dispatcher.BeginInvoke(() => _profileOrchestrator.RequestTemplateSwitch(pid), DispatcherPriority.Background),
             profileService: _profileService,
-            setComboHudGateHint: s => _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty),
+            setComboHudGateHint: s =>
+                _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty, DispatcherPriority.Background),
             comboHudGateMessageFactory: _settingsOrchestrator.GetComboHudGateMessageFactory(),
             radialMenuHud: _radialMenuHud,
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
@@ -1072,6 +1083,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             getAnalogHysteresisPressExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisPressExtra,
             getAnalogHysteresisReleaseExtra: () => _settingsOrchestrator.Settings.DefaultAnalogHysteresisReleaseExtra,
             getKeyboardTapHoldDurationMs: () => _settingsOrchestrator.Settings.KeyboardTapHoldDurationMs);
+    }
 
     private void RecreateMappingEngineForCurrentInputApi()
     {
@@ -1266,6 +1278,23 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             "WorkspaceUnsavedExitPrompt",
             showSaveFailureDialog: true);
         return !shouldContinue;
+    }
+
+    public bool IsApplicationShutdownPending { get; private set; }
+
+    public void BeginApplicationShutdown() => IsApplicationShutdownPending = true;
+
+    public bool TryPrepareShutdownAfterWorkspacePrompt() =>
+        TryContinueAfterUnsavedWorkspacePrompt(
+            "WorkspaceUnsavedExitPrompt",
+            showSaveFailureDialog: true);
+
+    public void OnMainWindowHiddenToTray() => _mainShellVisibility?.NotifyPrimaryShellHiddenToTray();
+
+    public void OnMainWindowRestoredFromTray()
+    {
+        _mainShellVisibility?.NotifyPrimaryShellShownFromTray();
+        _appStatusMonitor.EvaluateNow();
     }
 
     private MessageBoxResult ShowUnsavedWorkspaceDialog(string localizedMessage)

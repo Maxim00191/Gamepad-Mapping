@@ -13,11 +13,13 @@ namespace Gamepad_Mapping;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly TrayNotifyIconService _trayNotifyIconService;
 
     public MainWindow(MainViewModel viewModel)
     {
         _viewModel = viewModel;
         InitializeComponent();
+        _trayNotifyIconService = new TrayNotifyIconService(this, viewModel);
         // Force standard resizable window chrome at runtime in case any
         // theme/style initialization overrides XAML window settings.
         WindowStyle = WindowStyle.SingleBorderWindow;
@@ -110,14 +112,29 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (_viewModel.ShouldCancelCloseDueToUnsavedWorkspace())
-            e.Cancel = true;
+        if (_viewModel.IsApplicationShutdownPending)
+        {
+            base.OnClosing(e);
+            return;
+        }
 
+        if (_viewModel.ShouldCancelCloseDueToUnsavedWorkspace())
+        {
+            e.Cancel = true;
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        _viewModel.OnMainWindowHiddenToTray();
+        _trayNotifyIconService.EnsureIconCreatedAndVisible();
+        Hide();
         base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        _trayNotifyIconService.Dispose();
         _viewModel.Dispose();
         base.OnClosed(e);
     }

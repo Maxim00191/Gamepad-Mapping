@@ -14,6 +14,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
 {
     private readonly IAppToastService _toastService;
     private readonly Dispatcher _dispatcher;
+    private readonly IMainShellVisibility? _mainShellVisibility;
     private ComboHudWindow? _comboHudWindow;
     private TemplateSwitchHudWindow? _templateSwitchHudWindow;
     private DispatcherTimer? _templateSwitchHudTimer;
@@ -27,10 +28,11 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
     [ObservableProperty]
     private bool _isTemplateSwitchHudActive;
 
-    public UiOrchestrator(IAppToastService toastService, Dispatcher dispatcher)
+    public UiOrchestrator(IAppToastService toastService, Dispatcher dispatcher, IMainShellVisibility? mainShellVisibility = null)
     {
         _toastService = toastService ?? throw new ArgumentNullException(nameof(toastService));
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+        _mainShellVisibility = mainShellVisibility;
     }
 
     /// <inheritdoc cref="IUiOrchestrator.UpdateStatus"/>
@@ -38,6 +40,9 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
     {
         void Apply()
         {
+            if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+                return;
+
             TargetState = state;
             TargetStatusText = statusText;
         }
@@ -45,7 +50,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         if (_dispatcher.CheckAccess())
             Apply();
         else
-            _dispatcher.BeginInvoke(Apply);
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     public void ShowComboHud(ComboHudContent? content, byte alpha, double shadowOpacity, string placement)
@@ -53,7 +58,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         if (!Enum.TryParse<ComboHudPlacement>(placement, true, out var p))
             p = ComboHudPlacement.BottomRight;
 
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (content is null)
             {
@@ -66,7 +71,12 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
 
             _comboHudWindow ??= new ComboHudWindow();
             _comboHudWindow.ShowHud(content, alpha, shadowOpacity, p);
-        });
+        }
+
+        if (_dispatcher.CheckAccess())
+            Apply();
+        else
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     public void ShowTemplateSwitchHud(string profileDisplayName, double seconds, byte alpha, double shadowOpacity, string placement, Action onFinished)
@@ -74,7 +84,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         if (!Enum.TryParse<ComboHudPlacement>(placement, true, out var p))
             p = ComboHudPlacement.BottomRight;
 
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (_templateSwitchHudTimer != null)
             {
@@ -107,12 +117,17 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             _templateSwitchHudWindow ??= new TemplateSwitchHudWindow();
             _templateSwitchHudWindow.ShowHud(content, alpha, shadowOpacity, p);
             _templateSwitchHudTimer.Start();
-        });
+        }
+
+        if (_dispatcher.CheckAccess())
+            Apply();
+        else
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     public void HideAllHuds()
     {
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (_templateSwitchHudTimer != null)
             {
@@ -122,16 +137,26 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             IsTemplateSwitchHudActive = false;
             _comboHudWindow?.HideHud();
             _templateSwitchHudWindow?.HideHud();
-        });
+        }
+
+        if (_dispatcher.CheckAccess())
+            Apply();
+        else
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     public void ApplyHudVisuals(byte alpha, double shadowOpacity)
     {
-        _dispatcher.Invoke(() =>
+        void Apply()
         {
             if (_comboHudWindow is { IsVisible: true })
                 _comboHudWindow.ApplyVisualSettings(alpha, shadowOpacity);
-        });
+        }
+
+        if (_dispatcher.CheckAccess())
+            Apply();
+        else
+            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
     }
 
     public void ShowToast(string title, string message, Action? onClosed = null)

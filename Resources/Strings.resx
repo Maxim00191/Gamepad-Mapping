@@ -1607,4 +1607,13 @@ Relaunch this tool as administrator now?</value>
   <data name="TargetProcessRefresh_AttentionTooltip" xml:space="preserve">
     <value>No matching process found yet — click to re-detect.</value>
   </data>
+  <data name="TrayIcon_Tooltip" xml:space="preserve">
+    <value>Gamepad Mapping — running in the background</value>
+  </data>
+  <data name="TrayMenu_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="TrayMenu_Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
 </root>

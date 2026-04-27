@@ -23,9 +23,8 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
     private readonly IProcessTargetService _processTargetService;
     private readonly IElevationHandler _elevationHandler;
     private readonly Func<string, string> _localize;
-    private readonly Timer _timer;
+    private readonly System.Threading.Timer _timer;
     private readonly object _sync = new();
-
     private ProcessInfo? _selectedTargetProcess;
     private bool _isProcessTargetingEnabled;
     private int _focusGracePeriodMs = 500;
@@ -125,6 +124,7 @@ public sealed class AppStatusMonitor : IAppStatusMonitor
                 return;
             _disposed = true;
         }
+
         _timer.Dispose();
     }
 

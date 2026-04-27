@@ -37,7 +37,8 @@ public static class ApplicationComposition
         var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
 
         var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-        var uiOrchestrator = new UiOrchestrator(appToastService, dispatcher);
+        var mainShellVisibility = new MainShellVisibility();
+        var uiOrchestrator = new UiOrchestrator(appToastService, dispatcher, mainShellVisibility);
 
         var mainViewModel = new MainViewModel(
             profileService: profileService,
@@ -61,7 +62,8 @@ public static class ApplicationComposition
             xinput: xinputService,
             gamepadSource: gamepadSource,
             uiOrchestrator: uiOrchestrator,
-            profileDomainService: profileDomainService);
+            profileDomainService: profileDomainService,
+            mainShellVisibility: mainShellVisibility);
 
         return (mainViewModel, appToastService);
     }

@@ -15,7 +15,6 @@ internal sealed class InputDispatcher : IInputDispatcher, IDisposable
 
     private readonly Func<DispatchedOutput, TriggerMoment, CancellationToken, Task> _dispatchMappedOutputAsync;
     private readonly Func<IReadOnlyList<Key>, Key, CancellationToken, Task> _dispatchChordTapAsync;
-    private readonly Action<Action> _runOnUi;
     private readonly Action<string> _setMappedOutput;
     private readonly Action<string> _setMappingStatus;
     private readonly object _outputQueueLock = new();
@@ -29,16 +28,17 @@ internal sealed class InputDispatcher : IInputDispatcher, IDisposable
     private string? _pendingMappingStatus;
     private long _lastMappedOutputUiFlushTimestamp = Stopwatch.GetTimestamp();
 
+    /// <param name="setMappedOutput">
+    /// Monitor / status sink; must be safe to call from the output worker thread (typically marshals to the UI thread).
+    /// </param>
     public InputDispatcher(
         Func<DispatchedOutput, TriggerMoment, CancellationToken, Task> dispatchMappedOutputAsync,
         Func<IReadOnlyList<Key>, Key, CancellationToken, Task> dispatchChordTapAsync,
-        Action<Action> runOnUi,
         Action<string> setMappedOutput,
         Action<string> setMappingStatus)
     {
         _dispatchMappedOutputAsync = dispatchMappedOutputAsync;
         _dispatchChordTapAsync = dispatchChordTapAsync;
-        _runOnUi = runOnUi;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
 
@@ -204,7 +204,7 @@ internal sealed class InputDispatcher : IInputDispatcher, IDisposable
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to send mapped output. token={workItem.SourceToken}, ex={ex.Message}");
-                _runOnUi(() => _setMappingStatus($"Error sending '{workItem.SourceToken}': {ex.Message}"));
+                _setMappingStatus($"Error sending '{workItem.SourceToken}': {ex.Message}");
             }
             finally
             {
@@ -236,11 +236,8 @@ internal sealed class InputDispatcher : IInputDispatcher, IDisposable
 
         var label = _pendingMappedOutputLabel ?? string.Empty;
         var status = _pendingMappingStatus ?? string.Empty;
-        _runOnUi(() =>
-        {
-            _setMappedOutput(label);
-            _setMappingStatus(status);
-        });
+        _setMappedOutput(label);
+        _setMappingStatus(status);
         _lastMappedOutputUiFlushTimestamp = Stopwatch.GetTimestamp();
     }
 }

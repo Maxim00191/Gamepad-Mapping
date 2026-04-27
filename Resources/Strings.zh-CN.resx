@@ -1607,4 +1607,13 @@
   <data name="TargetProcessRefresh_AttentionTooltip" xml:space="preserve">
     <value>尚未找到匹配的进程 — 点击以重新检测。</value>
   </data>
+  <data name="TrayIcon_Tooltip" xml:space="preserve">
+    <value>手柄映射 — 正在后台运行</value>
+  </data>
+  <data name="TrayMenu_Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="TrayMenu_Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
 </root>

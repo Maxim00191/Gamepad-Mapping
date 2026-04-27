@@ -145,6 +145,23 @@ public class RadialMenuControllerTests
         Assert.True(_controller.ActiveRadial == null && _controller.Id == string.Empty || _controller.ActiveRadial != null && _controller.Id == "testId");
     }
 
+    [Fact]
+    public void UpdateSelection_RepeatedSameSector_InvokesHudUpdateSelectionOnce()
+    {
+        var radialMenu = new RadialMenuDefinition { Id = "testId", DisplayName = "Test Menu" };
+        radialMenu.Items.Add(new RadialMenuItem { ActionId = "item1" });
+        radialMenu.Items.Add(new RadialMenuItem { ActionId = "item2" });
+        _controller.SetDefinitions(new List<RadialMenuDefinition> { radialMenu }, null);
+        _controller.TryOpen(new MappingEntry { RadialMenu = new RadialMenuBinding { RadialMenuId = "testId" } }, "source", out var err);
+        Assert.Null(err);
+
+        var stick = new Vector2(0f, 1f);
+        for (var i = 0; i < 50; i++)
+            _controller.UpdateSelection(stick, 0.01f, RadialMenuConfirmMode.ReleaseGuideKey);
+
+        _mockRadialMenuHud.Verify(h => h.UpdateSelection(It.IsAny<int>()), Times.Once);
+    }
+
     // Helper method for simulating UI thread dispatch in tests if needed
     private void RunOnUiThread(Action action)
     {
