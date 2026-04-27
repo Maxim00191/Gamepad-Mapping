@@ -2279,4 +2279,22 @@
   <data name="AutomationInlineEditor_MouseJitterStickMagnitudePlaceholder" xml:space="preserve">
     <value>0.0 - 1.0</value>
   </data>
+  <data name="AutomationInlineEditor_InputMode" xml:space="preserve">
+    <value>输入模式</value>
+  </data>
+  <data name="AutomationInlineEditor_InputModePlaceholder" xml:space="preserve">
+    <value>留空使用全局设置，或填写 Win32/InputInjection</value>
+  </data>
+  <data name="AutomationInlineEditor_InputModeButton" xml:space="preserve">
+    <value>选择输入模式</value>
+  </data>
+  <data name="AutomationInputModePicker_DialogTitle" xml:space="preserve">
+    <value>选择输入模式</value>
+  </data>
+  <data name="AutomationInputModePicker_SearchPlaceholder" xml:space="preserve">
+    <value>搜索模式 ID 或名称</value>
+  </data>
+  <data name="AutomationInputModePicker_Global" xml:space="preserve">
+    <value>使用全局设置</value>
+  </data>
 </root>

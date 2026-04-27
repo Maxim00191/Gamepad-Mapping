@@ -38,11 +38,16 @@ public sealed class AutomationRuntimeContext
 
     public IHumanInputNoiseController? HumanNoise { get; init; }
 
+    public required IAutomationNodeInputModeResolver InputModeResolver { get; init; }
+
     public double DeltaTimeSeconds { get; set; } = 1d / 60d;
 
     public bool RequestBreakLoop { get; private set; }
 
     public bool RequestContinueLoop { get; private set; }
+
+    public (IKeyboardEmulator Keyboard, IMouseEmulator Mouse) ResolveInputEmulationPair(string? requestedModeId) =>
+        InputModeResolver.Resolve(requestedModeId);
 
     public void StoreCapture(Guid nodeId, BitmapSource bitmap, int originScreenX, int originScreenY) =>
         _bundles[nodeId] = new ScreenBundle(bitmap, originScreenX, originScreenY);

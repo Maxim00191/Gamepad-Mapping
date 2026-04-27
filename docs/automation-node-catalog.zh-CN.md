@@ -11,8 +11,8 @@
 | `automation.delay` | 延迟 | 将执行暂停固定时长。 | `flow.in (Execution，启动计时)` | `flow.out (Execution，延迟结束后输出)` |
 | `perception.find_image` | 查找图像 | 在底图位图中搜索模板图像。 | `flow.in (Execution，开始查找)`, `haystack.image (ImageOrCoordinates，待搜索源图)` | `flow.out (Execution，查找结束后继续)`，`probe.image (ImageOrCoordinates，匹配区域预览)`，`result.found (Boolean，是否找到匹配)`，`result.x (Number，匹配 X 坐标)`，`result.y (Number，匹配 Y 坐标)`，`result.count (Integer，匹配数量)` |
 | `logic.branch_image` | 图像分支 | 根据视觉匹配逻辑路由执行流。 | `flow.in (Execution，触发分支判断)`，`probe.image (ImageOrCoordinates，待判断图像数据)`，`coord.x (Number，可选 X 坐标覆盖)`，`coord.y (Number，可选 Y 坐标覆盖)` | `branch.match (Execution，条件匹配时分支)`，`branch.miss (Execution，条件未命中时分支)` |
-| `output.keyboard_key` | 键盘按键 | 通过模拟栈发送一次按键输入。 | `flow.in (Execution，触发按键动作)`，`probe.image (ImageOrCoordinates，可选上下文图像)` | `flow.out (Execution，按键动作后继续)` |
-| `output.mouse_click` | 鼠标点击 | 注入一次鼠标按键点击。 | `flow.in (Execution，触发点击动作)`，`probe.image (ImageOrCoordinates，可选上下文图像)`，`coord.x (Number，点击目标 X)`，`coord.y (Number，点击目标 Y)` | `flow.out (Execution，点击后继续)` |
+| `output.keyboard_key` | 键盘按键 | 通过模拟栈发送一次按键输入（支持通过选择器配置节点级输入模式覆盖）。 | `flow.in (Execution，触发按键动作)`，`probe.image (ImageOrCoordinates，可选上下文图像)` | `flow.out (Execution，按键动作后继续)` |
+| `output.mouse_click` | 鼠标点击 | 注入一次鼠标按键点击（支持通过选择器配置节点级输入模式覆盖）。 | `flow.in (Execution，触发点击动作)`，`probe.image (ImageOrCoordinates，可选上下文图像)`，`coord.x (Number，点击目标 X)`，`coord.y (Number，点击目标 Y)` | `flow.out (Execution，点击后继续)` |
 | `math.add` | 加法 | 根据两个数值输入计算结果。 | `left (Number，第一个操作数)`，`right (Number，第二个操作数)` | `value (Number，加法结果)` |
 | `math.subtract` | 减法 | 根据两个数值输入计算结果。 | `left (Number，被减数)`，`right (Number，减数)` | `value (Number，减法结果)` |
 | `math.multiply` | 乘法 | 根据两个数值输入计算结果。 | `left (Number，第一个因子)`，`right (Number，第二个因子)` | `value (Number，乘法结果)` |

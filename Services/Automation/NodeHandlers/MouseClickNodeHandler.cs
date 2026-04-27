@@ -1,6 +1,7 @@
 #nullable enable
 
 using GamepadMapperGUI.Interfaces.Services.Automation;
+using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models.Automation;
 
 namespace GamepadMapperGUI.Services.Automation.NodeHandlers;
@@ -12,6 +13,8 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var requestedModeId = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.InputEmulationApiId);
+        var (_, mouse) = context.ResolveInputEmulationPair(requestedModeId);
         var useMatchPosition = AutomationNodePropertyReader.ReadBool(node.Properties, AutomationNodePropertyKeys.MouseUseMatchPosition);
         var coordinateMode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseCoordinateMode);
         var humanizeRadius = Math.Clamp(
@@ -61,18 +64,22 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
         {
             var dx = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.MouseRelativeDeltaX, 0);
             var dy = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.MouseRelativeDeltaY, 0);
-            context.Mouse.MoveBy(dx, dy);
+            mouse.MoveBy(dx, dy);
         }
         else if (hasTargetPosition)
         {
             log.Add("mouse:no_virtual_driver");
         }
 
-        ExecuteButtonAction(context, node, cancellationToken);
+        ExecuteButtonAction(context, node, mouse, cancellationToken);
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 
-    private static void ExecuteButtonAction(AutomationRuntimeContext context, AutomationNodeState node, CancellationToken cancellationToken)
+    private static void ExecuteButtonAction(
+        AutomationRuntimeContext context,
+        AutomationNodeState node,
+        IMouseEmulator mouse,
+        CancellationToken cancellationToken)
     {
         var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseActionMode);
         var button = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseButton);
@@ -81,13 +88,13 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
 
         if (string.Equals(mode, "press", StringComparison.OrdinalIgnoreCase))
         {
-            MouseDown(context, button);
+            MouseDown(mouse, button);
             return;
         }
 
         if (string.Equals(mode, "release", StringComparison.OrdinalIgnoreCase))
         {
-            MouseUp(context, button);
+            MouseUp(mouse, button);
             return;
         }
 
@@ -97,42 +104,42 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
                 AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.KeyboardHoldMilliseconds, 120),
                 1,
                 context.Limits.MaxDelayMilliseconds);
-            MouseDown(context, button);
+            MouseDown(mouse, button);
             Task.Delay(holdMs, cancellationToken).GetAwaiter().GetResult();
-            MouseUp(context, button);
+            MouseUp(mouse, button);
             return;
         }
 
-        MouseClick(context, button);
+        MouseClick(mouse, button);
     }
 
-    private static void MouseClick(AutomationRuntimeContext context, string button)
+    private static void MouseClick(IMouseEmulator mouse, string button)
     {
         if (string.Equals(button, "right", StringComparison.OrdinalIgnoreCase))
-            context.Mouse.RightClick();
+            mouse.RightClick();
         else if (string.Equals(button, "middle", StringComparison.OrdinalIgnoreCase))
-            context.Mouse.MiddleClick();
+            mouse.MiddleClick();
         else
-            context.Mouse.LeftClick();
+            mouse.LeftClick();
     }
 
-    private static void MouseDown(AutomationRuntimeContext context, string button)
+    private static void MouseDown(IMouseEmulator mouse, string button)
     {
         if (string.Equals(button, "right", StringComparison.OrdinalIgnoreCase))
-            context.Mouse.RightDown();
+            mouse.RightDown();
         else if (string.Equals(button, "middle", StringComparison.OrdinalIgnoreCase))
-            context.Mouse.MiddleDown();
+            mouse.MiddleDown();
         else
-            context.Mouse.LeftDown();
+            mouse.LeftDown();
     }
 
-    private static void MouseUp(AutomationRuntimeContext context, string button)
+    private static void MouseUp(IMouseEmulator mouse, string button)
     {
         if (string.Equals(button, "right", StringComparison.OrdinalIgnoreCase))
-            context.Mouse.RightUp();
+            mouse.RightUp();
         else if (string.Equals(button, "middle", StringComparison.OrdinalIgnoreCase))
-            context.Mouse.MiddleUp();
+            mouse.MiddleUp();
         else
-            context.Mouse.LeftUp();
+            mouse.LeftUp();
     }
 }

@@ -7,5 +7,6 @@ public enum AutomationNodeInlineEditorActionKind
     PickCaptureRegion = 2,
     ClearCaptureRegion = 3,
     PickKeyboardActionId = 4,
-    PickMouseActionId = 5
+    PickMouseActionId = 5,
+    PickInputModeId = 6
 }

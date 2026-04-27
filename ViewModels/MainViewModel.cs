@@ -1622,6 +1622,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             KeyboardActions,
             _itemSelectionDialogService,
             _keyboardActionSelectionBuilder);
+        var automationInputModeSelectionService = new AutomationInputModeSelectionService(_itemSelectionDialogService);
         var automationContractValidator = new AutomationNodeContractValidator();
         var automationSafetyPolicy = new AutomationExecutionSafetyPolicy();
         var (automationKbd, automationMouse) = CreateEmulatorPair();
@@ -1660,7 +1661,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationEdgeGeometryBuilder,
             automationPortLabelService,
             automationNodeLayoutMetricsService,
-            automationOutputActionSelectionService);
+            automationOutputActionSelectionService,
+            automationInputModeSelectionService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _mainShellVisibility, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;

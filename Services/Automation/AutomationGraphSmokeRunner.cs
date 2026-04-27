@@ -19,6 +19,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private readonly IAutomationExecutionSafetyPolicy _safetyPolicy;
     private readonly IAutomationInputStateManager _inputState;
     private readonly IHumanInputNoiseController? _humanNoise;
+    private readonly IAutomationNodeInputModeResolver _inputModeResolver;
     private readonly IReadOnlyDictionary<string, IAutomationRuntimeNodeHandler> _handlersByNodeType;
 
     private AutomationExecutionGraphIndex _index = null!;
@@ -35,7 +36,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         IAutomationNodeContractValidator contracts,
         IAutomationExecutionSafetyPolicy safetyPolicy,
         IAutomationInputStateManager? inputState = null,
-        IHumanInputNoiseController? humanNoise = null)
+        IHumanInputNoiseController? humanNoise = null,
+        IAutomationNodeInputModeResolver? inputModeResolver = null)
     {
         _capture = capture;
         _probe = probe;
@@ -48,6 +50,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _safetyPolicy = safetyPolicy;
         _inputState = inputState ?? new AutomationInputStateManager(keyboard);
         _humanNoise = humanNoise;
+        _inputModeResolver = inputModeResolver ?? new AutomationNodeInputModeResolver(keyboard, mouse);
         _handlersByNodeType = BuildHandlers();
     }
 
@@ -70,7 +73,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             Index = _index,
             Limits = _limits,
             InputState = _inputState,
-            HumanNoise = _humanNoise
+            HumanNoise = _humanNoise,
+            InputModeResolver = _inputModeResolver
         };
 
         var analysis = _topology.Analyze(document);

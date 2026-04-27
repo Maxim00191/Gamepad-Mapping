@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation;
 using Moq;
@@ -85,7 +86,9 @@ public sealed class AutomationGraphSmokeRunnerTests
 
         var result = await sut.RunOnceAsync(doc);
 
-        Assert.True(result.Ok);
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
         virtualMouse.Verify(v => v.MoveCursorToVirtualScreenPixels(142, 218), Times.Once);
         mouse.Verify(m => m.LeftClick(), Times.Once);
     }
@@ -275,7 +278,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
         var registry = new NodeTypeRegistry();
         var topology = new AutomationTopologyAnalyzer(registry);
-        mouse.Setup(m => m.MoveBy(4, -3));
+        mouse.Setup(m => m.MoveBy(4, -3, 1.0f, null));
 
         var sut = new AutomationGraphSmokeRunner(
             captureService.Object,
@@ -302,7 +305,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var result = await sut.RunOnceAsync(doc);
 
         Assert.True(result.Ok);
-        mouse.Verify(m => m.MoveBy(4, -3), Times.Once);
+        mouse.Verify(m => m.MoveBy(4, -3, 1.0f, null), Times.Once);
     }
 
     [Fact]
@@ -350,6 +353,103 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Verify(k => k.KeyUp(Key.Space), Times.Once);
     }
 
+    [Fact]
+    public async Task RunOnceAsync_UsesRequestedInputModeForKeyboardNode()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var defaultKeyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var defaultMouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var modeKeyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var modeMouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var modeResolver = new Mock<IAutomationNodeInputModeResolver>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+
+        modeResolver
+            .Setup(r => r.Resolve(InputEmulationApiIds.InputInjection))
+            .Returns((modeKeyboard.Object, modeMouse.Object));
+        modeKeyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            defaultKeyboard.Object,
+            defaultMouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy(),
+            null,
+            null,
+            modeResolver.Object);
+
+        var keyNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space",
+            [AutomationNodePropertyKeys.InputEmulationApiId] = InputEmulationApiIds.InputInjection
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [keyNode]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        modeResolver.Verify(r => r.Resolve(InputEmulationApiIds.InputInjection), Times.Once);
+        modeKeyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_UsesRequestedInputModeForMouseNode()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var defaultKeyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var defaultMouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var modeKeyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var modeMouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var modeResolver = new Mock<IAutomationNodeInputModeResolver>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+
+        modeResolver
+            .Setup(r => r.Resolve(InputEmulationApiIds.InputInjection))
+            .Returns((modeKeyboard.Object, modeMouse.Object));
+        modeMouse.Setup(m => m.LeftClick());
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            defaultKeyboard.Object,
+            defaultMouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy(),
+            null,
+            null,
+            modeResolver.Object);
+
+        var mouseNode = CreateNode("output.mouse_click", new JsonObject
+        {
+            [AutomationNodePropertyKeys.InputEmulationApiId] = InputEmulationApiIds.InputInjection
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [mouseNode]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        modeResolver.Verify(r => r.Resolve(InputEmulationApiIds.InputInjection), Times.Once);
+        modeMouse.Verify(m => m.LeftClick(), Times.Once);
+    }
+
     private sealed class FixedTapHoldNoiseController(int adjustedHoldMs) : IHumanInputNoiseController
     {
         public int AdjustDelayMs(int baseDelayMs) => baseDelayMs;
@@ -360,8 +460,14 @@ public sealed class AutomationGraphSmokeRunnerTests
             (deltaX, deltaY);
     }
 
-    private static BitmapSource CreateBitmap() =>
-        BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null, new byte[16], 8);
+    private static BitmapSource CreateBitmap()
+    {
+        var bitmap = BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null, new byte[16], 8);
+        if (bitmap.CanFreeze)
+            bitmap.Freeze();
+
+        return bitmap;
+    }
 
     private static AutomationNodeState CreateNode(string nodeTypeId, JsonObject? properties = null) =>
         new()

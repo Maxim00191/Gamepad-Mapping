@@ -2279,4 +2279,22 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_MouseJitterStickMagnitudePlaceholder" xml:space="preserve">
     <value>0.0 - 1.0</value>
   </data>
+  <data name="AutomationInlineEditor_InputMode" xml:space="preserve">
+    <value>Input Mode</value>
+  </data>
+  <data name="AutomationInlineEditor_InputModePlaceholder" xml:space="preserve">
+    <value>Leave empty for global setting, or use Win32/InputInjection</value>
+  </data>
+  <data name="AutomationInlineEditor_InputModeButton" xml:space="preserve">
+    <value>Select input mode</value>
+  </data>
+  <data name="AutomationInputModePicker_DialogTitle" xml:space="preserve">
+    <value>Select Input Mode</value>
+  </data>
+  <data name="AutomationInputModePicker_SearchPlaceholder" xml:space="preserve">
+    <value>Search mode ID or label</value>
+  </data>
+  <data name="AutomationInputModePicker_Global" xml:space="preserve">
+    <value>Use global setting</value>
+  </data>
 </root>

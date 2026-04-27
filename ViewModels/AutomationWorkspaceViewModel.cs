@@ -44,6 +44,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationPortLabelService _portLabelService;
     private readonly IAutomationNodeLayoutMetricsService _nodeLayoutMetricsService;
     private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
+    private readonly IAutomationInputModeSelectionService _inputModeSelectionService;
 
     private AutomationGraphDocument _document = new();
     private Guid? _dragUndoSessionNodeId;
@@ -72,7 +73,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationEdgeGeometryBuilder edgeGeometryBuilder,
         IAutomationPortLabelService portLabelService,
         IAutomationNodeLayoutMetricsService nodeLayoutMetricsService,
-        IAutomationOutputActionSelectionService outputActionSelectionService)
+        IAutomationOutputActionSelectionService outputActionSelectionService,
+        IAutomationInputModeSelectionService inputModeSelectionService)
     {
         _registry = registry;
         _serializer = serializer;
@@ -89,6 +91,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _portLabelService = portLabelService;
         _nodeLayoutMetricsService = nodeLayoutMetricsService;
         _outputActionSelectionService = outputActionSelectionService;
+        _inputModeSelectionService = inputModeSelectionService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
@@ -689,6 +692,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         {
             var actionId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.MouseActionId);
             return _outputActionSelectionService.BuildMouseActionPickerDisplayText(actionId);
+        }
+
+        if (definition.ActionKind == AutomationNodeInlineEditorActionKind.PickInputModeId)
+        {
+            var inputModeId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.InputEmulationApiId);
+            return _inputModeSelectionService.BuildInputModePickerDisplayText(inputModeId);
         }
 
         return definition.ActionLabelResourceKey is not null
@@ -1388,6 +1397,11 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 PickMouseActionForNode(node);
                 break;
             }
+            case AutomationNodeInlineEditorActionKind.PickInputModeId:
+            {
+                PickInputModeForNode(node);
+                break;
+            }
         }
     }
 
@@ -1431,6 +1445,24 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.MouseActionMode, resolvedAction.ActionMode);
             AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.MouseButton, resolvedAction.Button);
         }
+        PopulateInlineEditors(node);
+    }
+
+    private void PickInputModeForNode(AutomationCanvasNodeViewModel node)
+    {
+        var props = node.State.Properties ??= new JsonObject();
+        var currentModeId = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.InputEmulationApiId);
+        var selected = _inputModeSelectionService.PickInputModeId(Application.Current?.MainWindow, currentModeId);
+        if (selected is null)
+            return;
+
+        var nextModeId = AutomationInputModeCatalog.NormalizeModeId(selected);
+        var previousModeId = AutomationInputModeCatalog.NormalizeModeId(currentModeId);
+        if (string.Equals(previousModeId, nextModeId, StringComparison.Ordinal))
+            return;
+
+        PushUndoCheckpoint();
+        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.InputEmulationApiId, nextModeId);
         PopulateInlineEditors(node);
     }
 

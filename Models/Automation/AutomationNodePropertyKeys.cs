@@ -16,6 +16,7 @@ public static class AutomationNodePropertyKeys
     public const string KeyboardActionId = "keyboardActionId";
     public const string KeyboardActionMode = "keyboardActionMode";
     public const string KeyboardHoldMilliseconds = "keyboardHoldMs";
+    public const string InputEmulationApiId = "inputEmulationApiId";
 
     public const string MouseUseMatchPosition = "mouseUseMatchPosition";
     public const string MouseActionId = "mouseActionId";
