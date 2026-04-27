@@ -1866,7 +1866,7 @@
     <value>执行图存在环路时无法运行。</value>
   </data>
   <data name="AutomationSmoke_NoRoot" xml:space="preserve">
-    <value>没有入口节点 — 每个节点都有入边。</value>
+    <value>未发现起始节点：所有节点均有前驱连接。</value>
   </data>
   <data name="AutomationSmoke_EmptyRoi" xml:space="preserve">
     <value>截取节点为 ROI 模式但未定义矩形。</value>
@@ -2326,5 +2326,14 @@
   </data>
   <data name="AutomationInlineEditor_EventSignalPlaceholder" xml:space="preserve">
     <value>例如：engine.start</value>
+  </data>
+  <data name="AutomationWorkspace_RunBackground" xml:space="preserve">
+    <value>后台运行当前脚本</value>
+  </data>
+  <data name="AutomationWorkspace_BackgroundRunStart" xml:space="preserve">
+    <value>[后台] 正在启动当前自动化脚本...</value>
+  </data>
+  <data name="AutomationWorkspace_BackgroundRunCompletedToast" xml:space="preserve">
+    <value>后台自动化检查已完成。</value>
   </data>
 </root>

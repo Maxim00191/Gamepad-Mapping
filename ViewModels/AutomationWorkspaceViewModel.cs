@@ -37,7 +37,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAppToastService _toast;
     private readonly IAutomationScreenCaptureService _screenCapture;
     private readonly IAutomationRegionPickerService _regionPicker;
-    private readonly IAutomationGraphSmokeRunner _smokeRunner;
+    private readonly IAutomationScriptRunner _scriptRunner;
     private readonly IAutomationConnectionPolicy _connectionPolicy;
     private readonly IAutomationNodeInlineEditorSchemaService _inlineEditorSchema;
     private readonly IAutomationEdgeGeometryBuilder _edgeGeometryBuilder;
@@ -67,7 +67,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAppToastService toast,
         IAutomationScreenCaptureService screenCapture,
         IAutomationRegionPickerService regionPicker,
-        IAutomationGraphSmokeRunner smokeRunner,
+        IAutomationScriptRunner scriptRunner,
         IAutomationConnectionPolicy connectionPolicy,
         IAutomationNodeInlineEditorSchemaService inlineEditorSchema,
         IAutomationEdgeGeometryBuilder edgeGeometryBuilder,
@@ -84,7 +84,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _toast = toast;
         _screenCapture = screenCapture;
         _regionPicker = regionPicker;
-        _smokeRunner = smokeRunner;
+        _scriptRunner = scriptRunner;
         _connectionPolicy = connectionPolicy;
         _inlineEditorSchema = inlineEditorSchema;
         _edgeGeometryBuilder = edgeGeometryBuilder;
@@ -160,6 +160,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     [ObservableProperty]
     private string _automationRunLog = "";
+
+    [ObservableProperty]
+    private bool _isBackgroundCheckRunning;
+
+    partial void OnIsBackgroundCheckRunningChanged(bool value) =>
+        RunCurrentScriptInBackgroundCommand.NotifyCanExecuteChanged();
 
     private void OnCanvasNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
         ShowMinimap = CanvasNodes.Count >= 8;
@@ -1308,29 +1314,33 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     [RelayCommand]
     private async Task RunSmokeOnceAsync()
     {
-        AppendAutomationLog(Local("AutomationSmoke_Start"));
+        await ExecuteScriptRunAsync(
+            Local("AutomationSmoke_Start"),
+            "AutomationSmoke_Title",
+            "AutomationSmoke_CompletedToast",
+            showFailureDialog: true);
+    }
+
+    private bool CanRunCurrentScriptInBackground() => !IsBackgroundCheckRunning;
+
+    [RelayCommand(CanExecute = nameof(CanRunCurrentScriptInBackground))]
+    private async Task RunCurrentScriptInBackgroundAsync()
+    {
+        if (IsBackgroundCheckRunning)
+            return;
+
+        IsBackgroundCheckRunning = true;
         try
         {
-            var result = await _smokeRunner.RunOnceAsync(_document);
-            foreach (var line in result.LogLines)
-                AppendAutomationLog(line);
-
-            var msg = result.MessageResourceKey is not null ? Local(result.MessageResourceKey) : "";
-            if (!string.IsNullOrEmpty(msg))
-                AppendAutomationLog(msg);
-            if (!string.IsNullOrEmpty(result.Detail))
-                AppendAutomationLog(result.Detail);
-
-            if (result.Ok)
-                _toast.ShowInfo("AutomationSmoke_Title", "AutomationSmoke_CompletedToast");
-            else
-                _dialogs.ShowWarning(string.IsNullOrEmpty(msg) ? Local("AutomationSmoke_Title") : msg,
-                    Local("AutomationSmoke_Title"));
+            await ExecuteScriptRunAsync(
+                Local("AutomationWorkspace_BackgroundRunStart"),
+                "AutomationSmoke_Title",
+                "AutomationWorkspace_BackgroundRunCompletedToast",
+                showFailureDialog: false);
         }
-        catch (Exception ex)
+        finally
         {
-            AppendAutomationLog(ex.Message);
-            _dialogs.ShowError(ex.Message, Local("AutomationSmoke_Title"));
+            IsBackgroundCheckRunning = false;
         }
     }
 
@@ -1517,6 +1527,56 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     {
         AutomationRunLog = string.IsNullOrEmpty(AutomationRunLog) ? line : $"{AutomationRunLog}\n{line}";
     }
+
+    private async Task ExecuteScriptRunAsync(
+        string startLogLine,
+        string toastTitleResourceKey,
+        string successToastMessageResourceKey,
+        bool showFailureDialog)
+    {
+        AppendAutomationLog(startLogLine);
+        try
+        {
+            var documentSnapshot = _serializer.Deserialize(_serializer.Serialize(_document));
+            var result = await _scriptRunner.RunDocumentOnceAsync(documentSnapshot);
+            AppendRunResultLogs(result);
+
+            var message = ResolveResultMessage(result);
+            if (result.Ok)
+            {
+                _toast.ShowInfo(toastTitleResourceKey, successToastMessageResourceKey);
+                return;
+            }
+
+            if (showFailureDialog)
+            {
+                _dialogs.ShowWarning(
+                    string.IsNullOrEmpty(message) ? Local(toastTitleResourceKey) : message,
+                    Local(toastTitleResourceKey));
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendAutomationLog(ex.Message);
+            if (showFailureDialog)
+                _dialogs.ShowError(ex.Message, Local(toastTitleResourceKey));
+        }
+    }
+
+    private void AppendRunResultLogs(AutomationSmokeRunResult result)
+    {
+        foreach (var line in result.LogLines)
+            AppendAutomationLog(line);
+
+        var message = ResolveResultMessage(result);
+        if (!string.IsNullOrEmpty(message))
+            AppendAutomationLog(message);
+        if (!string.IsNullOrEmpty(result.Detail))
+            AppendAutomationLog(result.Detail);
+    }
+
+    private static string ResolveResultMessage(AutomationSmokeRunResult result) =>
+        result.MessageResourceKey is not null ? Local(result.MessageResourceKey) : "";
 
     private void RefreshRoiThumbnail(AutomationCanvasNodeViewModel? node)
     {

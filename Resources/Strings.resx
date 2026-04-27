@@ -2327,4 +2327,13 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_EventSignalPlaceholder" xml:space="preserve">
     <value>Example: engine.start</value>
   </data>
+  <data name="AutomationWorkspace_RunBackground" xml:space="preserve">
+    <value>Run Current Script (Background)</value>
+  </data>
+  <data name="AutomationWorkspace_BackgroundRunStart" xml:space="preserve">
+    <value>[Background] Starting current automation script...</value>
+  </data>
+  <data name="AutomationWorkspace_BackgroundRunCompletedToast" xml:space="preserve">
+    <value>Background automation check completed.</value>
+  </data>
 </root>

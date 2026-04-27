@@ -1610,9 +1610,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _appToastService,
             _userDialogService,
             s.CommunityCatalogRefreshCooldownSeconds);
-        var automationRegistry = new NodeTypeRegistry();
-        var automationCapture = new AutomationScreenCaptureGdiService();
-        var automationTopology = new AutomationTopologyAnalyzer(automationRegistry);
+        var automationExecutionFactory = new AutomationExecutionServicesFactory();
         var automationConnectionPolicy = new AutomationConnectionPolicy();
         var automationInlineSchema = new AutomationNodeInlineEditorSchemaService();
         var automationEdgeGeometryBuilder = new AutomationEdgeGeometryBuilder();
@@ -1623,39 +1621,25 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _itemSelectionDialogService,
             _keyboardActionSelectionBuilder);
         var automationInputModeSelectionService = new AutomationInputModeSelectionService(_itemSelectionDialogService);
-        var automationContractValidator = new AutomationNodeContractValidator();
-        var automationSafetyPolicy = new AutomationExecutionSafetyPolicy();
         var (automationKbd, automationMouse) = CreateEmulatorPair();
-        var templateMatcher = new AutomationTemplateMatcherBruteForce();
-        var visionTemplate = new AutomationTemplateMatchVisionAlgorithm(templateMatcher);
-        var visionThreshold = new AutomationColorThresholdVisionAlgorithm();
-        var visionContour = new AutomationContourVisionAlgorithm(visionThreshold);
-        var visionPipeline = new AutomationVisionPipeline([visionTemplate, visionThreshold, visionContour]);
-        var automationProbe = new AutomationImageProbe(visionPipeline);
-        var automationInputState = new AutomationInputStateManager(automationKbd);
         var automationHumanNoise = CreateAutomationHumanNoiseController();
-        var automationSmoke = new AutomationGraphSmokeRunner(
-            automationCapture,
-            automationProbe,
+        var automationInputModeResolver = new AutomationNodeInputModeResolver(automationKbd, automationMouse);
+        var automationExecution = automationExecutionFactory.Create(
             automationKbd,
             automationMouse,
-            automationMouse as IVirtualScreenMouse,
-            automationRegistry,
-            automationTopology,
-            automationContractValidator,
-            automationSafetyPolicy,
-            automationInputState,
-            automationHumanNoise);
+            automationHumanNoise,
+            automationInputModeResolver);
+        var automationScriptRunner = new AutomationScriptRunner(new AutomationGraphJsonSerializer(), automationExecution.SmokeRunner);
         AutomationWorkspacePanel = new AutomationWorkspaceViewModel(
-            automationRegistry,
+            automationExecution.NodeRegistry,
             new AutomationGraphJsonSerializer(),
-            automationTopology,
+            automationExecution.TopologyAnalyzer,
             new AutomationUndoCoordinator(),
             _userDialogService,
             _appToastService,
-            automationCapture,
-            new AutomationRegionPickerService(automationCapture, _dispatcher),
-            automationSmoke,
+            automationExecution.ScreenCapture,
+            new AutomationRegionPickerService(automationExecution.ScreenCapture, _dispatcher),
+            automationScriptRunner,
             automationConnectionPolicy,
             automationInlineSchema,
             automationEdgeGeometryBuilder,

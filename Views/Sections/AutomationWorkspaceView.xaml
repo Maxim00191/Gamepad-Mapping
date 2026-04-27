@@ -224,6 +224,10 @@
                                 Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunSmoke]}" />
                         <Button Margin="0,0,8,4"
                                 Padding="10,4"
+                                Command="{Binding RunCurrentScriptInBackgroundCommand}"
+                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}" />
+                        <Button Margin="0,0,8,4"
+                                Padding="10,4"
                                 Command="{Binding DeleteSelectedCommand}"
                                 Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Delete]}" />
                         <CheckBox Margin="10,6,8,4"
