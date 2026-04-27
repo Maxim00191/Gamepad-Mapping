@@ -128,6 +128,7 @@ public partial class MainWindow : Window
         e.Cancel = true;
         _viewModel.OnMainWindowHiddenToTray();
         _trayNotifyIconService.EnsureIconCreatedAndVisible();
+        ShowInTaskbar = false;
         Hide();
         base.OnClosing(e);
     }

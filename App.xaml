@@ -979,7 +979,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Tray context menu (TrayNotifyIconService): plain text rows only — default MenuItem template reserves a left glyph column that stays light and clashes with themed surfaces. -->
+        <!-- Tray context menu (TrayNotifyIconService): plain text rows; custom template avoids default ScrollViewer (often white) obscuring short menus. -->
         <Style x:Key="TrayNotifyContextMenuStyle" TargetType="{x:Type ContextMenu}">
             <Setter Property="SnapsToDevicePixels" Value="True" />
             <Setter Property="UseLayoutRounding" Value="True" />
@@ -990,6 +990,23 @@
             <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
+                            <StackPanel IsItemsHost="True"
+                                        Background="Transparent"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle"
+                                        Orientation="Vertical" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="TrayNotifyMenuItemStyle" TargetType="{x:Type MenuItem}">
             <Setter Property="SnapsToDevicePixels" Value="True" />

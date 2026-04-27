@@ -2,7 +2,8 @@ namespace GamepadMapperGUI.Interfaces.Services.Infrastructure;
 
 /// <summary>
 /// Tracks whether the primary application shell (main window) is visible or intentionally hidden to the tray.
-/// Used to reduce non-essential UI work while mapping input continues to run.
+/// Mapping, gamepad polling, and overlay HUD windows are unaffected; subscribers use this to throttle non-essential
+/// main-window chrome (status line, monitor panel refresh, marshaled diagnostics).
 /// </summary>
 public interface IMainShellVisibility
 {

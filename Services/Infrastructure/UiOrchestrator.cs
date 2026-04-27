@@ -35,6 +35,14 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
         _mainShellVisibility = mainShellVisibility;
     }
 
+    private void RunOnDispatcher(Action apply, DispatcherPriority priority = DispatcherPriority.Background)
+    {
+        if (_dispatcher.CheckAccess())
+            apply();
+        else
+            _dispatcher.BeginInvoke(apply, priority);
+    }
+
     /// <inheritdoc cref="IUiOrchestrator.UpdateStatus"/>
     public void UpdateStatus(AppTargetingState state, string statusText)
     {
@@ -47,10 +55,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             TargetStatusText = statusText;
         }
 
-        if (_dispatcher.CheckAccess())
-            Apply();
-        else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
+        RunOnDispatcher(Apply);
     }
 
     public void ShowComboHud(ComboHudContent? content, byte alpha, double shadowOpacity, string placement)
@@ -73,10 +78,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             _comboHudWindow.ShowHud(content, alpha, shadowOpacity, p);
         }
 
-        if (_dispatcher.CheckAccess())
-            Apply();
-        else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
+        RunOnDispatcher(Apply);
     }
 
     public void ShowTemplateSwitchHud(string profileDisplayName, double seconds, byte alpha, double shadowOpacity, string placement, Action onFinished)
@@ -119,10 +121,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             _templateSwitchHudTimer.Start();
         }
 
-        if (_dispatcher.CheckAccess())
-            Apply();
-        else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
+        RunOnDispatcher(Apply);
     }
 
     public void HideAllHuds()
@@ -139,10 +138,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
             _templateSwitchHudWindow?.HideHud();
         }
 
-        if (_dispatcher.CheckAccess())
-            Apply();
-        else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
+        RunOnDispatcher(Apply);
     }
 
     public void ApplyHudVisuals(byte alpha, double shadowOpacity)
@@ -153,10 +149,7 @@ public partial class UiOrchestrator : ObservableObject, IUiOrchestrator
                 _comboHudWindow.ApplyVisualSettings(alpha, shadowOpacity);
         }
 
-        if (_dispatcher.CheckAccess())
-            Apply();
-        else
-            _dispatcher.BeginInvoke(Apply, DispatcherPriority.Background);
+        RunOnDispatcher(Apply);
     }
 
     public void ShowToast(string title, string message, Action? onClosed = null)

@@ -1048,7 +1048,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings));
 
     private Action<string> MarshaledGamepadMonitorSetter(Action<string> apply) =>
-        s => _uiSync.Post(() => apply(s), UiPostPriority.Background);
+        s =>
+        {
+            if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+                return;
+            _uiSync.Post(() => apply(s), UiPostPriority.Background);
+        };
 
     private IMappingEngine NewMappingEngine(IKeyboardEmulator keyboard, IMouseEmulator mouse)
     {
@@ -1068,7 +1073,11 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             pid => _dispatcher.BeginInvoke(() => _profileOrchestrator.RequestTemplateSwitch(pid), DispatcherPriority.Background),
             profileService: _profileService,
             setComboHudGateHint: s =>
-                _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty, DispatcherPriority.Background),
+            {
+                if (_mainShellVisibility?.IsPrimaryShellHiddenToTray == true)
+                    return;
+                _dispatcher.BeginInvoke(() => GamepadMonitorPanel.ComboHudGateHint = s ?? string.Empty, DispatcherPriority.Background);
+            },
             comboHudGateMessageFactory: _settingsOrchestrator.GetComboHudGateMessageFactory(),
             radialMenuHud: _radialMenuHud,
             getRadialMenuStickEngagementThreshold: () => DefaultAnalogActivationThreshold,
@@ -1580,7 +1589,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _appToastService,
             _userDialogService,
             s.CommunityCatalogRefreshCooldownSeconds);
-        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _dispatcher);
+        GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _mainShellVisibility, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;
         ProcessTargetPanel = new ProcessTargetPanelViewModel(this);

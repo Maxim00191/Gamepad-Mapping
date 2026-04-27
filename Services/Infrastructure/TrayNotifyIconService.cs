@@ -115,6 +115,7 @@ public sealed class TrayNotifyIconService : IDisposable
 
     private void RestoreMainWindow()
     {
+        _window.ShowInTaskbar = true;
         _window.Show();
         _window.WindowState = WindowState.Normal;
         _window.Activate();
