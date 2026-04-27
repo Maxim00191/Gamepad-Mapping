@@ -33,6 +33,9 @@ This document lists all currently registered automation nodes, their purpose, an
 | `control.pid_controller` | PID Controller | Computes a continuous control signal from current and target values. | `current.value (Number, measured process value)`, `target.value (Number, desired setpoint)` | `control.signal (Number, computed control output)` |
 | `output.key_state` | Key State | Holds, releases, or inspects keyboard key state. | `flow.in (Execution, triggers key-state action)` | `flow.out (Execution, emitted after action)`, `result.pressed (Boolean, current pressed state)` |
 | `output.human_noise` | Human Noise | Applies human-like noise to a configured mouse delta and emits movement. | `flow.in (Execution, triggers noise/movement output)` | `flow.out (Execution, emitted after movement)` |
+| `automation.macro` | Macro | Executes a referenced sub-graph and then resumes outer flow. | `flow.in (Execution, enters macro)` | `flow.out (Execution, resumes parent graph)` |
+| `event.listener` | Event Listener | Trigger node that starts a flow branch when a matching signal is published. | *(none)* | `flow.out (Execution, starts listener branch)` |
+| `event.emit` | Emit Event | Publishes a named signal on the automation event bus. | `flow.in (Execution, publishes signal)` | `flow.out (Execution, continues after publish)` |
 
 ## Type Legend
 

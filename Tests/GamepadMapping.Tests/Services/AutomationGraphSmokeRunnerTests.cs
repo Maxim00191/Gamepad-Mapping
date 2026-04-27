@@ -450,6 +450,120 @@ public sealed class AutomationGraphSmokeRunnerTests
         modeMouse.Verify(m => m.LeftClick(), Times.Once);
     }
 
+    [Fact]
+    public async Task RunOnceAsync_ExecutesMacroSubgraphAndReturnsToParentFlow()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+        keyboard.Setup(k => k.TapKey(Key.A, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var macroNode = CreateNode("automation.macro", new JsonObject
+        {
+            [AutomationNodePropertyKeys.MacroSubgraphId] = "combat.opening"
+        });
+        var followUp = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "A"
+        });
+        var subgraphKey = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [macroNode, followUp],
+            Edges =
+            [
+                Edge(macroNode.Id, "flow.out", followUp.Id, "flow.in")
+            ],
+            Subgraphs =
+            [
+                new AutomationSubgraphDefinition
+                {
+                    Id = "combat.opening",
+                    DisplayName = "Combat Opening",
+                    Graph = new AutomationGraphDocument
+                    {
+                        Nodes = [subgraphKey]
+                    }
+                }
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+        keyboard.Verify(k => k.TapKey(Key.A, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_TriggersEventListenerAfterEventEmit()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var emitter = CreateNode("event.emit", new JsonObject
+        {
+            [AutomationNodePropertyKeys.EventSignal] = "combat.start"
+        });
+        var listener = CreateNode("event.listener", new JsonObject
+        {
+            [AutomationNodePropertyKeys.EventSignal] = "combat.start"
+        });
+        var action = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [emitter, listener, action],
+            Edges =
+            [
+                Edge(listener.Id, "flow.out", action.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+    }
+
     private sealed class FixedTapHoldNoiseController(int adjustedHoldMs) : IHumanInputNoiseController
     {
         public int AdjustDelayMs(int baseDelayMs) => baseDelayMs;

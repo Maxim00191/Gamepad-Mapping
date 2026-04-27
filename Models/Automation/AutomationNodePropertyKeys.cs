@@ -67,4 +67,8 @@ public static class AutomationNodePropertyKeys
     public const string PidKp = "pidKp";
     public const string PidKi = "pidKi";
     public const string PidKd = "pidKd";
+
+    public const string MacroSubgraphId = "macroSubgraphId";
+    public const string EventSignal = "eventSignal";
+    public const string StateMachineId = "stateMachineId";
 }

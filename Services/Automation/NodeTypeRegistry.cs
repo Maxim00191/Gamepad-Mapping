@@ -379,6 +379,9 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
         BuildPidControllerNode(),
         BuildKeyStateNode(),
         BuildMouseJitterNode(),
+        BuildMacroNode(),
+        BuildEventListenerNode(),
+        BuildEventEmitNode(),
         BuildLogNode()
     ];
 
@@ -574,6 +577,54 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             ]
         }
     ;
+
+    private static AutomationNodeTypeDefinition BuildMacroNode() =>
+        new()
+        {
+            Id = "automation.macro",
+            DisplayNameResourceKey = "AutomationNode_Display_Macro",
+            SummaryResourceKey = "AutomationNode_Summary_Macro",
+            GlyphFontGlyph = "\uE943",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.in", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildEventListenerNode() =>
+        new()
+        {
+            Id = "event.listener",
+            DisplayNameResourceKey = "AutomationNode_Display_EventListener",
+            SummaryResourceKey = "AutomationNode_Summary_EventListener",
+            GlyphFontGlyph = "\uE7C3",
+            InputPorts = [],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildEventEmitNode() =>
+        new()
+        {
+            Id = "event.emit",
+            DisplayNameResourceKey = "AutomationNode_Display_EventEmit",
+            SummaryResourceKey = "AutomationNode_Summary_EventEmit",
+            GlyphFontGlyph = "\uE7C3",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.in", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
+            ]
+        };
 
     private static AutomationNodeTypeDefinition BuildPidControllerNode() =>
         new()

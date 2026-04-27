@@ -33,6 +33,9 @@
 | `control.pid_controller` | PID 控制器 | 根据当前值与目标值计算连续控制信号。 | `current.value (Number，当前测量值)`，`target.value (Number，目标设定值)` | `control.signal (Number，计算得到的控制输出)` |
 | `output.key_state` | 按键状态 | 按住、释放或读取键盘按键状态。 | `flow.in (Execution，触发按键状态动作)` | `flow.out (Execution，动作执行后继续)`，`result.pressed (Boolean，当前是否处于按下状态)` |
 | `output.human_noise` | 人类噪声 | 对配置的鼠标位移施加人类化噪声并输出移动。 | `flow.in (Execution，触发噪声/移动输出)` | `flow.out (Execution，移动输出后继续)` |
+| `automation.macro` | 宏子图 | 执行引用的子图，完成后回到外层流程。 | `flow.in (Execution，进入宏子图)` | `flow.out (Execution，返回父流程)` |
+| `event.listener` | 事件监听 | 触发节点；当匹配事件信号发布时启动分支。 | *(无)* | `flow.out (Execution，启动监听分支)` |
+| `event.emit` | 发布事件 | 向自动化事件总线发布命名信号。 | `flow.in (Execution，发布事件)` | `flow.out (Execution，发布后继续)` |
 
 ## 类型说明
 

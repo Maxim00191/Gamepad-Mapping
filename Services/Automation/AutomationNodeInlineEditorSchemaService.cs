@@ -435,6 +435,42 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     MinDoubleValue = 0,
                     MaxDoubleValue = 1
                 }
+            ],
+            ["automation.macro"] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "automation.macro",
+                    PropertyKey = AutomationNodePropertyKeys.MacroSubgraphId,
+                    LabelResourceKey = "AutomationInlineEditor_MacroSubgraphId",
+                    PlaceholderResourceKey = "AutomationInlineEditor_MacroSubgraphIdPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = ""
+                }
+            ],
+            ["event.listener"] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "event.listener",
+                    PropertyKey = AutomationNodePropertyKeys.EventSignal,
+                    LabelResourceKey = "AutomationInlineEditor_EventSignal",
+                    PlaceholderResourceKey = "AutomationInlineEditor_EventSignalPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = "engine.start"
+                }
+            ],
+            ["event.emit"] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "event.emit",
+                    PropertyKey = AutomationNodePropertyKeys.EventSignal,
+                    LabelResourceKey = "AutomationInlineEditor_EventSignal",
+                    PlaceholderResourceKey = "AutomationInlineEditor_EventSignalPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = ""
+                }
             ]
         };
 }

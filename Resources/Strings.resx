@@ -2297,4 +2297,34 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInputModePicker_Global" xml:space="preserve">
     <value>Use global setting</value>
   </data>
+  <data name="AutomationNode_Display_Macro" xml:space="preserve">
+    <value>Macro</value>
+  </data>
+  <data name="AutomationNode_Summary_Macro" xml:space="preserve">
+    <value>Executes a referenced sub-graph and then resumes outer flow.</value>
+  </data>
+  <data name="AutomationNode_Display_EventListener" xml:space="preserve">
+    <value>Event Listener</value>
+  </data>
+  <data name="AutomationNode_Summary_EventListener" xml:space="preserve">
+    <value>Starts execution when a matching event signal is published.</value>
+  </data>
+  <data name="AutomationNode_Display_EventEmit" xml:space="preserve">
+    <value>Emit Event</value>
+  </data>
+  <data name="AutomationNode_Summary_EventEmit" xml:space="preserve">
+    <value>Publishes a named signal to the automation event bus.</value>
+  </data>
+  <data name="AutomationInlineEditor_MacroSubgraphId" xml:space="preserve">
+    <value>Subgraph ID</value>
+  </data>
+  <data name="AutomationInlineEditor_MacroSubgraphIdPlaceholder" xml:space="preserve">
+    <value>Enter the referenced subgraph ID</value>
+  </data>
+  <data name="AutomationInlineEditor_EventSignal" xml:space="preserve">
+    <value>Event Signal</value>
+  </data>
+  <data name="AutomationInlineEditor_EventSignalPlaceholder" xml:space="preserve">
+    <value>Example: engine.start</value>
+  </data>
 </root>

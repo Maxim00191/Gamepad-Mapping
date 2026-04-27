@@ -30,7 +30,7 @@ public sealed class AutomationRuntimeContext
 
     public IVirtualScreenMouse? VirtualMouse { get; init; }
 
-    public required IAutomationExecutionGraphIndex Index { get; init; }
+    public required IAutomationExecutionGraphIndex Index { get; set; }
 
     public required AutomationExecutionSafetyLimits Limits { get; init; }
 
@@ -39,6 +39,8 @@ public sealed class AutomationRuntimeContext
     public IHumanInputNoiseController? HumanNoise { get; init; }
 
     public required IAutomationNodeInputModeResolver InputModeResolver { get; init; }
+
+    public required IAutomationEventBus EventBus { get; init; }
 
     public double DeltaTimeSeconds { get; set; } = 1d / 60d;
 

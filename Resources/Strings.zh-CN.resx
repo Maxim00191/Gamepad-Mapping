@@ -2297,4 +2297,34 @@
   <data name="AutomationInputModePicker_Global" xml:space="preserve">
     <value>使用全局设置</value>
   </data>
+  <data name="AutomationNode_Display_Macro" xml:space="preserve">
+    <value>宏子图</value>
+  </data>
+  <data name="AutomationNode_Summary_Macro" xml:space="preserve">
+    <value>执行引用的子图，然后返回外层流程继续运行。</value>
+  </data>
+  <data name="AutomationNode_Display_EventListener" xml:space="preserve">
+    <value>事件监听</value>
+  </data>
+  <data name="AutomationNode_Summary_EventListener" xml:space="preserve">
+    <value>当匹配事件信号发布时启动执行分支。</value>
+  </data>
+  <data name="AutomationNode_Display_EventEmit" xml:space="preserve">
+    <value>发布事件</value>
+  </data>
+  <data name="AutomationNode_Summary_EventEmit" xml:space="preserve">
+    <value>向自动化事件总线发布命名信号。</value>
+  </data>
+  <data name="AutomationInlineEditor_MacroSubgraphId" xml:space="preserve">
+    <value>子图 ID</value>
+  </data>
+  <data name="AutomationInlineEditor_MacroSubgraphIdPlaceholder" xml:space="preserve">
+    <value>输入要调用的子图 ID</value>
+  </data>
+  <data name="AutomationInlineEditor_EventSignal" xml:space="preserve">
+    <value>事件信号</value>
+  </data>
+  <data name="AutomationInlineEditor_EventSignalPlaceholder" xml:space="preserve">
+    <value>例如：engine.start</value>
+  </data>
 </root>
