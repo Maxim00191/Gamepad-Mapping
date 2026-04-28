@@ -420,6 +420,43 @@ public sealed class AutomationGraphSmokeRunnerTests
     }
 
     [Fact]
+    public async Task RunOnceAsync_FailsWhenCaptureCacheReferenceIsInvalidGuid()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureCacheRefNodeId] = "not-a-guid"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.False(result.Ok);
+        Assert.Equal("AutomationSmoke_RunFailed", result.MessageResourceKey);
+        Assert.Equal("capture_screen:cache_ref_invalid", result.Detail);
+    }
+
+    [Fact]
     public async Task RunOnceAsync_ExecutesVariableMathAndBooleanBranch()
     {
         var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);

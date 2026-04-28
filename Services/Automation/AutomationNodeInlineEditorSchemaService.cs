@@ -116,20 +116,29 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     PropertyKey = AutomationNodePropertyKeys.CaptureMode,
                     LabelResourceKey = "AutomationInlineEditor_CaptureMode",
                     Kind = AutomationNodeInlineEditorKind.Choice,
-                    DefaultTextValue = "full",
+                    DefaultTextValue = AutomationCaptureMode.Full,
                     ChoiceOptions =
                     [
                         new AutomationNodeInlineChoiceOption
                         {
-                            StoredValue = "full",
+                            StoredValue = AutomationCaptureMode.Full,
                             LabelResourceKey = "AutomationInlineEditor_CaptureModeFull"
                         },
                         new AutomationNodeInlineChoiceOption
                         {
-                            StoredValue = "roi",
+                            StoredValue = AutomationCaptureMode.Roi,
                             LabelResourceKey = "AutomationInlineEditor_CaptureModeRoi"
                         }
                     ]
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.capture_screen",
+                    PropertyKey = AutomationNodePropertyKeys.CaptureCacheRefNodeId,
+                    LabelResourceKey = "AutomationInlineEditor_CaptureCacheRefNodeId",
+                    PlaceholderResourceKey = "AutomationInlineEditor_CaptureCacheRefNodeIdPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = ""
                 },
                 new AutomationNodeInlineEditorDefinition
                 {

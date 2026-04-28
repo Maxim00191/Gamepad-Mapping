@@ -13,12 +13,26 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
     {
         var service = new AutomationNodeInlineEditorSchemaService();
 
-        var definitions = service.GetDefinitions("perception.find_image");
+        var definitions = service.GetDefinitions("perception.capture_screen");
 
         Assert.True(definitions.Count > 1);
         Assert.Equal(AutomationNodePropertyKeys.Description, definitions[0].PropertyKey);
         Assert.Contains(definitions, definition =>
-            definition.PropertyKey == AutomationNodePropertyKeys.FindImageNeedlePath);
+            definition.PropertyKey == AutomationNodePropertyKeys.CaptureCacheRefNodeId);
+    }
+
+    [Fact]
+    public void GetDefinitions_CaptureScreenCacheRef_UsesTextEditorWithPlaceholder()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+
+        var definitions = service.GetDefinitions("perception.capture_screen");
+        var cacheRef = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.CaptureCacheRefNodeId);
+
+        Assert.Equal(AutomationNodeInlineEditorKind.Text, cacheRef.Kind);
+        Assert.Equal("AutomationInlineEditor_CaptureCacheRefNodeId", cacheRef.LabelResourceKey);
+        Assert.Equal("AutomationInlineEditor_CaptureCacheRefNodeIdPlaceholder", cacheRef.PlaceholderResourceKey);
+        Assert.Equal(string.Empty, cacheRef.DefaultTextValue);
     }
 
     [Fact]

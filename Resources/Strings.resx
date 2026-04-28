@@ -2483,4 +2483,37 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_CaptureModeRoi" xml:space="preserve">
     <value>Region (ROI)</value>
   </data>
+  <data name="AutomationInlineEditor_CaptureCacheRefNodeId" xml:space="preserve">
+    <value>Reuse Capture From Node ID</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureCacheRefNodeIdPlaceholder" xml:space="preserve">
+    <value>Optional GUID of another capture node to reuse</value>
+  </data>
+  <data name="AutomationNodeContextMenu_Title" xml:space="preserve">
+    <value>Node Action</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeId" xml:space="preserve">
+    <value>Copy Node ID</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeTypeId" xml:space="preserve">
+    <value>Copy Node Type ID</value>
+  </data>
+  <data name="AutomationNodeContextMenu_UseAsCaptureCacheSource" xml:space="preserve">
+    <value>Use as Cache Source for Selected Capture Node</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeId_Success" xml:space="preserve">
+    <value>Node ID copied.</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeTypeId_Success" xml:space="preserve">
+    <value>Node type ID copied.</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyFailed" xml:space="preserve">
+    <value>Copy failed. Please try again.</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CaptureCacheApply_Success" xml:space="preserve">
+    <value>Capture cache source updated.</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CaptureCacheApply_InvalidSelection" xml:space="preserve">
+    <value>Select a capture node first, then right-click another capture node.</value>
+  </data>
 </root>

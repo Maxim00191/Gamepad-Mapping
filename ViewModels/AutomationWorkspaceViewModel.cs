@@ -47,6 +47,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationNodeLayoutMetricsService _nodeLayoutMetricsService;
     private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
     private readonly IAutomationInputModeSelectionService _inputModeSelectionService;
+    private readonly IAutomationNodeContextMenuService _nodeContextMenuService;
 
     private AutomationGraphDocument _document = new();
     private Guid? _dragUndoSessionNodeId;
@@ -78,7 +79,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationPortLabelService portLabelService,
         IAutomationNodeLayoutMetricsService nodeLayoutMetricsService,
         IAutomationOutputActionSelectionService outputActionSelectionService,
-        IAutomationInputModeSelectionService inputModeSelectionService)
+        IAutomationInputModeSelectionService inputModeSelectionService,
+        IAutomationNodeContextMenuService nodeContextMenuService)
     {
         _registry = registry;
         _serializer = serializer;
@@ -96,6 +98,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _nodeLayoutMetricsService = nodeLayoutMetricsService;
         _outputActionSelectionService = outputActionSelectionService;
         _inputModeSelectionService = inputModeSelectionService;
+        _nodeContextMenuService = nodeContextMenuService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
@@ -1400,7 +1403,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             PushUndoCheckpoint();
             var st = node.State;
             st.Properties ??= new JsonObject();
-            st.Properties[AutomationNodePropertyKeys.CaptureMode] = "roi";
+            st.Properties[AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Roi;
             st.Properties[AutomationNodePropertyKeys.CoordinateSpace] = "physical";
             st.Properties[AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
             {
@@ -1758,10 +1761,75 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         props.Remove(AutomationNodePropertyKeys.CaptureRoi);
         props.Remove(AutomationNodePropertyKeys.CaptureRoiThumbnailBase64);
         props.Remove(AutomationNodePropertyKeys.CaptureRoiCachePath);
-        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.CaptureMode, "full");
+        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.CaptureMode, AutomationCaptureMode.Full);
         PopulateInlineEditors(node);
         if (SelectedNode?.Id == node.Id)
             RefreshRoiThumbnail(node);
+    }
+
+    public IReadOnlyList<AutomationNodeContextMenuAction> BuildNodeContextMenuActions(AutomationCanvasNodeViewModel node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        return _nodeContextMenuService.BuildNodeActions(
+            node.Id,
+            node.NodeTypeId,
+            SelectedNode?.Id,
+            SelectedNode?.NodeTypeId);
+    }
+
+    public void ExecuteNodeContextMenuAction(AutomationCanvasNodeViewModel targetNode, AutomationNodeContextMenuActionKind actionKind)
+    {
+        ArgumentNullException.ThrowIfNull(targetNode);
+
+        switch (actionKind)
+        {
+            case AutomationNodeContextMenuActionKind.CopyNodeId:
+            {
+                if (_nodeContextMenuService.TryCopyNodeIdToClipboard(targetNode.Id))
+                    _toast.ShowInfo("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CopyNodeId_Success");
+                else
+                    _toast.ShowError("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CopyFailed");
+                break;
+            }
+            case AutomationNodeContextMenuActionKind.CopyNodeTypeId:
+            {
+                if (_nodeContextMenuService.TryCopyNodeTypeIdToClipboard(targetNode.NodeTypeId))
+                    _toast.ShowInfo("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CopyNodeTypeId_Success");
+                else
+                    _toast.ShowError("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CopyFailed");
+                break;
+            }
+            case AutomationNodeContextMenuActionKind.UseAsCaptureCacheSource:
+            {
+                TryAssignCaptureCacheSourceFromNode(targetNode);
+                break;
+            }
+        }
+    }
+
+    private void TryAssignCaptureCacheSourceFromNode(AutomationCanvasNodeViewModel sourceNode)
+    {
+        var selected = SelectedNode;
+        if (selected is null)
+            return;
+        if (!string.Equals(selected.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(sourceNode.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase) ||
+            selected.Id == sourceNode.Id)
+        {
+            _toast.ShowError("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CaptureCacheApply_InvalidSelection");
+            return;
+        }
+
+        var props = selected.State.Properties ??= new JsonObject();
+        var sourceIdText = sourceNode.Id.ToString("D");
+        var previous = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureCacheRefNodeId);
+        if (string.Equals(previous, sourceIdText, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        PushUndoCheckpoint();
+        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.CaptureCacheRefNodeId, sourceIdText);
+        PopulateInlineEditors(selected);
+        _toast.ShowInfo("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CaptureCacheApply_Success");
     }
 
     private void AppendAutomationLog(string line)

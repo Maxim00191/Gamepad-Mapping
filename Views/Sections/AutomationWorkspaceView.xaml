@@ -415,6 +415,7 @@
                                                         MouseEnter="NodeChrome_MouseEnter"
                                                         MouseLeave="NodeChrome_MouseLeave"
                                                         PreviewMouseLeftButtonDown="NodeChrome_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseRightButtonDown="NodeChrome_PreviewMouseRightButtonDown"
                                                         PreviewMouseMove="NodeChrome_PreviewMouseMove"
                                                         PreviewMouseLeftButtonUp="NodeChrome_PreviewMouseLeftButtonUp">
                                                     <Border.Style>

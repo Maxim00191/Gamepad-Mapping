@@ -6,6 +6,8 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using Gamepad_Mapping.ViewModels;
+using GamepadMapperGUI.Models.Automation;
+using GamepadMapperGUI.Services.Infrastructure;
 
 namespace Gamepad_Mapping.Views.Sections;
 
@@ -132,6 +134,20 @@ public partial class AutomationWorkspaceView
             return;
 
         TryUpdateNodeDrag(e);
+    }
+
+    private void NodeChrome_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (WorkspaceVm is null ||
+            sender is not FrameworkElement fe ||
+            fe.DataContext is not AutomationCanvasNodeViewModel node)
+        {
+            return;
+        }
+
+        WorkspaceVm.SelectNodeForPointerDown(node, toggleSelection: false);
+        OpenNodeContextMenu(fe, node);
+        e.Handled = true;
     }
 
     private void NodeChrome_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -894,5 +910,52 @@ public partial class AutomationWorkspaceView
         CanvasScrollViewer.ScrollToHorizontalOffset(left * zoom);
         CanvasScrollViewer.ScrollToVerticalOffset(top * zoom);
         UpdateOverviewViewportFromScroll();
+    }
+
+    private void OpenNodeContextMenu(FrameworkElement placementTarget, AutomationCanvasNodeViewModel node)
+    {
+        if (WorkspaceVm is null)
+            return;
+
+        var actions = WorkspaceVm.BuildNodeContextMenuActions(node);
+        if (actions.Count == 0)
+            return;
+
+        var menu = new ContextMenu
+        {
+            PlacementTarget = placementTarget
+        };
+        ApplyNodeContextMenuResources(menu);
+
+        foreach (var action in actions)
+        {
+            var menuItem = new MenuItem
+            {
+                Header = AppUiLocalization.GetString(action.LabelResourceKey),
+                IsEnabled = action.IsEnabled
+            };
+            ApplyNodeContextMenuItemStyle(menuItem);
+            var capturedKind = action.Kind;
+            menuItem.Click += (_, _) => WorkspaceVm.ExecuteNodeContextMenuAction(node, capturedKind);
+            menu.Items.Add(menuItem);
+        }
+
+        menu.IsOpen = true;
+    }
+
+    private static void ApplyNodeContextMenuResources(ContextMenu menu)
+    {
+        var app = Application.Current;
+        if (app is null)
+            return;
+
+        if (app.TryFindResource("TrayNotifyContextMenuStyle") is Style menuStyle)
+            menu.Style = menuStyle;
+    }
+
+    private static void ApplyNodeContextMenuItemStyle(MenuItem item)
+    {
+        if (Application.Current?.TryFindResource("TrayNotifyMenuItemStyle") is Style style)
+            item.Style = style;
     }
 }

@@ -12,6 +12,8 @@ public static class AutomationNodePropertyKeys
 
     public const string CaptureProcessName = "captureProcessName";
 
+    public const string CaptureCacheRefNodeId = "captureCacheRefNodeId";
+
     public const string CaptureRoi = "captureRoi";
 
     public const string CaptureRoiThumbnailBase64 = "captureRoiThumbnailBase64";

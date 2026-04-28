@@ -18,10 +18,19 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                     var captureMode = AutomationNodePropertyReader.ReadString(
                         node.Properties,
                         AutomationNodePropertyKeys.CaptureMode);
-                    if (string.Equals(captureMode, "roi", StringComparison.OrdinalIgnoreCase) &&
+                    if (string.Equals(captureMode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase) &&
                         (!AutomationNodePropertyReader.TryReadRoiCapture(node.Properties, out var roi) || roi.IsEmpty))
                     {
                         detail = "capture_screen:roi_missing";
+                        return true;
+                    }
+
+                    var captureCacheRef = AutomationNodePropertyReader.ReadString(
+                        node.Properties,
+                        AutomationNodePropertyKeys.CaptureCacheRefNodeId);
+                    if (!string.IsNullOrWhiteSpace(captureCacheRef) && !Guid.TryParse(captureCacheRef, out _))
+                    {
+                        detail = "capture_screen:cache_ref_invalid";
                         return true;
                     }
 

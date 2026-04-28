@@ -2483,4 +2483,37 @@
   <data name="AutomationInlineEditor_CaptureModeRoi" xml:space="preserve">
     <value>区域（ROI）</value>
   </data>
+  <data name="AutomationInlineEditor_CaptureCacheRefNodeId" xml:space="preserve">
+    <value>复用截图来源节点 ID</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureCacheRefNodeIdPlaceholder" xml:space="preserve">
+    <value>可选：填写要复用的截图节点 GUID</value>
+  </data>
+  <data name="AutomationNodeContextMenu_Title" xml:space="preserve">
+    <value>节点操作</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeId" xml:space="preserve">
+    <value>复制节点 ID</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeTypeId" xml:space="preserve">
+    <value>复制节点类型 ID</value>
+  </data>
+  <data name="AutomationNodeContextMenu_UseAsCaptureCacheSource" xml:space="preserve">
+    <value>设为所选截图节点的缓存来源</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeId_Success" xml:space="preserve">
+    <value>已复制节点 ID。</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyNodeTypeId_Success" xml:space="preserve">
+    <value>已复制节点类型 ID。</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CopyFailed" xml:space="preserve">
+    <value>复制失败，请重试。</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CaptureCacheApply_Success" xml:space="preserve">
+    <value>已更新截图缓存来源。</value>
+  </data>
+  <data name="AutomationNodeContextMenu_CaptureCacheApply_InvalidSelection" xml:space="preserve">
+    <value>请先选中一个截图节点，再右键另一个截图节点。</value>
+  </data>
 </root>
