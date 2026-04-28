@@ -44,6 +44,11 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
         AutomationVisionAlgorithmStorage.TextRegion
     ];
 
+    private static readonly IReadOnlyList<string> CaptureSourceProcessWindowValues =
+    [
+        AutomationCaptureSourceMode.ProcessWindow
+    ];
+
     public IReadOnlyList<AutomationNodeInlineEditorDefinition> GetDefinitions(string nodeTypeId)
     {
         if (!_definitionsByNodeTypeId.TryGetValue(nodeTypeId, out var definitions))
@@ -76,10 +81,55 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.capture_screen",
+                    PropertyKey = AutomationNodePropertyKeys.CaptureSourceMode,
+                    LabelResourceKey = "AutomationInlineEditor_CaptureSourceMode",
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = AutomationCaptureSourceMode.Screen,
+                    ChoiceOptions =
+                    [
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationCaptureSourceMode.Screen,
+                            LabelResourceKey = "AutomationInlineEditor_CaptureSourceScreen"
+                        },
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationCaptureSourceMode.ProcessWindow,
+                            LabelResourceKey = "AutomationInlineEditor_CaptureSourceProcessWindow"
+                        }
+                    ]
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.capture_screen",
+                    PropertyKey = AutomationNodePropertyKeys.CaptureProcessName,
+                    LabelResourceKey = "AutomationInlineEditor_CaptureProcessName",
+                    PlaceholderResourceKey = "AutomationInlineEditor_CaptureProcessNamePlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = "",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.CaptureSourceMode,
+                    VisibleWhenPropertyValues = CaptureSourceProcessWindowValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.capture_screen",
                     PropertyKey = AutomationNodePropertyKeys.CaptureMode,
-                    LabelResourceKey = "AutomationInlineEditor_CaptureUseRoi",
-                    Kind = AutomationNodeInlineEditorKind.Boolean,
-                    DefaultBooleanValue = false
+                    LabelResourceKey = "AutomationInlineEditor_CaptureMode",
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = "full",
+                    ChoiceOptions =
+                    [
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = "full",
+                            LabelResourceKey = "AutomationInlineEditor_CaptureModeFull"
+                        },
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = "roi",
+                            LabelResourceKey = "AutomationInlineEditor_CaptureModeRoi"
+                        }
+                    ]
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
@@ -121,10 +171,10 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 {
                     NodeTypeId = "perception.find_image",
                     PropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
-                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithmPickerLabel",
-                    Kind = AutomationNodeInlineEditorKind.Action,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithm",
+                    Kind = AutomationNodeInlineEditorKind.Choice,
                     DefaultTextValue = AutomationVisionAlgorithmStorage.YoloOnnx,
-                    ActionKind = AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm
+                    ChoiceOptions = AutomationVisionAlgorithmCatalog.FindImageAlgorithmChoiceOptions()
                 },
                 new AutomationNodeInlineEditorDefinition
                 {

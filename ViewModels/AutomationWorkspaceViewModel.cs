@@ -47,7 +47,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationNodeLayoutMetricsService _nodeLayoutMetricsService;
     private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
     private readonly IAutomationInputModeSelectionService _inputModeSelectionService;
-    private readonly IAutomationVisionAlgorithmSelectionService _visionAlgorithmSelectionService;
 
     private AutomationGraphDocument _document = new();
     private Guid? _dragUndoSessionNodeId;
@@ -79,8 +78,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationPortLabelService portLabelService,
         IAutomationNodeLayoutMetricsService nodeLayoutMetricsService,
         IAutomationOutputActionSelectionService outputActionSelectionService,
-        IAutomationInputModeSelectionService inputModeSelectionService,
-        IAutomationVisionAlgorithmSelectionService visionAlgorithmSelectionService)
+        IAutomationInputModeSelectionService inputModeSelectionService)
     {
         _registry = registry;
         _serializer = serializer;
@@ -98,7 +96,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _nodeLayoutMetricsService = nodeLayoutMetricsService;
         _outputActionSelectionService = outputActionSelectionService;
         _inputModeSelectionService = inputModeSelectionService;
-        _visionAlgorithmSelectionService = visionAlgorithmSelectionService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
@@ -832,12 +829,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         {
             var inputModeId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.InputEmulationApiId);
             return _inputModeSelectionService.BuildInputModePickerDisplayText(inputModeId);
-        }
-
-        if (definition.ActionKind == AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm)
-        {
-            var algorithmId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.FindImageAlgorithm);
-            return _visionAlgorithmSelectionService.BuildFindImageAlgorithmPickerDisplayText(algorithmId);
         }
 
         return definition.ActionLabelResourceKey is not null
@@ -1581,11 +1572,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 PickInputModeForNode(node);
                 break;
             }
-            case AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm:
-            {
-                PickFindImageAlgorithmForNode(node);
-                break;
-            }
         }
     }
 
@@ -1665,26 +1651,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
         PushUndoCheckpoint();
         AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.InputEmulationApiId, nextModeId);
-        PopulateInlineEditors(node);
-    }
-
-    private void PickFindImageAlgorithmForNode(AutomationCanvasNodeViewModel node)
-    {
-        var props = node.State.Properties ??= new JsonObject();
-        var currentAlgorithmId = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.FindImageAlgorithm);
-        var selected = _visionAlgorithmSelectionService.PickFindImageAlgorithm(Application.Current?.MainWindow, currentAlgorithmId);
-        if (selected is null)
-            return;
-
-        var nextAlgorithmId = AutomationVisionAlgorithmStorage.ToStorageValue(
-            AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(selected));
-        var previousAlgorithmId = AutomationVisionAlgorithmStorage.ToStorageValue(
-            AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(currentAlgorithmId));
-        if (string.Equals(previousAlgorithmId, nextAlgorithmId, StringComparison.Ordinal))
-            return;
-
-        PushUndoCheckpoint();
-        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.FindImageAlgorithm, nextAlgorithmId);
         PopulateInlineEditors(node);
     }
 
@@ -1941,12 +1907,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     private static bool ReadBooleanDefaulted(JsonObject? props, AutomationNodeInlineEditorDefinition definition)
     {
-        if (string.Equals(definition.PropertyKey, AutomationNodePropertyKeys.CaptureMode, StringComparison.Ordinal))
-        {
-            var mode = AutomationNodePropertyReader.ReadString(props, definition.PropertyKey);
-            return string.Equals(mode, "roi", StringComparison.OrdinalIgnoreCase);
-        }
-
         return props is null || !props.ContainsKey(definition.PropertyKey)
             ? definition.DefaultBooleanValue
             : AutomationNodePropertyReader.ReadBool(props, definition.PropertyKey);
@@ -1989,25 +1949,10 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         {
             case AutomationNodeInlineEditorKind.Boolean:
             {
-                if (string.Equals(definition.PropertyKey, AutomationNodePropertyKeys.CaptureMode, StringComparison.Ordinal))
-                {
-                    var nextMode = field.BooleanValue ? "roi" : "full";
-                    var currentMode = AutomationNodePropertyReader.ReadString(props, definition.PropertyKey);
-                    if (string.Equals(currentMode, nextMode, StringComparison.OrdinalIgnoreCase))
-                        return false;
-                    AutomationNodePropertyReader.WriteString(
-                        props,
-                        definition.PropertyKey,
-                        nextMode);
-                }
-                else
-                {
-                    var currentBool = AutomationNodePropertyReader.ReadBool(props, definition.PropertyKey);
-                    if (currentBool == field.BooleanValue)
-                        return false;
-                    AutomationNodePropertyReader.WriteBool(props, definition.PropertyKey, field.BooleanValue);
-                }
-
+                var currentBool = AutomationNodePropertyReader.ReadBool(props, definition.PropertyKey);
+                if (currentBool == field.BooleanValue)
+                    return false;
+                AutomationNodePropertyReader.WriteBool(props, definition.PropertyKey, field.BooleanValue);
                 return true;
             }
             case AutomationNodeInlineEditorKind.Integer:

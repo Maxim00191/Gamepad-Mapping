@@ -2385,7 +2385,7 @@ Relaunch this tool as administrator now?</value>
     <value>OpenCV template match</value>
   </data>
   <data name="AutomationVisionAlgorithm_Option_YoloOnnx" xml:space="preserve">
-    <value>YOLO (ONNX via OpenCV DNN)</value>
+    <value>YOLO (ONNX)</value>
   </data>
   <data name="AutomationInlineEditor_FindImageYoloOnnxPath" xml:space="preserve">
     <value>YOLO ONNX model</value>
@@ -2458,5 +2458,29 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationInlineEditor_FindImageTextQueryPlaceholder" xml:space="preserve">
     <value>Text to locate (for text-aware detectors)</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureSourceMode" xml:space="preserve">
+    <value>Capture Source</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureSourceScreen" xml:space="preserve">
+    <value>Screen Window</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureSourceProcessWindow" xml:space="preserve">
+    <value>Process Window</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessName" xml:space="preserve">
+    <value>Process Name</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessNamePlaceholder" xml:space="preserve">
+    <value>Optional, e.g. obs64 (empty = current foreground window)</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureMode" xml:space="preserve">
+    <value>Capture Area</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureModeFull" xml:space="preserve">
+    <value>Full Frame</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureModeRoi" xml:space="preserve">
+    <value>Region (ROI)</value>
   </data>
 </root>

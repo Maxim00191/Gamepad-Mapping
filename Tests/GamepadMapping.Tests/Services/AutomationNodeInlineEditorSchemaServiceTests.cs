@@ -33,17 +33,19 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
     }
 
     [Fact]
-    public void GetDefinitions_FindImageAlgorithm_UsesPickerAction()
+    public void GetDefinitions_FindImageAlgorithm_UsesChoiceEditor()
     {
         var service = new AutomationNodeInlineEditorSchemaService();
 
         var definitions = service.GetDefinitions("perception.find_image");
         var algorithm = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageAlgorithm);
 
-        Assert.Equal(AutomationNodeInlineEditorKind.Action, algorithm.Kind);
-        Assert.Equal(AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm, algorithm.ActionKind);
-        Assert.Equal("AutomationInlineEditor_FindImageAlgorithmPickerLabel", algorithm.LabelResourceKey);
+        Assert.Equal(AutomationNodeInlineEditorKind.Choice, algorithm.Kind);
+        Assert.Equal("AutomationInlineEditor_FindImageAlgorithm", algorithm.LabelResourceKey);
         Assert.Equal(AutomationVisionAlgorithmStorage.YoloOnnx, algorithm.DefaultTextValue);
+        Assert.NotNull(algorithm.ChoiceOptions);
+        Assert.Contains(algorithm.ChoiceOptions!, option => option.StoredValue == AutomationVisionAlgorithmStorage.YoloOnnx);
+        Assert.Contains(algorithm.ChoiceOptions!, option => option.StoredValue == AutomationVisionAlgorithmStorage.OpenCvTemplateMatch);
     }
 
     [Theory]

@@ -94,6 +94,59 @@ public sealed class AutomationGraphSmokeRunnerTests
     }
 
     [Fact]
+    public async Task RunOnceAsync_CaptureScreenUsesProcessWindowSourceWhenConfigured()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var processCapture = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(50, 60, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService
+            .Setup(s => s.CaptureProcessWindowPhysical("obs64"))
+            .Returns(processCapture);
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.ProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "obs64"
+        });
+        var log = CreateNode("debug.log");
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, log],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", log.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
+        captureService.Verify(s => s.CaptureProcessWindowPhysical("obs64"), Times.Once);
+        captureService.Verify(s => s.CaptureVirtualScreenPhysical(), Times.Never);
+    }
+
+    [Fact]
     public async Task RunOnceAsync_ReevaluatesDataOutputsOnEachLoopIteration()
     {
         var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);

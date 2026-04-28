@@ -8,6 +8,10 @@ public static class AutomationNodePropertyKeys
 
     public const string CaptureMode = "captureMode";
 
+    public const string CaptureSourceMode = "captureSourceMode";
+
+    public const string CaptureProcessName = "captureProcessName";
+
     public const string CaptureRoi = "captureRoi";
 
     public const string CaptureRoiThumbnailBase64 = "captureRoiThumbnailBase64";

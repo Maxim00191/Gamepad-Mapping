@@ -1,8 +1,8 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
@@ -23,6 +23,26 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
     {
         using var _ = AutomationDpiAwarenessScope.EnterPerMonitorAware();
         return CaptureRectanglePhysicalCore(physicalOriginX, physicalOriginY, widthPx, heightPx);
+    }
+
+    public AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(string? processName)
+    {
+        using var _ = AutomationDpiAwarenessScope.EnterPerMonitorAware();
+        var windowHandle = ResolveTargetWindowHandle(processName);
+        if (windowHandle == IntPtr.Zero)
+            throw new InvalidOperationException("process_window_not_found");
+
+        if (!User32.GetWindowRect(windowHandle, out var rect))
+            throw new InvalidOperationException("process_window_rect_unavailable");
+
+        var width = rect.Right - rect.Left;
+        var height = rect.Bottom - rect.Top;
+        if (width <= 0 || height <= 0)
+            throw new InvalidOperationException("process_window_rect_invalid");
+
+        var bitmap = CaptureRectanglePhysicalCore(rect.Left, rect.Top, width, height);
+        var metrics = new AutomationVirtualScreenMetrics(rect.Left, rect.Top, bitmap.PixelWidth, bitmap.PixelHeight);
+        return new AutomationVirtualScreenCaptureResult(bitmap, metrics);
     }
 
     private AutomationVirtualScreenCaptureResult CaptureVirtualScreenPhysicalCore()
@@ -102,13 +122,73 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
         }
     }
 
+    private static IntPtr ResolveTargetWindowHandle(string? processName)
+    {
+        if (string.IsNullOrWhiteSpace(processName))
+            return User32.GetForegroundWindow();
+
+        var normalized = NormalizeProcessName(processName);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return User32.GetForegroundWindow();
+
+        try
+        {
+            var processes = Process.GetProcessesByName(normalized);
+            try
+            {
+                foreach (var process in processes)
+                {
+                    if (IsWindowCaptureCandidate(process.MainWindowHandle))
+                        return process.MainWindowHandle;
+                }
+            }
+            finally
+            {
+                foreach (var process in processes)
+                    process.Dispose();
+            }
+        }
+        catch
+        {
+            return IntPtr.Zero;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private static string NormalizeProcessName(string processName)
+    {
+        var trimmed = processName.Trim();
+        if (trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            return trimmed[..^4].Trim();
+        return trimmed;
+    }
+
+    private static bool IsWindowCaptureCandidate(IntPtr handle)
+    {
+        if (handle == IntPtr.Zero || !User32.IsWindowVisible(handle))
+            return false;
+        return User32.GetWindowRect(handle, out var rect) && rect.Right > rect.Left && rect.Bottom > rect.Top;
+    }
+
     private static class User32
     {
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetForegroundWindow();
+
         [DllImport("user32.dll")]
         public static extern IntPtr GetDC(IntPtr hwnd);
 
         [DllImport("user32.dll")]
         public static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
     }
 
     private static class Gdi32
@@ -131,5 +211,14 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
         [DllImport("gdi32.dll")]
         public static extern bool BitBlt(IntPtr hdcDest, int x, int y, int cx, int cy, IntPtr hdcSrc, int x1, int y1,
             uint rop);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
     }
 }

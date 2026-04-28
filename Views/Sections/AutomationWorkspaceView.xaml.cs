@@ -108,8 +108,22 @@ public partial class AutomationWorkspaceView
         if (WorkspaceVm is null)
             return;
 
+        var originalSource = e.OriginalSource as DependencyObject;
+        if (IsInteractiveChildForNodeDrag(originalSource))
+        {
+            if (sender is FrameworkElement interactiveFe &&
+                interactiveFe.DataContext is AutomationCanvasNodeViewModel interactiveNode)
+            {
+                WorkspaceVm.SelectNodeForPointerDown(
+                    interactiveNode,
+                    toggleSelection: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+            }
+
+            return;
+        }
+
         if (sender is FrameworkElement fe && fe.DataContext is AutomationCanvasNodeViewModel node)
-            e.Handled = TryHandleNodePointerDown(node, e.OriginalSource as DependencyObject, e.GetPosition(CanvasSurface));
+            e.Handled = TryHandleNodePointerDown(node, originalSource, e.GetPosition(CanvasSurface));
     }
 
     private void NodeChrome_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -476,10 +490,14 @@ public partial class AutomationWorkspaceView
     {
         if (WorkspaceVm is null)
             return;
-        var node = TryFindAncestorDataContext<AutomationCanvasNodeViewModel>(e.OriginalSource as DependencyObject);
+        var originalSource = e.OriginalSource as DependencyObject;
+        if (IsInteractiveChildForNodeDrag(originalSource))
+            return;
+
+        var node = TryFindAncestorDataContext<AutomationCanvasNodeViewModel>(originalSource);
         if (node is not null)
         {
-            e.Handled = TryHandleNodePointerDown(node, e.OriginalSource as DependencyObject, e.GetPosition(CanvasSurface));
+            e.Handled = TryHandleNodePointerDown(node, originalSource, e.GetPosition(CanvasSurface));
             return;
         }
 
@@ -701,7 +719,7 @@ public partial class AutomationWorkspaceView
         var current = source;
         while (current is not null)
         {
-            if (current is TextBox or PasswordBox or ComboBox or ButtonBase or Thumb)
+            if (current is TextBox or PasswordBox or ComboBox or ComboBoxItem or ButtonBase or Thumb)
                 return true;
             if (current is FrameworkElement fe && fe.DataContext is AutomationNodePortViewModel)
                 return true;
@@ -725,14 +743,20 @@ public partial class AutomationWorkspaceView
         if (_isSelectionMarqueeActive)
             EndSelectionRectangle();
 
+        if (IsInteractiveChildForNodeDrag(originalSource))
+        {
+            WorkspaceVm.SelectNodeForPointerDown(
+                node,
+                toggleSelection: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
+            return false;
+        }
+
         WorkspaceVm.SelectNodeForPointerDown(
             node,
             toggleSelection: Keyboard.Modifiers.HasFlag(ModifierKeys.Control));
         AutomationRoot.Focus();
 
         if (_isConnectionDragActive || _isMiddlePanning || _isSelectionMarqueeActive)
-            return false;
-        if (IsInteractiveChildForNodeDrag(originalSource))
             return false;
 
         StartNodeDrag(node, ToLogicalCanvasPoint(canvasPoint));

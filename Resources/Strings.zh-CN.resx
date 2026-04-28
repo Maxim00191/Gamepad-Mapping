@@ -2385,7 +2385,7 @@
     <value>OpenCV 模板匹配</value>
   </data>
   <data name="AutomationVisionAlgorithm_Option_YoloOnnx" xml:space="preserve">
-    <value>YOLO（OpenCV DNN 加载 ONNX）</value>
+    <value>YOLO（ONNX）</value>
   </data>
   <data name="AutomationInlineEditor_FindImageYoloOnnxPath" xml:space="preserve">
     <value>YOLO ONNX 模型</value>
@@ -2458,5 +2458,29 @@
   </data>
   <data name="AutomationInlineEditor_FindImageTextQueryPlaceholder" xml:space="preserve">
     <value>要定位的文本（供文本感知检测器使用）</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureSourceMode" xml:space="preserve">
+    <value>截图来源</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureSourceScreen" xml:space="preserve">
+    <value>屏幕窗口</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureSourceProcessWindow" xml:space="preserve">
+    <value>进程窗口</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessName" xml:space="preserve">
+    <value>进程名</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessNamePlaceholder" xml:space="preserve">
+    <value>可选，例如 obs64（留空 = 当前前台窗口）</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureMode" xml:space="preserve">
+    <value>截图范围</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureModeFull" xml:space="preserve">
+    <value>完整画面</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureModeRoi" xml:space="preserve">
+    <value>区域（ROI）</value>
   </data>
 </root>

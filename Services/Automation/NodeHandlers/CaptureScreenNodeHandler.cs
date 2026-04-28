@@ -36,9 +36,22 @@ public sealed class CaptureScreenNodeHandler : IAutomationRuntimeNodeHandler
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
+        var sourceMode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.CaptureSourceMode);
+        if (string.IsNullOrWhiteSpace(sourceMode))
+            sourceMode = AutomationCaptureSourceMode.Screen;
+
+        if (string.Equals(sourceMode, AutomationCaptureSourceMode.ProcessWindow, StringComparison.OrdinalIgnoreCase))
+        {
+            var processName = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.CaptureProcessName);
+            var processCapture = context.Capture.CaptureProcessWindowPhysical(processName);
+            context.StoreCapture(node.Id, processCapture.Bitmap, processCapture.Metrics.PhysicalOriginX, processCapture.Metrics.PhysicalOriginY);
+            log.Add($"[capture_screen] mode=full source=process_window process={processName} origin=({processCapture.Metrics.PhysicalOriginX},{processCapture.Metrics.PhysicalOriginY}) size={processCapture.Bitmap.PixelWidth}x{processCapture.Bitmap.PixelHeight}");
+            return context.GetExecutionTarget(node.Id, "flow.out");
+        }
+
         var full = context.Capture.CaptureVirtualScreenPhysical();
         context.StoreCapture(node.Id, full.Bitmap, full.Metrics.PhysicalOriginX, full.Metrics.PhysicalOriginY);
-        log.Add($"[capture_screen] mode=full origin=({full.Metrics.PhysicalOriginX},{full.Metrics.PhysicalOriginY}) size={full.Bitmap.PixelWidth}x{full.Bitmap.PixelHeight}");
+        log.Add($"[capture_screen] mode=full source=screen origin=({full.Metrics.PhysicalOriginX},{full.Metrics.PhysicalOriginY}) size={full.Bitmap.PixelWidth}x{full.Bitmap.PixelHeight}");
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 }
