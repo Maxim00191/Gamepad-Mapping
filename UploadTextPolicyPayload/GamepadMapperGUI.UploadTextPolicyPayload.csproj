@@ -5,6 +5,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <AssemblyName>GamepadMapperGUI.UploadTextPolicyPayload</AssemblyName>
     <RootNamespace>GamepadMapperGUI.UploadTextPolicy</RootNamespace>
     <!-- Flows from dotnet publish -p:ObfuscateUploadTextPolicyPayload=true; default is off so Release tests/build stay unobfuscated. -->
