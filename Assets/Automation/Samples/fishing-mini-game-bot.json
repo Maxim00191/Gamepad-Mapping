@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "nodes": [
+    {
+      "id": "f1000001-0000-4000-8000-000000000001",
+      "nodeTypeId": "event.listener",
+      "x": 128,
+      "y": 464,
+      "properties": {
+        "eventSignal": "engine.start"
+      }
+    },
+    {
+      "id": "f1000002-0000-4000-8000-000000000002",
+      "nodeTypeId": "automation.loop",
+      "x": 432,
+      "y": 464,
+      "properties": {
+        "loopMaxIterations": 5000
+      }
+    },
+    {
+      "id": "f1000003-0000-4000-8000-000000000003",
+      "nodeTypeId": "perception.capture_screen",
+      "x": 720,
+      "y": 464,
+      "properties": {
+        "captureMode": "roi",
+        "coordinateSpace": "physical",
+        "captureRoi": {
+          "x": 540,
+          "y": 358,
+          "width": 859,
+          "height": 499
+        },
+        "captureRoiThumbnailBase64": "iVBORw0KGgoAAAANSUhEUgAAAGAAAAA4CAYAAAACRf2iAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAyaSURBVHhe3VxvjF1FFf\u002Bdu2/3tbtbaLctSwr4QRMNUQIa\u002BaIhfJAQjKgh8R\u002BG\u002BIca1CYUpUAhIIVUoNCAEhANBAUSZEsx0FZMFiW0GBsMEY2J8Q/GVhOK3X27W4jb3S67d/xw5sycmXvfe/fedxcjv5fZM2/uzJkzZ845M3fufUtjLxw2IAMGATCWyl8PuRoWGsAQUwAJEqRIHSX7yWnpYGBAIEsBogTGpCBKXI02vTvwVc0nkj4eTARpx3npMebRvn\u002BoLnSrUCLjVCWUR2iIE\u002BwVGDuc7MezZQpjxTQEMsRKN3AUMEiRIrWt84YgA2VKMCYFABiTct5wnmkeB\u002BFLikZyS9s2Qvix\u002BbxBCoPUckvtGGWsqrGFsE5VEj0KlXZCE5Dhb\u002BqK2CysUuSj51gGCjIwtr2xbQ1ZZVqa2KQ5aIiAxDMJ4gyIbCsClwltC28YWu6YR64QAaQVS87cEjtG1pHJ4UFgi9aJu5Oxs27AcwgASJz1K44yZz4fm40aqLV8SVCzCxNbYshFIOKxcQtlizXaertCwkjcb8SjAKtYaubhLT9DLdvOKesBNLb/kCFn0TmxE4B5axajI0PyzZVbdTNjRXuF5rjssOLWITcAtGaXQNQXFwPSFbEGRV8J7MxIsc9zaixM4dQ1gyBjbPIRy81qRPmv8CgPHUgkv2ywYrLE/lMV64b6sDT/RiA1\u002B7eFRHurS7vNkMviB5IjrB0ZkaYZtFONiF99GG8z2g2kIk4ZOdmNvRvrBG6G9Me7pCFeODj5PIgDhK\u002Bd5SI8ioLtPZvqhF6IiYhTzqdXiNV7fXkKIhABRHYCQtdjtboAoMKO8wvrslwr67oxLQodcpYr9LitqM1ruZcDTneKwhgYAxgJQeS2iX72Sewvu0mCsdtL8YDYcmLaDWLl2uLrtnwRxW1nEVp/PRCZvexOb24bHSbnASkMYG\u002BXyFoFe4CfRbd1sm2Eaj8Qfpp2g7b65bJ8bfXosOgWlTkfTtu\u002BxM2JbIXDlITWy7cOPGs63vMMiuVb\u002B8lQsaSYtkMc67UH1AV9Axek6OPqd5EZ\u002BXaeTVZ3ZHUXW75LY/sPmQRkb7nl7MWzHV3lbYKCTqWM/aWI4Bqr9j2B5p9ecd9b1\u002B/Euh3XYnH0NDSOvoap6\u002B8K6gPA2h3XYWbzNgzveRxvXnoFBg6/ilVjD2H\u002B3PPQf/hVHNt4NdbuuI4rNxqYuuZ2rDz4PABg8MVx5mnF1HJXkT8fxmlp\u002Bng\u002BPyL2QiKCMYY9gJWa\u002BPnTxwviAI591nJ6Ed40m4D1BrNyCI2jr8VVHNKTVmP1D\u002B9wdVaNPeSu9bWOIjk\u002Bi5nNN\u002BM/F38eM5tuBADMf/QCDL44jukbdmZifkzLQ/uCziulRRYPWK\u002B0NOHZ54YSgd3RghVN2Eu9OHZWjZtTW27D0sgopq65DQBw7Cubg\u002Bsj99wUfF8aPQ1L60/F0sh6AMCxr2/F4ugGLJx5NgAgHRzCmvu2wzRXIB3kO3c5fhB5m394CSN3XIvhPY8rzlUhEyfaVnDWHMZ8aJmMAe3af0hW04CHWMUpw76sDpSJ8Wvu246ZK78TFzvQ4iJMoxEXs9XJYBZOAAPsZb1CGyHn2o9leq6YX9GT\u002Bw87LgbeTQTrh30nxVh2R5lJqIxI1LpkD9F\u002BHNPH7eIfX4jgVl0D2JgvoaU9817wv1C\u002BoGqorIQCygeAxIAXXdmw6kUKdncQllVD0S3m7p8\u002BjNtu/jYA4Pnxvdi2dROeeuLHaE0exQ3f2ggAePmlX\u002BORB\u002B91bbbfeBVeefkgXvjlswAB83NzeOj\u002Bndj12IO4965tNSy2AjHM7gbaOUB5JIRw0c22ChdcKSmLojdZl3zuyzgxNwcASNMUt975AD5z6eWYOPo63vPeMwEAf/3zH3H\u002BBR93bd5aXMCHzv0I/nXo7/jR92/H07seBWDw2cu\u002Bhquuu7XnzYIHRak9DN8KRGXZ/mnXgUMmfH4bYn3FRbiItdcCK3BW8uowjq3kyo9lZi5fHtn/y1Y00c9xjXsKyokdrXzniCy\u002BiOVXho0G3k\u002B9t1aV3Usrue4WXxR6C2qMQWLIILFPJvkJaBI9wy3XsVi\u002Bjvl1e4O\u002BkQkO16L1qqzsWdjZdal3xLInpN5gYMvnNxjEA8oie1tXPwIrYvOv1QM8xPKX0QOI2OKF6lQGYvFxqhPO2uNDtTaHa9U9ILb83j0gtnxOAD154LB7QkEgGLv1FBRZhNetCu9Gx373N6wdWoHZhUXMLixh9sQJLKYGQwMNDDX7Mdjfj6FmP85YPYx3rzspaFsMBnff\u002BV1s2RoeVbwdMMZgZnYpLs6g3SIcQz0TlgbFGgpOXsGvHwke/e1fcMaaVeqW2kS8Pf/p4/Mu3xlifb1bYiWoKEQJwZyYiWsUhj6YIwISPiGqPrD\u002B/oHg\u002Bzmnrwu\u002Bs\u002BSat1YmsPNXv1fX2qGacdSGKBKtXcuHgVXgD\u002BX4/ScV6iViV5sIDX2e1E1lHzyjzGB6l2150W20DNYPjyVBsGzp\u002BN95sLLITk9PBeWbfvJcKAjJn9iKmV7wvtOlpoL2Ep16QNx9HkTMLqk11YpbKnClzGKrqK6T6IGFu4ZOkvJUGRBM/0mYmzvuyn9z0xex/ZmD7vCbSVaR/5g8hg\u002B/6xTXLoTWVmc5CkPPaTtkxczQ1uQEkuZqaRHBN5Ztpj5\u002ByNMF7T6gj6PZA/ROKN4F1b21zAORlyHeldWH\u002BsdBxHGdiDAzF/Mn22dIg4fA2f1zzASZnf5ywBh/cyX0/\u002Bcmy9jX6sPFlsuZ2tqAbEN5MHJAJK\u002BJQ/1Agi0/L9UBfZMCfaMlsTT6IDCSotADz0vlIfqRuM5yJ0Hs5\u002Buw13Vb/uJezOKZMoryTAq0xddt\u002Bfr23Fl89NZaTMtDZNYW39s4/A9JRF9i/ZKHK/dU2nKedh84ZPxPgrRwXGH9UOcBj67uj4ve\u002BTDAxJtvKX1ldTTDjzQifbIXGP1aSmj5ckjEs8jW2JuVvBMxMfFvwFqxtvh8sPVLXupFHhA\u002BJNDo5gE9w3ZZPqZ3BpuUztU3jk76EngPCBG2dR7AF9kDJLkzuuWF9K0\u002B8l3TsvCq0Upqr7BisFPq9MVxvrMHhOB6fo1Q21Adq\u002Bzeu1d5iyDqI/aE\u002BHtvKKakLOJJFK/yntXJG7LwdROKTudkC1XruDWs3G6rlrPF5Gq9CsCG5FN16O2k11GkrwLItgUScR/rGYVdqTLEfVW4ke\u002Ba9g6x0N7hF04fnnUYKoqwrV0Lnnrxnx2Dfa2LsNXHcLOvJtV4GLK/3CGAjIEhytB2mJ3Pf8CiF0y/cPqw0wnxIszdS1vPI4m3UWVmtDSc9cvz5\u002Byim5oUrdYkWq1J3bIr3I9HrHUhTdFqtTA1OWHL5edWYeqEWCesp0hfhTxXoowcUaTaA/xhXAwCsK6qB9hJzouPw01e\u002Bx95\u002BAGcd/7H8PRTT\u002BCiT1yCD5x1Nj71yQuDunv3PYe777zVDZiIcPX1tyirNvjB93bgC1/aiEcevB8XXXwJ3n/WOfj0xRdiw4YNOHLkCIgIz\u002Bwbxz07bsnwgfIAtnS2VqYiuyls\u002BYKZuXjs\u002BW2TThbf/koB2MZiLeEW01vM3qd3o9FoYPwXz7imK5pNJPocKknQbK7AN6\u002B8Blu2bnOWKz8gBICxxx5Go9GP8Wf3uOsmDffqlPShr68PA/3NXMNgXYh1i8WKxetjh2JwY488Sa9NbTzAQPYhPXmA4xJCPCAPk5MT2Hj5ZQCAPXvH8xVl47oqycT414\u002B8hm9c8VUAwJ6fPxdci\u002BHXAObhPUDKyuvg2Lxu156HuxPOh8F6\u002BQ8FVSF9qwkZCiagzvP\u002B/EFCTVoebbcIxyD1nKIb\u002BHmAsnR1BqQReADryjekMh5gFV1GyKIIh6JL60CopLpwrMsLHwTWUxALeEheis4rewRb1Rg5xPMxv1fk6yW/tBoMj1YdxcSoaywC4dcmGLNAlayYatZNW9SrkG5CV9JFAdgJYIVLPj4W6AhbjYiPL6RtKR5d4WULZe0FsWz8JFBSb\u002Bgun\u002BgmejPOADY2iYu0ZnWzHNi\u002B4tBTZwjyyqrDvaQ9j1UrK942cq3yY\u002BAdUGcIX/pZ3jbUz4XD0vwbSBe6zQYyg6of9flVyKi6zOIxA4Nr0DewMr4MWKkN7C5Izb3dBdnZkEq6cleElsT/Y41/dc88/BlNezCPxB5RlH0zG1YJsnfP2\u002B51Q/HqerzcSPdd1gD5N2ISr20Mhz02zYcomvP\u002B/6zwS\u002B0gLgP5tyu08rk/nVjhshtIkP3HdvI/K8L/XeHjtfTjaVZ2KfOU8769bpNtD9dWv/0Q8mOEyhd/dVSO4C39L2SZD2DyRixRAAAAAElFTkSuQmCC",
+        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png"
+      }
+    },
+    {
+      "id": "f1000004-0000-4000-8000-000000000004",
+      "nodeTypeId": "perception.find_image",
+      "x": 1008,
+      "y": 464,
+      "properties": {
+        "findImageNeedlePath": "${sampleRoot}/fishing-mini-game-ui.png",
+        "findImageConfidence": 0.82,
+        "findImageTimeoutMs": 400,
+        "findImageAlgorithm": "template"
+      }
+    },
+    {
+      "id": "f1000005-0000-4000-8000-000000000005",
+      "nodeTypeId": "logic.branch_image",
+      "x": 1328,
+      "y": 480,
+      "properties": {}
+    },
+    {
+      "id": "f1000006-0000-4000-8000-000000000006",
+      "nodeTypeId": "perception.find_image",
+      "x": 1696,
+      "y": 16,
+      "properties": {
+        "findImageNeedlePath": "${sampleRoot}/fishing-yellow-zone-center.png",
+        "findImageConfidence": 0.85,
+        "findImageTimeoutMs": 400
+      }
+    },
+    {
+      "id": "f1000007-0000-4000-8000-000000000007",
+      "nodeTypeId": "perception.find_image",
+      "x": 2016,
+      "y": 304,
+      "properties": {
+        "findImageNeedlePath": "${sampleRoot}/fishing-white-line.png",
+        "findImageConfidence": 0.85,
+        "findImageTimeoutMs": 400
+      }
+    },
+    {
+      "id": "f1000008-0000-4000-8000-000000000008",
+      "nodeTypeId": "logic.lt",
+      "x": 2160,
+      "y": 16,
+      "properties": {}
+    },
+    {
+      "id": "f1000009-0000-4000-8000-000000000009",
+      "nodeTypeId": "logic.gt",
+      "x": 2400,
+      "y": 752,
+      "properties": {}
+    },
+    {
+      "id": "f1000010-0000-4000-8000-000000000010",
+      "nodeTypeId": "logic.branch_bool",
+      "x": 2464,
+      "y": 32,
+      "properties": {}
+    },
+    {
+      "id": "f1000011-0000-4000-8000-000000000011",
+      "nodeTypeId": "logic.branch_bool",
+      "x": 2768,
+      "y": 688,
+      "properties": {}
+    },
+    {
+      "id": "f1000012-0000-4000-8000-000000000012",
+      "nodeTypeId": "output.key_state",
+      "x": 2784,
+      "y": 32,
+      "properties": {
+        "keyboardKey": "D",
+        "keyboardActionMode": "hold"
+      }
+    },
+    {
+      "id": "f1000013-0000-4000-8000-000000000013",
+      "nodeTypeId": "output.key_state",
+      "x": 3072,
+      "y": 32,
+      "properties": {
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000014-0000-4000-8000-000000000014",
+      "nodeTypeId": "output.key_state",
+      "x": 3376,
+      "y": 400,
+      "properties": {
+        "keyboardKey": "A",
+        "keyboardActionMode": "hold"
+      }
+    },
+    {
+      "id": "f1000015-0000-4000-8000-000000000015",
+      "nodeTypeId": "output.key_state",
+      "x": 3680,
+      "y": 240,
+      "properties": {
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000016-0000-4000-8000-000000000016",
+      "nodeTypeId": "output.key_state",
+      "x": 3072,
+      "y": 688,
+      "properties": {
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000017-0000-4000-8000-000000000017",
+      "nodeTypeId": "output.key_state",
+      "x": 3392,
+      "y": 672,
+      "properties": {
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000018-0000-4000-8000-000000000018",
+      "nodeTypeId": "output.key_state",
+      "x": 1712,
+      "y": 848,
+      "properties": {
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000019-0000-4000-8000-000000000019",
+      "nodeTypeId": "output.key_state",
+      "x": 2000,
+      "y": 848,
+      "properties": {
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000020-0000-4000-8000-000000000020",
+      "nodeTypeId": "output.keyboard_key",
+      "x": 2400,
+      "y": 352,
+      "properties": {
+        "keyboardKey": "Space",
+        "keyboardActionMode": "tap"
+      }
+    },
+    {
+      "id": "f1000021-0000-4000-8000-000000000021",
+      "nodeTypeId": "automation.delay",
+      "x": 2768,
+      "y": 368,
+      "properties": {
+        "delayMilliseconds": 2000
+      }
+    },
+    {
+      "id": "f1000022-0000-4000-8000-000000000022",
+      "nodeTypeId": "automation.delay",
+      "x": 3984,
+      "y": 240,
+      "properties": {
+        "delayMilliseconds": 1
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "f2000001-0000-4000-8000-000000000001",
+      "sourceNodeId": "f1000001-0000-4000-8000-000000000001",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000002-0000-4000-8000-000000000002",
+      "sourceNodeId": "f1000002-0000-4000-8000-000000000002",
+      "sourcePortId": "loop.body",
+      "targetNodeId": "f1000003-0000-4000-8000-000000000003",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000003-0000-4000-8000-000000000003",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000004-0000-4000-8000-000000000004",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000004-0000-4000-8000-000000000004",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000004-0000-4000-8000-000000000004",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000005-0000-4000-8000-000000000005",
+      "sourceNodeId": "f1000004-0000-4000-8000-000000000004",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000005-0000-4000-8000-000000000005",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000006-0000-4000-8000-000000000006",
+      "sourceNodeId": "f1000004-0000-4000-8000-000000000004",
+      "sourcePortId": "probe.image",
+      "targetNodeId": "f1000005-0000-4000-8000-000000000005",
+      "targetPortId": "probe.image"
+    },
+    {
+      "id": "f2000007-0000-4000-8000-000000000007",
+      "sourceNodeId": "f1000005-0000-4000-8000-000000000005",
+      "sourcePortId": "branch.match",
+      "targetNodeId": "f1000006-0000-4000-8000-000000000006",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000008-0000-4000-8000-000000000008",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000006-0000-4000-8000-000000000006",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000009-0000-4000-8000-000000000009",
+      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000007-0000-4000-8000-000000000007",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000010-0000-4000-8000-000000000010",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000007-0000-4000-8000-000000000007",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000011-0000-4000-8000-000000000011",
+      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000008-0000-4000-8000-000000000008",
+      "targetPortId": "left"
+    },
+    {
+      "id": "f2000012-0000-4000-8000-000000000012",
+      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000008-0000-4000-8000-000000000008",
+      "targetPortId": "right"
+    },
+    {
+      "id": "f2000013-0000-4000-8000-000000000013",
+      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000009-0000-4000-8000-000000000009",
+      "targetPortId": "left"
+    },
+    {
+      "id": "f2000014-0000-4000-8000-000000000014",
+      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000009-0000-4000-8000-000000000009",
+      "targetPortId": "right"
+    },
+    {
+      "id": "f2000015-0000-4000-8000-000000000015",
+      "sourceNodeId": "f1000008-0000-4000-8000-000000000008",
+      "sourcePortId": "value",
+      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetPortId": "condition"
+    },
+    {
+      "id": "f2000016-0000-4000-8000-000000000016",
+      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
+      "sourcePortId": "value",
+      "targetNodeId": "f1000011-0000-4000-8000-000000000011",
+      "targetPortId": "condition"
+    },
+    {
+      "id": "f2000017-0000-4000-8000-000000000017",
+      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000018-0000-4000-8000-000000000018",
+      "sourceNodeId": "f1000010-0000-4000-8000-000000000010",
+      "sourcePortId": "branch.true",
+      "targetNodeId": "f1000012-0000-4000-8000-000000000012",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000019-0000-4000-8000-000000000019",
+      "sourceNodeId": "f1000012-0000-4000-8000-000000000012",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000013-0000-4000-8000-000000000013",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000020-0000-4000-8000-000000000020",
+      "sourceNodeId": "f1000010-0000-4000-8000-000000000010",
+      "sourcePortId": "branch.false",
+      "targetNodeId": "f1000011-0000-4000-8000-000000000011",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000021-0000-4000-8000-000000000021",
+      "sourceNodeId": "f1000011-0000-4000-8000-000000000011",
+      "sourcePortId": "branch.true",
+      "targetNodeId": "f1000014-0000-4000-8000-000000000014",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000022-0000-4000-8000-000000000022",
+      "sourceNodeId": "f1000014-0000-4000-8000-000000000014",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000015-0000-4000-8000-000000000015",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000023-0000-4000-8000-000000000023",
+      "sourceNodeId": "f1000011-0000-4000-8000-000000000011",
+      "sourcePortId": "branch.false",
+      "targetNodeId": "f1000016-0000-4000-8000-000000000016",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000024-0000-4000-8000-000000000024",
+      "sourceNodeId": "f1000016-0000-4000-8000-000000000016",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000017-0000-4000-8000-000000000017",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000025-0000-4000-8000-000000000025",
+      "sourceNodeId": "f1000013-0000-4000-8000-000000000013",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000026-0000-4000-8000-000000000026",
+      "sourceNodeId": "f1000015-0000-4000-8000-000000000015",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000027-0000-4000-8000-000000000027",
+      "sourceNodeId": "f1000017-0000-4000-8000-000000000017",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000028-0000-4000-8000-000000000028",
+      "sourceNodeId": "f1000005-0000-4000-8000-000000000005",
+      "sourcePortId": "branch.miss",
+      "targetNodeId": "f1000018-0000-4000-8000-000000000018",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000029-0000-4000-8000-000000000029",
+      "sourceNodeId": "f1000018-0000-4000-8000-000000000018",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000019-0000-4000-8000-000000000019",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000030-0000-4000-8000-000000000030",
+      "sourceNodeId": "f1000019-0000-4000-8000-000000000019",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000020-0000-4000-8000-000000000020",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000031-0000-4000-8000-000000000031",
+      "sourceNodeId": "f1000020-0000-4000-8000-000000000020",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000021-0000-4000-8000-000000000021",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000032-0000-4000-8000-000000000032",
+      "sourceNodeId": "f1000021-0000-4000-8000-000000000021",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000033-0000-4000-8000-000000000033",
+      "sourceNodeId": "f1000022-0000-4000-8000-000000000022",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    }
+  ],
+  "subgraphs": [],
+  "stateMachines": []
+}

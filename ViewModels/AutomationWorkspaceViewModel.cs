@@ -306,7 +306,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _dialogs.ShowError(string.Format(Local("AutomationWorkspace_ImportFailedFormat"), ex.Message),
+            _dialogs.ShowError(string.Format(Local("AutomationWorkspace_ImportFailedFormat"),
+                    ExceptionMessageFormatter.UserFacingMessage(ex)),
                 Local("AutomationWorkspace_ImportTitle"));
         }
     }
@@ -331,7 +332,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _dialogs.ShowError(string.Format(Local("AutomationWorkspace_ExportFailedFormat"), ex.Message),
+            _dialogs.ShowError(string.Format(Local("AutomationWorkspace_ExportFailedFormat"),
+                    ExceptionMessageFormatter.UserFacingMessage(ex)),
                 Local("AutomationWorkspace_ExportTitle"));
         }
     }
@@ -711,6 +713,17 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         var props = node.State.Properties;
         foreach (var definition in _inlineEditorSchema.GetDefinitions(node.NodeTypeId))
         {
+            IReadOnlyList<AutomationInlineChoiceItemViewModel> choiceItems = definition is
+            { Kind: AutomationNodeInlineEditorKind.Choice, ChoiceOptions: { Count: > 0 } list }
+                ? list
+                    .Select(o => new AutomationInlineChoiceItemViewModel
+                    {
+                        Display = Local(o.LabelResourceKey),
+                        StoredValue = o.StoredValue
+                    })
+                    .ToArray()
+                : Array.Empty<AutomationInlineChoiceItemViewModel>();
+
             var item = new AutomationInlineNodeFieldViewModel
             {
                 NodeId = node.Id,
@@ -722,7 +735,10 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                     ? Local(definition.PlaceholderResourceKey)
                     : "",
                 ActionKind = definition.ActionKind,
-                ActionLabel = ResolveInlineActionLabel(node, definition)
+                ActionLabel = ResolveInlineActionLabel(node, definition),
+                SecondaryActionKind = definition.SecondaryActionKind,
+                SecondaryActionLabel = ResolveSecondaryInlineActionLabel(definition),
+                ChoiceItems = choiceItems
             };
             switch (definition.Kind)
             {
@@ -744,6 +760,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 {
                     var doubleValue = ReadDoubleDefaulted(props, definition);
                     item.TextValue = doubleValue.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                    break;
+                }
+                case AutomationNodeInlineEditorKind.Choice:
+                {
+                    var raw = AutomationNodePropertyReader.ReadString(props, definition.PropertyKey);
+                    item.TextValue = NormalizeInlineChoice(raw, definition);
                     break;
                 }
                 default:
@@ -787,6 +809,15 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         return definition.ActionLabelResourceKey is not null
             ? Local(definition.ActionLabelResourceKey)
             : "";
+    }
+
+    private string ResolveSecondaryInlineActionLabel(AutomationNodeInlineEditorDefinition definition)
+    {
+        if (definition.SecondaryActionKind == AutomationNodeInlineEditorActionKind.None)
+            return "";
+        if (definition.SecondaryActionLabelResourceKey is { } key)
+            return Local(key);
+        return "";
     }
 
     private void OnNodePositionChanged(object? sender, EventArgs e)
@@ -1336,9 +1367,10 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     {
         try
         {
-            var rect = await _regionPicker.PickRectanglePhysicalAsync();
-            if (rect is not { } r || r.IsEmpty)
+            var pick = await _regionPicker.PickRectanglePhysicalAsync();
+            if (pick is not { } p || p.Rect.IsEmpty)
                 return;
+            var r = p.Rect;
 
             PushUndoCheckpoint();
             var st = node.State;
@@ -1353,7 +1385,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 ["height"] = r.Height
             };
 
-            var thumbBmp = _screenCapture.CaptureRectanglePhysical(r.X, r.Y, r.Width, r.Height);
+            var thumbBmp = p.CroppedPhysicalBitmap
+                ?? _screenCapture.CaptureRectanglePhysical(r.X, r.Y, r.Width, r.Height);
             st.Properties[AutomationNodePropertyKeys.CaptureRoiThumbnailBase64] =
                 AutomationThumbnailEncoder.ToPngBase64(thumbBmp, 96);
 
@@ -1377,7 +1410,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _dialogs.ShowError(ex.Message, Local("AutomationWorkspace_RoiPickTitle"));
+            _dialogs.ShowError(ExceptionMessageFormatter.UserFacingMessage(ex), Local("AutomationWorkspace_RoiPickTitle"));
         }
     }
 
@@ -1512,6 +1545,24 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private async Task ExecuteSecondaryInlineNodeActionAsync(AutomationInlineNodeFieldViewModel? field)
+    {
+        if (field is null)
+            return;
+        if (!_nodeVmById.TryGetValue(field.NodeId, out var node))
+            return;
+
+        switch (field.SecondaryActionKind)
+        {
+            case AutomationNodeInlineEditorActionKind.CaptureNeedleImageFromScreen:
+            {
+                await CaptureNeedleImageFromScreenForNodeAsync(node, field);
+                break;
+            }
+        }
+    }
+
     private void PickKeyboardActionForNode(AutomationCanvasNodeViewModel node)
     {
         var props = node.State.Properties ??= new JsonObject();
@@ -1596,6 +1647,41 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         CommitInlineNodeField(field);
     }
 
+    private async Task CaptureNeedleImageFromScreenForNodeAsync(
+        AutomationCanvasNodeViewModel node,
+        AutomationInlineNodeFieldViewModel field)
+    {
+        if (!string.Equals(field.NodeTypeId, "perception.find_image", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(field.PropertyKey, AutomationNodePropertyKeys.FindImageNeedlePath, StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            var pick = await _regionPicker.PickRectanglePhysicalAsync();
+            if (pick is null || pick.Rect.IsEmpty)
+                return;
+
+            PushUndoCheckpoint();
+            var bmp = pick.CroppedPhysicalBitmap
+                ?? _screenCapture.CaptureRectanglePhysical(pick.Rect.X, pick.Rect.Y, pick.Rect.Width, pick.Rect.Height);
+            var cachePath = Path.Combine(AppPaths.GetAutomationCaptureCacheDirectory(), $"needle-{node.Id:N}.png");
+            SavePng(bmp, cachePath);
+
+            var props = node.State.Properties ??= new JsonObject();
+            AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.FindImageNeedlePath, cachePath);
+            PopulateInlineEditors(node);
+            _toast.ShowInfo("AutomationWorkspace_NeedleScreenshotSavedTitle", "AutomationWorkspace_NeedleScreenshotSavedOk");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _dialogs.ShowError(ExceptionMessageFormatter.UserFacingMessage(ex),
+                Local("AutomationWorkspace_NeedleScreenshotSavedTitle"));
+        }
+    }
+
     private bool CanClearCaptureRoi() =>
         SelectedNode is not null &&
         string.Equals(SelectedNode.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase);
@@ -1670,9 +1756,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            AppendAutomationLog(ex.Message);
+            AppendAutomationLog(ExceptionMessageFormatter.UserFacingMessage(ex));
             if (showFailureDialog)
-                _dialogs.ShowError(ex.Message, Local(toastTitleResourceKey));
+                _dialogs.ShowError(ExceptionMessageFormatter.UserFacingMessage(ex), Local(toastTitleResourceKey));
         }
         finally
         {
@@ -1876,6 +1962,21 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 return true;
             }
         }
+    }
+
+    private static string NormalizeInlineChoice(string? raw, AutomationNodeInlineEditorDefinition definition)
+    {
+        if (definition.ChoiceOptions is not { Count: > 0 } options)
+            return definition.DefaultTextValue.Trim();
+
+        var trimmed = raw?.Trim() ?? "";
+        foreach (var opt in options)
+        {
+            if (string.Equals(opt.StoredValue, trimmed, StringComparison.OrdinalIgnoreCase))
+                return opt.StoredValue;
+        }
+
+        return definition.DefaultTextValue.Trim();
     }
 
     private static string Local(string key) => AppUiLocalization.GetString(key);

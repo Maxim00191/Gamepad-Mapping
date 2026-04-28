@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using GamepadMapperGUI.Services.Automation;
 
 namespace Gamepad_Mapping.Views.Automation;
 
@@ -52,6 +53,13 @@ public partial class AutomationMagnifierWindow : Window
     {
         if (!GetCursorPos(out var pt))
             return;
+
+        if (AutomationDesktopBoundsInterop.TryPhysicalPointToLogical(pt.X, pt.Y, out var lx, out var ly))
+        {
+            Left = lx + 24;
+            Top = ly + 24;
+            return;
+        }
 
         var dpi = VisualTreeHelper.GetDpi(this);
         Left = pt.X / dpi.PixelsPerInchX * 96.0 + 24;

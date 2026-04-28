@@ -36,10 +36,9 @@ public sealed class CaptureScreenNodeHandler : IAutomationRuntimeNodeHandler
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
-        var metrics = AutomationVirtualScreenNative.GetPhysicalVirtualScreen();
-        var fullBitmap = context.Capture.CaptureVirtualScreenPhysical();
-        context.StoreCapture(node.Id, fullBitmap, metrics.PhysicalOriginX, metrics.PhysicalOriginY);
-        log.Add($"[capture_screen] mode=full origin=({metrics.PhysicalOriginX},{metrics.PhysicalOriginY}) size={fullBitmap.PixelWidth}x{fullBitmap.PixelHeight}");
+        var full = context.Capture.CaptureVirtualScreenPhysical();
+        context.StoreCapture(node.Id, full.Bitmap, full.Metrics.PhysicalOriginX, full.Metrics.PhysicalOriginY);
+        log.Add($"[capture_screen] mode=full origin=({full.Metrics.PhysicalOriginX},{full.Metrics.PhysicalOriginY}) size={full.Bitmap.PixelWidth}x{full.Bitmap.PixelHeight}");
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 }

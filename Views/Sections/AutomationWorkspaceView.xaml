@@ -603,17 +603,34 @@
                                                                                          KeyDown="InlineNodeEditor_KeyDown_Commit"
                                                                                          ToolTip="{Binding Placeholder}"
                                                                                          Visibility="{Binding IsTextField, Converter={StaticResource BoolToVis}}" />
+                                                                                <ComboBox Margin="0,0,0,0"
+                                                                                          Padding="4,2"
+                                                                                          ItemsSource="{Binding ChoiceItems}"
+                                                                                          SelectedValue="{Binding TextValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                          SelectedValuePath="StoredValue"
+                                                                                          DisplayMemberPath="Display"
+                                                                                          DropDownClosed="InlineNodeEditor_Choice_DropDownClosed"
+                                                                                          Visibility="{Binding IsChoiceField, Converter={StaticResource BoolToVis}}" />
                                                                                 <CheckBox IsChecked="{Binding BooleanValue}"
                                                                                           Command="{Binding DataContext.CommitInlineNodeFieldCommand, ElementName=AutomationRoot}"
                                                                                           CommandParameter="{Binding}"
                                                                                           Content="{Binding Label}"
                                                                                           Visibility="{Binding IsBooleanField, Converter={StaticResource BoolToVis}}" />
-                                                                                <Button Padding="8,2"
-                                                                                        Margin="0,4,0,0"
-                                                                                        Command="{Binding DataContext.ExecuteInlineNodeActionCommand, ElementName=AutomationRoot}"
-                                                                                        CommandParameter="{Binding}"
-                                                                                        Content="{Binding ActionLabel}"
-                                                                                        Visibility="{Binding HasAction, Converter={StaticResource BoolToVis}}" />
+                                                                                <StackPanel Margin="0,4,0,0"
+                                                                                            Orientation="Horizontal"
+                                                                                            Visibility="{Binding HasInlineActionRow, Converter={StaticResource BoolToVis}}">
+                                                                                    <Button Padding="8,2"
+                                                                                            Margin="0,0,6,0"
+                                                                                            Command="{Binding DataContext.ExecuteInlineNodeActionCommand, ElementName=AutomationRoot}"
+                                                                                            CommandParameter="{Binding}"
+                                                                                            Content="{Binding ActionLabel}"
+                                                                                            Visibility="{Binding HasAction, Converter={StaticResource BoolToVis}}" />
+                                                                                    <Button Padding="8,2"
+                                                                                            Command="{Binding DataContext.ExecuteSecondaryInlineNodeActionCommand, ElementName=AutomationRoot}"
+                                                                                            CommandParameter="{Binding}"
+                                                                                            Content="{Binding SecondaryActionLabel}"
+                                                                                            Visibility="{Binding HasSecondaryAction, Converter={StaticResource BoolToVis}}" />
+                                                                                </StackPanel>
                                                                             </StackPanel>
                                                                         </DataTemplate>
                                                                     </ItemsControl.ItemTemplate>

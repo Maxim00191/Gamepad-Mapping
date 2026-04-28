@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
+using GamepadMapperGUI.Models.Automation;
 
 namespace GamepadMapperGUI.Services.Automation;
 
@@ -12,13 +13,30 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
 {
     private const uint Srccopy = 0x00CC0020;
 
-    public BitmapSource CaptureVirtualScreenPhysical()
+    public AutomationVirtualScreenCaptureResult CaptureVirtualScreenPhysical()
     {
-        var m = AutomationVirtualScreenNative.GetPhysicalVirtualScreen();
-        return CaptureRectanglePhysical(m.PhysicalOriginX, m.PhysicalOriginY, m.WidthPx, m.HeightPx);
+        using var _ = AutomationDpiAwarenessScope.EnterPerMonitorAware();
+        return CaptureVirtualScreenPhysicalCore();
     }
 
     public BitmapSource CaptureRectanglePhysical(int physicalOriginX, int physicalOriginY, int widthPx, int heightPx)
+    {
+        using var _ = AutomationDpiAwarenessScope.EnterPerMonitorAware();
+        return CaptureRectanglePhysicalCore(physicalOriginX, physicalOriginY, widthPx, heightPx);
+    }
+
+    private AutomationVirtualScreenCaptureResult CaptureVirtualScreenPhysicalCore()
+    {
+        var requested = AutomationVirtualScreenNative.GetPhysicalVirtualScreen();
+        var bmp = CaptureRectanglePhysicalCore(requested.PhysicalOriginX, requested.PhysicalOriginY, requested.WidthPx,
+            requested.HeightPx);
+        var aligned = new AutomationVirtualScreenMetrics(requested.PhysicalOriginX, requested.PhysicalOriginY,
+            bmp.PixelWidth, bmp.PixelHeight);
+        return new AutomationVirtualScreenCaptureResult(bmp, aligned);
+    }
+
+    private static BitmapSource CaptureRectanglePhysicalCore(int physicalOriginX, int physicalOriginY, int widthPx,
+        int heightPx)
     {
         if (widthPx <= 0 || heightPx <= 0)
             throw new ArgumentOutOfRangeException(nameof(widthPx));
@@ -59,7 +77,14 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
                     bmpImage.CacheOption = BitmapCacheOption.OnLoad;
                     bmpImage.EndInit();
                     bmpImage.Freeze();
-                    return bmpImage;
+                    try
+                    {
+                        return AutomationBitmapDpiNormalizer.NormalizeToDefaultDpi(bmpImage);
+                    }
+                    catch
+                    {
+                        return bmpImage;
+                    }
                 }
                 finally
                 {

@@ -8,5 +8,6 @@ public enum AutomationNodeInlineEditorActionKind
     ClearCaptureRegion = 3,
     PickKeyboardActionId = 4,
     PickMouseActionId = 5,
-    PickInputModeId = 6
+    PickInputModeId = 6,
+    CaptureNeedleImageFromScreen = 7
 }

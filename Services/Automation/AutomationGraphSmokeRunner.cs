@@ -91,8 +91,6 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         context.EventBus.Subscribe(signal => OnEventSignal(document, signal, log));
 
         var analysis = _topology.Analyze(document);
-        if (analysis.HasExecutionCycle)
-            return Fail("AutomationSmoke_Cycle", null, log);
         if (analysis.HasDataCycle)
             return Fail("AutomationTopology_DataCycleDetected", null, log);
 

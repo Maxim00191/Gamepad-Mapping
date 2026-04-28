@@ -28,7 +28,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var tolerance = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageTolerance, 1 - confidence);
         var timeoutMs = (int)AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageTimeoutMs, 500);
         var algorithmText = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.FindImageAlgorithm);
-        var algorithm = ParseAlgorithm(algorithmText);
+        var algorithm = AutomationVisionAlgorithmStorage.ParseKind(algorithmText);
         var options = new AutomationImageProbeOptions(tolerance, timeoutMs);
         var needle = AutomationImageProbe.TryLoadBitmapFromPath(needlePath);
         var sourceNode = context.Index.GetNode(source);
@@ -46,14 +46,5 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         context.StoreProbeResult(node.Id, result);
         log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2}");
         return context.GetExecutionTarget(node.Id, "flow.out");
-    }
-
-    private static AutomationVisionAlgorithmKind ParseAlgorithm(string raw)
-    {
-        if (string.Equals(raw, "color_threshold", StringComparison.OrdinalIgnoreCase))
-            return AutomationVisionAlgorithmKind.ColorThreshold;
-        if (string.Equals(raw, "contour", StringComparison.OrdinalIgnoreCase))
-            return AutomationVisionAlgorithmKind.Contour;
-        return AutomationVisionAlgorithmKind.TemplateMatch;
     }
 }

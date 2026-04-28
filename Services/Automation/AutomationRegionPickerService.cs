@@ -8,23 +8,39 @@ namespace GamepadMapperGUI.Services.Automation;
 public sealed class AutomationRegionPickerService : IAutomationRegionPickerService
 {
     private readonly IAutomationScreenCaptureService _capture;
+    private readonly IAutomationCaptureShellHideService _shellHide;
     private readonly Dispatcher _dispatcher;
 
-    public AutomationRegionPickerService(IAutomationScreenCaptureService capture, Dispatcher dispatcher)
+    public AutomationRegionPickerService(
+        IAutomationScreenCaptureService capture,
+        IAutomationCaptureShellHideService shellHide,
+        Dispatcher dispatcher)
     {
         _capture = capture;
+        _shellHide = shellHide;
         _dispatcher = dispatcher;
     }
 
-    public async Task<AutomationPhysicalRect?> PickRectanglePhysicalAsync(CancellationToken cancellationToken = default)
+    public async Task<AutomationRegionPickResult?> PickRectanglePhysicalAsync(CancellationToken cancellationToken = default)
     {
         var op = _dispatcher.InvokeAsync(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var bmp = _capture.CaptureVirtualScreenPhysical();
-            var dlg = new AutomationRegionPickerWindow(bmp);
-            var ok = dlg.ShowDialog();
-            return ok == true ? dlg.ResultRect : null;
+            AutomationRegionPickResult? outcome = null;
+            _shellHide.RunWhileMainWindowHidden(() =>
+            {
+                using var _ = AutomationDpiAwarenessScope.EnterPerMonitorAware();
+                cancellationToken.ThrowIfCancellationRequested();
+                var cap = _capture.CaptureVirtualScreenPhysical();
+                var dlg = new AutomationRegionPickerWindow(cap.Bitmap, cap.Metrics);
+                var ok = dlg.ShowDialog();
+                if (ok == true &&
+                    dlg.ResultRect is { } rect &&
+                    !rect.IsEmpty)
+                    outcome = new AutomationRegionPickResult(rect, dlg.ResultCrop);
+            });
+
+            return outcome;
         }, DispatcherPriority.Normal);
 
         return await op.Task.WaitAsync(cancellationToken).ConfigureAwait(false);

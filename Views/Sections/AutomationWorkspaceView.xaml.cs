@@ -348,6 +348,16 @@ public partial class AutomationWorkspaceView
         e.Handled = true;
     }
 
+    private void InlineNodeEditor_Choice_DropDownClosed(object sender, EventArgs e)
+    {
+        if (WorkspaceVm is null)
+            return;
+        if (sender is not FrameworkElement fe || fe.DataContext is not AutomationInlineNodeFieldViewModel field)
+            return;
+
+        WorkspaceVm.CommitInlineNodeFieldCommand.Execute(field);
+    }
+
     private void CanvasScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (WorkspaceVm is null)

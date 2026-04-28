@@ -15,6 +15,8 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        AutomationDpiAwarenessScope.TrySetProcessPerMonitorAware();
+
         // Register global handlers as early as possible
         StartupDiagnostics.RegisterHandlers(App.Logger);
 

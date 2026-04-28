@@ -2,9 +2,11 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation;
 
@@ -13,7 +15,7 @@ namespace Gamepad_Mapping.Views.Automation;
 public partial class AutomationRegionPickerWindow : Window
 {
     private readonly BitmapSource _freeze;
-    private readonly AutomationVirtualScreenMetrics _vs;
+    private AutomationVirtualScreenMetrics _vs;
     private readonly AutomationMagnifierWindow? _magnifier;
 
     private int _aX;
@@ -27,12 +29,19 @@ public partial class AutomationRegionPickerWindow : Window
     private AutomationPhysicalRect _moveBaseline;
     private int _movePtrX;
     private int _movePtrY;
+    private bool _applyingFullscreenBounds;
 
-    public AutomationRegionPickerWindow(BitmapSource frozenScreen, bool showMagnifier = true)
+    public AutomationRegionPickerWindow(BitmapSource frozenScreen, AutomationVirtualScreenMetrics captureMetrics,
+        bool showMagnifier = true)
     {
         InitializeComponent();
         _freeze = frozenScreen;
-        _vs = AutomationVirtualScreenNative.GetPhysicalVirtualScreen();
+        FreezeView.Source = _freeze;
+        _vs = new AutomationVirtualScreenMetrics(
+            captureMetrics.PhysicalOriginX,
+            captureMetrics.PhysicalOriginY,
+            Math.Max(1, frozenScreen.PixelWidth),
+            Math.Max(1, frozenScreen.PixelHeight));
         if (showMagnifier)
         {
             _magnifier = new AutomationMagnifierWindow(frozenScreen, 4);
@@ -40,28 +49,94 @@ public partial class AutomationRegionPickerWindow : Window
         }
 
         PreviewKeyDown += OnPreviewKeyDown;
-        Loaded += OnLoaded;
+        DpiChanged += (_, _) =>
+        {
+            if (_applyingFullscreenBounds)
+                return;
+            ApplyFullscreenOverlayBounds();
+            SyncFreezeViewToClientSurface();
+        };
+        SizeChanged += (_, _) => SyncFreezeViewToClientSurface();
         MouseLeftButtonDown += OnMouseLeftButtonDown;
         MouseLeftButtonUp += OnMouseLeftButtonUp;
         MouseMove += OnMouseMove;
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        ApplyFullscreenOverlayBounds();
+        SyncFreezeViewToClientSurface();
+    }
+
+    protected override void OnContentRendered(EventArgs e)
+    {
+        base.OnContentRendered(e);
+        Dispatcher.BeginInvoke(ApplyFullscreenOverlayBounds, DispatcherPriority.Render);
+        Dispatcher.BeginInvoke(ApplyFullscreenOverlayBounds, DispatcherPriority.ApplicationIdle);
+        Dispatcher.BeginInvoke(SyncFreezeViewToClientSurface, DispatcherPriority.Render);
+        Dispatcher.BeginInvoke(SyncFreezeViewToClientSurface, DispatcherPriority.ApplicationIdle);
+    }
+
+    private void ApplyFullscreenOverlayBounds()
+    {
+        if (_applyingFullscreenBounds)
+            return;
+
+        _applyingFullscreenBounds = true;
+        try
+        {
+            var snapped = SnapWindowToPhysicalVirtualScreen();
+            if (!snapped)
+                AutomationDesktopBoundsInterop.TryApplyPhysicalRectAsWpfWindowBounds(this, _vs.PhysicalOriginX,
+                    _vs.PhysicalOriginY, _freeze.PixelWidth, _freeze.PixelHeight);
+        }
+        finally
+        {
+            _applyingFullscreenBounds = false;
+        }
+    }
+
+    private bool SnapWindowToPhysicalVirtualScreen()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+            return false;
+
+        return AutomationDesktopBoundsInterop.TryPositionWindowPhysical(
+            hwnd,
+            _vs.PhysicalOriginX,
+            _vs.PhysicalOriginY,
+            _vs.WidthPx,
+            _vs.HeightPx);
+    }
+
+    private void SyncFreezeViewToClientSurface()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+            return;
+        if (!AutomationDesktopBoundsInterop.TryGetWindowClientScreenMetrics(
+                hwnd,
+                out _,
+                out _,
+                out var clientWidthPx,
+                out var clientHeightPx))
+        {
+            return;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        if (dpi.DpiScaleX <= 0 || dpi.DpiScaleY <= 0)
+            return;
+
+        FreezeView.Width = clientWidthPx / dpi.DpiScaleX;
+        FreezeView.Height = clientHeightPx / dpi.DpiScaleY;
+    }
+
     public AutomationPhysicalRect? ResultRect { get; private set; }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        var dpi = VisualTreeHelper.GetDpi(this);
-        Left = SystemParameters.VirtualScreenLeft;
-        Top = SystemParameters.VirtualScreenTop;
-        Width = SystemParameters.VirtualScreenWidth;
-        Height = SystemParameters.VirtualScreenHeight;
-
-        var fw = _freeze.PixelWidth * 96.0 / dpi.PixelsPerInchX;
-        var fh = _freeze.PixelHeight * 96.0 / dpi.PixelsPerInchY;
-        FreezeView.Width = fw;
-        FreezeView.Height = fh;
-        FreezeView.Source = _freeze;
-    }
+    public BitmapSource? ResultCrop { get; private set; }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -78,7 +153,9 @@ public partial class AutomationRegionPickerWindow : Window
             e.Handled = true;
             if (_hasBox)
             {
-                ResultRect = ClampRect(NormalizeRaw());
+                var committed = ClampRect(NormalizeRaw());
+                ResultRect = committed;
+                ResultCrop = TryCropFreeze(committed);
                 DialogResult = true;
                 Close();
             }
@@ -259,11 +336,23 @@ public partial class AutomationRegionPickerWindow : Window
         SelectionBorder.Visibility = Visibility.Visible;
         ToggleHandles(_hasBox && !_selecting);
 
-        var dpi = VisualTreeHelper.GetDpi(this);
-        var bx = (nr.X - _vs.PhysicalOriginX) * 96.0 / dpi.PixelsPerInchX;
-        var by = (nr.Y - _vs.PhysicalOriginY) * 96.0 / dpi.PixelsPerInchY;
-        var bw = nr.Width * 96.0 / dpi.PixelsPerInchX;
-        var bh = nr.Height * 96.0 / dpi.PixelsPerInchY;
+        var ow = OverlayCanvas.ActualWidth > 0 ? OverlayCanvas.ActualWidth : ActualWidth;
+        var oh = OverlayCanvas.ActualHeight > 0 ? OverlayCanvas.ActualHeight : ActualHeight;
+
+        double bx, by, bw, bh;
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero &&
+            AutomationDesktopBoundsInterop.TryGetWindowClientScreenMetrics(hwnd, out var cox, out var coy, out var cw,
+                out var ch))
+        {
+            AutomationOverlayCoordinateMapping.PhysicalRectToOverlayForClientSurface(nr, cox, coy, cw, ch, ow, oh,
+                out bx, out by, out bw, out bh);
+        }
+        else
+        {
+            AutomationOverlayCoordinateMapping.PhysicalRectToOverlay(nr, CaptureExtentMetrics(), ow, oh, out bx, out by,
+                out bw, out bh);
+        }
 
         Canvas.SetLeft(SelectionBorder, bx);
         Canvas.SetTop(SelectionBorder, by);
@@ -302,13 +391,41 @@ public partial class AutomationRegionPickerWindow : Window
         return new AutomationPhysicalRect(x1, y1, Math.Max(0, x2 - x1), Math.Max(0, y2 - y1));
     }
 
+    private AutomationVirtualScreenMetrics CaptureExtentMetrics() =>
+        new(_vs.PhysicalOriginX, _vs.PhysicalOriginY, _freeze.PixelWidth, _freeze.PixelHeight);
+
     private AutomationPhysicalRect ClampRect(AutomationPhysicalRect raw)
     {
-        var x1 = Math.Clamp(raw.X, _vs.PhysicalOriginX, _vs.PhysicalOriginX + _vs.WidthPx);
-        var y1 = Math.Clamp(raw.Y, _vs.PhysicalOriginY, _vs.PhysicalOriginY + _vs.HeightPx);
-        var x2 = Math.Clamp(raw.X + raw.Width, _vs.PhysicalOriginX, _vs.PhysicalOriginX + _vs.WidthPx);
-        var y2 = Math.Clamp(raw.Y + raw.Height, _vs.PhysicalOriginY, _vs.PhysicalOriginY + _vs.HeightPx);
+        var m = CaptureExtentMetrics();
+        var maxX = m.PhysicalOriginX + m.WidthPx;
+        var maxY = m.PhysicalOriginY + m.HeightPx;
+        var x1 = Math.Clamp(raw.X, m.PhysicalOriginX, maxX);
+        var y1 = Math.Clamp(raw.Y, m.PhysicalOriginY, maxY);
+        var x2 = Math.Clamp(raw.X + raw.Width, m.PhysicalOriginX, maxX);
+        var y2 = Math.Clamp(raw.Y + raw.Height, m.PhysicalOriginY, maxY);
         return new AutomationPhysicalRect(x1, y1, Math.Max(0, x2 - x1), Math.Max(0, y2 - y1));
+    }
+
+    private BitmapSource? TryCropFreeze(AutomationPhysicalRect rect)
+    {
+        if (rect.IsEmpty)
+            return null;
+
+        var ox = rect.X - _vs.PhysicalOriginX;
+        var oy = rect.Y - _vs.PhysicalOriginY;
+        if (ox < 0 || oy < 0 || ox + rect.Width > _freeze.PixelWidth || oy + rect.Height > _freeze.PixelHeight)
+            return null;
+
+        try
+        {
+            var cropped = new CroppedBitmap(_freeze, new Int32Rect(ox, oy, rect.Width, rect.Height));
+            cropped.Freeze();
+            return cropped;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     protected override void OnClosed(EventArgs e)

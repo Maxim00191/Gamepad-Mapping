@@ -2354,4 +2354,25 @@
   <data name="AutomationWorkspace_RunAlreadyInProgressLog" xml:space="preserve">
     <value>[运行] 当前已有自动化任务在执行。</value>
   </data>
+  <data name="AutomationVisionAlgorithm_Option_TemplateMatch" xml:space="preserve">
+    <value>模板匹配</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_ColorThreshold" xml:space="preserve">
+    <value>颜色阈值</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_Contour" xml:space="preserve">
+    <value>轮廓</value>
+  </data>
+  <data name="AutomationWorkspace_ScreenshotNeedle" xml:space="preserve">
+    <value>截图…</value>
+  </data>
+  <data name="AutomationWorkspace_NeedleScreenshotSavedTitle" xml:space="preserve">
+    <value>已保存模板图像</value>
+  </data>
+  <data name="AutomationWorkspace_NeedleScreenshotSavedOk" xml:space="preserve">
+    <value>已将所选区域保存为查找图像模板。</value>
+  </data>
+  <data name="AutomationRegionPicker_Instructions" xml:space="preserve">
+    <value>拖拽选择区域。拖动角点可调整大小。方向键微调（Shift=10px）。Enter 确认，Esc 取消。</value>
+  </data>
 </root>

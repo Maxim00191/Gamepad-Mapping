@@ -6,5 +6,6 @@ public enum AutomationNodeInlineEditorKind
     Integer = 1,
     Double = 2,
     Boolean = 3,
-    Action = 4
+    Action = 4,
+    Choice = 5
 }

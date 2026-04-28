@@ -23,13 +23,28 @@ public sealed partial class AutomationInlineNodeFieldViewModel : ObservableObjec
 
     public string ActionLabel { get; init; } = "";
 
+    public AutomationNodeInlineEditorActionKind SecondaryActionKind { get; init; } = AutomationNodeInlineEditorActionKind.None;
+
+    public string SecondaryActionLabel { get; init; } = "";
+
     public bool HasAction => ActionKind != AutomationNodeInlineEditorActionKind.None;
+
+    public bool HasSecondaryAction => SecondaryActionKind != AutomationNodeInlineEditorActionKind.None;
+
+    public bool HasInlineActionRow => HasAction || HasSecondaryAction;
 
     public bool IsBooleanField => Kind == AutomationNodeInlineEditorKind.Boolean;
 
     public bool IsActionField => Kind == AutomationNodeInlineEditorKind.Action;
 
-    public bool IsTextField => Kind != AutomationNodeInlineEditorKind.Boolean && Kind != AutomationNodeInlineEditorKind.Action;
+    public bool IsChoiceField => Kind == AutomationNodeInlineEditorKind.Choice;
+
+    public bool IsTextField =>
+        Kind != AutomationNodeInlineEditorKind.Boolean &&
+        Kind != AutomationNodeInlineEditorKind.Action &&
+        Kind != AutomationNodeInlineEditorKind.Choice;
+
+    public IReadOnlyList<AutomationInlineChoiceItemViewModel> ChoiceItems { get; init; } = [];
 
     [ObservableProperty]
     private string _textValue = "";

@@ -57,13 +57,6 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
 
         if (outPort.FlowKind == AutomationPortFlowKind.Execution &&
             inPort.FlowKind == AutomationPortFlowKind.Execution &&
-            WouldCreateExecutionCycle(document, sourceNodeId, targetNodeId))
-        {
-            return new ConnectionValidationResult(false, "AutomationTopology_CycleDetected");
-        }
-
-        if (outPort.FlowKind == AutomationPortFlowKind.Execution &&
-            inPort.FlowKind == AutomationPortFlowKind.Execution &&
             existingOutgoing != default)
         {
             return new ConnectionValidationResult(false, "AutomationConnection_ExecutionOutAlreadyConnected");
@@ -83,11 +76,7 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
         var dataCycleEdges = FindFirstCycleEdges(dataAdjacency);
         var hasExecutionCycle = cycleEdges.Count > 0;
         var hasDataCycle = dataCycleEdges.Count > 0;
-        var detail = hasExecutionCycle
-            ? "AutomationTopology_CycleDetected"
-            : hasDataCycle
-                ? "AutomationTopology_DataCycleDetected"
-                : null;
+        var detail = hasDataCycle ? "AutomationTopology_DataCycleDetected" : null;
 
         return new AutomationTopologyAnalysis
         {
@@ -182,43 +171,6 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
 
         recursionStack.Remove(nodeId);
         color[nodeId] = 2;
-        return false;
-    }
-
-    private bool WouldCreateExecutionCycle(AutomationGraphDocument document, Guid sourceNodeId, Guid targetNodeId)
-    {
-        var adjacency = BuildAdjacency(document, AutomationPortFlowKind.Execution);
-        if (!adjacency.TryGetValue(sourceNodeId, out var outgoing))
-        {
-            outgoing = [];
-            adjacency[sourceNodeId] = outgoing;
-        }
-
-        outgoing.Add((Guid.Empty, targetNodeId));
-        return HasPathToNode(targetNodeId, sourceNodeId, adjacency);
-    }
-
-    private static bool HasPathToNode(
-        Guid startNodeId,
-        Guid targetNodeId,
-        IReadOnlyDictionary<Guid, List<(Guid EdgeId, Guid TargetNodeId)>> adjacency)
-    {
-        var visited = new HashSet<Guid>();
-        var stack = new Stack<Guid>();
-        stack.Push(startNodeId);
-        while (stack.Count > 0)
-        {
-            var current = stack.Pop();
-            if (!visited.Add(current))
-                continue;
-            if (current == targetNodeId)
-                return true;
-            if (!adjacency.TryGetValue(current, out var outgoing))
-                continue;
-            foreach (var (_, next) in outgoing)
-                stack.Push(next);
-        }
-
         return false;
     }
 }

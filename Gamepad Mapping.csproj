@@ -12,6 +12,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <StartupObject>Gamepad_Mapping.Program</StartupObject>
     <ApplicationIcon>Assets\Icons\Gamepad Mapping.ico</ApplicationIcon>

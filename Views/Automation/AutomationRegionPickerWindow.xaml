@@ -7,13 +7,14 @@
         ShowInTaskbar="False"
         Topmost="True"
         Background="#01000000"
-        AllowsTransparency="True"
+        UseLayoutRounding="True"
         Cursor="Cross">
     <Grid x:Name="RootGrid">
         <Image x:Name="FreezeView"
-               Stretch="None"
-               HorizontalAlignment="Left"
-               VerticalAlignment="Top"
+               RenderOptions.BitmapScalingMode="NearestNeighbor"
+               Stretch="Fill"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch"
                IsHitTestVisible="False" />
         <Canvas x:Name="OverlayCanvas"
                 HorizontalAlignment="Stretch"
@@ -67,7 +68,7 @@
             <TextBlock Foreground="#FFF5F5F5"
                        FontSize="13"
                        TextWrapping="Wrap"
-                       Text="Drag to select. Corners resize. Arrows nudge (Shift=10px). Enter confirm, Esc cancel." />
+                       Text="{Binding Source={StaticResource Loc}, Path=[AutomationRegionPicker_Instructions]}" />
         </Border>
     </Grid>
 </Window>

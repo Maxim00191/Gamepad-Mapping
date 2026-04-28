@@ -84,6 +84,34 @@ public sealed class AutomationTopologyAnalyzerTests
     }
 
     [Fact]
+    public void ValidateConnection_AllowsExecutionCycleBackEdge()
+    {
+        var loop = CreateNode("automation.loop");
+        var delay = CreateNode("automation.delay");
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [loop, delay],
+            Edges =
+            [
+                new AutomationEdgeState
+                {
+                    Id = Guid.NewGuid(),
+                    SourceNodeId = loop.Id,
+                    SourcePortId = "loop.body",
+                    TargetNodeId = delay.Id,
+                    TargetPortId = "flow.in"
+                }
+            ]
+        };
+
+        var sut = new AutomationTopologyAnalyzer(_registry);
+        var result = sut.ValidateConnection(doc, delay.Id, "flow.out", loop.Id, "flow.in");
+
+        Assert.True(result.IsAllowed);
+        Assert.Null(result.ReasonResourceKey);
+    }
+
+    [Fact]
     public void Analyze_FlagsDataCyclesAsInvalidTopology()
     {
         var findA = CreateNode("perception.find_image");

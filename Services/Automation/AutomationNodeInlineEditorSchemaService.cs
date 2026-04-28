@@ -58,16 +58,35 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     Kind = AutomationNodeInlineEditorKind.Text,
                     DefaultTextValue = "",
                     ActionKind = AutomationNodeInlineEditorActionKind.BrowseImageFile,
-                    ActionLabelResourceKey = "AutomationWorkspace_Browse"
+                    ActionLabelResourceKey = "AutomationWorkspace_Browse",
+                    SecondaryActionKind = AutomationNodeInlineEditorActionKind.CaptureNeedleImageFromScreen,
+                    SecondaryActionLabelResourceKey = "AutomationWorkspace_ScreenshotNeedle"
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",
                     PropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
                     LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithm",
-                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageAlgorithmPlaceholder",
-                    Kind = AutomationNodeInlineEditorKind.Text,
-                    DefaultTextValue = "template"
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = AutomationVisionAlgorithmStorage.TemplateMatch,
+                    ChoiceOptions =
+                    [
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationVisionAlgorithmStorage.TemplateMatch,
+                            LabelResourceKey = "AutomationVisionAlgorithm_Option_TemplateMatch"
+                        },
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationVisionAlgorithmStorage.ColorThreshold,
+                            LabelResourceKey = "AutomationVisionAlgorithm_Option_ColorThreshold"
+                        },
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationVisionAlgorithmStorage.Contour,
+                            LabelResourceKey = "AutomationVisionAlgorithm_Option_Contour"
+                        }
+                    ]
                 },
                 new AutomationNodeInlineEditorDefinition
                 {

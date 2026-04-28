@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace GamepadMapperGUI.Models.Automation;
 
 public sealed class AutomationNodeInlineEditorDefinition
@@ -16,6 +18,10 @@ public sealed class AutomationNodeInlineEditorDefinition
 
     public string? ActionLabelResourceKey { get; init; }
 
+    public AutomationNodeInlineEditorActionKind SecondaryActionKind { get; init; } = AutomationNodeInlineEditorActionKind.None;
+
+    public string? SecondaryActionLabelResourceKey { get; init; }
+
     public string DefaultTextValue { get; init; } = "";
 
     public bool DefaultBooleanValue { get; init; }
@@ -27,4 +33,6 @@ public sealed class AutomationNodeInlineEditorDefinition
     public double? MinDoubleValue { get; init; }
 
     public double? MaxDoubleValue { get; init; }
+
+    public IReadOnlyList<AutomationNodeInlineChoiceOption>? ChoiceOptions { get; init; }
 }

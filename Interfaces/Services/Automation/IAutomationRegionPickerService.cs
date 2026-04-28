@@ -5,5 +5,5 @@ namespace GamepadMapperGUI.Interfaces.Services.Automation;
 
 public interface IAutomationRegionPickerService
 {
-    Task<AutomationPhysicalRect?> PickRectanglePhysicalAsync(CancellationToken cancellationToken = default);
+    Task<AutomationRegionPickResult?> PickRectanglePhysicalAsync(CancellationToken cancellationToken = default);
 }

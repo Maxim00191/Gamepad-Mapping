@@ -2354,4 +2354,25 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationWorkspace_RunAlreadyInProgressLog" xml:space="preserve">
     <value>[Run] Another automation run is already in progress.</value>
   </data>
+  <data name="AutomationVisionAlgorithm_Option_TemplateMatch" xml:space="preserve">
+    <value>Template match</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_ColorThreshold" xml:space="preserve">
+    <value>Color threshold</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_Contour" xml:space="preserve">
+    <value>Contour</value>
+  </data>
+  <data name="AutomationWorkspace_ScreenshotNeedle" xml:space="preserve">
+    <value>Screenshot…</value>
+  </data>
+  <data name="AutomationWorkspace_NeedleScreenshotSavedTitle" xml:space="preserve">
+    <value>Template image saved</value>
+  </data>
+  <data name="AutomationWorkspace_NeedleScreenshotSavedOk" xml:space="preserve">
+    <value>Saved the selected region as the find-image template.</value>
+  </data>
+  <data name="AutomationRegionPicker_Instructions" xml:space="preserve">
+    <value>Drag to select. Corners resize. Arrows nudge (Shift=10px). Enter confirm, Esc cancel.</value>
+  </data>
 </root>
