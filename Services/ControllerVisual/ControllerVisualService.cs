@@ -14,6 +14,7 @@ public class ControllerVisualService : IControllerVisualService
         { "btn_B", (GamepadBindingType.Button, "B", "Button B") },
         { "btn_X", (GamepadBindingType.Button, "X", "Button X") },
         { "btn_Y", (GamepadBindingType.Button, "Y", "Button Y") },
+        { "btn_touchpad", (GamepadBindingType.Button, "Touchpad", "Touchpad Click") },
         { "shoulder_L", (GamepadBindingType.Button, "LeftShoulder", "Left Shoulder") },
         { "shoulder_R", (GamepadBindingType.Button, "RightShoulder", "Right Shoulder") },
         { "trigger_L", (GamepadBindingType.LeftTrigger, "LeftTrigger", "Left Trigger") },

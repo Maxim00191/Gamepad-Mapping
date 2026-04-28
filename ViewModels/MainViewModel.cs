@@ -213,7 +213,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _updateNotificationService = updateNotificationService ?? new UpdateNotificationService();
 
         _controllerVisualService = controllerVisualService ?? new ControllerVisualService();
-        _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource();
+        _controllerVisualLayoutSource = controllerVisualLayoutSource ?? new DefaultControllerVisualLayoutSource(
+            getActiveGamepadApiId: () => _settingsOrchestrator.Settings.GamepadSourceApi,
+            normalizeGamepadApiId: _gamepadSourceFactory.NormalizeApiId);
         _controllerVisualLoader = controllerVisualLoader ?? new ControllerVisualLoader();
         _controllerChordContextResolver = new ControllerChordContextResolver(_controllerVisualService);
         _controllerVisualHighlightService = new ControllerVisualHighlightService(
@@ -869,7 +871,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void RecreateGamepadReaderForCurrentSource()
     {
-        var source = _gamepadSourceFactory.CreateSource(_settingsOrchestrator.Settings.GamepadSourceApi, out _);
+        var source = _gamepadSourceFactory.CreateSource(_settingsOrchestrator.Settings.GamepadSourceApi, out var resolvedApiId);
+        if (!string.Equals(_settingsOrchestrator.Settings.GamepadSourceApi, resolvedApiId, StringComparison.OrdinalIgnoreCase))
+            _settingsOrchestrator.Settings.GamepadSourceApi = resolvedApiId;
 
         var dzShape = ThumbstickDeadzoneShapeParser.Parse(_settingsOrchestrator.Settings.ThumbstickDeadzoneShape);
         var reader = new GamepadReader(
@@ -886,6 +890,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _gamepadService.ApplyInputStreamTuning(
             _settingsOrchestrator.Settings.GamepadPollingIntervalMs,
             _settingsOrchestrator.Settings.AnalogChangeEpsilon);
+        VisualEditorPanel.ControllerVisual.RefreshActiveLayout();
         OnPropertyChanged(nameof(IsGamepadRunning));
     }
 

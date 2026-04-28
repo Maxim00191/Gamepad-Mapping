@@ -26,16 +26,4 @@
 <path id="thumb_L" d="M117 179C125.284 179 132 172.284 132 164C132 155.716 125.284 149 117 149C108.716 149 102 155.716 102 164C102 172.284 108.716 179 117 179Z" fill="#2F3C50"/>
 <path id="thumbStick_L" d="M117 174C122.523 174 127 169.522 127 164C127 158.477 122.523 154 117 154C111.477 154 107 158.477 107 164C107 169.522 111.477 174 117 174Z" fill="#E8EDF2"/>
 </g>
-<defs>
-<filter id="filter0_d_6_106" x="34.9367" y="93" width="227.737" height="149.5" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-<feOffset dy="4"/>
-<feGaussianBlur stdDeviation="2"/>
-<feComposite in2="hardAlpha" operator="out"/>
-<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
-<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_6_106"/>
-<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_6_106" result="shape"/>
-</filter>
-</defs>
 </svg>

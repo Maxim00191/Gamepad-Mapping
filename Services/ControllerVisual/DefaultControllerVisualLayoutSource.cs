@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
+using GamepadMapperGUI.Models;
 using Gamepad_Mapping.Utils.ControllerVisual;
 using GamepadMapperGUI.Models.ControllerVisual;
 using GamepadMapperGUI.Utils;
@@ -9,19 +10,39 @@ namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public sealed class DefaultControllerVisualLayoutSource : IControllerVisualLayoutSource
 {
-    private readonly string _manifestFileName;
-    private ControllerVisualLayoutDescriptor? _cached;
+    private readonly Func<string?> _getActiveGamepadApiId;
+    private readonly Func<string?, string> _normalizeGamepadApiId;
+    private readonly Dictionary<string, ControllerVisualLayoutDescriptor> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IReadOnlyDictionary<string, string> _layoutManifestByGamepadApiId;
 
-    public DefaultControllerVisualLayoutSource(string manifestFileName = ControllerSvgConstants.DefaultLayoutManifestFileName)
+    public DefaultControllerVisualLayoutSource(
+        Func<string?>? getActiveGamepadApiId = null,
+        Func<string?, string>? normalizeGamepadApiId = null,
+        IReadOnlyDictionary<string, string>? layoutManifestByGamepadApiId = null)
     {
-        _manifestFileName = manifestFileName;
+        _getActiveGamepadApiId = getActiveGamepadApiId ?? (() => GamepadSourceApiIds.XInput);
+        _normalizeGamepadApiId = normalizeGamepadApiId ?? NormalizeApiId;
+        _layoutManifestByGamepadApiId = layoutManifestByGamepadApiId ??
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [GamepadSourceApiIds.XInput] = ControllerSvgConstants.DefaultLayoutManifestFileName,
+                [GamepadSourceApiIds.PlayStation] = ControllerSvgConstants.DualSenseLayoutManifestFileName
+            };
     }
 
-    public ControllerVisualLayoutDescriptor GetActiveLayout()
-    {
-        if (_cached is not null) return _cached;
+    public ControllerVisualLayoutDescriptor GetActiveLayout() =>
+        GetLayoutForGamepadApi(_getActiveGamepadApiId());
 
-        var path = AppPaths.GetControllerVisualLayoutManifestPath(_manifestFileName);
+    public ControllerVisualLayoutDescriptor GetLayoutForGamepadApi(string? gamepadApiId)
+    {
+        var normalizedApiId = _normalizeGamepadApiId(gamepadApiId);
+        if (!_layoutManifestByGamepadApiId.TryGetValue(normalizedApiId, out var manifestFileName))
+            manifestFileName = ControllerSvgConstants.DefaultLayoutManifestFileName;
+
+        if (_cache.TryGetValue(manifestFileName, out var cached))
+            return cached;
+
+        var path = AppPaths.GetControllerVisualLayoutManifestPath(manifestFileName);
         if (File.Exists(path))
         {
             try
@@ -29,8 +50,8 @@ public sealed class DefaultControllerVisualLayoutSource : IControllerVisualLayou
                 var json = File.ReadAllText(path);
                 if (ControllerVisualManifestParser.TryParse(json, out var parsed) && parsed is not null)
                 {
-                    _cached = parsed;
-                    return _cached;
+                    _cache[manifestFileName] = parsed;
+                    return parsed;
                 }
             }
             catch (Exception ex)
@@ -41,7 +62,15 @@ public sealed class DefaultControllerVisualLayoutSource : IControllerVisualLayou
         else
             Debug.WriteLine($"Controller layout manifest not found: {path}");
 
-        _cached = ControllerVisualLayoutFallbacks.Xbox;
-        return _cached;
+        _cache[manifestFileName] = ControllerVisualLayoutFallbacks.Xbox;
+        return ControllerVisualLayoutFallbacks.Xbox;
+    }
+
+    private static string NormalizeApiId(string? apiId)
+    {
+        if (string.IsNullOrWhiteSpace(apiId))
+            return GamepadSourceApiIds.XInput;
+
+        return apiId.Trim();
     }
 }
