@@ -2375,4 +2375,88 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationRegionPicker_Instructions" xml:space="preserve">
     <value>Drag to select. Corners resize. Arrows nudge (Shift=10px). Enter confirm, Esc cancel.</value>
   </data>
+  <data name="AutomationInlineEditor_NodeDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="AutomationInlineEditor_NodeDescriptionPlaceholder" xml:space="preserve">
+    <value>Add a short description for this node</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_OpenCvTemplateMatch" xml:space="preserve">
+    <value>OpenCV template match</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_YoloOnnx" xml:space="preserve">
+    <value>YOLO (ONNX via OpenCV DNN)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageYoloOnnxPath" xml:space="preserve">
+    <value>YOLO ONNX model</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageYoloOnnxPathPlaceholder" xml:space="preserve">
+    <value>Path to a YOLO .onnx (Ultralytics export, 640), or leave empty to use the bundled yolo.onnx (YOLO11n COCO) or yolo.onnx / model.onnx / default.onnx in %LocalAppData%\GamepadMapping\Automation\YoloOnnx or Assets\Automation\Models</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageYoloClassId" xml:space="preserve">
+    <value>YOLO class id (-1 = any)</value>
+  </data>
+  <data name="AutomationVisionAlgorithmPicker_DialogTitle" xml:space="preserve">
+    <value>Select visual algorithm</value>
+  </data>
+  <data name="AutomationVisionAlgorithmPicker_SearchPlaceholder" xml:space="preserve">
+    <value>Search algorithms by name or storage id</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlgorithmPickerLabel" xml:space="preserve">
+    <value>Select Visual Model</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionPickerLabel" xml:space="preserve">
+    <value>Select Keyboard Action</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionPickerLabel" xml:space="preserve">
+    <value>Select Mouse Action</value>
+  </data>
+  <data name="AutomationInlineEditor_InputModePickerLabel" xml:space="preserve">
+    <value>Select Input Mode</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_TextRegion" xml:space="preserve">
+    <value>Text region</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorHueMin" xml:space="preserve">
+    <value>Color hue min (0-179)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorHueMax" xml:space="preserve">
+    <value>Color hue max (0-179)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorSaturationMin" xml:space="preserve">
+    <value>Color saturation min</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorSaturationMax" xml:space="preserve">
+    <value>Color saturation max</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorValueMin" xml:space="preserve">
+    <value>Color value min</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorValueMax" xml:space="preserve">
+    <value>Color value max</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorMinimumAreaPx" xml:space="preserve">
+    <value>Color minimum area (px)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextMinimumRegionAreaPx" xml:space="preserve">
+    <value>Text minimum region area (px)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextMorphologyWidth" xml:space="preserve">
+    <value>Text merge width</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextMorphologyHeight" xml:space="preserve">
+    <value>Text merge height</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorTargetHex" xml:space="preserve">
+    <value>Target color (hex)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorTargetHexPlaceholder" xml:space="preserve">
+    <value>#RRGGBB, e.g. #FF6A00</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextQuery" xml:space="preserve">
+    <value>Target text</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextQueryPlaceholder" xml:space="preserve">
+    <value>Text to locate (for text-aware detectors)</value>
+  </data>
 </root>

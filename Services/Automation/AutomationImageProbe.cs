@@ -20,17 +20,46 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
         AutomationVisionAlgorithmKind algorithmKind,
         CancellationToken cancellationToken)
     {
-        if (needle is null || needle.PixelWidth <= 0 || needle.PixelHeight <= 0)
-            return ProbeCenterFallback(haystack, haystackLeftScreenPx, haystackTopScreenPx);
+        var requiresNeedle = AutomationVisionAlgorithmRequirements.RequiresNeedleImage(algorithmKind);
+        if (requiresNeedle && (needle is null || needle.PixelWidth <= 0 || needle.PixelHeight <= 0))
+            return new AutomationImageProbeResult(false, 0, 0);
 
         var frame = new AutomationVisionFrame(haystack, needle, haystackLeftScreenPx, haystackTopScreenPx, options);
         var result = await _pipeline.ProcessAsync(algorithmKind, frame, cancellationToken);
         if (!result.Matched)
             return new AutomationImageProbeResult(false, 0, 0);
 
-        var x = haystackLeftScreenPx + result.MatchX + needle.PixelWidth / 2;
-        var y = haystackTopScreenPx + result.MatchY + needle.PixelHeight / 2;
-        return new AutomationImageProbeResult(true, x, y, result.MatchCount, result.Confidence);
+        return ToProbeResult(algorithmKind, result, haystackLeftScreenPx, haystackTopScreenPx, needle);
+    }
+
+    private static AutomationImageProbeResult ToProbeResult(
+        AutomationVisionAlgorithmKind algorithmKind,
+        AutomationVisionResult vision,
+        int haystackLeftScreenPx,
+        int haystackTopScreenPx,
+        BitmapSource? needle)
+    {
+        return algorithmKind switch
+        {
+            AutomationVisionAlgorithmKind.TemplateMatch or AutomationVisionAlgorithmKind.OpenCvTemplateMatch =>
+                new AutomationImageProbeResult(
+                    true,
+                    haystackLeftScreenPx + vision.MatchX + (needle?.PixelWidth ?? 0) / 2,
+                    haystackTopScreenPx + vision.MatchY + (needle?.PixelHeight ?? 0) / 2,
+                    vision.MatchCount,
+                    vision.Confidence),
+            AutomationVisionAlgorithmKind.ColorThreshold or
+                AutomationVisionAlgorithmKind.Contour or
+                AutomationVisionAlgorithmKind.YoloOnnx or
+                AutomationVisionAlgorithmKind.TextRegion =>
+                new AutomationImageProbeResult(
+                    true,
+                    haystackLeftScreenPx + vision.MatchX,
+                    haystackTopScreenPx + vision.MatchY,
+                    vision.MatchCount,
+                    vision.Confidence),
+            _ => throw new ArgumentOutOfRangeException(nameof(algorithmKind), algorithmKind, null)
+        };
     }
 
     public static BitmapSource? TryLoadBitmapFromPath(string path)
@@ -55,15 +84,4 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
         }
     }
 
-    private static AutomationImageProbeResult ProbeCenterFallback(BitmapSource haystack, int leftPx, int topPx)
-    {
-        var w = Math.Max(0, haystack.PixelWidth);
-        var h = Math.Max(0, haystack.PixelHeight);
-        if (w == 0 || h == 0)
-            return new AutomationImageProbeResult(false, 0, 0);
-
-        var cx = leftPx + w / 2;
-        var cy = topPx + h / 2;
-        return new AutomationImageProbeResult(true, cx, cy);
-    }
 }

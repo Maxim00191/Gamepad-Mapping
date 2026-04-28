@@ -12,6 +12,9 @@ public sealed class AutomationVisionAlgorithmStorageTests
     [InlineData("TEMPLATE", AutomationVisionAlgorithmKind.TemplateMatch)]
     [InlineData("color_threshold", AutomationVisionAlgorithmKind.ColorThreshold)]
     [InlineData("contour", AutomationVisionAlgorithmKind.Contour)]
+    [InlineData("opencv_template", AutomationVisionAlgorithmKind.OpenCvTemplateMatch)]
+    [InlineData("yolo_onnx", AutomationVisionAlgorithmKind.YoloOnnx)]
+    [InlineData("text_region", AutomationVisionAlgorithmKind.TextRegion)]
     [InlineData("unknown", AutomationVisionAlgorithmKind.TemplateMatch)]
     [InlineData("", AutomationVisionAlgorithmKind.TemplateMatch)]
     public void ParseKind_maps_storage_strings(string raw, AutomationVisionAlgorithmKind expected) =>
@@ -22,6 +25,19 @@ public sealed class AutomationVisionAlgorithmStorageTests
     {
         Assert.Equal(AutomationVisionAlgorithmKind.TemplateMatch, AutomationVisionAlgorithmStorage.ParseKind(null));
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ParseFindImageAlgorithmKind_missing_defaults_to_yolo(string? raw) =>
+        Assert.Equal(AutomationVisionAlgorithmKind.YoloOnnx, AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(raw));
+
+    [Fact]
+    public void ParseFindImageAlgorithmKind_explicit_storage_preserved() =>
+        Assert.Equal(
+            AutomationVisionAlgorithmKind.TemplateMatch,
+            AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind("template"));
 
     [Fact]
     public void ToStorageValue_round_trips_enum_values()
@@ -35,5 +51,14 @@ public sealed class AutomationVisionAlgorithmStorageTests
         Assert.Equal(
             AutomationVisionAlgorithmStorage.Contour,
             AutomationVisionAlgorithmStorage.ToStorageValue(AutomationVisionAlgorithmKind.Contour));
+        Assert.Equal(
+            AutomationVisionAlgorithmStorage.OpenCvTemplateMatch,
+            AutomationVisionAlgorithmStorage.ToStorageValue(AutomationVisionAlgorithmKind.OpenCvTemplateMatch));
+        Assert.Equal(
+            AutomationVisionAlgorithmStorage.YoloOnnx,
+            AutomationVisionAlgorithmStorage.ToStorageValue(AutomationVisionAlgorithmKind.YoloOnnx));
+        Assert.Equal(
+            AutomationVisionAlgorithmStorage.TextRegion,
+            AutomationVisionAlgorithmStorage.ToStorageValue(AutomationVisionAlgorithmKind.TextRegion));
     }
 }

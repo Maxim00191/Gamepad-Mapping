@@ -23,6 +23,7 @@ public sealed class AutomationColorThresholdVisionAlgorithm : IAutomationVisionA
         if (width <= 0 || height <= 0)
             return ValueTask.FromResult(new AutomationVisionResult(false, 0, 0));
 
+        var options = frame.ProbeOptions.EffectiveColorDetectionOptions;
         var stride = width * 4;
         var rented = ArrayPool<byte>.Shared.Rent(stride * height);
         try
@@ -47,9 +48,9 @@ public sealed class AutomationColorThresholdVisionAlgorithm : IAutomationVisionA
                     var g = rented[i + 1];
                     var r = rented[i + 2];
                     RgbToHsv(r, g, b, out var h, out var s, out var v);
-                    if (h < frame.HsvHueMin || h > frame.HsvHueMax ||
-                        s < frame.HsvSaturationMin || s > frame.HsvSaturationMax ||
-                        v < frame.HsvValueMin || v > frame.HsvValueMax)
+                    if (!HueInRange(h, options.HueMin, options.HueMax) ||
+                        s < options.SaturationMin || s > options.SaturationMax ||
+                        v < options.ValueMin || v > options.ValueMax)
                     {
                         continue;
                     }
@@ -65,7 +66,7 @@ public sealed class AutomationColorThresholdVisionAlgorithm : IAutomationVisionA
                 }
             }
 
-            if (!found || count <= 0)
+            if (!found || count < Math.Max(1, options.MinimumAreaPx))
                 return ValueTask.FromResult(new AutomationVisionResult(false, 0, 0));
 
             var centroidX = (int)(sumX / count);
@@ -85,6 +86,15 @@ public sealed class AutomationColorThresholdVisionAlgorithm : IAutomationVisionA
         {
             ArrayPool<byte>.Shared.Return(rented);
         }
+    }
+
+    private static bool HueInRange(int hue, int min, int max)
+    {
+        min = Math.Clamp(min, 0, 179);
+        max = Math.Clamp(max, 0, 179);
+        return min <= max
+            ? hue >= min && hue <= max
+            : hue >= min || hue <= max;
     }
 
     private static void RgbToHsv(byte rByte, byte gByte, byte bByte, out int h, out int s, out int v)

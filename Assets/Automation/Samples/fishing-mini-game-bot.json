@@ -4,36 +4,39 @@
     {
       "id": "f1000001-0000-4000-8000-000000000001",
       "nodeTypeId": "event.listener",
-      "x": 128,
-      "y": 464,
+      "x": 96,
+      "y": 576,
       "properties": {
+        "description": "Start here; run the automation engine after your game is at the fishing spot.",
         "eventSignal": "engine.start"
       }
     },
     {
       "id": "f1000002-0000-4000-8000-000000000002",
       "nodeTypeId": "automation.loop",
-      "x": 432,
-      "y": 464,
+      "x": 400,
+      "y": 576,
       "properties": {
+        "description": "Keep repeating the fishing check; lower the iteration count while testing.",
         "loopMaxIterations": 5000
       }
     },
     {
       "id": "f1000003-0000-4000-8000-000000000003",
       "nodeTypeId": "perception.capture_screen",
-      "x": 720,
-      "y": 464,
+      "x": 688,
+      "y": 576,
       "properties": {
+        "description": "Pick the screen region that contains the fishing mini-game UI for your monitor.",
         "captureMode": "roi",
         "coordinateSpace": "physical",
         "captureRoi": {
-          "x": 540,
-          "y": 358,
-          "width": 859,
-          "height": 499
+          "x": 224,
+          "y": 236,
+          "width": 1448,
+          "height": 777
         },
-        "captureRoiThumbnailBase64": "iVBORw0KGgoAAAANSUhEUgAAAGAAAAA4CAYAAAACRf2iAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAyaSURBVHhe3VxvjF1FFf\u002Bdu2/3tbtbaLctSwr4QRMNUQIa\u002BaIhfJAQjKgh8R\u002BG\u002BIca1CYUpUAhIIVUoNCAEhANBAUSZEsx0FZMFiW0GBsMEY2J8Q/GVhOK3X27W4jb3S67d/xw5sycmXvfe/fedxcjv5fZM2/uzJkzZ845M3fufUtjLxw2IAMGATCWyl8PuRoWGsAQUwAJEqRIHSX7yWnpYGBAIEsBogTGpCBKXI02vTvwVc0nkj4eTARpx3npMebRvn\u002BoLnSrUCLjVCWUR2iIE\u002BwVGDuc7MezZQpjxTQEMsRKN3AUMEiRIrWt84YgA2VKMCYFABiTct5wnmkeB\u002BFLikZyS9s2Qvix\u002BbxBCoPUckvtGGWsqrGFsE5VEj0KlXZCE5Dhb\u002BqK2CysUuSj51gGCjIwtr2xbQ1ZZVqa2KQ5aIiAxDMJ4gyIbCsClwltC28YWu6YR64QAaQVS87cEjtG1pHJ4UFgi9aJu5Oxs27AcwgASJz1K44yZz4fm40aqLV8SVCzCxNbYshFIOKxcQtlizXaertCwkjcb8SjAKtYaubhLT9DLdvOKesBNLb/kCFn0TmxE4B5axajI0PyzZVbdTNjRXuF5rjssOLWITcAtGaXQNQXFwPSFbEGRV8J7MxIsc9zaixM4dQ1gyBjbPIRy81qRPmv8CgPHUgkv2ywYrLE/lMV64b6sDT/RiA1\u002B7eFRHurS7vNkMviB5IjrB0ZkaYZtFONiF99GG8z2g2kIk4ZOdmNvRvrBG6G9Me7pCFeODj5PIgDhK\u002Bd5SI8ioLtPZvqhF6IiYhTzqdXiNV7fXkKIhABRHYCQtdjtboAoMKO8wvrslwr67oxLQodcpYr9LitqM1ruZcDTneKwhgYAxgJQeS2iX72Sewvu0mCsdtL8YDYcmLaDWLl2uLrtnwRxW1nEVp/PRCZvexOb24bHSbnASkMYG\u002BXyFoFe4CfRbd1sm2Eaj8Qfpp2g7b65bJ8bfXosOgWlTkfTtu\u002BxM2JbIXDlITWy7cOPGs63vMMiuVb\u002B8lQsaSYtkMc67UH1AV9Axek6OPqd5EZ\u002BXaeTVZ3ZHUXW75LY/sPmQRkb7nl7MWzHV3lbYKCTqWM/aWI4Bqr9j2B5p9ecd9b1\u002B/Euh3XYnH0NDSOvoap6\u002B8K6gPA2h3XYWbzNgzveRxvXnoFBg6/ilVjD2H\u002B3PPQf/hVHNt4NdbuuI4rNxqYuuZ2rDz4PABg8MVx5mnF1HJXkT8fxmlp\u002Bng\u002BPyL2QiKCMYY9gJWa\u002BPnTxwviAI591nJ6Ed40m4D1BrNyCI2jr8VVHNKTVmP1D\u002B9wdVaNPeSu9bWOIjk\u002Bi5nNN\u002BM/F38eM5tuBADMf/QCDL44jukbdmZifkzLQ/uCziulRRYPWK\u002B0NOHZ54YSgd3RghVN2Eu9OHZWjZtTW27D0sgopq65DQBw7Cubg\u002Bsj99wUfF8aPQ1L60/F0sh6AMCxr2/F4ugGLJx5NgAgHRzCmvu2wzRXIB3kO3c5fhB5m394CSN3XIvhPY8rzlUhEyfaVnDWHMZ8aJmMAe3af0hW04CHWMUpw76sDpSJ8Wvu246ZK78TFzvQ4iJMoxEXs9XJYBZOAAPsZb1CGyHn2o9leq6YX9GT\u002Bw87LgbeTQTrh30nxVh2R5lJqIxI1LpkD9F\u002BHNPH7eIfX4jgVl0D2JgvoaU9817wv1C\u002BoGqorIQCygeAxIAXXdmw6kUKdncQllVD0S3m7p8\u002BjNtu/jYA4Pnxvdi2dROeeuLHaE0exQ3f2ggAePmlX\u002BORB\u002B91bbbfeBVeefkgXvjlswAB83NzeOj\u002Bndj12IO4965tNSy2AjHM7gbaOUB5JIRw0c22ChdcKSmLojdZl3zuyzgxNwcASNMUt975AD5z6eWYOPo63vPeMwEAf/3zH3H\u002BBR93bd5aXMCHzv0I/nXo7/jR92/H07seBWDw2cu\u002Bhquuu7XnzYIHRak9DN8KRGXZ/mnXgUMmfH4bYn3FRbiItdcCK3BW8uowjq3kyo9lZi5fHtn/y1Y00c9xjXsKyokdrXzniCy\u002BiOVXho0G3k\u002B9t1aV3Usrue4WXxR6C2qMQWLIILFPJvkJaBI9wy3XsVi\u002Bjvl1e4O\u002BkQkO16L1qqzsWdjZdal3xLInpN5gYMvnNxjEA8oie1tXPwIrYvOv1QM8xPKX0QOI2OKF6lQGYvFxqhPO2uNDtTaHa9U9ILb83j0gtnxOAD154LB7QkEgGLv1FBRZhNetCu9Gx373N6wdWoHZhUXMLixh9sQJLKYGQwMNDDX7Mdjfj6FmP85YPYx3rzspaFsMBnff\u002BV1s2RoeVbwdMMZgZnYpLs6g3SIcQz0TlgbFGgpOXsGvHwke/e1fcMaaVeqW2kS8Pf/p4/Mu3xlifb1bYiWoKEQJwZyYiWsUhj6YIwISPiGqPrD\u002B/oHg\u002Bzmnrwu\u002Bs\u002BSat1YmsPNXv1fX2qGacdSGKBKtXcuHgVXgD\u002BX4/ScV6iViV5sIDX2e1E1lHzyjzGB6l2150W20DNYPjyVBsGzp\u002BN95sLLITk9PBeWbfvJcKAjJn9iKmV7wvtOlpoL2Ep16QNx9HkTMLqk11YpbKnClzGKrqK6T6IGFu4ZOkvJUGRBM/0mYmzvuyn9z0xex/ZmD7vCbSVaR/5g8hg\u002B/6xTXLoTWVmc5CkPPaTtkxczQ1uQEkuZqaRHBN5Ztpj5\u002ByNMF7T6gj6PZA/ROKN4F1b21zAORlyHeldWH\u002BsdBxHGdiDAzF/Mn22dIg4fA2f1zzASZnf5ywBh/cyX0/\u002Bcmy9jX6sPFlsuZ2tqAbEN5MHJAJK\u002BJQ/1Agi0/L9UBfZMCfaMlsTT6IDCSotADz0vlIfqRuM5yJ0Hs5\u002Buw13Vb/uJezOKZMoryTAq0xddt\u002Bfr23Fl89NZaTMtDZNYW39s4/A9JRF9i/ZKHK/dU2nKedh84ZPxPgrRwXGH9UOcBj67uj4ve\u002BTDAxJtvKX1ldTTDjzQifbIXGP1aSmj5ckjEs8jW2JuVvBMxMfFvwFqxtvh8sPVLXupFHhA\u002BJNDo5gE9w3ZZPqZ3BpuUztU3jk76EngPCBG2dR7AF9kDJLkzuuWF9K0\u002B8l3TsvCq0Upqr7BisFPq9MVxvrMHhOB6fo1Q21Adq\u002Bzeu1d5iyDqI/aE\u002BHtvKKakLOJJFK/yntXJG7LwdROKTudkC1XruDWs3G6rlrPF5Gq9CsCG5FN16O2k11GkrwLItgUScR/rGYVdqTLEfVW4ke\u002Ba9g6x0N7hF04fnnUYKoqwrV0Lnnrxnx2Dfa2LsNXHcLOvJtV4GLK/3CGAjIEhytB2mJ3Pf8CiF0y/cPqw0wnxIszdS1vPI4m3UWVmtDSc9cvz5\u002Byim5oUrdYkWq1J3bIr3I9HrHUhTdFqtTA1OWHL5edWYeqEWCesp0hfhTxXoowcUaTaA/xhXAwCsK6qB9hJzouPw01e\u002Bx95\u002BAGcd/7H8PRTT\u002BCiT1yCD5x1Nj71yQuDunv3PYe777zVDZiIcPX1tyirNvjB93bgC1/aiEcevB8XXXwJ3n/WOfj0xRdiw4YNOHLkCIgIz\u002Bwbxz07bsnwgfIAtnS2VqYiuyls\u002BYKZuXjs\u002BW2TThbf/koB2MZiLeEW01vM3qd3o9FoYPwXz7imK5pNJPocKknQbK7AN6\u002B8Blu2bnOWKz8gBICxxx5Go9GP8Wf3uOsmDffqlPShr68PA/3NXMNgXYh1i8WKxetjh2JwY488Sa9NbTzAQPYhPXmA4xJCPCAPk5MT2Hj5ZQCAPXvH8xVl47oqycT414\u002B8hm9c8VUAwJ6fPxdci\u002BHXAObhPUDKyuvg2Lxu156HuxPOh8F6\u002BQ8FVSF9qwkZCiagzvP\u002B/EFCTVoebbcIxyD1nKIb\u002BHmAsnR1BqQReADryjekMh5gFV1GyKIIh6JL60CopLpwrMsLHwTWUxALeEheis4rewRb1Rg5xPMxv1fk6yW/tBoMj1YdxcSoaywC4dcmGLNAlayYatZNW9SrkG5CV9JFAdgJYIVLPj4W6AhbjYiPL6RtKR5d4WULZe0FsWz8JFBSb\u002Bgun\u002BgmejPOADY2iYu0ZnWzHNi\u002B4tBTZwjyyqrDvaQ9j1UrK942cq3yY\u002BAdUGcIX/pZ3jbUz4XD0vwbSBe6zQYyg6of9flVyKi6zOIxA4Nr0DewMr4MWKkN7C5Izb3dBdnZkEq6cleElsT/Y41/dc88/BlNezCPxB5RlH0zG1YJsnfP2\u002B51Q/HqerzcSPdd1gD5N2ISr20Mhz02zYcomvP\u002B/6zwS\u002B0gLgP5tyu08rk/nVjhshtIkP3HdvI/K8L/XeHjtfTjaVZ2KfOU8769bpNtD9dWv/0Q8mOEyhd/dVSO4C39L2SZD2DyRixRAAAAAElFTkSuQmCC",
+        "captureRoiThumbnailBase64": "iVBORw0KGgoAAAANSUhEUgAAAGAAAAA0CAYAAAB1hz3ZAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAA7fSURBVHhezVtPqK3JUf9Vf98599737rt39M0kmcy/jD5h7puA/0iigwmiZuHChUQdyM6F4MJNJIKBaIhIgghJJEISkkWELIIL0VVWwZ0ggmAIZgQTEh0XM7xx3kxm3nv3nPN1ueiq7urq/r5zbvyDdenTXdVVv\u002B6u7q6v\u002Bzvn0o1n3sboEs2UW54o8QyA9ugu4RIRmAGiHtYSjuFJOgKqcFLudLu8w8kgSZ7hm/5prWVr27oTgnd28SgzlxoigKWF4pA9DVWyGsc6tdbz5Q6vAyiCmclJdbN8MZpxZuEXceD65PxiJ3pvHwUnJOdDTDg7HygTwcySVJb4omMbqnGSXrHNSXRrnKRbQVUkuGz6JLbs\u002Bl5RNlJeMVxzGUd7V9RzbttQewvv8joZXKkPyXklpdWuKRFRkhPpbih6/d1BsjpqvYKh6MU\u002BZXVf6gVk8AQLRCDFlt1R7I2djinnyqpMNA0eUkkRCp/VC44OSptPeokvSIpXcChNgM5PorIjCtWrV2ZRp3GOZHkpnN9Falnqs2VZMx14FgBdvbpiucFQ8o2VpZmwKs2Mw3m9GnPLaDkbiL5ClmZyUiOWSkZ\u002BBqTZT7kqlpVRlw/j\u002Bzh7eHKxWpdJ1vzB\u002BkR0hdis5axs\u002BjRjdyXcXEx8sCs05XWS2iYu7qM\u002Bzh5SPavPJZliStp3o56odgSr/RxOpS2kQpvPGLB8LKjUZJSCxjs78zZWa52Pi1l5jm9wtL6jq3ylV3BsjLW90P61fbJUYrWN\u002BQXHWnsc16fSgVa36Z/HqnVV2ZyChBZXrhd43lCDYzsxQxnO4JrV0uyqQ1NMiSUvWPpc0meTade2b8uaOuSbTdQZt1GSU5CSzKROUlm6pb4qe96U1VZxKu/hCrwrA7n37Z\u002BXWh5gkrI\u002BtCtHKbRrE5gfm6vTUvHMkv9EcnbxdmmlD3olnko5awh6HkvlxBrHHgSS2lx4sLyXO1nVJ38jLnVNOaQDIgXpTKCO5Yxt06d\u002BfwCAbjxjJiCHvAWAhu/XEQEckzc5Mo521xFjbLZ5tq5gPOYS/U/p1nUhBAxDwOU4lWfHzMovEnvamlk8BIDF0QzQ2cVjbhcuNSK8LFGNLEnU0WUGR8YYBvD9FSJHW9uU9tP/ka6EzWEYsFtFIAQEIjBRp\u002Bcdf4lz6wlLFblKJitUoddNBXoxEhpP6qt/g8OMGBPDcWbV\u002B4FbsquOCKDQkRl7y1NoZbPUOh9AeTjHCYgRkRmIadxK4gXJk4SRniFcFKqk8qTHoLOLx52P2xmlg16sOZ5TCOIYMdIAbNaIHPc7nwhhdYTx2hkCBUTeCRiBhgEcI4gGAIxp8wDT5kFarcfXQcOAeHkJDoQAQlitwCDEB28i7raIu51bZX3nKw3DgN2wA4YBIQzVMRYoYSQ5yNqL3/LE2FHXjdDZxWPlJtxRELUFvtx6KxxZ\u002BTzJBGyPwDkEebxCNK5w8tYn8L4/\u002B1ol/8dP/jZ\u002B6iOfx5v/8R1cf/vTeP17L\u002BCfv/hxbO6\u002BAgwDnv6V38QT738ef//RD\u002BLWr/8Ovv1XX8C7P/4XAIC/\u002B70P4PLVl7F94zXE3VZbqvA9C5mAbdiAwggaR3ePSHnfZ8LrDGQHmbJQSA4kgekBmXqTl\u002BT1tF3FSrumxlygQBhPTgEAb7z4r9jd\u002Bz4AYHV6DuaI9fnNvOLGk1OEo2OM6xM88f7nAQDD6Tlu/vhzWJ2eAwD\u002B5Sufwnj9DLRay0kG\u002B/uQqaxs4jSi6pIlL\u002B/KUDU0ig0Sr3alXHDo7OJx2QG92fQdneGlMYsDBhAjeBcxUADtjmUHeIyaaBixPruJk0ceBTMwbR4gDCtw3MnRcAKFERgHbO\u002B\u002Biu2br4PCiKMfuomwPsb04B4QAogZq\u002BNTYAy4/M872Lz\u002BKqYH98CxHAQq6nRrGEZs6BIhjKBxAIVQni9ioj5rfScTYkNTtQNSTmcXT1Trs3hQwsmhMd/VMQOYIjhGDEyg6bg5gnaJCBQGUBgAIjAzaCAQrUGrAEQgjANAARwZ03abVuc4yDOCkzsigGmDOEXEOAEcwdPU9DO16QUAkE5BW1wijCNoGGUCjANn/DI7IVJrSV5HGzJscph5hey\u002BBNG6YlgZJ14Uel3pEjN4mhC3G8TNJXi7AW92oAB89o8\u002Bik/8/odAGPGFT3wMw9E1/PIv/QLCeo2//Nyn8dxP/yTG1QrD6gjve\u002B5dmKYdpu0leLe9svOV7Kia5aOVLolr6lt4B4dR7QDfkxTf9cHq61oyKwMyeXkHBITpKB3l9lKLTSEAw4gwjGlHhLIaY4wATwCnkw8HpDN7jIibS8RppygOtS\u002BywrQDNrID2hBkQoMK8icnD0pe11e6TQjqKDV8bkE3mdfTF19p2w8YEOJRuhcsUouTSQdrQmSlnmUi1Mnm2gWZOiIvHIYBG5mAMAzp2WInoAFp/dPUZU4uYkmpnHAAeVrnl3L\u002B1CNPbz0BVMAFg5KxJK1boj31GgflcpfLmrIspqR8D7cjmhGa7st4SYXmtCN86x\u002BksvFU5lT37OLJhR2gDZdQlPKebm1X74CAEI9TuDD0xksvpm3t29xDQwDe\u002BnDE33zmEnfwW3j5xb/F/e9/Gy/dIdy5G/ATz0z4gz8/wkuvEKaZQ0/dZnpwX3vLk0ZWQhCNKfyVh7DYWj9Uc12wk/dauVKojQpwmU0RiddTZnTVoKK0e5KarBZHD52sEFZHGFZHGFbrK6X18Ro3f3iFL/31MVarEeMY0k1VQsXX/\u002BEYN2\u002BOWB\u002BvBV/S2qZ1SasjIAy\u002Bi5mMF6qV3/hM\u002BDz0JR\u002BJX0KOnZbMjmYJZ6p20HNU9a2ho3ubqdyL5qiMpEoMYDsBUeJoj7Y7AutbR\u002BOnLhHSgfAQahxSVxWV\u002Bb4BBUPfWtWVumJlVjWGqawmL/BYNZuIsJkYjzzyFsQ4IcbYJu7IYjpVbbcRL98BXvgO4bGbr\u002BHW4/fxzls7/Mw7N/jF92zwwncJL7/C2O2S/t60m3Dt4Ud9JwtR/jCy4qN2hlO5SHydqTm//VQ67ptG\u002BoaW9/KOjNMzIE4RAygdQ\u002BP\u002Bm3BN/03djmhG2KVhGLClLcKwSsfQwR1DAectj93hsygV8q8ilsJFS17ZNyQaLKWDcf8f0mLf63Fbr7RmouuU6Pz2OzqHNe9Qy8/UkSlrIzEiThNGEGiq7wEPn5/in776boC3YN4CvAV4I7nKPL8F4gbAFohbMISPAO8IvCPA5TwRsJVcZTsCpgDeoZLd/vJJ7h/kXdCWNgjjqv8qwn0WcjzZU5Lz9NnFU\u002BKV1pEkq1hPQIUs36\u002Brb8J04EVMyWMu0YxuI24Ee0jfBbkJWHyjqn7bfwNOzpXfBTWXLAEBzIUKJbcXjyTuYUh9zg\u002BlQ3WlTz1RA9EI9lDRb8aY/5KPdJw2V/18BCfkcnal\u002BDPAxOrZI6ZWaCYhJucadcwLKKPeiYdzdFVHHUJXxaz1xTXLL9bMC7gstGd4JfM41JzObz/t/GM7IGUSC4llJaTZrWbsWEJQZPcMmL2WNgPf3k9fxCS6qhOVaruT66fY8RJWXTcMA3a0lQveSt4Fqc4ePzU6Kql/pxoY5nefMhVlRmQK87QlvuyAtA1EWv3gKVkLbsabo7ajhQg//96fw4c/9Lv41je\u002B6Ssr\u002BtQn/xgA8K1vfDPrvuOpJ/GHH/kwAOD\u002Bm29U\u002BoVotg8sH2VMJeV6o1crmdusyL1d6MXq/GnlOea7eO9ivv4lBNGfGdzSwAHg7MYZ3vvcz\u002BK1u3cByIQLPf\u002BBX8Vn//RPMv/B3/g1cGScXk9fZyp979/\u002BHaE5u1uabx8yhjr2mxFWMT/xNlX\u002BMr6o/s5vP82sznJN98vSUDICzClJcdIOiRKCooSgtQtBvr2atvfnVusSLWOur93IKy/Rsn66iO3cN2Lm9Vljv\u002BAnXyc8nd/\u002BkbpPVlEACs7S8crw\u002BoDWewARaGcnwNstke2PlXtarOzQfv3VOGKDrUzAqv82lIufvKPVX5b8Qg/IkbpDczHfhLaebZbJbpxizOHqkIEX\u002Bt9y/jIREYKEDyaA5ac2zXj3nH56nrU4DLsDdBa1bMjPWjtg66iEw0hfjvDE4GmHk\u002BEGYvNy3uNYcnVLqsuVHVrWJ6RxrI5H3Lt8kMLPOIJgbsKVj1KZ1KlLkcKH7xKCWsDCtjG/NOAHI7z\u002BMEu\u002BlCm5xqceeSxLS3Xo9GZJX\u002BoqFZURiAIohHL8zL\u002BMa19F5CI7P1U6dd\u002BqSTq//aPOG75zdv37QVne18mvo1le\u002BcpriRTGAJqbA6DFzQM04kxe6HlDPedVlMZKIYAovf1MD1/5PhjlZGj9Y63NOjWIRaMU5fk6OwGWt40d\u002BJUkOHWDI6cfZEW5b\u002BjqN2diGGtdHW2NpblJ8cHS21oHSB\u002BdPYC00kP6fVKgUL6Mn51Ag6M7wdblUm3X2QEdwzzWQ3eC4eViBpZydn754WK3zTnePZuU2v6ptFfu4dS69b3H/BKi\u002BklK/jDUttkfZ\u002BHp/Nlb9cNagNOgPIwH8TJTVpz8Qy5xUY7/HsuuansgyB\u002BGbK98nSWpyyrFwi6BukZyCTX5P2TI/TdXxVhc7NnB9a6j89u3rPub1aFgOhkH7wT34LZUultLuvziak39KwvF1zvb6iE5j1v1rxd29vSpRujXZe6hZ2/lm3C9NhcGMsdnsd1BSw5yfOUgVyf8QTiWp7buoD7lASz1KZWzag/Hlx1O\u002BkrSXLKQ7xEaOmA4Xcw6VY4ESy9rCSvh5qrGxCBqpVV2RkXk\u002B9RiAx0cc3nqVAG6EI1eg2PJHCZarA45JXro2R9zuguzuGc11JZzOE5ORZZWUr17WvL2\u002B8NKkc70wcpyVa1r\u002B6QO8\u002BhN2O2EKo8TGOb23Jm2SqSMzF6VHE6nWnLXiFFiJOOUI6/yPo7qWxy3HCW39im1uyeTV0bZwQmrWBQsVRXO7p5cqfUWh\u002BW/XynNiL7VTER5xrRcFoXhFUDUFCdXyZ\u002BiFJAWhyDHP4sl1oplcZK\u002Bxyq5xSmfBVdRCojgJIc4LJOrqutfo1canMGh/g7QmdVypjyTJq9muODYqp5ZI0gLLWPMYXmzVihADkdV2qS1PaXSeFrZZQU3qiJIedkJPlU4AP4LhFy8GiKTZVwAAAAASUVORK5CYII=",
         "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png"
       }
     },
@@ -41,9 +44,10 @@
       "id": "f1000004-0000-4000-8000-000000000004",
       "nodeTypeId": "perception.find_image",
       "x": 1008,
-      "y": 464,
+      "y": 592,
       "properties": {
-        "findImageNeedlePath": "${sampleRoot}/fishing-mini-game-ui.png",
+        "description": "Provide a template image of the fishing mini-game UI so the bot knows when tracking is active.",
+        "findImageNeedlePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\needle-f1000004000040008000000000000004.png",
         "findImageConfidence": 0.82,
         "findImageTimeoutMs": 400,
         "findImageAlgorithm": "template"
@@ -53,16 +57,20 @@
       "id": "f1000005-0000-4000-8000-000000000005",
       "nodeTypeId": "logic.branch_image",
       "x": 1328,
-      "y": 480,
-      "properties": {}
+      "y": 672,
+      "properties": {
+        "description": "If the mini-game UI is found, continue tracking; otherwise release movement keys and cast again."
+      }
     },
     {
       "id": "f1000006-0000-4000-8000-000000000006",
       "nodeTypeId": "perception.find_image",
-      "x": 1696,
-      "y": 16,
+      "x": 1680,
+      "y": 928,
       "properties": {
-        "findImageNeedlePath": "${sampleRoot}/fishing-yellow-zone-center.png",
+        "description": "Provide a template for the center of the yellow target zone.",
+        "findImageAlgorithm": "template",
+        "findImageNeedlePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\needle-f1000006000040008000000000000006.png",
         "findImageConfidence": 0.85,
         "findImageTimeoutMs": 400
       }
@@ -70,10 +78,12 @@
     {
       "id": "f1000007-0000-4000-8000-000000000007",
       "nodeTypeId": "perception.find_image",
-      "x": 2016,
-      "y": 304,
+      "x": 2336,
+      "y": 960,
       "properties": {
-        "findImageNeedlePath": "${sampleRoot}/fishing-white-line.png",
+        "description": "Provide a template for the moving white line indicator.",
+        "findImageAlgorithm": "template",
+        "findImageNeedlePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\needle-f1000007000040008000000000000007.png",
         "findImageConfidence": 0.85,
         "findImageTimeoutMs": 400
       }
@@ -81,37 +91,46 @@
     {
       "id": "f1000008-0000-4000-8000-000000000008",
       "nodeTypeId": "logic.lt",
-      "x": 2160,
-      "y": 16,
-      "properties": {}
+      "x": 2688,
+      "y": 832,
+      "properties": {
+        "description": "Compare white line X with yellow zone X to decide whether to steer right."
+      }
     },
     {
       "id": "f1000009-0000-4000-8000-000000000009",
       "nodeTypeId": "logic.gt",
-      "x": 2400,
-      "y": 752,
-      "properties": {}
+      "x": 3072,
+      "y": 1184,
+      "properties": {
+        "description": "Compare white line X with yellow zone X to decide whether to steer left."
+      }
     },
     {
       "id": "f1000010-0000-4000-8000-000000000010",
       "nodeTypeId": "logic.branch_bool",
-      "x": 2464,
-      "y": 32,
-      "properties": {}
+      "x": 3040,
+      "y": 864,
+      "properties": {
+        "description": "When the line is left of the target, take the right-steer key path."
+      }
     },
     {
       "id": "f1000011-0000-4000-8000-000000000011",
       "nodeTypeId": "logic.branch_bool",
-      "x": 2768,
-      "y": 688,
-      "properties": {}
+      "x": 3392,
+      "y": 1136,
+      "properties": {
+        "description": "When the line is right of the target, take the left-steer key path; otherwise release both keys."
+      }
     },
     {
       "id": "f1000012-0000-4000-8000-000000000012",
       "nodeTypeId": "output.key_state",
-      "x": 2784,
-      "y": 32,
+      "x": 3744,
+      "y": 80,
       "properties": {
+        "description": "Hold D to move the line toward the yellow zone.",
         "keyboardKey": "D",
         "keyboardActionMode": "hold"
       }
@@ -119,9 +138,10 @@
     {
       "id": "f1000013-0000-4000-8000-000000000013",
       "nodeTypeId": "output.key_state",
-      "x": 3072,
-      "y": 32,
+      "x": 4096,
+      "y": 96,
       "properties": {
+        "description": "Release A so only the right correction is active.",
         "keyboardKey": "A",
         "keyboardActionMode": "release"
       }
@@ -129,9 +149,10 @@
     {
       "id": "f1000014-0000-4000-8000-000000000014",
       "nodeTypeId": "output.key_state",
-      "x": 3376,
-      "y": 400,
+      "x": 3744,
+      "y": 944,
       "properties": {
+        "description": "Hold A to move the line back toward the yellow zone.",
         "keyboardKey": "A",
         "keyboardActionMode": "hold"
       }
@@ -139,9 +160,10 @@
     {
       "id": "f1000015-0000-4000-8000-000000000015",
       "nodeTypeId": "output.key_state",
-      "x": 3680,
-      "y": 240,
+      "x": 4096,
+      "y": 928,
       "properties": {
+        "description": "Release D so only the left correction is active.",
         "keyboardKey": "D",
         "keyboardActionMode": "release"
       }
@@ -149,9 +171,10 @@
     {
       "id": "f1000016-0000-4000-8000-000000000016",
       "nodeTypeId": "output.key_state",
-      "x": 3072,
-      "y": 688,
+      "x": 3744,
+      "y": 1296,
       "properties": {
+        "description": "Release A when no left correction is needed.",
         "keyboardKey": "A",
         "keyboardActionMode": "release"
       }
@@ -159,9 +182,10 @@
     {
       "id": "f1000017-0000-4000-8000-000000000017",
       "nodeTypeId": "output.key_state",
-      "x": 3392,
-      "y": 672,
+      "x": 4096,
+      "y": 1312,
       "properties": {
+        "description": "Release D when no right correction is needed.",
         "keyboardKey": "D",
         "keyboardActionMode": "release"
       }
@@ -169,9 +193,10 @@
     {
       "id": "f1000018-0000-4000-8000-000000000018",
       "nodeTypeId": "output.key_state",
-      "x": 1712,
-      "y": 848,
+      "x": 2352,
+      "y": 112,
       "properties": {
+        "description": "Release A before recasting when the fishing UI is not visible.",
         "keyboardKey": "A",
         "keyboardActionMode": "release"
       }
@@ -179,9 +204,10 @@
     {
       "id": "f1000019-0000-4000-8000-000000000019",
       "nodeTypeId": "output.key_state",
-      "x": 2000,
-      "y": 848,
+      "x": 3040,
+      "y": 256,
       "properties": {
+        "description": "Release D before recasting when the fishing UI is not visible.",
         "keyboardKey": "D",
         "keyboardActionMode": "release"
       }
@@ -189,9 +215,10 @@
     {
       "id": "f1000020-0000-4000-8000-000000000020",
       "nodeTypeId": "output.keyboard_key",
-      "x": 2400,
-      "y": 352,
+      "x": 3744,
+      "y": 464,
       "properties": {
+        "description": "Tap Space to cast or restart fishing after the UI disappears.",
         "keyboardKey": "Space",
         "keyboardActionMode": "tap"
       }
@@ -199,19 +226,39 @@
     {
       "id": "f1000021-0000-4000-8000-000000000021",
       "nodeTypeId": "automation.delay",
-      "x": 2768,
-      "y": 368,
+      "x": 4112,
+      "y": 512,
       "properties": {
+        "description": "Wait for the cast animation or bite window to settle before scanning again.",
         "delayMilliseconds": 2000
       }
     },
     {
       "id": "f1000022-0000-4000-8000-000000000022",
       "nodeTypeId": "automation.delay",
-      "x": 3984,
-      "y": 240,
+      "x": 4432,
+      "y": 512,
       "properties": {
+        "description": "Yield briefly before the next loop iteration; increase this if the game needs more time.",
         "delayMilliseconds": 1
+      }
+    },
+    {
+      "id": "f1000023-0000-4000-8000-000000000023",
+      "nodeTypeId": "logic.branch_image",
+      "x": 2048,
+      "y": 992,
+      "properties": {
+        "description": "Only compare positions after the yellow target zone is found; otherwise release movement keys."
+      }
+    },
+    {
+      "id": "f1000024-0000-4000-8000-000000000024",
+      "nodeTypeId": "logic.branch_image",
+      "x": 2704,
+      "y": 1152,
+      "properties": {
+        "description": "Only steer after the moving white line is found; otherwise release movement keys."
       }
     }
   ],
@@ -276,7 +323,7 @@
       "id": "f2000009-0000-4000-8000-000000000009",
       "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
       "sourcePortId": "flow.out",
-      "targetNodeId": "f1000007-0000-4000-8000-000000000007",
+      "targetNodeId": "f1000023-0000-4000-8000-000000000023",
       "targetPortId": "flow.in"
     },
     {
@@ -332,7 +379,7 @@
       "id": "f2000017-0000-4000-8000-000000000017",
       "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
       "sourcePortId": "flow.out",
-      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetNodeId": "f1000024-0000-4000-8000-000000000024",
       "targetPortId": "flow.in"
     },
     {
@@ -445,6 +492,48 @@
       "sourceNodeId": "f1000022-0000-4000-8000-000000000022",
       "sourcePortId": "flow.out",
       "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000034-0000-4000-8000-000000000034",
+      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
+      "sourcePortId": "probe.image",
+      "targetNodeId": "f1000023-0000-4000-8000-000000000023",
+      "targetPortId": "probe.image"
+    },
+    {
+      "id": "f2000035-0000-4000-8000-000000000035",
+      "sourceNodeId": "f1000023-0000-4000-8000-000000000023",
+      "sourcePortId": "branch.match",
+      "targetNodeId": "f1000007-0000-4000-8000-000000000007",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000036-0000-4000-8000-000000000036",
+      "sourceNodeId": "f1000023-0000-4000-8000-000000000023",
+      "sourcePortId": "branch.miss",
+      "targetNodeId": "f1000016-0000-4000-8000-000000000016",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000037-0000-4000-8000-000000000037",
+      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
+      "sourcePortId": "probe.image",
+      "targetNodeId": "f1000024-0000-4000-8000-000000000024",
+      "targetPortId": "probe.image"
+    },
+    {
+      "id": "f2000038-0000-4000-8000-000000000038",
+      "sourceNodeId": "f1000024-0000-4000-8000-000000000024",
+      "sourcePortId": "branch.match",
+      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000039-0000-4000-8000-000000000039",
+      "sourceNodeId": "f1000024-0000-4000-8000-000000000024",
+      "sourcePortId": "branch.miss",
+      "targetNodeId": "f1000016-0000-4000-8000-000000000016",
       "targetPortId": "flow.in"
     }
   ],

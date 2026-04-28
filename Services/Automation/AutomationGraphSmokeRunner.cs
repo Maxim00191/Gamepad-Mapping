@@ -186,6 +186,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
 
             log.Add($"[step:{step}] enter {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
 
+            context.BeginExecutionStep();
             var next = ExecuteAndGetNext(context, index, node, log, ct);
             if (next is null)
             {

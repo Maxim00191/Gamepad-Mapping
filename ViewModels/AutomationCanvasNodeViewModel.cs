@@ -1,7 +1,9 @@
 #nullable enable
 
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Models.Automation;
+
 namespace Gamepad_Mapping.ViewModels;
 
 public sealed partial class AutomationCanvasNodeViewModel : ObservableObject
@@ -20,6 +22,11 @@ public sealed partial class AutomationCanvasNodeViewModel : ObservableObject
         _glyph = glyph;
         InputPorts = inputPorts ?? [];
         OutputPorts = outputPorts ?? [];
+        InlineEditors.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasInlineEditors));
+            OnPropertyChanged(nameof(EstimatedVisualHeight));
+        };
     }
 
     public AutomationNodeState State => _state;
@@ -33,6 +40,12 @@ public sealed partial class AutomationCanvasNodeViewModel : ObservableObject
 
     [ObservableProperty]
     private string _glyph;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDescription))]
+    private string _description = "";
+
+    public bool HasDescription => !string.IsNullOrWhiteSpace(Description);
 
     [ObservableProperty]
     private AutomationCanvasVisualState _visualState = AutomationCanvasVisualState.Default;
@@ -62,7 +75,7 @@ public sealed partial class AutomationCanvasNodeViewModel : ObservableObject
 
     public IReadOnlyList<AutomationNodePortViewModel> OutputPorts { get; }
 
-    public IList<AutomationInlineNodeFieldViewModel> InlineEditors { get; } = [];
+    public ObservableCollection<AutomationInlineNodeFieldViewModel> InlineEditors { get; } = [];
 
     public bool HasInlineEditors => InlineEditors.Count > 0;
 
@@ -97,6 +110,11 @@ public sealed partial class AutomationCanvasNodeViewModel : ObservableObject
     }
 
     public event EventHandler? PositionChanged;
+
+    public void ApplyDisplayMetadata(string? description)
+    {
+        Description = description?.Trim() ?? "";
+    }
 
     public void ApplyLayoutMetrics(AutomationNodeLayoutMetrics metrics)
     {

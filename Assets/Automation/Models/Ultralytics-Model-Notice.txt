@@ -1,0 +1,4 @@
+Bundled file: yolo.onnx
+Source: Ultralytics release assets (YOLO11n detection model, ONNX export).
+Download URL used for packaging: https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.onnx
+License: refer to Ultralytics YOLO license terms (AGPL-3.0, see https://github.com/ultralytics/ultralytics).

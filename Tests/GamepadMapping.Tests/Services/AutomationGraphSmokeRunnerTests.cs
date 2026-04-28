@@ -66,7 +66,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         });
         var find = CreateNode("perception.find_image", new JsonObject
         {
-            [AutomationNodePropertyKeys.FindImageNeedlePath] = "needle.png"
+            [AutomationNodePropertyKeys.FindImageAlgorithm] = AutomationVisionAlgorithmStorage.ColorThreshold
         });
         var click = CreateNode("output.mouse_click", new JsonObject
         {
@@ -91,6 +91,191 @@ public sealed class AutomationGraphSmokeRunnerTests
             $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
         virtualMouse.Verify(v => v.MoveCursorToVirtualScreenPixels(142, 218), Times.Once);
         mouse.Verify(m => m.LeftClick(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_ReevaluatesDataOutputsOnEachLoopIteration()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+
+        captureService
+            .Setup(s => s.CaptureRectanglePhysical(10, 12, 40, 36))
+            .Returns(bitmap);
+        probeService
+            .SetupSequence(p => p.ProbeAsync(
+                bitmap,
+                10,
+                12,
+                null,
+                It.IsAny<AutomationImageProbeOptions>(),
+                AutomationVisionAlgorithmKind.ColorThreshold,
+                It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 1, 12)))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 10, 12)));
+        keyboard.Setup(k => k.TapKey(Key.A, 1, 0, 70));
+        keyboard.Setup(k => k.TapKey(Key.D, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var listener = CreateNode("event.listener", new JsonObject
+        {
+            [AutomationNodePropertyKeys.EventSignal] = "engine.start"
+        });
+        var loop = CreateNode("automation.loop", new JsonObject
+        {
+            [AutomationNodePropertyKeys.LoopMaxIterations] = 2
+        });
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = "roi",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 10,
+                ["y"] = 12,
+                ["width"] = 40,
+                ["height"] = 36
+            }
+        });
+        var find = CreateNode("perception.find_image", new JsonObject
+        {
+            [AutomationNodePropertyKeys.FindImageAlgorithm] = AutomationVisionAlgorithmStorage.ColorThreshold
+        });
+        var compare = CreateNode("logic.lt", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CompareRight] = 5
+        });
+        var branch = CreateNode("logic.branch_bool");
+        var keyA = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "A"
+        });
+        var keyD = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "D"
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [listener, loop, capture, find, compare, branch, keyA, keyD],
+            Edges =
+            [
+                Edge(listener.Id, "flow.out", loop.Id, "flow.in"),
+                Edge(loop.Id, "loop.body", capture.Id, "flow.in"),
+                Edge(capture.Id, "flow.out", find.Id, "flow.in"),
+                Edge(capture.Id, "screen.image", find.Id, "haystack.image"),
+                Edge(find.Id, "flow.out", branch.Id, "flow.in"),
+                Edge(find.Id, "result.x", compare.Id, "left"),
+                Edge(compare.Id, "value", branch.Id, "condition"),
+                Edge(branch.Id, "branch.true", keyA.Id, "flow.in"),
+                Edge(branch.Id, "branch.false", keyD.Id, "flow.in"),
+                Edge(keyA.Id, "flow.out", loop.Id, "flow.in"),
+                Edge(keyD.Id, "flow.out", loop.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
+        keyboard.Verify(k => k.TapKey(Key.A, 1, 0, 70), Times.Once);
+        keyboard.Verify(k => k.TapKey(Key.D, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_MissingTemplateNeedleRoutesToImageMiss()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+
+        captureService
+            .Setup(s => s.CaptureRectanglePhysical(10, 12, 40, 36))
+            .Returns(bitmap);
+        keyboard.Setup(k => k.TapKey(Key.D, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = "roi",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 10,
+                ["y"] = 12,
+                ["width"] = 40,
+                ["height"] = 36
+            }
+        });
+        var find = CreateNode("perception.find_image", new JsonObject
+        {
+            [AutomationNodePropertyKeys.FindImageAlgorithm] = AutomationVisionAlgorithmStorage.TemplateMatch,
+            [AutomationNodePropertyKeys.FindImageNeedlePath] = @"Z:\missing-template-needle.png"
+        });
+        var branch = CreateNode("logic.branch_image");
+        var keyD = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "D"
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, find, branch, keyD],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", find.Id, "flow.in"),
+                Edge(capture.Id, "screen.image", find.Id, "haystack.image"),
+                Edge(find.Id, "flow.out", branch.Id, "flow.in"),
+                Edge(find.Id, "probe.image", branch.Id, "probe.image"),
+                Edge(branch.Id, "branch.miss", keyD.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
+        Assert.Contains(result.LogLines, line => line.Contains("missing_template_needle", StringComparison.Ordinal));
+        keyboard.Verify(k => k.TapKey(Key.D, 1, 0, 70), Times.Once);
+        probeService.Verify(
+            p => p.ProbeAsync(
+                It.IsAny<BitmapSource>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<BitmapSource?>(),
+                It.IsAny<AutomationImageProbeOptions>(),
+                It.IsAny<AutomationVisionAlgorithmKind>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

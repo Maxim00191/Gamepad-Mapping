@@ -29,9 +29,45 @@ public sealed class AutomationExecutionSafetyPolicyTests
         var limits = sut.GetLimits(doc);
 
         Assert.True(limits.MaxExecutionSteps > 400);
-        Assert.InRange(limits.MaxExecutionSteps, 400, 10000);
+        Assert.InRange(limits.MaxExecutionSteps, 400, 250000);
         Assert.InRange(limits.MaxLoopIterationsPerNode, 1000, 5000);
         Assert.InRange(limits.MaxDelayMilliseconds, 120000, 300000);
+    }
+
+    [Fact]
+    public void GetLimits_HonorsExplicitLoopIterationBudget()
+    {
+        var loop = new AutomationNodeState
+        {
+            Id = Guid.NewGuid(),
+            NodeTypeId = "automation.loop",
+            Properties = new System.Text.Json.Nodes.JsonObject
+            {
+                [AutomationNodePropertyKeys.LoopMaxIterations] = 5000
+            }
+        };
+        var delay = new AutomationNodeState { Id = Guid.NewGuid(), NodeTypeId = "automation.delay" };
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [loop, delay],
+            Edges =
+            [
+                new AutomationEdgeState
+                {
+                    Id = Guid.NewGuid(),
+                    SourceNodeId = loop.Id,
+                    SourcePortId = "loop.body",
+                    TargetNodeId = delay.Id,
+                    TargetPortId = "flow.in"
+                }
+            ]
+        };
+
+        var sut = new AutomationExecutionSafetyPolicy();
+        var limits = sut.GetLimits(doc);
+
+        Assert.Equal(5000, limits.MaxLoopIterationsPerNode);
+        Assert.True(limits.MaxExecutionSteps >= 10000);
     }
 
     [Fact]

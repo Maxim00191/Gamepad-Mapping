@@ -73,6 +73,8 @@ public sealed class AutomationRuntimeContext
     public bool TryGetProbeResultByNode(Guid nodeId, out AutomationImageProbeResult result) =>
         _probeResults.TryGetValue(nodeId, out result);
 
+    public void BeginExecutionStep() => _dataEvaluationCache.Clear();
+
     public bool TryResolveProbeResult(Guid targetNodeId, string targetPortId, out AutomationImageProbeResult result)
     {
         var source = Index.GetDataSourceLink(targetNodeId, targetPortId);

@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
   "metadata": {
-    "name": "OpenCV + YOLO26 Smoke Test",
-    "description": "Basic automation flow for import/smoke-run validation with image detection and output branching.",
+    "name": "Vision pipeline smoke test",
+    "description": "Basic automation flow for import/smoke-run validation with explicit template matching (managed brute-force matcher); other graphs default find_image to bundled YOLO ONNX unless overridden.",
     "version": "1.0.0",
     "dependencies": [
       {
-        "id": "opencv",
+        "id": "opencvsharp_runtime_win",
         "kind": "native",
         "required": true,
-        "version": "4.x",
-        "notes": "Provides image processing and matching primitives."
+        "version": "4.10.x",
+        "notes": "OpenCvSharp + OpenCV DLLs for TM_CCORR_NORMED template match and dnn module (YOLO ONNX)."
       },
       {
-        "id": "yolo26",
-        "kind": "model",
+        "id": "managed_vision_pipeline",
+        "kind": "runtime",
         "required": true,
-        "version": "26.x",
-        "notes": "Provides object detection capabilities for advanced automation scenarios."
+        "version": "1.0",
+        "notes": "Brute-force template match, OpenCV template match, YOLO ONNX (640 letterbox), HSV color threshold, contour proxy."
       }
     ],
     "pathTokens": {
@@ -42,6 +42,7 @@
       "x": 440,
       "y": 140,
       "properties": {
+        "findImageAlgorithm": "template",
         "findImageNeedlePath": "${sampleRoot}/needle-demo.png",
         "findImageConfidence": 0.85,
         "findImageTimeoutMs": 500
@@ -70,7 +71,7 @@
       "x": 1080,
       "y": 230,
       "properties": {
-        "logMessage": "YOLO26/OpenCV smoke test: target not found."
+        "logMessage": "Vision smoke test: target not found."
       }
     }
   ],

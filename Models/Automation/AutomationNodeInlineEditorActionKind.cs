@@ -9,5 +9,7 @@ public enum AutomationNodeInlineEditorActionKind
     PickKeyboardActionId = 4,
     PickMouseActionId = 5,
     PickInputModeId = 6,
-    CaptureNeedleImageFromScreen = 7
+    CaptureNeedleImageFromScreen = 7,
+    BrowseOnnxModelFile = 8,
+    PickFindImageAlgorithm = 9
 }

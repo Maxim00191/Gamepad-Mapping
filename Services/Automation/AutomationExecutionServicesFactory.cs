@@ -23,10 +23,7 @@ public sealed class AutomationExecutionServicesFactory : IAutomationExecutionSer
         var contracts = new AutomationNodeContractValidator();
         var safety = new AutomationExecutionSafetyPolicy();
         var templateMatcher = new AutomationTemplateMatcherBruteForce();
-        var visionTemplate = new AutomationTemplateMatchVisionAlgorithm(templateMatcher);
-        var visionThreshold = new AutomationColorThresholdVisionAlgorithm();
-        var visionContour = new AutomationContourVisionAlgorithm(visionThreshold);
-        var visionPipeline = new AutomationVisionPipeline([visionTemplate, visionThreshold, visionContour]);
+        var visionPipeline = AutomationVisionAlgorithmComposition.CreateDefaultPipeline(templateMatcher);
         var probe = new AutomationImageProbe(visionPipeline);
         var inputState = new AutomationInputStateManager(keyboard);
         var runner = new AutomationGraphSmokeRunner(

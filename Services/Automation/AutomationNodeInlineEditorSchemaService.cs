@@ -2,18 +2,71 @@
 
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
+using GamepadMapperGUI.Utils;
 
 namespace GamepadMapperGUI.Services.Automation;
 
 public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInlineEditorSchemaService
 {
+    private readonly IReadOnlyList<AutomationNodeInlineEditorDefinition> _commonDefinitions = BuildCommonDefinitions();
+
     private readonly Dictionary<string, IReadOnlyList<AutomationNodeInlineEditorDefinition>> _definitionsByNodeTypeId =
         BuildDefinitions();
 
-    public IReadOnlyList<AutomationNodeInlineEditorDefinition> GetDefinitions(string nodeTypeId) =>
-        _definitionsByNodeTypeId.TryGetValue(nodeTypeId, out var definitions)
-            ? definitions
-            : [];
+    private static readonly IReadOnlyList<string> TemplateNeedleAlgorithmValues =
+    [
+        AutomationVisionAlgorithmStorage.TemplateMatch,
+        AutomationVisionAlgorithmStorage.OpenCvTemplateMatch
+    ];
+
+    private static readonly IReadOnlyList<string> YoloAlgorithmValues =
+    [
+        "",
+        AutomationVisionAlgorithmStorage.YoloOnnx
+    ];
+
+    private static readonly IReadOnlyList<string> ScoreThresholdAlgorithmValues =
+    [
+        "",
+        AutomationVisionAlgorithmStorage.YoloOnnx,
+        AutomationVisionAlgorithmStorage.TemplateMatch,
+        AutomationVisionAlgorithmStorage.OpenCvTemplateMatch
+    ];
+
+    private static readonly IReadOnlyList<string> ColorAlgorithmValues =
+    [
+        AutomationVisionAlgorithmStorage.ColorThreshold,
+        AutomationVisionAlgorithmStorage.Contour
+    ];
+
+    private static readonly IReadOnlyList<string> TextAlgorithmValues =
+    [
+        AutomationVisionAlgorithmStorage.TextRegion
+    ];
+
+    public IReadOnlyList<AutomationNodeInlineEditorDefinition> GetDefinitions(string nodeTypeId)
+    {
+        if (!_definitionsByNodeTypeId.TryGetValue(nodeTypeId, out var definitions))
+            return _commonDefinitions;
+
+        var combined = new List<AutomationNodeInlineEditorDefinition>(_commonDefinitions.Count + definitions.Count);
+        combined.AddRange(_commonDefinitions);
+        combined.AddRange(definitions);
+        return combined;
+    }
+
+    private static IReadOnlyList<AutomationNodeInlineEditorDefinition> BuildCommonDefinitions() =>
+    [
+        new AutomationNodeInlineEditorDefinition
+        {
+            NodeTypeId = "*",
+            PropertyKey = AutomationNodePropertyKeys.Description,
+            LabelResourceKey = "AutomationInlineEditor_NodeDescription",
+            PlaceholderResourceKey = "AutomationInlineEditor_NodeDescriptionPlaceholder",
+            Kind = AutomationNodeInlineEditorKind.MultilineText,
+            DefaultTextValue = ""
+        }
+    ];
 
     private static Dictionary<string, IReadOnlyList<AutomationNodeInlineEditorDefinition>> BuildDefinitions() =>
         new(StringComparer.OrdinalIgnoreCase)
@@ -60,34 +113,136 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     ActionKind = AutomationNodeInlineEditorActionKind.BrowseImageFile,
                     ActionLabelResourceKey = "AutomationWorkspace_Browse",
                     SecondaryActionKind = AutomationNodeInlineEditorActionKind.CaptureNeedleImageFromScreen,
-                    SecondaryActionLabelResourceKey = "AutomationWorkspace_ScreenshotNeedle"
+                    SecondaryActionLabelResourceKey = "AutomationWorkspace_ScreenshotNeedle",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = TemplateNeedleAlgorithmValues
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",
                     PropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
-                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithm",
-                    Kind = AutomationNodeInlineEditorKind.Choice,
-                    DefaultTextValue = AutomationVisionAlgorithmStorage.TemplateMatch,
-                    ChoiceOptions =
-                    [
-                        new AutomationNodeInlineChoiceOption
-                        {
-                            StoredValue = AutomationVisionAlgorithmStorage.TemplateMatch,
-                            LabelResourceKey = "AutomationVisionAlgorithm_Option_TemplateMatch"
-                        },
-                        new AutomationNodeInlineChoiceOption
-                        {
-                            StoredValue = AutomationVisionAlgorithmStorage.ColorThreshold,
-                            LabelResourceKey = "AutomationVisionAlgorithm_Option_ColorThreshold"
-                        },
-                        new AutomationNodeInlineChoiceOption
-                        {
-                            StoredValue = AutomationVisionAlgorithmStorage.Contour,
-                            LabelResourceKey = "AutomationVisionAlgorithm_Option_Contour"
-                        }
-                    ]
+                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithmPickerLabel",
+                    Kind = AutomationNodeInlineEditorKind.Action,
+                    DefaultTextValue = AutomationVisionAlgorithmStorage.YoloOnnx,
+                    ActionKind = AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm
                 },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageYoloOnnxPath,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageYoloOnnxPath",
+                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageYoloOnnxPathPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = AutomationYoloOnnxPaths.DefaultBundledModelRelativePath,
+                    ActionKind = AutomationNodeInlineEditorActionKind.BrowseOnnxModelFile,
+                    ActionLabelResourceKey = "AutomationWorkspace_Browse",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = YoloAlgorithmValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageYoloClassId,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageYoloClassId",
+                    Kind = AutomationNodeInlineEditorKind.Integer,
+                    DefaultTextValue = "-1",
+                    MinIntegerValue = -1,
+                    MaxIntegerValue = 999,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = YoloAlgorithmValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageColorTargetHex,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageColorTargetHex",
+                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageColorTargetHexPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = "",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = ColorAlgorithmValues
+                },
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorHueMin,
+                    "AutomationInlineEditor_FindImageColorHueMin",
+                    AutomationColorDetectionOptions.Default.HueMin,
+                    0,
+                    179,
+                    ColorAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorHueMax,
+                    "AutomationInlineEditor_FindImageColorHueMax",
+                    AutomationColorDetectionOptions.Default.HueMax,
+                    0,
+                    179,
+                    ColorAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorSaturationMin,
+                    "AutomationInlineEditor_FindImageColorSaturationMin",
+                    AutomationColorDetectionOptions.Default.SaturationMin,
+                    0,
+                    255,
+                    ColorAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorSaturationMax,
+                    "AutomationInlineEditor_FindImageColorSaturationMax",
+                    AutomationColorDetectionOptions.Default.SaturationMax,
+                    0,
+                    255,
+                    ColorAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorValueMin,
+                    "AutomationInlineEditor_FindImageColorValueMin",
+                    AutomationColorDetectionOptions.Default.ValueMin,
+                    0,
+                    255,
+                    ColorAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorValueMax,
+                    "AutomationInlineEditor_FindImageColorValueMax",
+                    AutomationColorDetectionOptions.Default.ValueMax,
+                    0,
+                    255,
+                    ColorAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageColorMinimumAreaPx,
+                    "AutomationInlineEditor_FindImageColorMinimumAreaPx",
+                    AutomationColorDetectionOptions.Default.MinimumAreaPx,
+                    1,
+                    1_000_000,
+                    ColorAlgorithmValues),
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageTextQuery,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageTextQuery",
+                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageTextQueryPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = "",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = TextAlgorithmValues
+                },
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageTextMinimumRegionAreaPx,
+                    "AutomationInlineEditor_FindImageTextMinimumRegionAreaPx",
+                    AutomationTextDetectionOptions.Default.MinimumRegionAreaPx,
+                    1,
+                    1_000_000,
+                    TextAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageTextMorphologyWidth,
+                    "AutomationInlineEditor_FindImageTextMorphologyWidth",
+                    AutomationTextDetectionOptions.Default.MorphologyWidth,
+                    1,
+                    99,
+                    TextAlgorithmValues),
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageTextMorphologyHeight,
+                    "AutomationInlineEditor_FindImageTextMorphologyHeight",
+                    AutomationTextDetectionOptions.Default.MorphologyHeight,
+                    1,
+                    99,
+                    TextAlgorithmValues),
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",
@@ -96,7 +251,9 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     Kind = AutomationNodeInlineEditorKind.Double,
                     DefaultTextValue = "0.15",
                     MinDoubleValue = 0.01,
-                    MaxDoubleValue = 0.9
+                    MaxDoubleValue = 0.9,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = ScoreThresholdAlgorithmValues
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
@@ -106,7 +263,9 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     Kind = AutomationNodeInlineEditorKind.Integer,
                     DefaultTextValue = "500",
                     MinIntegerValue = 25,
-                    MaxIntegerValue = 30000
+                    MaxIntegerValue = 30000,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = ScoreThresholdAlgorithmValues
                 }
             ],
             ["output.keyboard_key"] =
@@ -115,7 +274,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 {
                     NodeTypeId = "output.keyboard_key",
                     PropertyKey = AutomationNodePropertyKeys.KeyboardActionId,
-                    LabelResourceKey = "AutomationInlineEditor_KeyboardActionId",
+                    LabelResourceKey = "AutomationInlineEditor_KeyboardActionPickerLabel",
                     Kind = AutomationNodeInlineEditorKind.Action,
                     ActionKind = AutomationNodeInlineEditorActionKind.PickKeyboardActionId,
                     ActionLabelResourceKey = "AutomationInlineEditor_KeyboardActionIdButton"
@@ -133,7 +292,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 {
                     NodeTypeId = "output.keyboard_key",
                     PropertyKey = AutomationNodePropertyKeys.InputEmulationApiId,
-                    LabelResourceKey = "AutomationInlineEditor_InputMode",
+                    LabelResourceKey = "AutomationInlineEditor_InputModePickerLabel",
                     Kind = AutomationNodeInlineEditorKind.Action,
                     ActionKind = AutomationNodeInlineEditorActionKind.PickInputModeId,
                     ActionLabelResourceKey = "AutomationInlineEditor_InputModeButton"
@@ -164,7 +323,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 {
                     NodeTypeId = "output.mouse_click",
                     PropertyKey = AutomationNodePropertyKeys.MouseActionId,
-                    LabelResourceKey = "AutomationInlineEditor_MouseActionId",
+                    LabelResourceKey = "AutomationInlineEditor_MouseActionPickerLabel",
                     Kind = AutomationNodeInlineEditorKind.Action,
                     ActionKind = AutomationNodeInlineEditorActionKind.PickMouseActionId,
                     ActionLabelResourceKey = "AutomationInlineEditor_MouseActionIdButton"
@@ -181,7 +340,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 {
                     NodeTypeId = "output.mouse_click",
                     PropertyKey = AutomationNodePropertyKeys.InputEmulationApiId,
-                    LabelResourceKey = "AutomationInlineEditor_InputMode",
+                    LabelResourceKey = "AutomationInlineEditor_InputModePickerLabel",
                     Kind = AutomationNodeInlineEditorKind.Action,
                     ActionKind = AutomationNodeInlineEditorActionKind.PickInputModeId,
                     ActionLabelResourceKey = "AutomationInlineEditor_InputModeButton"
@@ -491,5 +650,25 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     DefaultTextValue = ""
                 }
             ]
+        };
+
+    private static AutomationNodeInlineEditorDefinition BuildFindImageIntegerDefinition(
+        string propertyKey,
+        string labelResourceKey,
+        int defaultValue,
+        int minValue,
+        int maxValue,
+        IReadOnlyList<string> visibleWhenValues) =>
+        new()
+        {
+            NodeTypeId = "perception.find_image",
+            PropertyKey = propertyKey,
+            LabelResourceKey = labelResourceKey,
+            Kind = AutomationNodeInlineEditorKind.Integer,
+            DefaultTextValue = defaultValue.ToString(),
+            MinIntegerValue = minValue,
+            MaxIntegerValue = maxValue,
+            VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+            VisibleWhenPropertyValues = visibleWhenValues
         };
 }

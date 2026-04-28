@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -54,6 +56,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -82,6 +86,27 @@ jobs:
       # Match release publish: obfuscate GamepadMapperGUI.UploadTextPolicyPayload so CI exercises the same IL as shipped builds.
       - name: Run tests
         run: dotnet test "GamepadMapping.sln" -c Release --no-restore --nologo -p:ObfuscateUploadTextPolicyPayload=true
+
+      - name: Verify win-x64 publish includes OpenCV runtime (matches release publish graph)
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:TEMP ("gm-opencv-publish-" + [Guid]::NewGuid().ToString("N"))
+          try {
+            dotnet publish "Gamepad Mapping.csproj" -c Release -r win-x64 --self-contained false `
+              -o $out -p:DebugType=none -p:DebugSymbols=false -p:ObfuscateUploadTextPolicyPayload=true
+            if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed." }
+            foreach ($name in @('OpenCvSharp.dll', 'OpenCvSharpExtern.dll')) {
+              $path = Join-Path $out $name
+              if (-not (Test-Path -LiteralPath $path)) {
+                throw "Publish output missing $name at $path (OpenCvSharp runtime not copied; check PackageReference / RID)."
+              }
+            }
+          }
+          finally {
+            if (Test-Path -LiteralPath $out) {
+              Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
 
       - name: Detect release-related changes
         id: changed
@@ -122,6 +147,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - uses: actions/setup-dotnet@v4
         with:

@@ -35,14 +35,15 @@ public sealed partial class AutomationInlineNodeFieldViewModel : ObservableObjec
 
     public bool IsBooleanField => Kind == AutomationNodeInlineEditorKind.Boolean;
 
-    public bool IsActionField => Kind == AutomationNodeInlineEditorKind.Action;
-
     public bool IsChoiceField => Kind == AutomationNodeInlineEditorKind.Choice;
+
+    public bool IsMultilineTextField => Kind == AutomationNodeInlineEditorKind.MultilineText;
 
     public bool IsTextField =>
         Kind != AutomationNodeInlineEditorKind.Boolean &&
         Kind != AutomationNodeInlineEditorKind.Action &&
-        Kind != AutomationNodeInlineEditorKind.Choice;
+        Kind != AutomationNodeInlineEditorKind.Choice &&
+        Kind != AutomationNodeInlineEditorKind.MultilineText;
 
     public IReadOnlyList<AutomationInlineChoiceItemViewModel> ChoiceItems { get; init; } = [];
 

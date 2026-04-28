@@ -47,6 +47,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationNodeLayoutMetricsService _nodeLayoutMetricsService;
     private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
     private readonly IAutomationInputModeSelectionService _inputModeSelectionService;
+    private readonly IAutomationVisionAlgorithmSelectionService _visionAlgorithmSelectionService;
 
     private AutomationGraphDocument _document = new();
     private Guid? _dragUndoSessionNodeId;
@@ -78,7 +79,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationPortLabelService portLabelService,
         IAutomationNodeLayoutMetricsService nodeLayoutMetricsService,
         IAutomationOutputActionSelectionService outputActionSelectionService,
-        IAutomationInputModeSelectionService inputModeSelectionService)
+        IAutomationInputModeSelectionService inputModeSelectionService,
+        IAutomationVisionAlgorithmSelectionService visionAlgorithmSelectionService)
     {
         _registry = registry;
         _serializer = serializer;
@@ -96,6 +98,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _nodeLayoutMetricsService = nodeLayoutMetricsService;
         _outputActionSelectionService = outputActionSelectionService;
         _inputModeSelectionService = inputModeSelectionService;
+        _visionAlgorithmSelectionService = visionAlgorithmSelectionService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
@@ -697,6 +700,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             def.GlyphFontGlyph,
             inputPorts,
             outputPorts);
+        RefreshNodeDisplayMetadata(vm);
         PopulateInlineEditors(vm);
         vm.ApplyLayoutMetrics(_nodeLayoutMetricsService.Build(
             vm.InputPorts.Select(p => p.DisplayLabel).ToArray(),
@@ -713,6 +717,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         var props = node.State.Properties;
         foreach (var definition in _inlineEditorSchema.GetDefinitions(node.NodeTypeId))
         {
+            if (!IsInlineEditorDefinitionVisible(props, definition))
+                continue;
+
             IReadOnlyList<AutomationInlineChoiceItemViewModel> choiceItems = definition is
             { Kind: AutomationNodeInlineEditorKind.Choice, ChoiceOptions: { Count: > 0 } list }
                 ? list
@@ -778,10 +785,31 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             node.InlineEditors.Add(item);
         }
 
+        RefreshNodeDisplayMetadata(node);
         node.ApplyLayoutMetrics(_nodeLayoutMetricsService.Build(
             node.InputPorts.Select(p => p.DisplayLabel).ToArray(),
             node.OutputPorts.Select(p => p.DisplayLabel).ToArray(),
             node.InlineEditors.Count));
+    }
+
+    private static bool IsInlineEditorDefinitionVisible(
+        JsonObject? props,
+        AutomationNodeInlineEditorDefinition definition)
+    {
+        if (definition.VisibleWhenPropertyKey is not { Length: > 0 } key ||
+            definition.VisibleWhenPropertyValues is not { Count: > 0 } allowedValues)
+        {
+            return true;
+        }
+
+        var raw = AutomationNodePropertyReader.ReadString(props, key).Trim();
+        return allowedValues.Any(value => string.Equals(value, raw, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void RefreshNodeDisplayMetadata(AutomationCanvasNodeViewModel node)
+    {
+        node.ApplyDisplayMetadata(
+            AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.Description));
     }
 
     private string ResolveInlineActionLabel(
@@ -804,6 +832,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         {
             var inputModeId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.InputEmulationApiId);
             return _inputModeSelectionService.BuildInputModePickerDisplayText(inputModeId);
+        }
+
+        if (definition.ActionKind == AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm)
+        {
+            var algorithmId = AutomationNodePropertyReader.ReadString(node.State.Properties, AutomationNodePropertyKeys.FindImageAlgorithm);
+            return _visionAlgorithmSelectionService.BuildFindImageAlgorithmPickerDisplayText(algorithmId);
         }
 
         return definition.ActionLabelResourceKey is not null
@@ -831,8 +865,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     {
         EdgeDisplays.Clear();
         var analysis = _topology.Analyze(_document);
-        var cycleSet = analysis.CycleEdgeIds.Count > 0
-            ? new HashSet<Guid>(analysis.CycleEdgeIds)
+        var cycleSet = analysis.DataCycleEdgeIds.Count > 0
+            ? new HashSet<Guid>(analysis.DataCycleEdgeIds)
             : null;
 
         foreach (var edge in _document.Edges)
@@ -1517,6 +1551,11 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 BrowseInlineNeedleImage(field);
                 break;
             }
+            case AutomationNodeInlineEditorActionKind.BrowseOnnxModelFile:
+            {
+                BrowseInlineYoloOnnxModel(field);
+                break;
+            }
             case AutomationNodeInlineEditorActionKind.PickCaptureRegion:
             {
                 await PickCaptureRegionForNodeAsync(node);
@@ -1540,6 +1579,11 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             case AutomationNodeInlineEditorActionKind.PickInputModeId:
             {
                 PickInputModeForNode(node);
+                break;
+            }
+            case AutomationNodeInlineEditorActionKind.PickFindImageAlgorithm:
+            {
+                PickFindImageAlgorithmForNode(node);
                 break;
             }
         }
@@ -1624,6 +1668,26 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         PopulateInlineEditors(node);
     }
 
+    private void PickFindImageAlgorithmForNode(AutomationCanvasNodeViewModel node)
+    {
+        var props = node.State.Properties ??= new JsonObject();
+        var currentAlgorithmId = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.FindImageAlgorithm);
+        var selected = _visionAlgorithmSelectionService.PickFindImageAlgorithm(Application.Current?.MainWindow, currentAlgorithmId);
+        if (selected is null)
+            return;
+
+        var nextAlgorithmId = AutomationVisionAlgorithmStorage.ToStorageValue(
+            AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(selected));
+        var previousAlgorithmId = AutomationVisionAlgorithmStorage.ToStorageValue(
+            AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(currentAlgorithmId));
+        if (string.Equals(previousAlgorithmId, nextAlgorithmId, StringComparison.Ordinal))
+            return;
+
+        PushUndoCheckpoint();
+        AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.FindImageAlgorithm, nextAlgorithmId);
+        PopulateInlineEditors(node);
+    }
+
     [RelayCommand]
     private void BrowseInlineNeedleImage(AutomationInlineNodeFieldViewModel? field)
     {
@@ -1639,6 +1703,34 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         {
             Filter = "Image files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*",
             InitialDirectory = AppPaths.GetAutomationCaptureCacheDirectory()
+        };
+        if (dlg.ShowDialog() != true)
+            return;
+
+        field.TextValue = dlg.FileName;
+        CommitInlineNodeField(field);
+    }
+
+    [RelayCommand]
+    private void BrowseInlineYoloOnnxModel(AutomationInlineNodeFieldViewModel? field)
+    {
+        if (field is null)
+            return;
+        if (!string.Equals(field.NodeTypeId, "perception.find_image", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(field.PropertyKey, AutomationNodePropertyKeys.FindImageYoloOnnxPath, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var userYolo = AutomationYoloOnnxPaths.GetUserModelsDirectory();
+        var bundledYolo = AutomationYoloOnnxPaths.GetBundledModelsDirectory();
+        var initial = Directory.Exists(userYolo) ? userYolo :
+            Directory.Exists(bundledYolo) ? bundledYolo :
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var dlg = new OpenFileDialog
+        {
+            Filter = "ONNX model (*.onnx)|*.onnx|All files (*.*)|*.*",
+            InitialDirectory = initial
         };
         if (dlg.ShowDialog() != true)
             return;

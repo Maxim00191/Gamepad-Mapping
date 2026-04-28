@@ -2,6 +2,7 @@
 
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
+using GamepadMapperGUI.Utils;
 
 namespace GamepadMapperGUI.Services.Automation;
 
@@ -32,13 +33,30 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                         return true;
                     }
 
+                    var algorithmText = AutomationNodePropertyReader.ReadString(
+                        node.Properties,
+                        AutomationNodePropertyKeys.FindImageAlgorithm);
+                    var algorithm = AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(algorithmText);
                     var needlePath = AutomationNodePropertyReader.ReadString(
                         node.Properties,
                         AutomationNodePropertyKeys.FindImageNeedlePath);
-                    if (string.IsNullOrWhiteSpace(needlePath))
+                    if (AutomationVisionAlgorithmRequirements.RequiresNeedleImage(algorithm) &&
+                        string.IsNullOrWhiteSpace(needlePath))
                     {
                         detail = "find_image:needle_missing";
                         return true;
+                    }
+
+                    if (AutomationVisionAlgorithmRequirements.RequiresYoloOnnxModel(algorithm))
+                    {
+                        var onnxPathRaw = AutomationNodePropertyReader.ReadString(
+                            node.Properties,
+                            AutomationNodePropertyKeys.FindImageYoloOnnxPath);
+                        if (!AutomationYoloOnnxPaths.TryResolveEffectiveModelPath(onnxPathRaw, out _))
+                        {
+                            detail = "find_image:yolo_model_missing";
+                            return true;
+                        }
                     }
 
                     break;

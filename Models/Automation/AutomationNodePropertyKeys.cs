@@ -2,6 +2,8 @@ namespace GamepadMapperGUI.Models.Automation;
 
 public static class AutomationNodePropertyKeys
 {
+    public const string Description = "description";
+
     public const string CoordinateSpace = "coordinateSpace";
 
     public const string CaptureMode = "captureMode";
@@ -42,6 +44,24 @@ public static class AutomationNodePropertyKeys
 
     public const string FindImageNeedlePath = "findImageNeedlePath";
     public const string FindImageAlgorithm = "findImageAlgorithm";
+
+    public const string FindImageYoloOnnxPath = "findImageYoloOnnxPath";
+
+    public const string FindImageYoloClassId = "findImageYoloClassId";
+
+    public const string FindImageColorHueMin = "findImageColorHueMin";
+    public const string FindImageColorHueMax = "findImageColorHueMax";
+    public const string FindImageColorSaturationMin = "findImageColorSaturationMin";
+    public const string FindImageColorSaturationMax = "findImageColorSaturationMax";
+    public const string FindImageColorValueMin = "findImageColorValueMin";
+    public const string FindImageColorValueMax = "findImageColorValueMax";
+    public const string FindImageColorMinimumAreaPx = "findImageColorMinimumAreaPx";
+    public const string FindImageColorTargetHex = "findImageColorTargetHex";
+
+    public const string FindImageTextMinimumRegionAreaPx = "findImageTextMinimumRegionAreaPx";
+    public const string FindImageTextMorphologyWidth = "findImageTextMorphologyWidth";
+    public const string FindImageTextMorphologyHeight = "findImageTextMorphologyHeight";
+    public const string FindImageTextQuery = "findImageTextQuery";
 
     public const string LoopMaxIterations = "loopMaxIterations";
 

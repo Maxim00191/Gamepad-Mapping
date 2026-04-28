@@ -2375,4 +2375,88 @@
   <data name="AutomationRegionPicker_Instructions" xml:space="preserve">
     <value>拖拽选择区域。拖动角点可调整大小。方向键微调（Shift=10px）。Enter 确认，Esc 取消。</value>
   </data>
+  <data name="AutomationInlineEditor_NodeDescription" xml:space="preserve">
+    <value>描述</value>
+  </data>
+  <data name="AutomationInlineEditor_NodeDescriptionPlaceholder" xml:space="preserve">
+    <value>为此节点添加简短描述</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_OpenCvTemplateMatch" xml:space="preserve">
+    <value>OpenCV 模板匹配</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_YoloOnnx" xml:space="preserve">
+    <value>YOLO（OpenCV DNN 加载 ONNX）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageYoloOnnxPath" xml:space="preserve">
+    <value>YOLO ONNX 模型</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageYoloOnnxPathPlaceholder" xml:space="preserve">
+    <value>YOLO .onnx 路径（Ultralytics 导出，640）；可留空则使用自带的 yolo.onnx（YOLO11n COCO），或使用上述目录下的 yolo.onnx / model.onnx / default.onnx</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageYoloClassId" xml:space="preserve">
+    <value>YOLO 类别 id（-1 表示任意类别）</value>
+  </data>
+  <data name="AutomationVisionAlgorithmPicker_DialogTitle" xml:space="preserve">
+    <value>选择视觉算法</value>
+  </data>
+  <data name="AutomationVisionAlgorithmPicker_SearchPlaceholder" xml:space="preserve">
+    <value>按名称或存储 ID 搜索算法</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlgorithmPickerLabel" xml:space="preserve">
+    <value>选择视觉模型</value>
+  </data>
+  <data name="AutomationInlineEditor_KeyboardActionPickerLabel" xml:space="preserve">
+    <value>选择键盘动作</value>
+  </data>
+  <data name="AutomationInlineEditor_MouseActionPickerLabel" xml:space="preserve">
+    <value>选择鼠标动作</value>
+  </data>
+  <data name="AutomationInlineEditor_InputModePickerLabel" xml:space="preserve">
+    <value>选择输入模式</value>
+  </data>
+  <data name="AutomationVisionAlgorithm_Option_TextRegion" xml:space="preserve">
+    <value>文本区域</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorHueMin" xml:space="preserve">
+    <value>颜色色相最小值（0-179）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorHueMax" xml:space="preserve">
+    <value>颜色色相最大值（0-179）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorSaturationMin" xml:space="preserve">
+    <value>颜色饱和度最小值</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorSaturationMax" xml:space="preserve">
+    <value>颜色饱和度最大值</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorValueMin" xml:space="preserve">
+    <value>颜色明度最小值</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorValueMax" xml:space="preserve">
+    <value>颜色明度最大值</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorMinimumAreaPx" xml:space="preserve">
+    <value>颜色最小面积（像素）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextMinimumRegionAreaPx" xml:space="preserve">
+    <value>文本最小区域面积（像素）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextMorphologyWidth" xml:space="preserve">
+    <value>文本合并宽度</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextMorphologyHeight" xml:space="preserve">
+    <value>文本合并高度</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorTargetHex" xml:space="preserve">
+    <value>目标颜色（十六进制）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageColorTargetHexPlaceholder" xml:space="preserve">
+    <value>#RRGGBB，例如 #FF6A00</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextQuery" xml:space="preserve">
+    <value>目标文本</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageTextQueryPlaceholder" xml:space="preserve">
+    <value>要定位的文本（供文本感知检测器使用）</value>
+  </data>
 </root>

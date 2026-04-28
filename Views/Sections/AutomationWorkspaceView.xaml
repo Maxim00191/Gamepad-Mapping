@@ -445,19 +445,29 @@
                                                             <RowDefinition Height="Auto" />
                                                             <RowDefinition Height="*" />
                                                         </Grid.RowDefinitions>
-                                                        <DockPanel Grid.Row="0"
-                                                                   LastChildFill="False">
-                                                            <TextBlock DockPanel.Dock="Left"
-                                                                       FontFamily="Segoe MDL2 Assets"
-                                                                       FontSize="16"
-                                                                       Margin="0,0,6,0"
-                                                                       VerticalAlignment="Top"
-                                                                       Text="{Binding Glyph}" />
-                                                            <TextBlock Text="{Binding Title}"
+                                                        <StackPanel Grid.Row="0">
+                                                            <DockPanel LastChildFill="False">
+                                                                <TextBlock DockPanel.Dock="Left"
+                                                                           FontFamily="Segoe MDL2 Assets"
+                                                                           FontSize="16"
+                                                                           Margin="0,0,6,0"
+                                                                           VerticalAlignment="Top"
+                                                                           Text="{Binding Glyph}" />
+                                                                <TextBlock Text="{Binding Title}"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           TextWrapping="Wrap"
+                                                                           FontWeight="SemiBold" />
+                                                            </DockPanel>
+                                                            <TextBlock Margin="22,2,0,0"
+                                                                       FontSize="10"
+                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                       Opacity="0.9"
+                                                                       Text="{Binding Description}"
                                                                        TextTrimming="CharacterEllipsis"
                                                                        TextWrapping="Wrap"
-                                                                       FontWeight="SemiBold" />
-                                                        </DockPanel>
+                                                                       ToolTip="{Binding Description}"
+                                                                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVis}}" />
+                                                        </StackPanel>
                                                         <Grid Grid.Row="1"
                                                               Margin="-1,5,-1,2"
                                                               IsHitTestVisible="True">
@@ -585,24 +595,24 @@
                                                                                 <TextBlock FontSize="10"
                                                                                            Margin="0,0,0,2"
                                                                                            Foreground="{DynamicResource AppSecondaryTextBrush}"
-                                                                                           Text="{Binding Label}">
-                                                                                    <TextBlock.Style>
-                                                                                        <Style TargetType="TextBlock">
-                                                                                            <Setter Property="Visibility" Value="Visible" />
-                                                                                            <Style.Triggers>
-                                                                                                <DataTrigger Binding="{Binding IsActionField}" Value="True">
-                                                                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                                                                </DataTrigger>
-                                                                                            </Style.Triggers>
-                                                                                        </Style>
-                                                                                    </TextBlock.Style>
-                                                                                </TextBlock>
+                                                                                           Text="{Binding Label}" />
                                                                                 <TextBox Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}"
                                                                                          Tag="{Binding Placeholder}"
                                                                                          LostFocus="InlineNodeEditor_LostFocus_Commit"
                                                                                          KeyDown="InlineNodeEditor_KeyDown_Commit"
                                                                                          ToolTip="{Binding Placeholder}"
                                                                                          Visibility="{Binding IsTextField, Converter={StaticResource BoolToVis}}" />
+                                                                                <TextBox MinHeight="54"
+                                                                                         MaxHeight="88"
+                                                                                         AcceptsReturn="True"
+                                                                                         TextWrapping="Wrap"
+                                                                                         VerticalScrollBarVisibility="Auto"
+                                                                                         Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}"
+                                                                                         Tag="{Binding Placeholder}"
+                                                                                         LostFocus="InlineNodeEditor_LostFocus_Commit"
+                                                                                         KeyDown="InlineNodeEditor_KeyDown_Commit"
+                                                                                         ToolTip="{Binding Placeholder}"
+                                                                                         Visibility="{Binding IsMultilineTextField, Converter={StaticResource BoolToVis}}" />
                                                                                 <ComboBox Margin="0,0,0,0"
                                                                                           Padding="4,2"
                                                                                           ItemsSource="{Binding ChoiceItems}"

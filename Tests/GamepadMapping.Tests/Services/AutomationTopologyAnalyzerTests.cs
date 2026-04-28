@@ -112,6 +112,45 @@ public sealed class AutomationTopologyAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_ReportsExecutionCyclesWithoutInvalidTopology()
+    {
+        var loop = CreateNode("automation.loop");
+        var delay = CreateNode("automation.delay");
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [loop, delay],
+            Edges =
+            [
+                new AutomationEdgeState
+                {
+                    Id = Guid.NewGuid(),
+                    SourceNodeId = loop.Id,
+                    SourcePortId = "loop.body",
+                    TargetNodeId = delay.Id,
+                    TargetPortId = "flow.in"
+                },
+                new AutomationEdgeState
+                {
+                    Id = Guid.NewGuid(),
+                    SourceNodeId = delay.Id,
+                    SourcePortId = "flow.out",
+                    TargetNodeId = loop.Id,
+                    TargetPortId = "flow.in"
+                }
+            ]
+        };
+
+        var sut = new AutomationTopologyAnalyzer(_registry);
+        var result = sut.Analyze(doc);
+
+        Assert.True(result.HasExecutionCycle);
+        Assert.False(result.HasDataCycle);
+        Assert.NotEmpty(result.CycleEdgeIds);
+        Assert.Empty(result.DataCycleEdgeIds);
+        Assert.Null(result.DetailMessageResourceKey);
+    }
+
+    [Fact]
     public void Analyze_FlagsDataCyclesAsInvalidTopology()
     {
         var findA = CreateNode("perception.find_image");

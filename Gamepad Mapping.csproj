@@ -16,9 +16,13 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <StartupObject>Gamepad_Mapping.Program</StartupObject>
     <ApplicationIcon>Assets\Icons\Gamepad Mapping.ico</ApplicationIcon>
+    <!-- OpenCvSharp ships optional FFmpeg (~25 MB). Automation uses BitmapSource/DNN only; keep false unless you need VideoCapture/ffmpeg backends. -->
+    <GamepadMappingIncludeOpenCvVideoioFfmpeg>false</GamepadMappingIncludeOpenCvVideoioFfmpeg>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20240616" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20240616" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
@@ -35,6 +39,7 @@
     <Content Include="Assets\ControllerSvg\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Profiles\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Automation\**\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Assets\Automation\Models\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -73,6 +78,24 @@
     </ItemGroup>
 
     <Copy SourceFiles="@(UpdaterPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(UpdaterPayload)' != ''" />
+  </Target>
+
+  <Target Name="ExcludeOpenCvVideoioFfmpegFromPublish"
+          AfterTargets="ComputeResolvedFilesToPublishList"
+          Condition="'$(GamepadMappingIncludeOpenCvVideoioFfmpeg)' != 'true'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Contains('opencv_videoio_ffmpeg'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RemoveOpenCvVideoioFfmpegFromOutput"
+          AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(GamepadMappingIncludeOpenCvVideoioFfmpeg)' != 'true'">
+    <ItemGroup>
+      <_OpenCvFfmpegInOutDir Include="$(OutDir)opencv_videoio_ffmpeg*.dll" />
+    </ItemGroup>
+    <Delete Files="@(_OpenCvFfmpegInOutDir)" TreatErrorsAsWarnings="true" />
   </Target>
 
 </Project>

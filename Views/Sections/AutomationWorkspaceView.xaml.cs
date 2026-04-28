@@ -343,6 +343,8 @@ public partial class AutomationWorkspaceView
             return;
         if (sender is not FrameworkElement fe || fe.DataContext is not AutomationInlineNodeFieldViewModel field)
             return;
+        if (field.IsMultilineTextField && !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            return;
 
         WorkspaceVm.CommitInlineNodeFieldCommand.Execute(field);
         e.Handled = true;

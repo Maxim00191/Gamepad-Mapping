@@ -35,4 +35,8 @@ public sealed class AutomationNodeInlineEditorDefinition
     public double? MaxDoubleValue { get; init; }
 
     public IReadOnlyList<AutomationNodeInlineChoiceOption>? ChoiceOptions { get; init; }
+
+    public string? VisibleWhenPropertyKey { get; init; }
+
+    public IReadOnlyList<string>? VisibleWhenPropertyValues { get; init; }
 }
