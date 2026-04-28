@@ -33,7 +33,8 @@ public static class ApplicationComposition
         var appToastService = new AppToastService();
         var userDialogService = new UserDialogService();
         var xinputService = new XInputService();
-        var gamepadSource = new XInputSource(xinputService);
+        var gamepadSourceFactory = new GamepadSourceFactory(xinputService);
+        var gamepadSource = gamepadSourceFactory.CreateSource(appSettings.GamepadSourceApi, out _);
         var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
 
         var dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
@@ -61,6 +62,7 @@ public static class ApplicationComposition
             userDialogService: userDialogService,
             xinput: xinputService,
             gamepadSource: gamepadSource,
+            gamepadSourceFactory: gamepadSourceFactory,
             uiOrchestrator: uiOrchestrator,
             profileDomainService: profileDomainService,
             mainShellVisibility: mainShellVisibility);

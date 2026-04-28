@@ -54,6 +54,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     private readonly SettingsOrchestrator _settingsOrchestrator;
     private readonly ProfileOrchestrator _profileOrchestrator;
     private readonly IInputEmulationStackFactory _inputEmulationStackFactory;
+    private readonly IGamepadSourceFactory _gamepadSourceFactory;
     private readonly IRadialMenuHud _radialMenuHud;
     private readonly Debouncer _processNameDebouncer;
     private bool _suppressGamepadMonitorSettingsPersistence;
@@ -142,6 +143,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         IMouseEmulator? mouseEmulator = null,
         IXInput? xinput = null,
         IGamepadSource? gamepadSource = null,
+        IGamepadSourceFactory? gamepadSourceFactory = null,
         IInputEmulationStackFactory? inputEmulationStackFactory = null,
         IControllerVisualService? controllerVisualService = null,
         IControllerVisualLayoutSource? controllerVisualLayoutSource = null,
@@ -170,6 +172,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
                 : NullRadialMenuHud.Instance);
         _settingsService = settingsService ?? new SettingsService();
         _settingsOrchestrator = new SettingsOrchestrator(_settingsService);
+        _gamepadSourceFactory = gamepadSourceFactory ?? new GamepadSourceFactory(xinput ?? new XInputService());
         _inputEmulationStackFactory = inputEmulationStackFactory ?? new InputEmulationStackFactory(
             getGamepadPollingIntervalMs: () => GamepadInputStreamConstraints.ClampPollingIntervalMs(_settingsOrchestrator.Settings.GamepadPollingIntervalMs));
         var appSettings = _settingsOrchestrator.Settings;
@@ -242,8 +245,20 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         var initialRightDeadzone = ResolveStickDeadzone(appSettings.RightThumbstickDeadzone, appSettings.ThumbstickDeadzone);
 
         var dzShape = ThumbstickDeadzoneShapeParser.Parse(appSettings.ThumbstickDeadzoneShape);
+        var source = gamepadSource;
+        if (source is null)
+        {
+            source = _gamepadSourceFactory.CreateSource(appSettings.GamepadSourceApi, out var resolvedApiId);
+            if (!string.Equals(resolvedApiId, appSettings.GamepadSourceApi, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(_gamepadSourceFactory.NormalizeApiId(appSettings.GamepadSourceApi), appSettings.GamepadSourceApi, StringComparison.OrdinalIgnoreCase))
+            {
+                appSettings.GamepadSourceApi = _gamepadSourceFactory.NormalizeApiId(appSettings.GamepadSourceApi);
+                _settingsOrchestrator.SaveSettings();
+            }
+        }
+
         var reader = gamepadReader ?? new GamepadReader(
-            gamepadSource ?? new XInputSource(xinput ?? new XInputService()),
+            source,
             initialLeftDeadzone,
             initialRightDeadzone,
             appSettings.LeftTriggerInnerDeadzone,
@@ -854,13 +869,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
     private void RecreateGamepadReaderForCurrentSource()
     {
-        var api = _settingsOrchestrator.Settings.GamepadSourceApi;
-        if (string.Equals(api, GamepadSourceApiIds.DualSense, StringComparison.OrdinalIgnoreCase))
-        {
-            Gamepad_Mapping.App.Logger.Warning("DualSense source is not implemented yet. Falling back to XInput.");
-        }
-
-        IGamepadSource source = new XInputSource(new XInputService());
+        var source = _gamepadSourceFactory.CreateSource(_settingsOrchestrator.Settings.GamepadSourceApi, out _);
 
         var dzShape = ThumbstickDeadzoneShapeParser.Parse(_settingsOrchestrator.Settings.ThumbstickDeadzoneShape);
         var reader = new GamepadReader(
@@ -1532,11 +1541,15 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         AvailableInputApis.Add(new InputApiOption(InputEmulationApiIds.InputInjection, _settingsOrchestrator.Localize("InputApiInputInjectionLabel")));
 
         AvailableGamepadApis.Clear();
-        AvailableGamepadApis.Add(new InputApiOption(GamepadSourceApiIds.XInput, _settingsOrchestrator.Localize("GamepadSourceXInputLabel")));
-
-        if (!string.Equals(appSettings.GamepadSourceApi, GamepadSourceApiIds.XInput, StringComparison.OrdinalIgnoreCase))
+        foreach (var registration in _gamepadSourceFactory.GetRegistrations())
         {
-            appSettings.GamepadSourceApi = GamepadSourceApiIds.XInput;
+            AvailableGamepadApis.Add(new InputApiOption(registration.Id, _settingsOrchestrator.Localize(registration.DisplayNameLocalizationKey)));
+        }
+
+        var normalizedGamepadApi = _gamepadSourceFactory.NormalizeApiId(appSettings.GamepadSourceApi);
+        if (!string.Equals(normalizedGamepadApi, appSettings.GamepadSourceApi, StringComparison.OrdinalIgnoreCase))
+        {
+            appSettings.GamepadSourceApi = normalizedGamepadApi;
             _settingsOrchestrator.SaveSettings();
         }
 
