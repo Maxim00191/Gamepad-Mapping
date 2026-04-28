@@ -4,5 +4,6 @@ namespace GamepadMapperGUI.Models;
 public static class GamepadSourceApiIds
 {
     public const string XInput = "XInput";
+    public const string PlayStation = "PlayStation";
     public const string DualSense = "DualSense";
 }

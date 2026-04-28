@@ -29,7 +29,8 @@ public readonly record struct InputFrame(
     float LeftTrigger,
     float RightTrigger,
     bool IsConnected,
-    long TimestampMs)
+    long TimestampMs,
+    PlayStationInputState? PlayStationState = null)
 {
     public static InputFrame Disconnected(long timestampMs) =>
         new(
@@ -39,6 +40,7 @@ public readonly record struct InputFrame(
             LeftTrigger: 0f,
             RightTrigger: 0f,
             IsConnected: false,
-            TimestampMs: timestampMs);
+            TimestampMs: timestampMs,
+            PlayStationState: null);
 }
 

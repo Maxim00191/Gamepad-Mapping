@@ -270,7 +270,7 @@ public class AppSettings
     public string InputEmulationApi { get; set; } = InputEmulationApiIds.Win32;
 
     /// <summary>
-    /// Gamepad input source backend (<see cref="GamepadSourceApiIds.XInput"/> = XInput).
+    /// Gamepad input source backend (<see cref="GamepadSourceApiIds.XInput"/> or <see cref="GamepadSourceApiIds.PlayStation"/>).
     /// </summary>
     [JsonProperty("gamepadSourceApi")]
     public string GamepadSourceApi { get; set; } = GamepadSourceApiIds.XInput;

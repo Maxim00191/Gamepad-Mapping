@@ -19,30 +19,51 @@ public class GamepadSourceFactoryTests
     }
 
     [Fact]
-    public void CreateSource_DualSenseRequested_FallsBackToXInputSource()
+    public void NormalizeApiId_WithWhitespaceAndCase_ResolvesToCanonicalPlayStationId()
     {
         var factory = CreateFactory();
 
-        var source = factory.CreateSource(GamepadSourceApiIds.DualSense, out var resolvedApiId);
+        var normalized = factory.NormalizeApiId("  playstation  ");
 
-        Assert.IsType<XInputSource>(source);
-        Assert.Equal(GamepadSourceApiIds.XInput, resolvedApiId);
+        Assert.Equal(GamepadSourceApiIds.PlayStation, normalized);
     }
 
     [Fact]
-    public void GetRegistrations_IncludesDualSenseForFutureExpansion()
+    public void CreateSource_PlayStationRequested_ReturnsPlayStationNativeSource()
+    {
+        var factory = CreateFactory();
+
+        var source = factory.CreateSource(GamepadSourceApiIds.PlayStation, out var resolvedApiId);
+
+        Assert.IsType<PlayStationNativeSource>(source);
+        Assert.Equal(GamepadSourceApiIds.PlayStation, resolvedApiId);
+    }
+
+    [Fact]
+    public void NormalizeApiId_LegacyDualSenseAlias_MapsToPlayStation()
+    {
+        var factory = CreateFactory();
+
+        var normalized = factory.NormalizeApiId(GamepadSourceApiIds.DualSense);
+
+        Assert.Equal(GamepadSourceApiIds.PlayStation, normalized);
+    }
+
+    [Fact]
+    public void GetRegistrations_IncludesPlayStationAsImplemented()
     {
         var factory = CreateFactory();
 
         var registrations = factory.GetRegistrations();
 
         Assert.Contains(registrations, r => r.Id == GamepadSourceApiIds.XInput && r.IsImplemented);
-        Assert.Contains(registrations, r => r.Id == GamepadSourceApiIds.DualSense && !r.IsImplemented);
+        Assert.Contains(registrations, r => r.Id == GamepadSourceApiIds.PlayStation && r.IsImplemented);
     }
 
     private static GamepadSourceFactory CreateFactory()
     {
         var xInputMock = new Mock<IXInput>();
-        return new GamepadSourceFactory(xInputMock.Object);
+        var playStationProviderMock = new Mock<IPlayStationInputProvider>();
+        return new GamepadSourceFactory(xInputMock.Object, playStationProviderMock.Object);
     }
 }

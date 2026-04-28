@@ -1616,4 +1616,10 @@ Relaunch this tool as administrator now?</value>
   <data name="TrayMenu_Exit" xml:space="preserve">
     <value>Exit</value>
   </data>
+  <data name="GamepadSourcePlayStationLabel" xml:space="preserve">
+    <value>PlayStation Series (PS4/PS5)</value>
+  </data>
+  <data name="GamepadSourcePlayStationHint" xml:space="preserve">
+    <value>Uses the PlayStation-compatible input path. Native DualSense extended features can be added later.</value>
+  </data>
 </root>

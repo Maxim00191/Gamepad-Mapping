@@ -33,7 +33,8 @@ public static class ApplicationComposition
         var appToastService = new AppToastService();
         var userDialogService = new UserDialogService();
         var xinputService = new XInputService();
-        var gamepadSourceFactory = new GamepadSourceFactory(xinputService);
+        var playStationInputProvider = new DualSenseHidInputProvider();
+        var gamepadSourceFactory = new GamepadSourceFactory(xinputService, playStationInputProvider);
         var gamepadSource = gamepadSourceFactory.CreateSource(appSettings.GamepadSourceApi, out _);
         var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();
 

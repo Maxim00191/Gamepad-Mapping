@@ -1616,4 +1616,10 @@
   <data name="TrayMenu_Exit" xml:space="preserve">
     <value>退出</value>
   </data>
+  <data name="GamepadSourcePlayStationLabel" xml:space="preserve">
+    <value>PlayStation 系列（PS4/PS5）</value>
+  </data>
+  <data name="GamepadSourcePlayStationHint" xml:space="preserve">
+    <value>使用 PlayStation 兼容输入通道。后续可继续扩展 DualSense 原生高级特性。</value>
+  </data>
 </root>
