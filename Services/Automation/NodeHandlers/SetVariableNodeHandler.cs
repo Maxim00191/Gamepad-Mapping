@@ -10,7 +10,7 @@ public sealed class SetVariableNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "variables.set";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var name = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.VariableName);

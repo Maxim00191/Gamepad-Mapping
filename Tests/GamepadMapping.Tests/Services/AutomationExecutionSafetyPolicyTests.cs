@@ -79,5 +79,18 @@ public sealed class AutomationExecutionSafetyPolicyTests
         Assert.Equal(400, limits.MaxExecutionSteps);
         Assert.Equal(1000, limits.MaxLoopIterationsPerNode);
         Assert.Equal(120000, limits.MaxDelayMilliseconds);
+        Assert.Equal(1d / 60d, limits.MinNodeStepIntervalSeconds);
+    }
+
+    [Fact]
+    public void GetLimits_ClampsMinNodeStepIntervalFromDocument()
+    {
+        var doc = new AutomationGraphDocument
+        {
+            MinNodeStepIntervalSeconds = 0
+        };
+        var sut = new AutomationExecutionSafetyPolicy();
+        var limits = sut.GetLimits(doc);
+        Assert.Equal(0d, limits.MinNodeStepIntervalSeconds);
     }
 }

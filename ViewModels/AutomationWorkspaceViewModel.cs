@@ -187,8 +187,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     [ObservableProperty]
     private string _roiInspectorSummaryText = "";
 
-    [ObservableProperty]
-    private string _automationRunLog = "";
+    public ObservableCollection<string> AutomationRunLogLines { get; } = [];
+
+    private const int MaxAutomationRunLogDisplayedLines = 8_000;
 
     [ObservableProperty]
     private bool _isBackgroundCheckRunning;
@@ -1537,7 +1538,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         if (cts is null)
             return;
 
-        AppendAutomationLog(Local("AutomationWorkspace_EmergencyStopRequestedLog"));
+        AppendAutomationLogLine(Local("AutomationWorkspace_EmergencyStopRequestedLog"));
         cts.Cancel();
     }
 
@@ -1871,9 +1872,13 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _toast.ShowInfo("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CaptureCacheApply_Success");
     }
 
-    private void AppendAutomationLog(string line)
+    private void ClearAutomationRunLog() => AutomationRunLogLines.Clear();
+
+    private void AppendAutomationLogLine(string line)
     {
-        AutomationRunLog = string.IsNullOrEmpty(AutomationRunLog) ? line : $"{AutomationRunLog}\n{line}";
+        AutomationRunLogLines.Add(line);
+        while (AutomationRunLogLines.Count > MaxAutomationRunLogDisplayedLines)
+            AutomationRunLogLines.RemoveAt(0);
     }
 
     private async Task ExecuteScriptRunAsync(
@@ -1884,15 +1889,17 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     {
         if (!TryBeginAutomationRun(out var cancellationToken))
         {
-            AppendAutomationLog(Local("AutomationWorkspace_RunAlreadyInProgressLog"));
+            AppendAutomationLogLine(Local("AutomationWorkspace_RunAlreadyInProgressLog"));
             return;
         }
 
-        AppendAutomationLog(startLogLine);
+        ClearAutomationRunLog();
+        AppendAutomationLogLine(startLogLine);
         try
         {
             var documentSnapshot = _serializer.Deserialize(_serializer.Serialize(_document));
-            var result = await _scriptRunner.RunDocumentOnceAsync(documentSnapshot, cancellationToken);
+            var logProgress = new Progress<string>(AppendAutomationLogLine);
+            var result = await _scriptRunner.RunDocumentOnceAsync(documentSnapshot, cancellationToken, logProgress);
             AppendRunResultLogs(result);
 
             var message = ResolveResultMessage(result);
@@ -1921,7 +1928,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            AppendAutomationLog(ExceptionMessageFormatter.UserFacingMessage(ex));
+            AppendAutomationLogLine(ExceptionMessageFormatter.UserFacingMessage(ex));
             if (showFailureDialog)
                 _dialogs.ShowError(ExceptionMessageFormatter.UserFacingMessage(ex), Local(toastTitleResourceKey));
         }
@@ -1964,14 +1971,11 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     private void AppendRunResultLogs(AutomationSmokeRunResult result)
     {
-        foreach (var line in result.LogLines)
-            AppendAutomationLog(line);
-
         var message = ResolveResultMessage(result);
         if (!string.IsNullOrEmpty(message))
-            AppendAutomationLog(message);
+            AppendAutomationLogLine(message);
         if (!string.IsNullOrEmpty(result.Detail))
-            AppendAutomationLog(result.Detail);
+            AppendAutomationLogLine(result.Detail);
     }
 
     private static string ResolveResultMessage(AutomationSmokeRunResult result) =>

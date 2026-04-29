@@ -18,6 +18,9 @@ public sealed class AutomationExecutionSafetyPolicy : IAutomationExecutionSafety
     private const int BaseMaxDelayMs = 120000;
     private const int MaxDelayCeilingMs = 300000;
 
+    private const double DefaultMinNodeStepIntervalSeconds = 1d / 60d;
+    private const double MaxMinNodeStepIntervalSeconds = 1d;
+
     public AutomationExecutionSafetyLimits GetLimits(AutomationGraphDocument document)
     {
         var nodeCount = Math.Max(0, document.Nodes.Count);
@@ -33,11 +36,16 @@ public sealed class AutomationExecutionSafetyPolicy : IAutomationExecutionSafety
             (edgeCount * StepBudgetPerEdge) +
             (explicitLoopLimit * Math.Max(1, nodeCount));
 
+        var minStepInterval = document.MinNodeStepIntervalSeconds is { } requested
+            ? Math.Clamp(requested, 0d, MaxMinNodeStepIntervalSeconds)
+            : DefaultMinNodeStepIntervalSeconds;
+
         return new AutomationExecutionSafetyLimits
         {
             MaxExecutionSteps = Math.Clamp(computedStepBudget, BaseStepBudget, MaxGlobalStepBudget),
             MaxLoopIterationsPerNode = loopLimit,
-            MaxDelayMilliseconds = Math.Clamp(BaseMaxDelayMs + (edgeCount * 400), BaseMaxDelayMs, MaxDelayCeilingMs)
+            MaxDelayMilliseconds = Math.Clamp(BaseMaxDelayMs + (edgeCount * 400), BaseMaxDelayMs, MaxDelayCeilingMs),
+            MinNodeStepIntervalSeconds = minStepInterval
         };
     }
 

@@ -13,15 +13,6 @@ public sealed class OpenCvTemplateMatchVisionAlgorithm(IAutomationTemplateMatche
 
     public ValueTask<AutomationVisionResult> ProcessAsync(AutomationVisionFrame frame, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (frame.Needle is null || frame.Needle.PixelWidth <= 0 || frame.Needle.PixelHeight <= 0)
-            return ValueTask.FromResult(new AutomationVisionResult(false, 0, 0));
-
-        var match = _matcher.Match(frame.Image, frame.Needle, frame.ProbeOptions, cancellationToken);
-        if (!match.Matched)
-            return ValueTask.FromResult(new AutomationVisionResult(false, 0, 0));
-
-        var conf = Math.Clamp(match.Confidence, 0d, 1d);
-        return ValueTask.FromResult(new AutomationVisionResult(true, match.MatchX, match.MatchY, 1, conf));
+        return ValueTask.FromResult(AutomationTemplateMatchVisionCore.Process(_matcher, frame, cancellationToken));
     }
 }

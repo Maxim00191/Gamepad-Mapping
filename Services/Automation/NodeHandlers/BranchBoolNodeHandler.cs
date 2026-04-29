@@ -9,7 +9,7 @@ public sealed class BranchBoolNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "logic.branch_bool";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var decision = context.TryResolveBooleanInput(node.Id, "condition", out var condition) && condition;

@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "minNodeStepIntervalSeconds": 0,
   "nodes": [
     {
       "id": "f1000001-0000-4000-8000-000000000001",
@@ -27,7 +28,7 @@
       "x": 688,
       "y": 576,
       "properties": {
-        "description": "Captures the full virtual screen in physical pixels. For one window only, set capture source to process window and pick the process name.",
+        "description": "Process window capture prefers the focused window for that process when it belongs to it; otherwise the largest visible top-level window (helps Chrome with many processes). Use full virtual screen if matching still fails.",
         "captureMode": "full",
         "coordinateSpace": "physical",
         "captureSourceMode": "process_window",
@@ -83,21 +84,35 @@
       }
     },
     {
+      "id": "f1000025-0000-4000-8000-000000000025",
+      "nodeTypeId": "control.pid_controller",
+      "x": 2512,
+      "y": 1056,
+      "properties": {
+        "description": "Maps yellow-zone X (target) vs white-line X (current) to a steering signal. Tune pidKp/pidKd and compare thresholds if the bar oscillates or feels sluggish.",
+        "pidKp": 0.02,
+        "pidKi": 0,
+        "pidKd": 0.0008
+      }
+    },
+    {
       "id": "f1000008-0000-4000-8000-000000000008",
-      "nodeTypeId": "logic.lt",
+      "nodeTypeId": "logic.gt",
       "x": 2688,
       "y": 832,
       "properties": {
-        "description": "Compare white line X with yellow zone X to decide whether to steer right."
+        "description": "True when PID output is above the positive deadband (steer right with D).",
+        "compareRight": 0.2
       }
     },
     {
       "id": "f1000009-0000-4000-8000-000000000009",
-      "nodeTypeId": "logic.gt",
+      "nodeTypeId": "logic.lt",
       "x": 3072,
       "y": 1184,
       "properties": {
-        "description": "Compare white line X with yellow zone X to decide whether to steer left."
+        "description": "True when PID output is below the negative deadband (steer left with A).",
+        "compareRight": -0.2
       }
     },
     {
@@ -106,7 +121,7 @@
       "x": 3040,
       "y": 864,
       "properties": {
-        "description": "When the line is left of the target, take the right-steer key path."
+        "description": "When PID demands moving right (positive signal past deadband), hold D."
       }
     },
     {
@@ -115,7 +130,7 @@
       "x": 3392,
       "y": 1136,
       "properties": {
-        "description": "When the line is right of the target, take the left-steer key path; otherwise release both keys."
+        "description": "When PID demands moving left (negative signal past deadband), hold A; otherwise release both keys."
       }
     },
     {
@@ -328,32 +343,32 @@
       "targetPortId": "haystack.image"
     },
     {
-      "id": "f2000011-0000-4000-8000-000000000011",
+      "id": "f2000040-0000-4000-8000-000000000040",
+      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000025-0000-4000-8000-000000000025",
+      "targetPortId": "target.value"
+    },
+    {
+      "id": "f2000041-0000-4000-8000-000000000041",
       "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
       "sourcePortId": "result.x",
+      "targetNodeId": "f1000025-0000-4000-8000-000000000025",
+      "targetPortId": "current.value"
+    },
+    {
+      "id": "f2000042-0000-4000-8000-000000000042",
+      "sourceNodeId": "f1000025-0000-4000-8000-000000000025",
+      "sourcePortId": "control.signal",
       "targetNodeId": "f1000008-0000-4000-8000-000000000008",
       "targetPortId": "left"
     },
     {
-      "id": "f2000012-0000-4000-8000-000000000012",
-      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
-      "sourcePortId": "result.x",
-      "targetNodeId": "f1000008-0000-4000-8000-000000000008",
-      "targetPortId": "right"
-    },
-    {
-      "id": "f2000013-0000-4000-8000-000000000013",
-      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
-      "sourcePortId": "result.x",
+      "id": "f2000043-0000-4000-8000-000000000043",
+      "sourceNodeId": "f1000025-0000-4000-8000-000000000025",
+      "sourcePortId": "control.signal",
       "targetNodeId": "f1000009-0000-4000-8000-000000000009",
       "targetPortId": "left"
-    },
-    {
-      "id": "f2000014-0000-4000-8000-000000000014",
-      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
-      "sourcePortId": "result.x",
-      "targetNodeId": "f1000009-0000-4000-8000-000000000009",
-      "targetPortId": "right"
     },
     {
       "id": "f2000015-0000-4000-8000-000000000015",

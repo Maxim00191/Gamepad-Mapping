@@ -210,9 +210,15 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
             mode = AutomationCaptureMode.Full;
 
         if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+        {
             PreviewImage = _imageProvider.TryLoadStoredPreview(props);
-        else
-            PreviewImage = null;
+            return;
+        }
+
+        var snapshot = _imageProvider.TryCaptureLivePreview(props);
+        PreviewImage = snapshot;
+        if (snapshot is null)
+            SourceHintText = L("AutomationRoiPreview_FullModeSnapshotFailed");
     }
 
     private void RefreshLiveCore()
@@ -222,7 +228,14 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
 
         var live = _imageProvider.TryCaptureLivePreview(props);
         if (live is null)
+        {
+            var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+            if (string.IsNullOrWhiteSpace(mode))
+                mode = AutomationCaptureMode.Full;
+            if (!string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+                SourceHintText = L("AutomationRoiPreview_FullModeSnapshotFailed");
             return;
+        }
 
         PreviewImage = live;
         RoiSummaryText = FormatCaptureSummary(props);

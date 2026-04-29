@@ -21,10 +21,11 @@ public sealed class AutomationScriptRunner : IAutomationScriptRunner
 
     public Task<AutomationSmokeRunResult> RunDocumentOnceAsync(
         AutomationGraphDocument document,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<string>? logLineProgress = null)
     {
         ArgumentNullException.ThrowIfNull(document);
-        return _smokeRunner.RunOnceAsync(document, cancellationToken);
+        return _smokeRunner.RunOnceAsync(document, cancellationToken, logLineProgress);
     }
 
     public async Task<AutomationSmokeRunResult> RunFileOnceAsync(string scriptPath, CancellationToken cancellationToken = default)

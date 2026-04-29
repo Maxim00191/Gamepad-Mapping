@@ -27,9 +27,16 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
         var frame = new AutomationVisionFrame(haystack, needle, haystackLeftScreenPx, haystackTopScreenPx, options);
         var result = await _pipeline.ProcessAsync(algorithmKind, frame, cancellationToken);
         if (!result.Matched)
-            return new AutomationImageProbeResult(false, 0, 0);
+            return new AutomationImageProbeResult(false, 0, 0, 0, 0, GetBestTemplateCorrelation(algorithmKind, result));
 
         return ToProbeResult(algorithmKind, result, haystackLeftScreenPx, haystackTopScreenPx, needle);
+    }
+
+    private static double GetBestTemplateCorrelation(AutomationVisionAlgorithmKind kind, AutomationVisionResult vision)
+    {
+        if (kind is AutomationVisionAlgorithmKind.TemplateMatch or AutomationVisionAlgorithmKind.OpenCvTemplateMatch)
+            return vision.BestTemplateCorrelation;
+        return 0;
     }
 
     private static AutomationImageProbeResult ToProbeResult(
@@ -47,6 +54,7 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
                     haystackLeftScreenPx + vision.MatchX + (needle?.PixelWidth ?? 0) / 2,
                     haystackTopScreenPx + vision.MatchY + (needle?.PixelHeight ?? 0) / 2,
                     vision.MatchCount,
+                    vision.Confidence,
                     vision.Confidence),
             AutomationVisionAlgorithmKind.ColorThreshold or
                 AutomationVisionAlgorithmKind.Contour or

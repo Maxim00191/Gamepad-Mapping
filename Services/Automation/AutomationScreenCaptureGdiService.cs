@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
@@ -136,11 +138,43 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
             var processes = Process.GetProcessesByName(normalized);
             try
             {
-                foreach (var process in processes)
+                if (processes.Length == 0)
+                    return IntPtr.Zero;
+
+                var pidSet = processes.Select(p => p.Id).ToHashSet();
+                var state = new EnumWindowsState(pidSet);
+                var gch = GCHandle.Alloc(state);
+                try
                 {
-                    if (IsWindowCaptureCandidate(process.MainWindowHandle))
-                        return process.MainWindowHandle;
+                    User32.EnumWindows(EnumWindowsCollect, GCHandle.ToIntPtr(gch));
                 }
+                finally
+                {
+                    gch.Free();
+                }
+
+                if (state.Candidates.Count == 0)
+                {
+                    foreach (var process in processes)
+                    {
+                        if (IsWindowCaptureCandidate(process.MainWindowHandle))
+                            return process.MainWindowHandle;
+                    }
+
+                    return IntPtr.Zero;
+                }
+
+                var fg = User32.GetForegroundWindow();
+                if (fg != IntPtr.Zero)
+                {
+                    foreach (var c in state.Candidates)
+                    {
+                        if (c.Hwnd == fg)
+                            return fg;
+                    }
+                }
+
+                return state.Candidates.OrderByDescending(c => c.Area).First().Hwnd;
             }
             finally
             {
@@ -152,8 +186,37 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
         {
             return IntPtr.Zero;
         }
+    }
 
-        return IntPtr.Zero;
+    private sealed class EnumWindowsState
+    {
+        public EnumWindowsState(HashSet<int> processIds) => ProcessIds = processIds;
+
+        public HashSet<int> ProcessIds { get; }
+
+        public List<(IntPtr Hwnd, long Area)> Candidates { get; } = [];
+    }
+
+    private static bool EnumWindowsCollect(IntPtr hWnd, IntPtr lParam)
+    {
+        var state = (EnumWindowsState)GCHandle.FromIntPtr(lParam).Target!;
+        if (!User32.IsWindow(hWnd) || !User32.IsWindowVisible(hWnd) || User32.IsIconic(hWnd))
+            return true;
+
+        User32.GetWindowThreadProcessId(hWnd, out var pid);
+        if (!state.ProcessIds.Contains((int)pid))
+            return true;
+
+        if (!User32.GetWindowRect(hWnd, out var rect))
+            return true;
+
+        var w = rect.Right - rect.Left;
+        var h = rect.Bottom - rect.Top;
+        if (w < 32 || h < 32)
+            return true;
+
+        state.Candidates.Add((hWnd, (long)w * h));
+        return true;
     }
 
     private static string NormalizeProcessName(string processName)
@@ -171,6 +234,8 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
         return User32.GetWindowRect(handle, out var rect) && rect.Right > rect.Left && rect.Bottom > rect.Top;
     }
 
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
     private static class User32
     {
         [DllImport("user32.dll")]
@@ -184,11 +249,26 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
     }
 
     private static class Gdi32

@@ -978,6 +978,8 @@ public sealed class AutomationGraphSmokeRunnerTests
         var metrics = new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight);
         captureService.Setup(s => s.CaptureVirtualScreenPhysical())
             .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(It.IsAny<string?>()))
+            .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
         probeService.Setup(p => p.ProbeAsync(
             It.IsAny<BitmapSource>(),
             It.IsAny<int>(),
@@ -986,7 +988,7 @@ public sealed class AutomationGraphSmokeRunnerTests
             It.IsAny<AutomationImageProbeOptions>(),
             It.IsAny<AutomationVisionAlgorithmKind>(),
             It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(false, 0, 0, 0, 0)));
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(false, 0, 0, 0, 0, 0)));
 
         var registry = new NodeTypeRegistry();
         var sut = new AutomationGraphSmokeRunner(

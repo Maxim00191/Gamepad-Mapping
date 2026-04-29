@@ -10,7 +10,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "perception.find_image";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var needlePath = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.FindImageNeedlePath);
@@ -32,7 +32,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         if (sourceNodeId is not { } source || !context.TryGetCapture(source, out var bitmap, out var originX, out var originY))
         {
             log.Add("[find_image] missing_haystack_input");
-            context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0));
+            context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0, 0));
             return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
 
@@ -69,7 +69,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         if (requiresNeedle && needle is null)
         {
             log.Add("[find_image] missing_template_needle => matched=false");
-            context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0));
+            context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0, 0));
             return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
 
@@ -80,7 +80,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             Confidence = raw.Matched ? Math.Clamp(confidence, 0, 1) : 0
         };
         context.StoreProbeResult(node.Id, result);
-        log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2}");
+        log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2} raw_correlation={result.BestTemplateCorrelation:F2}");
         return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
     }
 

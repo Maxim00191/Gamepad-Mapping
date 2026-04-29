@@ -9,7 +9,7 @@ public sealed class LogNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "debug.log";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var template = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.LogMessage);

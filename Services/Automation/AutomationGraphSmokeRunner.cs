@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models.Automation;
@@ -58,13 +59,15 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _handlersByNodeType = BuildHandlers();
     }
 
-    public Task<AutomationSmokeRunResult> RunOnceAsync(AutomationGraphDocument document,
-        CancellationToken cancellationToken = default) =>
-        Task.Run(() => RunSync(document, cancellationToken), cancellationToken);
+    public Task<AutomationSmokeRunResult> RunOnceAsync(
+        AutomationGraphDocument document,
+        CancellationToken cancellationToken = default,
+        IProgress<string>? logLineProgress = null) =>
+        Task.Run(() => RunSync(document, cancellationToken, logLineProgress), cancellationToken);
 
-    private AutomationSmokeRunResult RunSync(AutomationGraphDocument document, CancellationToken ct)
+    private AutomationSmokeRunResult RunSync(AutomationGraphDocument document, CancellationToken ct, IProgress<string>? logLineProgress)
     {
-        var log = new List<string>();
+        var log = new AutomationRunLogBuffer(logLineProgress);
         _index = new AutomationExecutionGraphIndex(document, _registry);
         _limits = _safetyPolicy.GetLimits(document);
         _subgraphsById = document.Subgraphs
@@ -126,7 +129,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             {
                 Ok = false,
                 MessageResourceKey = "AutomationSmoke_Cancelled",
-                LogLines = log
+                LogLines = [..log]
             };
         }
 
@@ -138,7 +141,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
                 Ok = false,
                 MessageResourceKey = "AutomationSmoke_RunFailed",
                 Detail = ex.Message,
-                LogLines = log
+                LogLines = [..log]
             };
         }
 
@@ -146,7 +149,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         {
             Ok = true,
             MessageResourceKey = "AutomationSmoke_Completed",
-            LogLines = log
+            LogLines = [..log]
         };
     }
 
@@ -154,7 +157,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         AutomationRuntimeContext context,
         AutomationExecutionGraphIndex index,
         Guid startNodeId,
-        List<string> log,
+        IList<string> log,
         Stopwatch timer,
         ref TimeSpan lastTick,
         int availableSteps,
@@ -166,20 +169,22 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         var previousIndex = context.Index;
         context.Index = index;
         var current = startNodeId;
-        const double fixedTimestepSeconds = 1d / 60d;
+        var minInterval = Math.Max(0d, context.Limits.MinNodeStepIntervalSeconds);
         for (var step = 0; step < availableSteps; step++)
         {
             ct.ThrowIfCancellationRequested();
             var now = timer.Elapsed;
             var elapsedSinceLast = now - lastTick;
-            if (elapsedSinceLast.TotalSeconds < fixedTimestepSeconds)
+            if (minInterval > 0d && elapsedSinceLast.TotalSeconds < minInterval)
             {
-                var remaining = TimeSpan.FromSeconds(fixedTimestepSeconds - elapsedSinceLast.TotalSeconds);
+                var remaining = TimeSpan.FromSeconds(minInterval - elapsedSinceLast.TotalSeconds);
                 if (remaining > TimeSpan.Zero)
                     Task.Delay(remaining, ct).GetAwaiter().GetResult();
                 now = timer.Elapsed;
             }
-            context.DeltaTimeSeconds = Math.Max((now - lastTick).TotalSeconds, fixedTimestepSeconds);
+
+            var deltaSeconds = (now - lastTick).TotalSeconds;
+            context.DeltaTimeSeconds = Math.Max(deltaSeconds, minInterval > 0d ? minInterval : 1e-6d);
             lastTick = now;
 
             var node = index.GetNode(current) ?? throw new InvalidOperationException("node_missing");
@@ -212,7 +217,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         AutomationRuntimeContext context,
         AutomationExecutionGraphIndex index,
         AutomationNodeState node,
-        List<string> log,
+        IList<string> log,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -246,7 +251,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         return null;
     }
 
-    private void EnqueueInitialStarts(AutomationGraphDocument document, IReadOnlyList<Guid> roots, List<string> log)
+    private void EnqueueInitialStarts(AutomationGraphDocument document, IReadOnlyList<Guid> roots, IList<string> log)
     {
         foreach (var root in roots)
         {
@@ -285,7 +290,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         return map;
     }
 
-    private void OnEventSignal(AutomationGraphDocument document, string signal, List<string> log)
+    private void OnEventSignal(AutomationGraphDocument document, string signal, IList<string> log)
     {
         if (string.IsNullOrWhiteSpace(signal))
             return;
@@ -307,7 +312,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             _pendingExecutionStarts.Enqueue(nodeId);
     }
 
-    private Guid? ExecuteMacroNode(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken ct)
+    private Guid? ExecuteMacroNode(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken ct)
     {
         var subgraphId = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MacroSubgraphId);
         if (string.IsNullOrWhiteSpace(subgraphId))
@@ -350,13 +355,13 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         return handlers.ToDictionary(h => h.NodeTypeId, StringComparer.Ordinal);
     }
 
-    private static AutomationSmokeRunResult Fail(string key, string? detail, List<string> log) =>
+    private static AutomationSmokeRunResult Fail(string key, string? detail, IList<string> log) =>
         new()
         {
             Ok = false,
             MessageResourceKey = key,
             Detail = detail,
-            LogLines = log
+            LogLines = [..log]
         };
 
 }

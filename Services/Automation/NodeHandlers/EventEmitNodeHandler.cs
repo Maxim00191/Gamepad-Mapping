@@ -9,7 +9,7 @@ public sealed class EventEmitNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "event.emit";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var signal = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.EventSignal);

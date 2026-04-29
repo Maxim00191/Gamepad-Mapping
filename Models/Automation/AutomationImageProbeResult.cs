@@ -5,4 +5,5 @@ public readonly record struct AutomationImageProbeResult(
     int MatchScreenXPx,
     int MatchScreenYPx,
     int MatchCount = 0,
-    double Confidence = 0);
+    double Confidence = 0,
+    double BestTemplateCorrelation = 0);

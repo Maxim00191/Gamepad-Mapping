@@ -2622,7 +2622,7 @@
     <value>前台窗口</value>
   </data>
   <data name="AutomationRoiPreview_StoredFullModeHint" xml:space="preserve">
-    <value>请开启“实时屏幕”以预览全屏或窗口捕获。</value>
+    <value>打开或刷新时截取快照。开启“实时屏幕”可持续更新。</value>
   </data>
   <data name="AutomationRoiPreview_LiveRoiHint" xml:space="preserve">
     <value>实时桌面 ROI</value>
@@ -2632,5 +2632,8 @@
   </data>
   <data name="AutomationRoiPreview_LiveSourceProcessFormat" xml:space="preserve">
     <value>实时窗口（{0}）</value>
+  </data>
+  <data name="AutomationRoiPreview_FullModeSnapshotFailed" xml:space="preserve">
+    <value>无法截取预览（未找到窗口、已最小化或受保护）。请先聚焦目标窗口并重试“刷新”。</value>
   </data>
 </root>

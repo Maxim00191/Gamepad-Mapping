@@ -9,7 +9,7 @@ public sealed class DelayNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "automation.delay";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var fixedDelay = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.DelayMilliseconds, 300);

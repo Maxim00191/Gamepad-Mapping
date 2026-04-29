@@ -9,7 +9,7 @@ public sealed class BranchImageNodeHandler : IAutomationRuntimeNodeHandler
 {
     public string NodeTypeId => "logic.branch_image";
 
-    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
+    public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!context.TryResolveProbeResult(node.Id, AutomationPortIds.ProbeImage, out var probeResult))

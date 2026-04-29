@@ -173,6 +173,35 @@ public sealed class AutomationImageProbeTests
     }
 
     [Fact]
+    public async Task ProbeAsync_TemplateMatch_OnMiss_PassesRawCorrelation()
+    {
+        var pipeline = new Mock<IAutomationVisionPipeline>();
+        pipeline
+            .Setup(p => p.ProcessAsync(
+                AutomationVisionAlgorithmKind.TemplateMatch,
+                It.IsAny<AutomationVisionFrame>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new AutomationVisionResult(false, 0, 0, 0, 0, 0, 0, 0, 0, 0.41)));
+
+        var sut = new AutomationImageProbe(pipeline.Object);
+        var haystack = CreateHaystack();
+        var needle = BitmapSource.Create(4, 4, 96, 96, PixelFormats.Bgra32, null, new byte[64], 16);
+        needle.Freeze();
+
+        var result = await sut.ProbeAsync(
+            haystack,
+            0,
+            0,
+            needle,
+            new AutomationImageProbeOptions(0.1, 500),
+            AutomationVisionAlgorithmKind.TemplateMatch,
+            CancellationToken.None);
+
+        Assert.False(result.Matched);
+        Assert.Equal(0.41, result.BestTemplateCorrelation);
+    }
+
+    [Fact]
     public async Task ProbeAsync_TemplateMatch_OffsetsScreenByHalfNeedleSize()
     {
         var pipeline = new Mock<IAutomationVisionPipeline>();

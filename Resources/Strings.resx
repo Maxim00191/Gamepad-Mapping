@@ -2622,7 +2622,7 @@ Relaunch this tool as administrator now?</value>
     <value>foreground window</value>
   </data>
   <data name="AutomationRoiPreview_StoredFullModeHint" xml:space="preserve">
-    <value>Turn on Live screen to preview full-screen or window captures.</value>
+    <value>Snapshot on open/refresh. Enable Live screen to stream updates.</value>
   </data>
   <data name="AutomationRoiPreview_LiveRoiHint" xml:space="preserve">
     <value>Live desktop ROI</value>
@@ -2632,5 +2632,8 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationRoiPreview_LiveSourceProcessFormat" xml:space="preserve">
     <value>Live window ({0})</value>
+  </data>
+  <data name="AutomationRoiPreview_FullModeSnapshotFailed" xml:space="preserve">
+    <value>Could not capture preview (window not found, minimized, or protected). Focus the target window and try Refresh.</value>
   </data>
 </root>

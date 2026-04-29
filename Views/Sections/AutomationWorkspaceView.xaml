@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Gamepad_Mapping.ViewModels"
              xmlns:model="clr-namespace:GamepadMapperGUI.Models.Automation"
+             xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
              x:Name="AutomationRoot"
              Focusable="True"
              PreviewKeyDown="AutomationRoot_PreviewKeyDown"
@@ -831,7 +832,12 @@
                              IsReadOnly="True"
                              FontFamily="Consolas"
                              FontSize="12.5"
-                             Text="{Binding AutomationRunLog}" />
+                             Background="Transparent"
+                             BorderThickness="1"
+                             BorderBrush="{DynamicResource AppBorderBrush}"
+                             IsTabStop="True"
+                             Focusable="True"
+                             behaviors:AutomationRunLogTextBoxBehavior.LinesSource="{Binding AutomationRunLogLines}" />
                 </Grid>
                 </Grid>
             </ScrollViewer>
