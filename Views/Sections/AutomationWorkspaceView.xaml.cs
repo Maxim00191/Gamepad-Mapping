@@ -380,6 +380,16 @@ public partial class AutomationWorkspaceView
         e.Handled = true;
     }
 
+    private void InlineNodeEditor_LoopScopeChoice_DropDownOpened(object sender, EventArgs e)
+    {
+        if (WorkspaceVm is null)
+            return;
+        if (sender is not FrameworkElement fe || fe.DataContext is not AutomationInlineNodeFieldViewModel field)
+            return;
+
+        WorkspaceVm.RefreshLoopScopeChoiceItems(field);
+    }
+
     private void InlineNodeEditor_Choice_DropDownClosed(object sender, EventArgs e)
     {
         if (WorkspaceVm is null)

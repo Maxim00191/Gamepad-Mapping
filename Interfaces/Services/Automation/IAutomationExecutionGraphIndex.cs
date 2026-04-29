@@ -15,4 +15,6 @@ public interface IAutomationExecutionGraphIndex
     (Guid SourceNodeId, string SourcePortId)? GetDataSourceLink(Guid targetNodeId, string targetPortId);
 
     IReadOnlyList<Guid> FindExecutionRoots(INodeTypeRegistry registry);
+
+    bool TryGetLoopStartNodeIdByScopeLabel(string scopeLabel, out Guid loopNodeId);
 }

@@ -2765,4 +2765,22 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_OutputHoldCondition" xml:space="preserve">
     <value>Fallback Hold Condition</value>
   </data>
+  <data name="AutomationNode_Display_LoopJump" xml:space="preserve">
+    <value>Loop Jump</value>
+  </data>
+  <data name="AutomationNode_Summary_LoopJump" xml:space="preserve">
+    <value>Continues execution at a loop start node selected by that loop’s scope name (use at the end of a body instead of wiring back to the loop input).</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopScopeLabel" xml:space="preserve">
+    <value>Loop scope name</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopScopeLabelPlaceholder" xml:space="preserve">
+    <value>Optional unique name for Loop Jump nodes</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopJumpTargetScopeLabel" xml:space="preserve">
+    <value>Jump to loop</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopJumpTargetScopeLabelPlaceholder" xml:space="preserve">
+    <value>Select the loop scope name</value>
+  </data>
 </root>

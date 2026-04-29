@@ -761,16 +761,17 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             if (!IsInlineEditorDefinitionVisible(props, definition))
                 continue;
 
-            IReadOnlyList<AutomationInlineChoiceItemViewModel> choiceItems = definition is
-            { Kind: AutomationNodeInlineEditorKind.Choice, ChoiceOptions: { Count: > 0 } list }
-                ? list
-                    .Select(o => new AutomationInlineChoiceItemViewModel
-                    {
-                        Display = Local(o.LabelResourceKey),
-                        StoredValue = o.StoredValue
-                    })
-                    .ToArray()
-                : Array.Empty<AutomationInlineChoiceItemViewModel>();
+            var choiceItems =
+                definition is { Kind: AutomationNodeInlineEditorKind.Choice, DynamicChoiceKind: AutomationInlineEditorDynamicChoiceKind.LoopScopeTargets }
+                    ? new ObservableCollection<AutomationInlineChoiceItemViewModel>(BuildLoopScopeChoiceItems())
+                    : definition is { Kind: AutomationNodeInlineEditorKind.Choice, ChoiceOptions: { Count: > 0 } list }
+                        ? new ObservableCollection<AutomationInlineChoiceItemViewModel>(
+                            list.Select(o => new AutomationInlineChoiceItemViewModel
+                            {
+                                Display = Local(o.LabelResourceKey),
+                                StoredValue = o.StoredValue
+                            }))
+                        : new ObservableCollection<AutomationInlineChoiceItemViewModel>();
 
             var item = new AutomationInlineNodeFieldViewModel
             {
@@ -786,7 +787,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 ActionLabel = ResolveInlineActionLabel(node, definition),
                 SecondaryActionKind = definition.SecondaryActionKind,
                 SecondaryActionLabel = ResolveSecondaryInlineActionLabel(definition),
-                ChoiceItems = choiceItems
+                ChoiceItems = choiceItems,
+                IsLoopScopeChoiceCombo = definition.DynamicChoiceKind == AutomationInlineEditorDynamicChoiceKind.LoopScopeTargets
             };
             switch (definition.Kind)
             {
@@ -2264,7 +2266,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             }
             default:
             {
-                var nextText = field.TextValue.Trim();
+                var nextText = (field.TextValue ?? "").Trim();
                 var currentText = AutomationNodePropertyReader.ReadString(props, definition.PropertyKey);
                 if (string.Equals(currentText ?? "", nextText, StringComparison.Ordinal))
                     return false;
@@ -2274,8 +2276,57 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         }
     }
 
-    private static string NormalizeInlineChoice(string? raw, AutomationNodeInlineEditorDefinition definition)
+    private IReadOnlyList<AutomationInlineChoiceItemViewModel> BuildLoopScopeChoiceItems()
     {
+        var index = new AutomationLoopScopeIndex(_document);
+        return index.LoopNodeIdByLabel.Keys
+            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+            .Select(label => new AutomationInlineChoiceItemViewModel
+            {
+                Display = label,
+                StoredValue = label
+            })
+            .ToArray();
+    }
+
+    public void RefreshLoopScopeChoiceItems(AutomationInlineNodeFieldViewModel field)
+    {
+        if (!field.IsLoopScopeChoiceCombo)
+            return;
+
+        field.ChoiceItems.Clear();
+        foreach (var item in BuildLoopScopeChoiceItems())
+            field.ChoiceItems.Add(item);
+
+        if (field.TextValue is not null)
+            return;
+
+        if (!_nodeVmById.TryGetValue(field.NodeId, out var node))
+            return;
+
+        var definition = _inlineEditorSchema
+            .GetDefinitions(node.NodeTypeId)
+            .FirstOrDefault(x => string.Equals(x.PropertyKey, field.PropertyKey, StringComparison.Ordinal));
+        if (definition is null)
+            return;
+
+        var raw = AutomationNodePropertyReader.ReadString(node.State.Properties, definition.PropertyKey);
+        field.TextValue = NormalizeInlineChoice(raw, definition);
+    }
+
+    private string NormalizeInlineChoice(string? raw, AutomationNodeInlineEditorDefinition definition)
+    {
+        if (definition.DynamicChoiceKind == AutomationInlineEditorDynamicChoiceKind.LoopScopeTargets)
+        {
+            var index = new AutomationLoopScopeIndex(_document);
+            var normalized = index.NormalizeSelection(raw);
+            if (normalized is not null)
+                return normalized;
+
+            var rawTrimmed = raw?.Trim() ?? "";
+            return rawTrimmed.Length > 0 ? rawTrimmed : definition.DefaultTextValue.Trim();
+        }
+
         if (definition.ChoiceOptions is not { Count: > 0 } options)
             return definition.DefaultTextValue.Trim();
 
@@ -2321,7 +2372,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         if (nodeTypeId.StartsWith("automation.", StringComparison.Ordinal) ||
             nodeTypeId.StartsWith("logic.branch_", StringComparison.Ordinal) ||
             string.Equals(nodeTypeId, "logic.switch", StringComparison.Ordinal) ||
-            string.Equals(nodeTypeId, "logic.loop_control", StringComparison.Ordinal))
+            string.Equals(nodeTypeId, "logic.loop_control", StringComparison.Ordinal) ||
+            string.Equals(nodeTypeId, AutomationNodeTypeIds.LoopJump, StringComparison.Ordinal))
         {
             return Local("AutomationWorkspace_Group_ControlFlow");
         }

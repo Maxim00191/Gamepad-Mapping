@@ -617,6 +617,64 @@ public sealed class AutomationGraphSmokeRunnerTests
     }
 
     [Fact]
+    public async Task RunOnceAsync_LoopJump_ReentersNamedLoop()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var listener = CreateNode("event.listener", new JsonObject
+        {
+            [AutomationNodePropertyKeys.EventSignal] = "engine.start"
+        });
+        var loop = CreateNode("automation.loop", new JsonObject
+        {
+            [AutomationNodePropertyKeys.LoopScopeLabel] = "main",
+            [AutomationNodePropertyKeys.LoopMaxIterations] = 2
+        });
+        var logA = CreateNode("debug.log", new JsonObject
+        {
+            [AutomationNodePropertyKeys.LogMessage] = "a"
+        });
+        var jump = CreateNode(AutomationNodeTypeIds.LoopJump, new JsonObject
+        {
+            [AutomationNodePropertyKeys.LoopJumpTargetScopeLabel] = "main"
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            MinNodeStepIntervalSeconds = 0.05,
+            Nodes = [listener, loop, logA, jump],
+            Edges =
+            [
+                Edge(listener.Id, "flow.out", loop.Id, "flow.in"),
+                Edge(loop.Id, "loop.body", logA.Id, "flow.in"),
+                Edge(logA.Id, "flow.out", jump.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
+    }
+
+    [Fact]
     public async Task RunOnceAsync_MissingTemplateNeedleRoutesToImageMiss()
     {
         var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);

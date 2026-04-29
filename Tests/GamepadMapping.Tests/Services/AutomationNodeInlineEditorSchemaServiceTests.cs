@@ -240,12 +240,24 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         var service = new AutomationNodeInlineEditorSchemaService();
         var definitions = service.GetDefinitions("automation.loop");
 
+        Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.LoopScopeLabel);
         Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.LoopTargetIterationsPerSecond);
         Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.LoopInteriorSkipDocumentStepInterval);
         var target = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.LoopTargetIterationsPerSecond);
         Assert.Equal(AutomationNodeInlineEditorKind.Double, target.Kind);
         var skip = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.LoopInteriorSkipDocumentStepInterval);
         Assert.Equal(AutomationNodeInlineEditorKind.Boolean, skip.Kind);
+    }
+
+    [Fact]
+    public void GetDefinitions_LoopJump_UsesDynamicLoopScopeChoice()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions(AutomationNodeTypeIds.LoopJump);
+        var target = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.LoopJumpTargetScopeLabel);
+
+        Assert.Equal(AutomationNodeInlineEditorKind.Choice, target.Kind);
+        Assert.Equal(AutomationInlineEditorDynamicChoiceKind.LoopScopeTargets, target.DynamicChoiceKind);
     }
 
     [Fact]

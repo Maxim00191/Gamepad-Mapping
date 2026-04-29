@@ -10,6 +10,12 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
 {
     public bool TryValidate(AutomationGraphDocument document, IAutomationExecutionGraphIndex index, out string? detail)
     {
+        if (AutomationLoopScopeIndex.HasDuplicateLoopScopeLabels(document))
+        {
+            detail = "loop_scope:duplicate_label";
+            return true;
+        }
+
         foreach (var node in document.Nodes)
         {
             switch (node.NodeTypeId)
@@ -126,6 +132,24 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                     if (!AutomationComparisonEvaluator.IsSupportedOperator(compareOperator))
                     {
                         detail = "branch_compare:operator_invalid";
+                        return true;
+                    }
+
+                    break;
+                case AutomationNodeTypeIds.LoopJump:
+                    var jumpTarget = AutomationNodePropertyReader.ReadString(
+                        node.Properties,
+                        AutomationNodePropertyKeys.LoopJumpTargetScopeLabel);
+                    if (string.IsNullOrWhiteSpace(jumpTarget))
+                    {
+                        detail = "loop_jump:target_missing";
+                        return true;
+                    }
+
+                    var loopScopes = new AutomationLoopScopeIndex(document);
+                    if (!loopScopes.TryGetLoopNodeId(jumpTarget.Trim(), out _))
+                    {
+                        detail = "loop_jump:target_not_found";
                         return true;
                     }
 

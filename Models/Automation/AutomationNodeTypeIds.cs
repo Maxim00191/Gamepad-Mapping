@@ -6,6 +6,8 @@ public static class AutomationNodeTypeIds
 {
     public const string CaptureScreen = "perception.capture_screen";
 
+    public const string LoopJump = "logic.loop_jump";
+
     public const string BranchCompare = "logic.branch_compare";
 
     public const string MathClamp = "math.clamp";

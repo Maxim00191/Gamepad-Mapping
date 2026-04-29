@@ -36,6 +36,8 @@ public sealed class AutomationNodeInlineEditorDefinition
 
     public IReadOnlyList<AutomationNodeInlineChoiceOption>? ChoiceOptions { get; init; }
 
+    public AutomationInlineEditorDynamicChoiceKind DynamicChoiceKind { get; init; }
+
     public string? VisibleWhenPropertyKey { get; init; }
 
     public IReadOnlyList<string>? VisibleWhenPropertyValues { get; init; }

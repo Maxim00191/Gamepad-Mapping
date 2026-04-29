@@ -189,6 +189,15 @@ public sealed class AutomationRuntimeContext
             _loopBodyScopes.Pop();
     }
 
+    public void PrepareExecutionJumpToLoopHead(Guid targetLoopNodeId)
+    {
+        while (_loopBodyScopes.Count > 0 && _loopBodyScopes.Peek().LoopNodeId != targetLoopNodeId)
+            _loopBodyScopes.Pop();
+
+        if (_loopBodyScopes.Count == 0 || _loopBodyScopes.Peek().LoopNodeId != targetLoopNodeId)
+            throw new InvalidOperationException("loop_jump:not_inside_loop_scope");
+    }
+
     public void ExitLoopBodyScopeForFlowOut(Guid loopNodeId)
     {
         if (_loopBodyScopes.Count > 0 && _loopBodyScopes.Peek().LoopNodeId == loopNodeId)

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GamepadMapperGUI.Models.Automation;
 
@@ -37,6 +38,8 @@ public sealed partial class AutomationInlineNodeFieldViewModel : ObservableObjec
 
     public bool IsChoiceField => Kind == AutomationNodeInlineEditorKind.Choice;
 
+    public bool IsLoopScopeChoiceCombo { get; init; }
+
     public bool IsMultilineTextField => Kind == AutomationNodeInlineEditorKind.MultilineText;
 
     public bool IsTextField =>
@@ -45,7 +48,7 @@ public sealed partial class AutomationInlineNodeFieldViewModel : ObservableObjec
         Kind != AutomationNodeInlineEditorKind.Choice &&
         Kind != AutomationNodeInlineEditorKind.MultilineText;
 
-    public IReadOnlyList<AutomationInlineChoiceItemViewModel> ChoiceItems { get; init; } = [];
+    public ObservableCollection<AutomationInlineChoiceItemViewModel> ChoiceItems { get; init; } = [];
 
     [ObservableProperty]
     private string _textValue = "";

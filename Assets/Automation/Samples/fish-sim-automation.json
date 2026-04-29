@@ -22,7 +22,8 @@
         "description": "Continuous fishing state detection and tracking loop.",
         "loopMaxIterations": 500000,
         "loopTargetIterationsPerSecond": 0,
-        "loopInteriorSkipDocumentStepInterval": true
+        "loopInteriorSkipDocumentStepInterval": true,
+        "loopScopeLabel": "main"
       }
     },
     {
@@ -42,7 +43,7 @@
           "width": 796,
           "height": 613
         },
-        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png"
+        "captureRoiCachePath": "Assets/Automation/Samples/fishing-mini-game-bot/roi.png"
       }
     },
     {
@@ -108,7 +109,7 @@
       "id": "f1000009-0000-4000-8000-000000000009",
       "nodeTypeId": "logic.loop_control",
       "x": 2560,
-      "y": 360,
+      "y": 352,
       "properties": {
         "description": "Restart the loop immediately after the Space tap.",
         "loopControlMode": "continue"
@@ -269,6 +270,24 @@
         "delayMinMs": 16,
         "delayMaxMs": 30
       }
+    },
+    {
+      "id": "4539802c-43f0-4f09-a084-78507a330b33",
+      "nodeTypeId": "logic.loop_jump",
+      "x": 4768,
+      "y": 768,
+      "properties": {
+        "loopJumpTargetScopeLabel": "main"
+      }
+    },
+    {
+      "id": "8cb86427-9bd1-49dd-86e2-d22ecc34a46a",
+      "nodeTypeId": "logic.loop_jump",
+      "x": 2848,
+      "y": 352,
+      "properties": {
+        "loopJumpTargetScopeLabel": "main"
+      }
     }
   ],
   "edges": [
@@ -354,13 +373,6 @@
       "sourceNodeId": "f1000008-0000-4000-8000-000000000008",
       "sourcePortId": "flow.out",
       "targetNodeId": "f1000009-0000-4000-8000-000000000009",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000013-0000-4000-8000-000000000013",
-      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
-      "sourcePortId": "flow.out",
-      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
       "targetPortId": "flow.in"
     },
     {
@@ -504,10 +516,17 @@
       "targetPortId": "flow.in"
     },
     {
-      "id": "f2000034-0000-4000-8000-000000000034",
+      "id": "983b947e-e998-4db2-aa89-2232eefae9a4",
       "sourceNodeId": "f1000022-0000-4000-8000-000000000022",
       "sourcePortId": "flow.out",
-      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetNodeId": "4539802c-43f0-4f09-a084-78507a330b33",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "b05318b2-3771-401b-8a71-bd19903ac8f7",
+      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "8cb86427-9bd1-49dd-86e2-d22ecc34a46a",
       "targetPortId": "flow.in"
     }
   ],

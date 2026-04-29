@@ -383,6 +383,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             new MouseClickNodeHandler(),
             new LoopNodeHandler(),
             new LoopControlNodeHandler(),
+            new LoopJumpNodeHandler(),
             new DelayNodeHandler(),
             new SetVariableNodeHandler(),
             new LogNodeHandler(),

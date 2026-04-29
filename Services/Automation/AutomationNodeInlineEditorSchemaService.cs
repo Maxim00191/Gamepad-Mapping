@@ -609,6 +609,15 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "automation.loop",
+                    PropertyKey = AutomationNodePropertyKeys.LoopScopeLabel,
+                    LabelResourceKey = "AutomationInlineEditor_LoopScopeLabel",
+                    PlaceholderResourceKey = "AutomationInlineEditor_LoopScopeLabelPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Text,
+                    DefaultTextValue = ""
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "automation.loop",
                     PropertyKey = AutomationNodePropertyKeys.LoopMaxIterations,
                     LabelResourceKey = "AutomationInlineEditor_LoopMaxIterations",
                     Kind = AutomationNodeInlineEditorKind.Integer,
@@ -897,7 +906,20 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
             [AutomationNodeTypeIds.BranchCompare] = AutomationNodeInlineEditorSchemaParts.LogicCompareBranch(AutomationNodeTypeIds.BranchCompare),
             ["math.random"] = AutomationNodeInlineEditorSchemaParts.RandomInteger("math.random"),
             ["variables.get"] = AutomationNodeInlineEditorSchemaParts.VariableGet("variables.get"),
-            ["logic.loop_control"] = AutomationNodeInlineEditorSchemaParts.LoopControl("logic.loop_control")
+            ["logic.loop_control"] = AutomationNodeInlineEditorSchemaParts.LoopControl("logic.loop_control"),
+            [AutomationNodeTypeIds.LoopJump] =
+            [
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = AutomationNodeTypeIds.LoopJump,
+                    PropertyKey = AutomationNodePropertyKeys.LoopJumpTargetScopeLabel,
+                    LabelResourceKey = "AutomationInlineEditor_LoopJumpTargetScopeLabel",
+                    PlaceholderResourceKey = "AutomationInlineEditor_LoopJumpTargetScopeLabelPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = "",
+                    DynamicChoiceKind = AutomationInlineEditorDynamicChoiceKind.LoopScopeTargets
+                }
+            ]
         };
 
     private static AutomationNodeInlineEditorDefinition BuildFindImageIntegerDefinition(

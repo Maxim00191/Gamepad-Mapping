@@ -84,6 +84,10 @@ public static class AutomationNodePropertyKeys
 
     public const string LoopInteriorSkipDocumentStepInterval = "loopInteriorSkipDocumentStepInterval";
 
+    public const string LoopScopeLabel = "loopScopeLabel";
+
+    public const string LoopJumpTargetScopeLabel = "loopJumpTargetScopeLabel";
+
     public const string DelayMilliseconds = "delayMilliseconds";
     public const string DelayMinMilliseconds = "delayMinMs";
     public const string DelayMaxMilliseconds = "delayMaxMs";

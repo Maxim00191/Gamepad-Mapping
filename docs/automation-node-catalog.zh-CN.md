@@ -30,6 +30,7 @@
 | `logic.branch_compare` | 比较分支 | 比较两个数值并按结果路由执行流。 | `flow.in (Execution，触发比较判断)`，`left (Number，左操作数)`，`right (Number，右操作数)` | `branch.true (Execution，比较为 true 时分支)`，`branch.false (Execution，比较为 false 时分支)` |
 | `logic.switch` | 开关分支 | 通过匹配输入值路由执行流。 | `flow.in (Execution，触发开关判断)`，`value (String，用于匹配 case 的输入值)` | `case.match (Execution，命中 case 时分支)`，`case.default (Execution，默认分支)` |
 | `logic.loop_control` | 循环控制 | 为当前活动循环请求中断或继续。 | `flow.in (Execution，发送循环控制请求)` | `flow.out (Execution，请求处理后继续)` |
+| `logic.loop_jump` | 循环跳转 | 跳回已命名的循环起点（可选地替代将循环体末端连回循环的 `flow.in`）。 | `flow.in (Execution，执行跳转)` | *（无连接端口——执行流在目标循环节点继续）* |
 | `debug.log` | 日志 | 将消息写入运行日志。 | `flow.in (Execution，触发日志写入)`，`message (String，日志文本)` | `flow.out (Execution，写入日志后继续)` |
 | `control.pid_controller` | PID 控制器 | 根据当前值与目标值计算连续控制信号。 | `current.value (Number，当前测量值)`，`target.value (Number，目标设定值)` | `control.signal (Number，计算得到的控制输出)` |
 | `output.key_state` | 按键状态 | 按住、释放或读取键盘按键状态。 | `flow.in (Execution，触发按键状态动作)` | `flow.out (Execution，动作执行后继续)`，`result.pressed (Boolean，当前是否处于按下状态)` |

@@ -394,6 +394,7 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
         BuildBranchCompareNode(),
         BuildSwitchNode(),
         BuildLoopControlNode(),
+        BuildLoopJumpNode(),
         BuildPidControllerNode(),
         BuildKeyStateNode(),
         BuildMouseJitterNode(),
@@ -649,6 +650,20 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             [
                 new AutomationPortDescriptor { Id = "flow.out", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
             ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildLoopJumpNode() =>
+        new()
+        {
+            Id = AutomationNodeTypeIds.LoopJump,
+            DisplayNameResourceKey = "AutomationNode_Display_LoopJump",
+            SummaryResourceKey = "AutomationNode_Summary_LoopJump",
+            GlyphFontGlyph = "\uE149",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.in", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = false }
+            ],
+            OutputPorts = []
         };
 
     private static AutomationNodeTypeDefinition BuildLogNode() =>

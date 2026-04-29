@@ -6,6 +6,7 @@
              xmlns:vm="clr-namespace:Gamepad_Mapping.ViewModels"
              xmlns:model="clr-namespace:GamepadMapperGUI.Models.Automation"
              xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
+             xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
              x:Name="AutomationRoot"
              Focusable="True"
              PreviewKeyDown="AutomationRoot_PreviewKeyDown"
@@ -18,6 +19,7 @@
              d:DataContext="{d:DesignInstance vm:AutomationWorkspaceViewModel}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
         <Style x:Key="AutomationNodePortHostStyle"
                TargetType="ContentPresenter">
             <Setter Property="Margin" Value="0,3,0,3" />
@@ -615,14 +617,27 @@
                                                                                          KeyDown="InlineNodeEditor_KeyDown_Commit"
                                                                                          ToolTip="{Binding Placeholder}"
                                                                                          Visibility="{Binding IsMultilineTextField, Converter={StaticResource BoolToVis}}" />
-                                                                                <ComboBox Margin="0,0,0,0"
-                                                                                          Padding="4,2"
-                                                                                          ItemsSource="{Binding ChoiceItems}"
-                                                                                          SelectedValue="{Binding TextValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                                          SelectedValuePath="StoredValue"
-                                                                                          DisplayMemberPath="Display"
-                                                                                          DropDownClosed="InlineNodeEditor_Choice_DropDownClosed"
-                                                                                          Visibility="{Binding IsChoiceField, Converter={StaticResource BoolToVis}}" />
+                                                                                <Grid Visibility="{Binding IsChoiceField, Converter={StaticResource BoolToVis}}">
+                                                                                    <ComboBox Margin="0,0,0,0"
+                                                                                              Padding="4,2"
+                                                                                              ItemsSource="{Binding ChoiceItems}"
+                                                                                              SelectedValue="{Binding TextValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                              SelectedValuePath="StoredValue"
+                                                                                              DisplayMemberPath="Display"
+                                                                                              DropDownClosed="InlineNodeEditor_Choice_DropDownClosed"
+                                                                                              Visibility="{Binding IsLoopScopeChoiceCombo, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}" />
+                                                                                    <ComboBox Margin="0,0,0,0"
+                                                                                              Padding="4,2"
+                                                                                              IsEditable="True"
+                                                                                              ItemsSource="{Binding ChoiceItems}"
+                                                                                              DisplayMemberPath="Display"
+                                                                                              Text="{Binding TextValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                              KeyDown="InlineNodeEditor_KeyDown_Commit"
+                                                                                              LostFocus="InlineNodeEditor_LostFocus_Commit"
+                                                                                              DropDownOpened="InlineNodeEditor_LoopScopeChoice_DropDownOpened"
+                                                                                              DropDownClosed="InlineNodeEditor_Choice_DropDownClosed"
+                                                                                              Visibility="{Binding IsLoopScopeChoiceCombo, Converter={StaticResource BoolToVis}}" />
+                                                                                </Grid>
                                                                                 <CheckBox IsChecked="{Binding BooleanValue}"
                                                                                           Command="{Binding DataContext.CommitInlineNodeFieldCommand, ElementName=AutomationRoot}"
                                                                                           CommandParameter="{Binding}"

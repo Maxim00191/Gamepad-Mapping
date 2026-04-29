@@ -2765,4 +2765,22 @@
   <data name="AutomationInlineEditor_OutputHoldCondition" xml:space="preserve">
     <value>后备按住条件</value>
   </data>
+  <data name="AutomationNode_Display_LoopJump" xml:space="preserve">
+    <value>循环跳转</value>
+  </data>
+  <data name="AutomationNode_Summary_LoopJump" xml:space="preserve">
+    <value>按已命名的循环起点继续执行（可放在循环体末端，替代连回循环输入端）。</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopScopeLabel" xml:space="preserve">
+    <value>循环作用域名称</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopScopeLabelPlaceholder" xml:space="preserve">
+    <value>供“循环跳转”引用的唯一名称（可选）</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopJumpTargetScopeLabel" xml:space="preserve">
+    <value>跳转到循环</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopJumpTargetScopeLabelPlaceholder" xml:space="preserve">
+    <value>选择循环作用域名称</value>
+  </data>
 </root>
