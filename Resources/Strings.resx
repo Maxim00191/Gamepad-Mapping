@@ -2606,4 +2606,31 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationRoiPreview_OpenWindow" xml:space="preserve">
     <value>Open ROI preview…</value>
   </data>
+  <data name="AutomationRoiPreview_NoCapture" xml:space="preserve">
+    <value>Select a Screen Capture node (ROI, full screen, or process window).</value>
+  </data>
+  <data name="AutomationRoiPreview_NoPreviewCacheRef" xml:space="preserve">
+    <value>This node reuses another capture. Preview the source capture node, or remove the cache reference to preview here.</value>
+  </data>
+  <data name="AutomationRoiPreview_StatusFullScreenShort" xml:space="preserve">
+    <value>Full virtual screen (physical pixels)</value>
+  </data>
+  <data name="AutomationRoiPreview_StatusProcessWindowFormat" xml:space="preserve">
+    <value>Process window: {0}</value>
+  </data>
+  <data name="AutomationRoiPreview_ForegroundLabel" xml:space="preserve">
+    <value>foreground window</value>
+  </data>
+  <data name="AutomationRoiPreview_StoredFullModeHint" xml:space="preserve">
+    <value>Turn on Live screen to preview full-screen or window captures.</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveRoiHint" xml:space="preserve">
+    <value>Live desktop ROI</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveSourceVirtualScreen" xml:space="preserve">
+    <value>Live virtual screen</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveSourceProcessFormat" xml:space="preserve">
+    <value>Live window ({0})</value>
+  </data>
 </root>

@@ -36,7 +36,7 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
 
                     break;
                 case "perception.find_image":
-                    if (index.GetDataSource(node.Id, "haystack.image") is null)
+                    if (index.GetDataSource(node.Id, AutomationPortIds.HaystackImage) is null)
                     {
                         detail = "find_image:haystack_input_missing";
                         return true;
@@ -70,7 +70,7 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
 
                     break;
                 case "logic.branch_image":
-                    if (index.GetDataSource(node.Id, "probe.image") is null)
+                    if (index.GetDataSource(node.Id, AutomationPortIds.ProbeImage) is null)
                     {
                         detail = "branch_image:probe_input_missing";
                         return true;
@@ -92,7 +92,7 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                     var useMatch = AutomationNodePropertyReader.ReadBool(
                         node.Properties,
                         AutomationNodePropertyKeys.MouseUseMatchPosition);
-                    if (useMatch && index.GetDataSource(node.Id, "probe.image") is null)
+                    if (useMatch && index.GetDataSource(node.Id, AutomationPortIds.ProbeImage) is null)
                     {
                         detail = "mouse_click:probe_input_missing";
                         return true;

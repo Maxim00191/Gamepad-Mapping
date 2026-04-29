@@ -1,17 +1,14 @@
 #nullable enable
 
-using GamepadMapperGUI.Interfaces.Services.Automation;
-
 namespace GamepadMapperGUI.Services.Automation;
 
 internal static class AutomationVisionAlgorithmComposition
 {
-    public static AutomationVisionPipeline CreateDefaultPipeline(IAutomationTemplateMatcher templateMatcher)
+    public static AutomationVisionPipeline CreateDefaultPipeline()
     {
-        ArgumentNullException.ThrowIfNull(templateMatcher);
-
-        var visionTemplate = new AutomationTemplateMatchVisionAlgorithm(templateMatcher);
-        var visionOpenCvTemplate = new OpenCvTemplateMatchVisionAlgorithm();
+        var openCvTemplateMatcher = new AutomationOpenCvTemplateMatcher();
+        var visionTemplate = new AutomationTemplateMatchVisionAlgorithm(openCvTemplateMatcher);
+        var visionOpenCvTemplate = new OpenCvTemplateMatchVisionAlgorithm(openCvTemplateMatcher);
         var visionYoloOnnx = new AutomationYoloOnnxVisionAlgorithm();
         var visionThreshold = new AutomationColorThresholdVisionAlgorithm();
         var visionContour = new AutomationContourVisionAlgorithm(visionThreshold);

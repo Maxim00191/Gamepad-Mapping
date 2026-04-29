@@ -2606,4 +2606,31 @@
   <data name="AutomationRoiPreview_OpenWindow" xml:space="preserve">
     <value>打开 ROI 预览…</value>
   </data>
+  <data name="AutomationRoiPreview_NoCapture" xml:space="preserve">
+    <value>请选择“屏幕捕获”节点（ROI、全屏或进程窗口）。</value>
+  </data>
+  <data name="AutomationRoiPreview_NoPreviewCacheRef" xml:space="preserve">
+    <value>此节点复用其他捕获结果。请预览源捕获节点，或移除缓存引用以在此处预览。</value>
+  </data>
+  <data name="AutomationRoiPreview_StatusFullScreenShort" xml:space="preserve">
+    <value>完整虚拟屏幕（物理像素）</value>
+  </data>
+  <data name="AutomationRoiPreview_StatusProcessWindowFormat" xml:space="preserve">
+    <value>进程窗口：{0}</value>
+  </data>
+  <data name="AutomationRoiPreview_ForegroundLabel" xml:space="preserve">
+    <value>前台窗口</value>
+  </data>
+  <data name="AutomationRoiPreview_StoredFullModeHint" xml:space="preserve">
+    <value>请开启“实时屏幕”以预览全屏或窗口捕获。</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveRoiHint" xml:space="preserve">
+    <value>实时桌面 ROI</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveSourceVirtualScreen" xml:space="preserve">
+    <value>实时虚拟屏幕</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveSourceProcessFormat" xml:space="preserve">
+    <value>实时窗口（{0}）</value>
+  </data>
 </root>

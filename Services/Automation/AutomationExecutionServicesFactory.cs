@@ -22,8 +22,7 @@ public sealed class AutomationExecutionServicesFactory : IAutomationExecutionSer
         var topology = new AutomationTopologyAnalyzer(registry);
         var contracts = new AutomationNodeContractValidator();
         var safety = new AutomationExecutionSafetyPolicy();
-        var templateMatcher = new AutomationTemplateMatcherBruteForce();
-        var visionPipeline = AutomationVisionAlgorithmComposition.CreateDefaultPipeline(templateMatcher);
+        var visionPipeline = AutomationVisionAlgorithmComposition.CreateDefaultPipeline();
         var probe = new AutomationImageProbe(visionPipeline);
         var inputState = new AutomationInputStateManager(keyboard);
         var runner = new AutomationGraphSmokeRunner(

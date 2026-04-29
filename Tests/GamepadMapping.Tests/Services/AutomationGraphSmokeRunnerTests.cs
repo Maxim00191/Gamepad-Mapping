@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json.Nodes;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -7,6 +8,7 @@ using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation;
+using GamepadMapperGUI.Utils;
 using Moq;
 
 namespace GamepadMapping.Tests.Services;
@@ -91,6 +93,97 @@ public sealed class AutomationGraphSmokeRunnerTests
             $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
         virtualMouse.Verify(v => v.MoveCursorToVirtualScreenPixels(142, 218), Times.Once);
         mouse.Verify(m => m.LeftClick(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_ChainedFindImage_UsesUpstreamFindHaystackPassthrough()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+
+        captureService
+            .Setup(s => s.CaptureRectanglePhysical(10, 12, 40, 36))
+            .Returns(bitmap);
+        probeService
+            .SetupSequence(p => p.ProbeAsync(
+                bitmap,
+                10,
+                12,
+                null,
+                It.IsAny<AutomationImageProbeOptions>(),
+                It.IsAny<AutomationVisionAlgorithmKind>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 5, 6)))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 7, 8)));
+
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = "roi",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 10,
+                ["y"] = 12,
+                ["width"] = 40,
+                ["height"] = 36
+            }
+        });
+        var find1 = CreateNode("perception.find_image", new JsonObject
+        {
+            [AutomationNodePropertyKeys.FindImageAlgorithm] = AutomationVisionAlgorithmStorage.ColorThreshold
+        });
+        var find2 = CreateNode("perception.find_image", new JsonObject
+        {
+            [AutomationNodePropertyKeys.FindImageAlgorithm] = AutomationVisionAlgorithmStorage.ColorThreshold
+        });
+        var delay = CreateNode("automation.delay", new JsonObject
+        {
+            [AutomationNodePropertyKeys.DelayMilliseconds] = 1
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, find1, find2, delay],
+            Edges =
+            [
+                Edge(capture.Id, AutomationPortIds.FlowOut, find1.Id, AutomationPortIds.FlowIn),
+                Edge(capture.Id, AutomationPortIds.ScreenImage, find1.Id, AutomationPortIds.HaystackImage),
+                Edge(find1.Id, AutomationPortIds.FlowOut, find2.Id, AutomationPortIds.FlowIn),
+                Edge(find1.Id, AutomationPortIds.ProbeImage, find2.Id, AutomationPortIds.HaystackImage),
+                Edge(find2.Id, AutomationPortIds.FlowOut, delay.Id, AutomationPortIds.FlowIn)
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
+        probeService.Verify(
+            p => p.ProbeAsync(
+                bitmap,
+                10,
+                12,
+                null,
+                It.IsAny<AutomationImageProbeOptions>(),
+                It.IsAny<AutomationVisionAlgorithmKind>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 
     [Fact]
@@ -837,6 +930,81 @@ public sealed class AutomationGraphSmokeRunnerTests
 
         Assert.True(result.Ok);
         keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public void AutomationNeedlePathResolver_FindsRelativePathUnderContentRoot()
+    {
+        var expectedPath = Path.GetFullPath(Path.Combine(
+            AppPaths.ResolveContentRoot(),
+            "Assets",
+            "Automation",
+            "Samples",
+            "fishing-mini-game-bot",
+            "needle-fishing-ui.png"));
+        if (!File.Exists(expectedPath))
+            return;
+
+        var resolved = AutomationNeedlePathResolver.ResolveExistingFilePath(
+            "Assets/Automation/Samples/fishing-mini-game-bot/needle-fishing-ui.png");
+
+        Assert.Equal(expectedPath, resolved);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_FishingSample_CompletesOnMissPath()
+    {
+        var path = Path.Combine(AppPaths.ResolveContentRoot(), "Assets", "Automation", "Samples", "fishing-mini-game-bot.json");
+        if (!File.Exists(path))
+            return;
+
+        var json = await File.ReadAllTextAsync(path);
+        var serializer = new AutomationGraphJsonSerializer();
+        var doc = serializer.Deserialize(json);
+        foreach (var node in doc.Nodes)
+        {
+            node.Properties ??= new JsonObject();
+            if (string.Equals(node.NodeTypeId, "automation.loop", StringComparison.Ordinal))
+                AutomationNodePropertyReader.WriteInt(node.Properties, AutomationNodePropertyKeys.LoopMaxIterations, 2);
+            if (string.Equals(node.NodeTypeId, "automation.delay", StringComparison.Ordinal))
+                AutomationNodePropertyReader.WriteInt(node.Properties, AutomationNodePropertyKeys.DelayMilliseconds, 0);
+        }
+
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Loose);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Loose);
+        var bitmap = CreateBitmap();
+        var metrics = new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight);
+        captureService.Setup(s => s.CaptureVirtualScreenPhysical())
+            .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
+        probeService.Setup(p => p.ProbeAsync(
+            It.IsAny<BitmapSource>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<BitmapSource?>(),
+            It.IsAny<AutomationImageProbeOptions>(),
+            It.IsAny<AutomationVisionAlgorithmKind>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(false, 0, 0, 0, 0)));
+
+        var registry = new NodeTypeRegistry();
+        var sut = new AutomationGraphSmokeRunner(
+            captureService.Object,
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            new AutomationTopologyAnalyzer(registry),
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
     }
 
     private sealed class FixedTapHoldNoiseController(int adjustedHoldMs) : IHumanInputNoiseController

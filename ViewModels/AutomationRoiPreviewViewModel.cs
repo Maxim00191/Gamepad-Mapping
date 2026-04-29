@@ -174,14 +174,16 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
 
     private void UpdateSummaryOnly()
     {
-        if (!TryGetRoiContext(out var roi, out var props))
+        if (!TryGetCapturePreviewContext(out var props, out var blockedReason))
         {
-            RoiSummaryText = L("AutomationRoiPreview_NoRoi");
+            RoiSummaryText = blockedReason == PreviewBlockedReason.CacheReference
+                ? L("AutomationRoiPreview_NoPreviewCacheRef")
+                : L("AutomationRoiPreview_NoCapture");
             SourceHintText = "";
             return;
         }
 
-        RoiSummaryText = FormatRoiLine(roi);
+        RoiSummaryText = FormatCaptureSummary(props);
         SourceHintText = ComputeSourceHint(props);
     }
 
@@ -190,37 +192,57 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
         if (IsLiveRefresh)
             return;
 
-        if (!TryGetRoiContext(out var roi, out var props))
+        if (!TryGetCapturePreviewContext(out var props, out var blockedReason))
         {
             PreviewImage = null;
-            RoiSummaryText = L("AutomationRoiPreview_NoRoi");
+            RoiSummaryText = blockedReason == PreviewBlockedReason.CacheReference
+                ? L("AutomationRoiPreview_NoPreviewCacheRef")
+                : L("AutomationRoiPreview_NoCapture");
             SourceHintText = "";
             return;
         }
 
-        RoiSummaryText = FormatRoiLine(roi);
+        RoiSummaryText = FormatCaptureSummary(props);
         SourceHintText = ComputeSourceHint(props);
-        PreviewImage = _imageProvider.TryLoadStoredPreview(props);
+
+        var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+        if (string.IsNullOrWhiteSpace(mode))
+            mode = AutomationCaptureMode.Full;
+
+        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+            PreviewImage = _imageProvider.TryLoadStoredPreview(props);
+        else
+            PreviewImage = null;
     }
 
     private void RefreshLiveCore()
     {
-        if (!TryGetRoiContext(out var roi, out _))
+        if (!TryGetCapturePreviewContext(out var props, out _) || props is null)
             return;
 
-        var live = _imageProvider.TryCaptureLive(roi);
+        var live = _imageProvider.TryCaptureLivePreview(props);
         if (live is null)
             return;
 
         PreviewImage = live;
-        RoiSummaryText = FormatRoiLine(roi);
-        SourceHintText = L("AutomationRoiPreview_LiveSourceHint");
+        RoiSummaryText = FormatCaptureSummary(props);
+        SourceHintText = ComputeLiveSourceHint(props);
     }
 
-    private bool TryGetRoiContext(out AutomationPhysicalRect roi, out JsonObject? props)
+    private enum PreviewBlockedReason
     {
-        roi = default;
+        None,
+        NotCaptureNodeOrMissingProps,
+        CacheReference
+    }
+
+    private bool TryGetCapturePreviewContext(
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out JsonObject? props,
+        out PreviewBlockedReason blockedReason)
+    {
         props = null;
+        blockedReason = PreviewBlockedReason.NotCaptureNodeOrMissingProps;
+
         var node = _workspace.SelectedNode;
         if (node is null ||
             !string.Equals(node.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase))
@@ -230,20 +252,67 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
         if (props is null)
             return false;
 
+        var cacheRef = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureCacheRefNodeId);
+        if (Guid.TryParse(cacheRef, out var guid) && guid != Guid.Empty)
+        {
+            blockedReason = PreviewBlockedReason.CacheReference;
+            return false;
+        }
+
         var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
-        if (!string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
-            return false;
+        if (string.IsNullOrWhiteSpace(mode))
+            mode = AutomationCaptureMode.Full;
 
-        if (!AutomationNodePropertyReader.TryReadRoiCapture(props, out roi) || roi.IsEmpty)
-            return false;
+        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!AutomationNodePropertyReader.TryReadRoiCapture(props, out var roi) || roi.IsEmpty)
+                return false;
+        }
 
+        blockedReason = PreviewBlockedReason.None;
         return true;
+    }
+
+    private static string FormatCaptureSummary(JsonObject props)
+    {
+        var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+        if (string.IsNullOrWhiteSpace(mode))
+            mode = AutomationCaptureMode.Full;
+
+        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase) &&
+            AutomationNodePropertyReader.TryReadRoiCapture(props, out var roi) &&
+            !roi.IsEmpty)
+        {
+            return string.Format(LStatic("AutomationRoiPreview_StatusRoiFormat"), roi.X, roi.Y, roi.Width, roi.Height);
+        }
+
+        var sourceMode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureSourceMode);
+        if (string.IsNullOrWhiteSpace(sourceMode))
+            sourceMode = AutomationCaptureSourceMode.Screen;
+
+        if (string.Equals(sourceMode, AutomationCaptureSourceMode.ProcessWindow, StringComparison.OrdinalIgnoreCase))
+        {
+            var processName = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureProcessName);
+            var label = string.IsNullOrWhiteSpace(processName)
+                ? LStatic("AutomationRoiPreview_ForegroundLabel")
+                : processName;
+            return string.Format(LStatic("AutomationRoiPreview_StatusProcessWindowFormat"), label);
+        }
+
+        return LStatic("AutomationRoiPreview_StatusFullScreenShort");
     }
 
     private static string ComputeSourceHint(JsonObject? props)
     {
         if (props is null)
             return "";
+
+        var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+        if (string.IsNullOrWhiteSpace(mode))
+            mode = AutomationCaptureMode.Full;
+
+        if (!string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+            return LStatic("AutomationRoiPreview_StoredFullModeHint");
 
         var cachePath = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureRoiCachePath);
         if (!string.IsNullOrWhiteSpace(cachePath) && File.Exists(cachePath))
@@ -253,8 +322,30 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
         return string.IsNullOrWhiteSpace(b64) ? "" : LStatic("AutomationRoiPreview_CachedLowResHint");
     }
 
-    private static string FormatRoiLine(AutomationPhysicalRect roi) =>
-        string.Format(LStatic("AutomationRoiPreview_StatusRoiFormat"), roi.X, roi.Y, roi.Width, roi.Height);
+    private static string ComputeLiveSourceHint(JsonObject props)
+    {
+        var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+        if (string.IsNullOrWhiteSpace(mode))
+            mode = AutomationCaptureMode.Full;
+
+        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+            return LStatic("AutomationRoiPreview_LiveRoiHint");
+
+        var sourceMode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureSourceMode);
+        if (string.IsNullOrWhiteSpace(sourceMode))
+            sourceMode = AutomationCaptureSourceMode.Screen;
+
+        if (string.Equals(sourceMode, AutomationCaptureSourceMode.ProcessWindow, StringComparison.OrdinalIgnoreCase))
+        {
+            var processName = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureProcessName);
+            var label = string.IsNullOrWhiteSpace(processName)
+                ? LStatic("AutomationRoiPreview_ForegroundLabel")
+                : processName;
+            return string.Format(LStatic("AutomationRoiPreview_LiveSourceProcessFormat"), label);
+        }
+
+        return LStatic("AutomationRoiPreview_LiveSourceVirtualScreen");
+    }
 
     private static string L(string key) => AppUiLocalization.GetString(key);
 
@@ -279,12 +370,12 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
     [RelayCommand]
     private void CopyRoiInfo()
     {
-        if (!TryGetRoiContext(out var roi, out _))
+        if (!TryGetCapturePreviewContext(out var props, out _) || props is null)
             return;
 
         try
         {
-            Clipboard.SetText($"{roi.X}\t{roi.Y}\t{roi.Width}\t{roi.Height}");
+            Clipboard.SetText(FormatCaptureSummary(props));
         }
         catch
         {

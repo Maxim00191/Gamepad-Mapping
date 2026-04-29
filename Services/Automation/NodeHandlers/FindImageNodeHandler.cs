@@ -28,13 +28,15 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             resolvedYoloOnnxPath = r;
         }
 
-        var sourceNodeId = context.Index.GetDataSource(node.Id, "haystack.image");
+        var sourceNodeId = context.Index.GetDataSource(node.Id, AutomationPortIds.HaystackImage);
         if (sourceNodeId is not { } source || !context.TryGetCapture(source, out var bitmap, out var originX, out var originY))
         {
             log.Add("[find_image] missing_haystack_input");
             context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0));
-            return context.GetExecutionTarget(node.Id, "flow.out");
+            return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
+
+        context.StoreCapture(node.Id, bitmap, originX, originY);
 
         var confidence = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageConfidence, 0.85);
         var tolerance = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageTolerance, 1 - confidence);
@@ -50,13 +52,16 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             yoloClassId,
             colorOptions,
             textOptions);
-        var needle = AutomationImageProbe.TryLoadBitmapFromPath(needlePath);
+        var needlePathResolved = AutomationNeedlePathResolver.ResolveExistingFilePath(needlePath);
+        var needle = needlePathResolved is not null
+            ? AutomationImageProbe.TryLoadBitmapFromPath(needlePathResolved)
+            : null;
         var sourceNode = context.Index.GetNode(source);
         var sourceRef = sourceNode is null
             ? AutomationLogFormatter.NodeId(source)
             : AutomationLogFormatter.NodeRef(sourceNode.NodeTypeId, sourceNode.Id);
         log.Add($"[find_image] haystack_source={sourceRef} haystack_origin=({originX},{originY}) haystack_size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
-        log.Add($"[find_image] needle_path={needlePath} needle_loaded={(needle is not null ? "true" : "false")} yolo_onnx={(effectiveYoloPathForProbe ?? "(none)")} yolo_class_id={yoloClassId} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs} algorithm={algorithm}");
+        log.Add($"[find_image] needle_path={needlePath} resolved_path={(needlePathResolved ?? "(none)")} needle_loaded={(needle is not null ? "true" : "false")} yolo_onnx={(effectiveYoloPathForProbe ?? "(none)")} yolo_class_id={yoloClassId} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs} algorithm={algorithm}");
         if (AutomationVisionAlgorithmRequirements.UsesColorDetectionOptions(algorithm))
             log.Add($"[find_image] color_hsv=({colorOptions.HueMin}-{colorOptions.HueMax},{colorOptions.SaturationMin}-{colorOptions.SaturationMax},{colorOptions.ValueMin}-{colorOptions.ValueMax}) min_area={colorOptions.MinimumAreaPx}");
         if (AutomationVisionAlgorithmRequirements.UsesTextDetectionOptions(algorithm))
@@ -65,7 +70,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         {
             log.Add("[find_image] missing_template_needle => matched=false");
             context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0));
-            return context.GetExecutionTarget(node.Id, "flow.out");
+            return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
 
         var raw = context.Probe.ProbeAsync(bitmap, originX, originY, needle, options, algorithm, cancellationToken).GetAwaiter().GetResult();
@@ -76,7 +81,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         };
         context.StoreProbeResult(node.Id, result);
         log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2}");
-        return context.GetExecutionTarget(node.Id, "flow.out");
+        return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
     }
 
     private static AutomationColorDetectionOptions ReadColorDetectionOptions(AutomationNodeState node)

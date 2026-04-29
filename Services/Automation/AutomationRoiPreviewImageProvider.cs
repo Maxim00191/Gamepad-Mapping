@@ -66,21 +66,14 @@ public sealed class AutomationRoiPreviewImageProvider : IAutomationRoiPreviewIma
         }
     }
 
-    public BitmapSource? TryCaptureLive(AutomationPhysicalRect roi)
+    public BitmapSource? TryCaptureLivePreview(JsonObject? properties)
     {
-        if (roi.IsEmpty)
+        if (!AutomationDirectScreenCapture.TryDirectCapture(_capture, properties, out var direct))
             return null;
 
-        try
-        {
-            var bmp = _capture.CaptureRectanglePhysical(roi.X, roi.Y, roi.Width, roi.Height);
-            if (bmp.CanFreeze)
-                bmp.Freeze();
-            return bmp;
-        }
-        catch
-        {
-            return null;
-        }
+        var bmp = direct.Bitmap;
+        if (bmp.CanFreeze)
+            bmp.Freeze();
+        return bmp;
     }
 }

@@ -25,7 +25,7 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
         var targetX = 0;
         var targetY = 0;
         var hasTargetPosition = false;
-        if (useMatchPosition && context.TryResolveProbeResult(node.Id, "probe.image", out var probeResult) && probeResult.Matched)
+        if (useMatchPosition && context.TryResolveProbeResult(node.Id, AutomationPortIds.ProbeImage, out var probeResult) && probeResult.Matched)
         {
             targetX = probeResult.MatchScreenXPx;
             targetY = probeResult.MatchScreenYPx;

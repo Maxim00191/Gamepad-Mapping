@@ -12,7 +12,7 @@ public sealed class BranchImageNodeHandler : IAutomationRuntimeNodeHandler
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!context.TryResolveProbeResult(node.Id, "probe.image", out var probeResult))
+        if (!context.TryResolveProbeResult(node.Id, AutomationPortIds.ProbeImage, out var probeResult))
         {
             log.Add("[branch_image] missing_probe_input => branch.miss");
             return context.GetExecutionTarget(node.Id, "branch.miss");

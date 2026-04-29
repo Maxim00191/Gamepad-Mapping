@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Text.Json.Nodes;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
 
@@ -21,37 +22,39 @@ public sealed class CaptureScreenNodeHandler : IAutomationRuntimeNodeHandler
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
-        var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.CaptureMode);
+        if (!AutomationDirectScreenCapture.TryDirectCapture(context.Capture, node.Properties, out var direct))
+            throw new InvalidOperationException("capture_unavailable");
+
+        context.StoreCapture(node.Id, direct.Bitmap, direct.Metrics.PhysicalOriginX, direct.Metrics.PhysicalOriginY);
+        log.Add(FormatDirectCaptureLogLine(node.Properties, direct));
+        return context.GetExecutionTarget(node.Id, "flow.out");
+    }
+
+    private static string FormatDirectCaptureLogLine(JsonObject? properties, AutomationVirtualScreenCaptureResult direct)
+    {
+        var mode = AutomationNodePropertyReader.ReadString(properties, AutomationNodePropertyKeys.CaptureMode);
         if (string.IsNullOrWhiteSpace(mode))
             mode = AutomationCaptureMode.Full;
 
-        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase) &&
+            AutomationNodePropertyReader.TryReadRoiCapture(properties, out var roi) && !roi.IsEmpty)
         {
-            if (!AutomationNodePropertyReader.TryReadRoiCapture(node.Properties, out var roi) || roi.IsEmpty)
-                throw new InvalidOperationException("roi_invalid");
-
-            var bitmap = context.Capture.CaptureRectanglePhysical(roi.X, roi.Y, roi.Width, roi.Height);
-            context.StoreCapture(node.Id, bitmap, roi.X, roi.Y);
-            log.Add($"[capture_screen] mode=roi rect=({roi.X},{roi.Y},{roi.Width},{roi.Height}) size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
-            return context.GetExecutionTarget(node.Id, "flow.out");
+            return
+                $"[capture_screen] mode=roi rect=({roi.X},{roi.Y},{roi.Width},{roi.Height}) size={direct.Bitmap.PixelWidth}x{direct.Bitmap.PixelHeight}";
         }
 
-        var sourceMode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.CaptureSourceMode);
+        var sourceMode = AutomationNodePropertyReader.ReadString(properties, AutomationNodePropertyKeys.CaptureSourceMode);
         if (string.IsNullOrWhiteSpace(sourceMode))
             sourceMode = AutomationCaptureSourceMode.Screen;
 
         if (string.Equals(sourceMode, AutomationCaptureSourceMode.ProcessWindow, StringComparison.OrdinalIgnoreCase))
         {
-            var processName = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.CaptureProcessName);
-            var processCapture = context.Capture.CaptureProcessWindowPhysical(processName);
-            context.StoreCapture(node.Id, processCapture.Bitmap, processCapture.Metrics.PhysicalOriginX, processCapture.Metrics.PhysicalOriginY);
-            log.Add($"[capture_screen] mode=full source=process_window process={processName} origin=({processCapture.Metrics.PhysicalOriginX},{processCapture.Metrics.PhysicalOriginY}) size={processCapture.Bitmap.PixelWidth}x{processCapture.Bitmap.PixelHeight}");
-            return context.GetExecutionTarget(node.Id, "flow.out");
+            var processName = AutomationNodePropertyReader.ReadString(properties, AutomationNodePropertyKeys.CaptureProcessName);
+            return
+                $"[capture_screen] mode=full source=process_window process={processName} origin=({direct.Metrics.PhysicalOriginX},{direct.Metrics.PhysicalOriginY}) size={direct.Bitmap.PixelWidth}x{direct.Bitmap.PixelHeight}";
         }
 
-        var full = context.Capture.CaptureVirtualScreenPhysical();
-        context.StoreCapture(node.Id, full.Bitmap, full.Metrics.PhysicalOriginX, full.Metrics.PhysicalOriginY);
-        log.Add($"[capture_screen] mode=full source=screen origin=({full.Metrics.PhysicalOriginX},{full.Metrics.PhysicalOriginY}) size={full.Bitmap.PixelWidth}x{full.Bitmap.PixelHeight}");
-        return context.GetExecutionTarget(node.Id, "flow.out");
+        return
+            $"[capture_screen] mode=full source=screen origin=({direct.Metrics.PhysicalOriginX},{direct.Metrics.PhysicalOriginY}) size={direct.Bitmap.PixelWidth}x{direct.Bitmap.PixelHeight}";
     }
 }

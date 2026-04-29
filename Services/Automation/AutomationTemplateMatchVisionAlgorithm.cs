@@ -17,12 +17,11 @@ public sealed class AutomationTemplateMatchVisionAlgorithm(IAutomationTemplateMa
         if (frame.Needle is null || frame.Needle.PixelWidth <= 0 || frame.Needle.PixelHeight <= 0)
             return ValueTask.FromResult(new AutomationVisionResult(false, 0, 0));
 
-        var match = _matcher.Match(frame.Image, frame.Needle, frame.ProbeOptions);
-        return ValueTask.FromResult(new AutomationVisionResult(
-            match.Matched,
-            match.MatchX,
-            match.MatchY,
-            match.Matched ? 1 : 0,
-            match.Matched ? Math.Clamp(1d - frame.ProbeOptions.Tolerance01, 0d, 1d) : 0d));
+        var match = _matcher.Match(frame.Image, frame.Needle, frame.ProbeOptions, cancellationToken);
+        if (!match.Matched)
+            return ValueTask.FromResult(new AutomationVisionResult(false, 0, 0));
+
+        var conf = Math.Clamp(match.Confidence, 0d, 1d);
+        return ValueTask.FromResult(new AutomationVisionResult(true, match.MatchX, match.MatchY, 1, conf));
     }
 }

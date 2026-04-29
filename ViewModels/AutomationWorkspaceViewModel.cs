@@ -1986,6 +1986,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
         var props = node.State.Properties;
         var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+        if (string.IsNullOrWhiteSpace(mode))
+            mode = AutomationCaptureMode.Full;
+
         if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase) &&
             AutomationNodePropertyReader.TryReadRoiCapture(props, out var roi) &&
             !roi.IsEmpty)
@@ -1996,6 +1999,25 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 roi.Y,
                 roi.Width,
                 roi.Height);
+        }
+        else if (string.Equals(mode, AutomationCaptureMode.Full, StringComparison.OrdinalIgnoreCase))
+        {
+            var sourceMode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureSourceMode);
+            if (string.IsNullOrWhiteSpace(sourceMode))
+                sourceMode = AutomationCaptureSourceMode.Screen;
+
+            if (string.Equals(sourceMode, AutomationCaptureSourceMode.ProcessWindow, StringComparison.OrdinalIgnoreCase))
+            {
+                var processName = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureProcessName);
+                var label = string.IsNullOrWhiteSpace(processName)
+                    ? Local("AutomationRoiPreview_ForegroundLabel")
+                    : processName;
+                RoiInspectorSummaryText = string.Format(Local("AutomationRoiPreview_StatusProcessWindowFormat"), label);
+            }
+            else
+            {
+                RoiInspectorSummaryText = Local("AutomationRoiPreview_StatusFullScreenShort");
+            }
         }
 
         RoiInspectorThumbnail = _roiPreviewImageProvider.TryLoadStoredPreview(props);

@@ -7,12 +7,12 @@ using GamepadMapperGUI.Models.Automation;
 namespace GamepadMapperGUI.Interfaces.Services.Automation;
 
 /// <summary>
-/// Resolves ROI preview bitmaps from stored node properties (full-resolution cache file or thumbnail payload)
-/// or from a live physical rectangle capture.
+/// Resolves capture preview bitmaps from stored node properties (ROI cache file or thumbnail)
+/// or from a live capture that matches <c>perception.capture_screen</c> execution (screen, process window, or ROI).
 /// </summary>
 public interface IAutomationRoiPreviewImageProvider
 {
     BitmapSource? TryLoadStoredPreview(JsonObject? properties);
 
-    BitmapSource? TryCaptureLive(AutomationPhysicalRect roi);
+    BitmapSource? TryCaptureLivePreview(JsonObject? properties);
 }

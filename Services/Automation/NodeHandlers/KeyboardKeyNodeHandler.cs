@@ -23,17 +23,17 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         var (keyboard, _) = context.ResolveInputEmulationPair(requestedModeId);
         var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardActionMode);
         var normalizedMode = string.IsNullOrWhiteSpace(mode) ? "tap" : mode.Trim().ToLowerInvariant();
-        if (string.Equals(mode, "press", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(normalizedMode, "press", StringComparison.Ordinal))
         {
             keyboard.KeyDown(key);
             log.Add($"[keyboard_key] action=press key={key}");
         }
-        else if (string.Equals(mode, "release", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(normalizedMode, "release", StringComparison.Ordinal))
         {
             keyboard.KeyUp(key);
             log.Add($"[keyboard_key] action=release key={key}");
         }
-        else if (string.Equals(mode, "hold", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(normalizedMode, "hold", StringComparison.Ordinal))
         {
             var nominalHoldMs = Math.Clamp(
                 AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.KeyboardHoldMilliseconds, 200),
@@ -51,7 +51,7 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         else
         {
             keyboard.TapKey(key);
-            log.Add($"[keyboard_key] action=tap key={key} requested_mode={normalizedMode}");
+            log.Add($"[keyboard_key] action=tap key={key} mode={normalizedMode}");
         }
 
         return context.GetExecutionTarget(node.Id, "flow.out");
