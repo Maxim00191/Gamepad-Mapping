@@ -170,47 +170,59 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         context.Index = index;
         var current = startNodeId;
         var minInterval = Math.Max(0d, context.Limits.MinNodeStepIntervalSeconds);
-        for (var step = 0; step < availableSteps; step++)
+        var previousMonotonic = context.MonotonicElapsed;
+        context.MonotonicElapsed = () => timer.Elapsed;
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var now = timer.Elapsed;
-            var elapsedSinceLast = now - lastTick;
-            if (minInterval > 0d && elapsedSinceLast.TotalSeconds < minInterval)
+            for (var step = 0; step < availableSteps; step++)
             {
-                var remaining = TimeSpan.FromSeconds(minInterval - elapsedSinceLast.TotalSeconds);
-                if (remaining > TimeSpan.Zero)
-                    Task.Delay(remaining, ct).GetAwaiter().GetResult();
-                now = timer.Elapsed;
+                ct.ThrowIfCancellationRequested();
+                var now = timer.Elapsed;
+                var elapsedSinceLast = now - lastTick;
+                var effectiveMin = context.ShouldSuppressDocumentStepInterval ? 0d : minInterval;
+                if (effectiveMin > 0d && elapsedSinceLast.TotalSeconds < effectiveMin)
+                {
+                    var remaining = TimeSpan.FromSeconds(effectiveMin - elapsedSinceLast.TotalSeconds);
+                    if (remaining > TimeSpan.Zero)
+                        Task.Delay(remaining, ct).GetAwaiter().GetResult();
+                    now = timer.Elapsed;
+                }
+
+                var deltaSeconds = (now - lastTick).TotalSeconds;
+                context.DeltaTimeSeconds = Math.Max(deltaSeconds, effectiveMin > 0d ? effectiveMin : 1e-6d);
+                lastTick = now;
+
+                var node = index.GetNode(current) ?? throw new InvalidOperationException("node_missing");
+                if (string.Equals(node.NodeTypeId, "automation.loop", StringComparison.Ordinal))
+                    context.CompleteLoopBodyReturnIfReturningToHead(node.Id);
+
+                log.Add($"[step:{step}] enter {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
+
+                context.BeginExecutionStep();
+                var next = ExecuteAndGetNext(context, index, node, log, ct);
+                if (next is null)
+                {
+                    log.Add($"[step:{step}] completed terminal_node={AutomationLogFormatter.NodeId(node.Id)}");
+                    context.Index = previousIndex;
+                    return step + 1;
+                }
+
+                var nextNode = index.GetNode(next.Value);
+                var nextRef = nextNode is null
+                    ? AutomationLogFormatter.NodeId(next.Value)
+                    : AutomationLogFormatter.NodeRef(nextNode.NodeTypeId, nextNode.Id);
+                log.Add($"[step:{step}] next={nextRef}");
+
+                current = next.Value;
             }
 
-            var deltaSeconds = (now - lastTick).TotalSeconds;
-            context.DeltaTimeSeconds = Math.Max(deltaSeconds, minInterval > 0d ? minInterval : 1e-6d);
-            lastTick = now;
-
-            var node = index.GetNode(current) ?? throw new InvalidOperationException("node_missing");
-
-            log.Add($"[step:{step}] enter {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
-
-            context.BeginExecutionStep();
-            var next = ExecuteAndGetNext(context, index, node, log, ct);
-            if (next is null)
-            {
-                log.Add($"[step:{step}] completed terminal_node={AutomationLogFormatter.NodeId(node.Id)}");
-                context.Index = previousIndex;
-                return step + 1;
-            }
-
-            var nextNode = index.GetNode(next.Value);
-            var nextRef = nextNode is null
-                ? AutomationLogFormatter.NodeId(next.Value)
-                : AutomationLogFormatter.NodeRef(nextNode.NodeTypeId, nextNode.Id);
-            log.Add($"[step:{step}] next={nextRef}");
-
-            current = next.Value;
+            context.Index = previousIndex;
+            return availableSteps;
         }
-
-        context.Index = previousIndex;
-        return availableSteps;
+        finally
+        {
+            context.MonotonicElapsed = previousMonotonic;
+        }
     }
 
     private Guid? ExecuteAndGetNext(

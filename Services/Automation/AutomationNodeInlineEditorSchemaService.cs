@@ -509,6 +509,24 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     DefaultTextValue = "1",
                     MinIntegerValue = 1,
                     MaxIntegerValue = 1000
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "automation.loop",
+                    PropertyKey = AutomationNodePropertyKeys.LoopTargetIterationsPerSecond,
+                    LabelResourceKey = "AutomationInlineEditor_LoopTargetIterationsPerSecond",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0",
+                    MinDoubleValue = 0d,
+                    MaxDoubleValue = 240d
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "automation.loop",
+                    PropertyKey = AutomationNodePropertyKeys.LoopInteriorSkipDocumentStepInterval,
+                    LabelResourceKey = "AutomationInlineEditor_LoopInteriorSkipDocumentStepInterval",
+                    Kind = AutomationNodeInlineEditorKind.Boolean,
+                    DefaultTextValue = "false"
                 }
             ],
             ["automation.delay"] =

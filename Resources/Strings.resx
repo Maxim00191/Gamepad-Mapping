@@ -2636,4 +2636,10 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationRoiPreview_FullModeSnapshotFailed" xml:space="preserve">
     <value>Could not capture preview (window not found, minimized, or protected). Focus the target window and try Refresh.</value>
   </data>
+  <data name="AutomationInlineEditor_LoopTargetIterationsPerSecond" xml:space="preserve">
+    <value>Target iterations/sec (loop pacing)</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopInteriorSkipDocumentStepInterval" xml:space="preserve">
+    <value>Skip graph step interval inside loop body</value>
+  </data>
 </root>

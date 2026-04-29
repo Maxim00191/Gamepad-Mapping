@@ -10,6 +10,9 @@ namespace GamepadMapperGUI.Models.Automation;
 
 public sealed class AutomationRuntimeContext
 {
+    private const double MinLoopTargetIterationsPerSecond = 0.001d;
+    private const double MaxLoopTargetIterationsPerSecond = 240d;
+
     private sealed record ScreenBundle(BitmapSource Bitmap, int OriginScreenX, int OriginScreenY);
 
     private readonly Dictionary<Guid, ScreenBundle> _bundles = [];
@@ -18,6 +21,8 @@ public sealed class AutomationRuntimeContext
     private readonly Dictionary<string, AutomationDataValue> _variables = new(StringComparer.Ordinal);
     private readonly Dictionary<(Guid NodeId, string PortId), AutomationDataValue> _dataEvaluationCache = [];
     private readonly Dictionary<Guid, object> _stateByNodeId = [];
+    private readonly Stack<AutomationLoopBodyScope> _loopBodyScopes = new();
+    private readonly Dictionary<Guid, double> _loopIterationSpacingAnchorSeconds = [];
     private readonly Random _random = new();
 
     public required IAutomationScreenCaptureService Capture { get; init; }
@@ -43,6 +48,8 @@ public sealed class AutomationRuntimeContext
     public required IAutomationEventBus EventBus { get; init; }
 
     public double DeltaTimeSeconds { get; set; } = 1d / 60d;
+
+    public Func<TimeSpan> MonotonicElapsed { get; set; } = static () => TimeSpan.Zero;
 
     public bool RequestBreakLoop { get; private set; }
 
@@ -74,6 +81,46 @@ public sealed class AutomationRuntimeContext
         _probeResults.TryGetValue(nodeId, out result);
 
     public void BeginExecutionStep() => _dataEvaluationCache.Clear();
+
+    public bool ShouldSuppressDocumentStepInterval =>
+        _loopBodyScopes.Count > 0 && _loopBodyScopes.Peek().SkipDocumentStepIntervalInsideBody;
+
+    public void EnterLoopBodyScopeIfNeeded(Guid loopNodeId, bool skipDocumentStepIntervalInsideBody)
+    {
+        if (_loopBodyScopes.Count > 0 && _loopBodyScopes.Peek().LoopNodeId == loopNodeId)
+            return;
+
+        _loopBodyScopes.Push(new AutomationLoopBodyScope(loopNodeId, skipDocumentStepIntervalInsideBody));
+    }
+
+    public void CompleteLoopBodyReturnIfReturningToHead(Guid loopNodeId)
+    {
+        if (_loopBodyScopes.Count > 0 && _loopBodyScopes.Peek().LoopNodeId == loopNodeId)
+            _loopBodyScopes.Pop();
+    }
+
+    public void ExitLoopBodyScopeForFlowOut(Guid loopNodeId)
+    {
+        if (_loopBodyScopes.Count > 0 && _loopBodyScopes.Peek().LoopNodeId == loopNodeId)
+            _loopBodyScopes.Pop();
+        _loopIterationSpacingAnchorSeconds.Remove(loopNodeId);
+    }
+
+    public void ApplyLoopTargetIterationsPerSecondDelay(Guid loopNodeId, double targetIterationsPerSecond, CancellationToken cancellationToken)
+    {
+        if (targetIterationsPerSecond <= 0d || !_loopIterationSpacingAnchorSeconds.TryGetValue(loopNodeId, out var anchorSeconds))
+            return;
+
+        var clamped = Math.Clamp(targetIterationsPerSecond, MinLoopTargetIterationsPerSecond, MaxLoopTargetIterationsPerSecond);
+        var minSpacingSeconds = 1d / clamped;
+        var nowSeconds = MonotonicElapsed().TotalSeconds;
+        var waitSeconds = minSpacingSeconds - (nowSeconds - anchorSeconds);
+        if (waitSeconds > 0d)
+            Task.Delay(TimeSpan.FromSeconds(waitSeconds), cancellationToken).GetAwaiter().GetResult();
+    }
+
+    public void MarkLoopIterationDispatchedToBody(Guid loopNodeId) =>
+        _loopIterationSpacingAnchorSeconds[loopNodeId] = MonotonicElapsed().TotalSeconds;
 
     public bool TryResolveProbeResult(Guid targetNodeId, string targetPortId, out AutomationImageProbeResult result)
     {

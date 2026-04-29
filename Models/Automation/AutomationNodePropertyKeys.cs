@@ -71,6 +71,10 @@ public static class AutomationNodePropertyKeys
 
     public const string LoopMaxIterations = "loopMaxIterations";
 
+    public const string LoopTargetIterationsPerSecond = "loopTargetIterationsPerSecond";
+
+    public const string LoopInteriorSkipDocumentStepInterval = "loopInteriorSkipDocumentStepInterval";
+
     public const string DelayMilliseconds = "delayMilliseconds";
     public const string DelayMinMilliseconds = "delayMinMs";
     public const string DelayMaxMilliseconds = "delayMaxMs";

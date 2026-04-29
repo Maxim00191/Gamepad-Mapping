@@ -164,6 +164,20 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
     }
 
     [Fact]
+    public void GetDefinitions_Loop_ExposesPacingProperties()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions("automation.loop");
+
+        Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.LoopTargetIterationsPerSecond);
+        Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.LoopInteriorSkipDocumentStepInterval);
+        var target = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.LoopTargetIterationsPerSecond);
+        Assert.Equal(AutomationNodeInlineEditorKind.Double, target.Kind);
+        var skip = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.LoopInteriorSkipDocumentStepInterval);
+        Assert.Equal(AutomationNodeInlineEditorKind.Boolean, skip.Kind);
+    }
+
+    [Fact]
     public void GetDefinitions_UnknownNodeStillSupportsMetadata()
     {
         var service = new AutomationNodeInlineEditorSchemaService();

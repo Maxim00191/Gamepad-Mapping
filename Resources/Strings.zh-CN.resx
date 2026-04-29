@@ -2636,4 +2636,10 @@
   <data name="AutomationRoiPreview_FullModeSnapshotFailed" xml:space="preserve">
     <value>无法截取预览（未找到窗口、已最小化或受保护）。请先聚焦目标窗口并重试“刷新”。</value>
   </data>
+  <data name="AutomationInlineEditor_LoopTargetIterationsPerSecond" xml:space="preserve">
+    <value>目标迭代频率（次/秒，循环节拍）</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopInteriorSkipDocumentStepInterval" xml:space="preserve">
+    <value>在循环体内跳过图级别的步骤间隔</value>
+  </data>
 </root>

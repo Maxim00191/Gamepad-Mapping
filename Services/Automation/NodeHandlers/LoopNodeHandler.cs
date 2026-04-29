@@ -16,6 +16,7 @@ public sealed class LoopNodeHandler : IAutomationRuntimeNodeHandler
         {
             context.ResetLoopControlFlags();
             context.SetLoopCounter(node.Id, 0);
+            context.ExitLoopBodyScopeForFlowOut(node.Id);
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
@@ -28,14 +29,28 @@ public sealed class LoopNodeHandler : IAutomationRuntimeNodeHandler
         {
             log.Add($"loop:done:{loopCount}");
             context.SetLoopCounter(node.Id, 0);
+            context.ExitLoopBodyScopeForFlowOut(node.Id);
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
+
+        var targetItersPerSec = AutomationNodePropertyReader.ReadDouble(
+            node.Properties,
+            AutomationNodePropertyKeys.LoopTargetIterationsPerSecond,
+            0d);
+        if (loopCount >= 1 && targetItersPerSec > 0d)
+            context.ApplyLoopTargetIterationsPerSecondDelay(node.Id, targetItersPerSec, cancellationToken);
+
+        var skipInteriorInterval = AutomationNodePropertyReader.ReadBool(
+            node.Properties,
+            AutomationNodePropertyKeys.LoopInteriorSkipDocumentStepInterval);
 
         context.SetLoopCounter(node.Id, loopCount + 1);
         if (context.RequestContinueLoop)
             context.ResetLoopControlFlags();
 
         log.Add($"loop:iter:{loopCount + 1}/{maxIterations}");
+        context.EnterLoopBodyScopeIfNeeded(node.Id, skipInteriorInterval);
+        context.MarkLoopIterationDispatchedToBody(node.Id);
         return context.GetExecutionTarget(node.Id, "loop.body");
     }
 }
