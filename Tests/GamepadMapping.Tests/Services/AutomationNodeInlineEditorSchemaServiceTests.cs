@@ -36,6 +36,31 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
     }
 
     [Fact]
+    public void GetDefinitions_CaptureScreenSourceMode_UsesInProcessStoredValue()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions("perception.capture_screen");
+        var sourceMode = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.CaptureSourceMode);
+
+        Assert.Equal(AutomationNodeInlineEditorKind.Choice, sourceMode.Kind);
+        Assert.NotNull(sourceMode.ChoiceOptions);
+        Assert.Contains(sourceMode.ChoiceOptions!, option => option.StoredValue == AutomationCaptureSourceMode.InProcessWindow);
+    }
+
+    [Fact]
+    public void GetDefinitions_CaptureScreenProcessId_IsVisibleForInProcessCapture()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions("perception.capture_screen");
+        var processId = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.CaptureProcessId);
+
+        Assert.Equal(AutomationNodeInlineEditorKind.Integer, processId.Kind);
+        Assert.Equal("AutomationInlineEditor_CaptureProcessId", processId.LabelResourceKey);
+        Assert.Equal(AutomationNodePropertyKeys.CaptureSourceMode, processId.VisibleWhenPropertyKey);
+        Assert.Contains(AutomationCaptureSourceMode.InProcessWindow, processId.VisibleWhenPropertyValues!);
+    }
+
+    [Fact]
     public void GetDefinitions_FindImageYoloPath_DefaultsToBundledRelativePath()
     {
         var service = new AutomationNodeInlineEditorSchemaService();

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Windows.Input;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
 
@@ -12,6 +13,9 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (!AutomationOutputDispatchGuard.CanDispatch(context, "keyboard_key", log))
+            return context.GetExecutionTarget(node.Id, "flow.out");
+
         var keyText = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardKey);
         if (!AutomationKeyboardKeyParser.TryParse(keyText, out var key))
         {
@@ -23,6 +27,7 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         var (keyboard, _) = context.ResolveInputEmulationPair(requestedModeId);
         var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardActionMode);
         var normalizedMode = string.IsNullOrWhiteSpace(mode) ? "tap" : mode.Trim().ToLowerInvariant();
+
         if (string.Equals(normalizedMode, "press", StringComparison.Ordinal))
         {
             keyboard.KeyDown(key);

@@ -13,6 +13,9 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (!AutomationOutputDispatchGuard.CanDispatch(context, "mouse_click", log))
+            return context.GetExecutionTarget(node.Id, "flow.out");
+
         var requestedModeId = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.InputEmulationApiId);
         var (_, mouse) = context.ResolveInputEmulationPair(requestedModeId);
         var useMatchPosition = AutomationNodePropertyReader.ReadBool(node.Properties, AutomationNodePropertyKeys.MouseUseMatchPosition);
@@ -71,7 +74,7 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
             log.Add("mouse:no_virtual_driver");
         }
 
-        ExecuteButtonAction(context, node, mouse, cancellationToken);
+        ExecuteButtonAction(context, node, mouse, hasTargetPosition, targetX, targetY, log, cancellationToken);
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 
@@ -79,6 +82,10 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
         AutomationRuntimeContext context,
         AutomationNodeState node,
         IMouseEmulator mouse,
+        bool hasTargetPosition,
+        int targetX,
+        int targetY,
+        IList<string> log,
         CancellationToken cancellationToken)
     {
         var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseActionMode);

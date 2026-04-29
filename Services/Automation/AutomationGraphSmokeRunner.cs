@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services.Automation;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation.NodeHandlers;
@@ -22,6 +23,9 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private readonly IAutomationInputStateManager _inputState;
     private readonly IHumanInputNoiseController? _humanNoise;
     private readonly IAutomationNodeInputModeResolver _inputModeResolver;
+    private readonly IAutomationRuntimeOutputGuard? _outputGuard;
+    private readonly IAutomationProcessWindowInputDispatcher? _processWindowInputDispatcher;
+    private readonly IProcessTargetService? _processTargetService;
     private readonly INeedleBitmapCache _needleCache;
     private readonly IReadOnlyDictionary<string, IAutomationRuntimeNodeHandler> _handlersByNodeType;
 
@@ -45,7 +49,10 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         IAutomationInputStateManager? inputState = null,
         IHumanInputNoiseController? humanNoise = null,
         IAutomationNodeInputModeResolver? inputModeResolver = null,
-        INeedleBitmapCache? needleCache = null)
+        IAutomationRuntimeOutputGuard? outputGuard = null,
+        IAutomationProcessWindowInputDispatcher? processWindowInputDispatcher = null,
+        INeedleBitmapCache? needleCache = null,
+        IProcessTargetService? processTargetService = null)
     {
         _captureResolver = captureResolver;
         _probe = probe;
@@ -59,6 +66,9 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _inputState = inputState ?? new AutomationInputStateManager(keyboard);
         _humanNoise = humanNoise;
         _inputModeResolver = inputModeResolver ?? new AutomationNodeInputModeResolver(keyboard, mouse);
+        _outputGuard = outputGuard;
+        _processWindowInputDispatcher = processWindowInputDispatcher;
+        _processTargetService = processTargetService;
         _needleCache = needleCache ?? new AutomationNeedleBitmapCache();
         _handlersByNodeType = BuildHandlers();
     }
@@ -94,6 +104,9 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             InputState = _inputState,
             HumanNoise = _humanNoise,
             InputModeResolver = _inputModeResolver,
+            OutputGuard = _outputGuard,
+            ProcessWindowInputDispatcher = _processWindowInputDispatcher,
+            ProcessTargetService = _processTargetService,
             EventBus = eventBus,
             NeedleCache = _needleCache,
             VerboseExecutionLog = verboseExecutionLog

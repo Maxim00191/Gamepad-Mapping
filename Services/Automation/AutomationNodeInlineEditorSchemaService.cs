@@ -53,7 +53,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
 
     private static readonly IReadOnlyList<string> CaptureSourceProcessWindowValues =
     [
-        AutomationCaptureSourceMode.ProcessWindow
+        AutomationCaptureSourceMode.InProcessWindow
     ];
 
     public IReadOnlyList<AutomationNodeInlineEditorDefinition> GetDefinitions(string nodeTypeId)
@@ -101,7 +101,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                         },
                         new AutomationNodeInlineChoiceOption
                         {
-                            StoredValue = AutomationCaptureSourceMode.ProcessWindow,
+                            StoredValue = AutomationCaptureSourceMode.InProcessWindow,
                             LabelResourceKey = "AutomationInlineEditor_CaptureSourceProcessWindow"
                         }
                     ]
@@ -114,6 +114,19 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     PlaceholderResourceKey = "AutomationInlineEditor_CaptureProcessNamePlaceholder",
                     Kind = AutomationNodeInlineEditorKind.Text,
                     DefaultTextValue = "",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.CaptureSourceMode,
+                    VisibleWhenPropertyValues = CaptureSourceProcessWindowValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.capture_screen",
+                    PropertyKey = AutomationNodePropertyKeys.CaptureProcessId,
+                    LabelResourceKey = "AutomationInlineEditor_CaptureProcessId",
+                    PlaceholderResourceKey = "AutomationInlineEditor_CaptureProcessIdPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.Integer,
+                    DefaultTextValue = "0",
+                    MinIntegerValue = 0,
+                    MaxIntegerValue = int.MaxValue,
                     VisibleWhenPropertyKey = AutomationNodePropertyKeys.CaptureSourceMode,
                     VisibleWhenPropertyValues = CaptureSourceProcessWindowValues
                 },

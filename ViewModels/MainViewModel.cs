@@ -1629,7 +1629,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationKbd,
             automationMouse,
             automationHumanNoise,
-            automationInputModeResolver);
+            automationInputModeResolver,
+            _processTargetService);
         var automationScriptRunner = new AutomationScriptRunner(new AutomationGraphJsonSerializer(), automationExecution.SmokeRunner);
         AutomationWorkspacePanel = new AutomationWorkspaceViewModel(
             automationExecution.NodeRegistry,
@@ -1652,7 +1653,8 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationNodeLayoutMetricsService,
             automationOutputActionSelectionService,
             automationInputModeSelectionService,
-            automationNodeContextMenuService);
+            automationNodeContextMenuService,
+            _processTargetService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _mainShellVisibility, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;

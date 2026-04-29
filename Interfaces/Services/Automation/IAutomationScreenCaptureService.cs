@@ -13,5 +13,7 @@ public interface IAutomationScreenCaptureService
 
     AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(string? processName);
 
+    AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(AutomationProcessWindowTarget processTarget);
+
     BitmapSource CaptureRectanglePhysical(int physicalOriginX, int physicalOriginY, int widthPx, int heightPx);
 }

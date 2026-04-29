@@ -209,10 +209,9 @@
       "x": 3440,
       "y": 1776,
       "properties": {
-        "description": "Yellow X = target, white X = current.",
-        "pidKp": 0.02,
+        "pidKp": 0.008,
         "pidKi": 0,
-        "pidKd": 0.0008
+        "pidKd": 0.005
       }
     },
     {
@@ -222,7 +221,7 @@
       "y": 1376,
       "properties": {
         "description": "Steer right (D) when PID output \u003E deadband.",
-        "compareRight": 0.2
+        "compareRight": 0.15
       }
     },
     {
@@ -232,7 +231,7 @@
       "y": 1728,
       "properties": {
         "description": "Steer left (A) when PID output \u003C deadband.",
-        "compareRight": -0.2
+        "compareRight": -0.15
       }
     },
     {

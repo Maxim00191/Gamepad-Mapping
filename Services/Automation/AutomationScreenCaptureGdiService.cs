@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -14,6 +11,12 @@ namespace GamepadMapperGUI.Services.Automation;
 public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCaptureService
 {
     private const uint Srccopy = 0x00CC0020;
+    private readonly IAutomationProcessWindowResolver _processWindowResolver;
+
+    public AutomationScreenCaptureGdiService(IAutomationProcessWindowResolver? processWindowResolver = null)
+    {
+        _processWindowResolver = processWindowResolver ?? new AutomationProcessWindowResolver();
+    }
 
     public AutomationVirtualScreenCaptureResult CaptureVirtualScreenPhysical()
     {
@@ -29,22 +32,23 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
 
     public AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(string? processName)
     {
+        return CaptureProcessWindowPhysical(AutomationProcessWindowTarget.From(processName));
+    }
+
+    public AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(AutomationProcessWindowTarget processTarget)
+    {
         using var _ = AutomationDpiAwarenessScope.EnterPerMonitorAware();
-        var windowHandle = ResolveTargetWindowHandle(processName);
-        if (windowHandle == IntPtr.Zero)
+        if (!_processWindowResolver.TryResolveWindowHandle(processTarget, out var windowHandle, out var bounds, out var resolvedTarget))
             throw new InvalidOperationException("process_window_not_found");
 
-        if (!User32.GetWindowRect(windowHandle, out var rect))
-            throw new InvalidOperationException("process_window_rect_unavailable");
-
-        var width = rect.Right - rect.Left;
-        var height = rect.Bottom - rect.Top;
+        var width = bounds.Width;
+        var height = bounds.Height;
         if (width <= 0 || height <= 0)
             throw new InvalidOperationException("process_window_rect_invalid");
 
-        var bitmap = CaptureRectanglePhysicalCore(rect.Left, rect.Top, width, height);
-        var metrics = new AutomationVirtualScreenMetrics(rect.Left, rect.Top, bitmap.PixelWidth, bitmap.PixelHeight);
-        return new AutomationVirtualScreenCaptureResult(bitmap, metrics);
+        var bitmap = CaptureWindowPhysicalCore(windowHandle, width, height);
+        var metrics = new AutomationVirtualScreenMetrics(bounds.X, bounds.Y, bitmap.PixelWidth, bitmap.PixelHeight);
+        return new AutomationVirtualScreenCaptureResult(bitmap, metrics, resolvedTarget);
     }
 
     private AutomationVirtualScreenCaptureResult CaptureVirtualScreenPhysicalCore()
@@ -119,122 +123,78 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
         }
     }
 
-    private static IntPtr ResolveTargetWindowHandle(string? processName)
+    private static BitmapSource CaptureWindowPhysicalCore(IntPtr windowHandle, int widthPx, int heightPx)
     {
-        if (string.IsNullOrWhiteSpace(processName))
-            return User32.GetForegroundWindow();
+        if (windowHandle == IntPtr.Zero)
+            throw new ArgumentOutOfRangeException(nameof(windowHandle));
+        if (widthPx <= 0 || heightPx <= 0)
+            throw new ArgumentOutOfRangeException(nameof(widthPx));
 
-        var normalized = NormalizeProcessName(processName);
-        if (string.IsNullOrWhiteSpace(normalized))
-            return User32.GetForegroundWindow();
+        var windowDc = User32.GetWindowDC(windowHandle);
+        if (windowDc == IntPtr.Zero)
+            throw new InvalidOperationException("process_window_dc_unavailable");
 
         try
         {
-            var processes = Process.GetProcessesByName(normalized);
+            var memoryDc = Gdi32.CreateCompatibleDC(windowDc);
+            if (memoryDc == IntPtr.Zero)
+                throw new InvalidOperationException("process_window_dc_create_failed");
+
             try
             {
-                if (processes.Length == 0)
-                    return IntPtr.Zero;
+                var bitmapHandle = Gdi32.CreateCompatibleBitmap(windowDc, widthPx, heightPx);
+                if (bitmapHandle == IntPtr.Zero)
+                    throw new InvalidOperationException("process_window_bitmap_create_failed");
 
-                var pidSet = processes.Select(p => p.Id).ToHashSet();
-                var state = new EnumWindowsState(pidSet);
-                var gch = GCHandle.Alloc(state);
                 try
                 {
-                    User32.EnumWindows(EnumWindowsCollect, GCHandle.ToIntPtr(gch));
+                    var oldObject = Gdi32.SelectObject(memoryDc, bitmapHandle);
+                    var printSucceeded = User32.PrintWindow(windowHandle, memoryDc, User32.PrintWindowRenderFullContent);
+                    if (!printSucceeded)
+                        printSucceeded = User32.PrintWindow(windowHandle, memoryDc, 0);
+
+                    Gdi32.SelectObject(memoryDc, oldObject);
+
+                    if (!printSucceeded)
+                        throw new InvalidOperationException("process_window_print_failed");
+
+                    var bitmap = Imaging.CreateBitmapSourceFromHBitmap(
+                        bitmapHandle,
+                        IntPtr.Zero,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+                    bitmap.Freeze();
+                    try
+                    {
+                        return AutomationBitmapDpiNormalizer.NormalizeToDefaultDpi(bitmap);
+                    }
+                    catch
+                    {
+                        return bitmap;
+                    }
                 }
                 finally
                 {
-                    gch.Free();
+                    Gdi32.DeleteObject(bitmapHandle);
                 }
-
-                if (state.Candidates.Count == 0)
-                {
-                    foreach (var process in processes)
-                    {
-                        if (IsWindowCaptureCandidate(process.MainWindowHandle))
-                            return process.MainWindowHandle;
-                    }
-
-                    return IntPtr.Zero;
-                }
-
-                var fg = User32.GetForegroundWindow();
-                if (fg != IntPtr.Zero)
-                {
-                    foreach (var c in state.Candidates)
-                    {
-                        if (c.Hwnd == fg)
-                            return fg;
-                    }
-                }
-
-                return state.Candidates.OrderByDescending(c => c.Area).First().Hwnd;
             }
             finally
             {
-                foreach (var process in processes)
-                    process.Dispose();
+                Gdi32.DeleteDC(memoryDc);
             }
         }
-        catch
+        finally
         {
-            return IntPtr.Zero;
+            User32.ReleaseDC(windowHandle, windowDc);
         }
     }
-
-    private sealed class EnumWindowsState
-    {
-        public EnumWindowsState(HashSet<int> processIds) => ProcessIds = processIds;
-
-        public HashSet<int> ProcessIds { get; }
-
-        public List<(IntPtr Hwnd, long Area)> Candidates { get; } = [];
-    }
-
-    private static bool EnumWindowsCollect(IntPtr hWnd, IntPtr lParam)
-    {
-        var state = (EnumWindowsState)GCHandle.FromIntPtr(lParam).Target!;
-        if (!User32.IsWindow(hWnd) || !User32.IsWindowVisible(hWnd) || User32.IsIconic(hWnd))
-            return true;
-
-        User32.GetWindowThreadProcessId(hWnd, out var pid);
-        if (!state.ProcessIds.Contains((int)pid))
-            return true;
-
-        if (!User32.GetWindowRect(hWnd, out var rect))
-            return true;
-
-        var w = rect.Right - rect.Left;
-        var h = rect.Bottom - rect.Top;
-        if (w < 32 || h < 32)
-            return true;
-
-        state.Candidates.Add((hWnd, (long)w * h));
-        return true;
-    }
-
-    private static string NormalizeProcessName(string processName)
-    {
-        var trimmed = processName.Trim();
-        if (trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            return trimmed[..^4].Trim();
-        return trimmed;
-    }
-
-    private static bool IsWindowCaptureCandidate(IntPtr handle)
-    {
-        if (handle == IntPtr.Zero || !User32.IsWindowVisible(handle))
-            return false;
-        return User32.GetWindowRect(handle, out var rect) && rect.Right > rect.Left && rect.Bottom > rect.Top;
-    }
-
-    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     private static class User32
     {
+        public const uint PrintWindowRenderFullContent = 0x00000002;
+
         [DllImport("user32.dll")]
-        public static extern IntPtr GetForegroundWindow();
+        public static extern IntPtr GetWindowDC(IntPtr hwnd);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetDC(IntPtr hwnd);
@@ -244,26 +204,7 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool IsWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool IsIconic(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool IsWindowVisible(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+        public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdcBlt, uint nFlags);
     }
 
     private static class Gdi32
@@ -288,12 +229,4 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
             uint rop);
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
 }

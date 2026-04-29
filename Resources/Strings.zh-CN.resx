@@ -2463,16 +2463,16 @@
     <value>截图来源</value>
   </data>
   <data name="AutomationInlineEditor_CaptureSourceScreen" xml:space="preserve">
-    <value>屏幕窗口</value>
+    <value>全局屏幕</value>
   </data>
   <data name="AutomationInlineEditor_CaptureSourceProcessWindow" xml:space="preserve">
-    <value>进程窗口</value>
+    <value>进程内窗口</value>
   </data>
   <data name="AutomationInlineEditor_CaptureProcessName" xml:space="preserve">
     <value>进程名</value>
   </data>
   <data name="AutomationInlineEditor_CaptureProcessNamePlaceholder" xml:space="preserve">
-    <value>可选，例如 obs64（留空 = 当前前台窗口）</value>
+    <value>可选，例如 obs64（留空 = 当前前台目标窗口）</value>
   </data>
   <data name="AutomationInlineEditor_CaptureMode" xml:space="preserve">
     <value>截图范围</value>
@@ -2613,7 +2613,7 @@
     <value>完整虚拟屏幕（物理像素）</value>
   </data>
   <data name="AutomationRoiPreview_StatusProcessWindowFormat" xml:space="preserve">
-    <value>进程窗口：{0}</value>
+    <value>进程内窗口：{0}</value>
   </data>
   <data name="AutomationRoiPreview_ForegroundLabel" xml:space="preserve">
     <value>前台窗口</value>
@@ -2628,7 +2628,7 @@
     <value>实时虚拟屏幕</value>
   </data>
   <data name="AutomationRoiPreview_LiveSourceProcessFormat" xml:space="preserve">
-    <value>实时窗口（{0}）</value>
+    <value>实时进程内窗口（{0}）</value>
   </data>
   <data name="AutomationRoiPreview_FullModeSnapshotFailed" xml:space="preserve">
     <value>无法截取预览（未找到窗口、已最小化或受保护）。请先聚焦目标窗口并重试“刷新”。</value>
@@ -2662,5 +2662,20 @@
   </data>
   <data name="AutomationInlineEditor_CaptureApiDesktopDuplication" xml:space="preserve">
     <value>桌面复制（DXGI，适合游戏场景）</value>
+  </data>
+  <data name="AutomationWorkspace_RoiInspectorLivePreview" xml:space="preserve">
+    <value>实时预览</value>
+  </data>
+  <data name="AutomationWorkspace_RoiInspectorLivePreviewHint" xml:space="preserve">
+    <value>实时显示截取区域画面（刷新间隔与 ROI 预览窗口一致）。关闭后仅显示已保存快照并降低 CPU；全屏实时预览比小区域更耗性能。</value>
+  </data>
+  <data name="AutomationRoiPreview_TargetProcessUnspecifiedLabel" xml:space="preserve">
+    <value>目标进程（未指定）</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessId" xml:space="preserve">
+    <value>进程 PID</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessIdPlaceholder" xml:space="preserve">
+    <value>可选 PID；填 0 时按进程名解析</value>
   </data>
 </root>

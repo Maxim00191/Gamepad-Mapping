@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Automation;
@@ -202,7 +203,9 @@ public sealed class AutomationGraphSmokeRunnerTests
             new AutomationVirtualScreenMetrics(50, 60, bitmap.PixelWidth, bitmap.PixelHeight));
 
         captureService
-            .Setup(s => s.CaptureProcessWindowPhysical("obs64"))
+            .Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "obs64" && target.ProcessId == 0)))
             .Returns(processCapture);
 
         var sut = new AutomationGraphSmokeRunner(
@@ -218,7 +221,7 @@ public sealed class AutomationGraphSmokeRunnerTests
 
         var capture = CreateNode("perception.capture_screen", new JsonObject
         {
-            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.ProcessWindow,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
             [AutomationNodePropertyKeys.CaptureProcessName] = "obs64"
         });
         var log = CreateNode("debug.log");
@@ -236,7 +239,9 @@ public sealed class AutomationGraphSmokeRunnerTests
         Assert.True(
             result.Ok,
             $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
-        captureService.Verify(s => s.CaptureProcessWindowPhysical("obs64"), Times.Once);
+        captureService.Verify(s => s.CaptureProcessWindowPhysical(
+            It.Is<AutomationProcessWindowTarget>(target =>
+                target.ProcessName == "obs64" && target.ProcessId == 0)), Times.Once);
         captureService.Verify(s => s.CaptureVirtualScreenPhysical(), Times.Never);
     }
 
@@ -879,6 +884,421 @@ public sealed class AutomationGraphSmokeRunnerTests
     }
 
     [Fact]
+    public async Task RunOnceAsync_InProcessCaptureRoutesKeyboardOutputToKeyboardEmulator()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var processTargetService = new Mock<IProcessTargetService>(MockBehavior.Loose);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(captureResult);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy(),
+            outputGuard: new AutomationRuntimeOutputGuard(processTargetService.Object));
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
+        });
+        var keyboardNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, keyboardNode],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", keyboardNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_InProcessRoiCaptureRoutesKeyboardOutputToKeyboardEmulator()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap(4, 4);
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(10, 20, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(captureResult);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Roi,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 11,
+                ["y"] = 22,
+                ["width"] = 2,
+                ["height"] = 2
+            }
+        });
+        var keyboardNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, keyboardNode],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", keyboardNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+        captureService.Verify(s => s.CaptureRectanglePhysical(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_InProcessCaptureWithResolvedTargetRoutesKeyboardOutputToKeyboardEmulator()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var resolvedTarget = AutomationProcessWindowTarget.From("MyGame", 4242);
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight),
+            resolvedTarget);
+
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(captureResult);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
+        });
+        var keyboardNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, keyboardNode],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", keyboardNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_InProcessCaptureRoutesMouseOutputToMouseEmulator()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var virtualMouse = new Mock<IVirtualScreenMouse>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(captureResult);
+        virtualMouse.Setup(v => v.MoveCursorToVirtualScreenPixels(123, 456));
+        mouse.Setup(m => m.LeftClick());
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            virtualMouse.Object,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
+        });
+        var mouseNode = CreateNode("output.mouse_click", new JsonObject
+        {
+            [AutomationNodePropertyKeys.MouseCoordinateMode] = "absolute",
+            [AutomationNodePropertyKeys.MouseAbsoluteX] = 123,
+            [AutomationNodePropertyKeys.MouseAbsoluteY] = 456
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, mouseNode],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", mouseNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        virtualMouse.Verify(v => v.MoveCursorToVirtualScreenPixels(123, 456), Times.Once);
+        mouse.Verify(m => m.LeftClick(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_InProcessMouseWithoutTargetFallsBackToGlobalClick()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(captureResult);
+        mouse.Setup(m => m.LeftClick());
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
+        });
+        var mouseNode = CreateNode("output.mouse_click");
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, mouseNode],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", mouseNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        mouse.Verify(m => m.LeftClick(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_CachedInProcessCaptureUsesKeyboardEmulator()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(captureResult);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var sourceCapture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
+        });
+        var cachedCapture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureCacheRefNodeId] = sourceCapture.Id.ToString()
+        });
+        var keyboardNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [sourceCapture, cachedCapture, keyboardNode],
+            Edges =
+            [
+                Edge(sourceCapture.Id, "flow.out", cachedCapture.Id, "flow.in"),
+                Edge(cachedCapture.Id, "flow.out", keyboardNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+        captureService.Verify(s => s.CaptureProcessWindowPhysical(
+            It.Is<AutomationProcessWindowTarget>(target =>
+                target.ProcessName == "MyGame" && target.ProcessId == 0)), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_GlobalCaptureDoesNotRequireForegroundProcessForOutput()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var processTargetService = new Mock<IProcessTargetService>(MockBehavior.Strict);
+        var processDispatcher = new Mock<IAutomationProcessWindowInputDispatcher>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+        var captureResult = new AutomationVirtualScreenCaptureResult(
+            bitmap,
+            new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
+
+        captureService.Setup(s => s.CaptureVirtualScreenPhysical()).Returns(captureResult);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy(),
+            outputGuard: new AutomationRuntimeOutputGuard(processTargetService.Object),
+            processWindowInputDispatcher: processDispatcher.Object);
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.Screen
+        });
+        var keyboardNode = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, keyboardNode],
+            Edges =
+            [
+                Edge(capture.Id, "flow.out", keyboardNode.Id, "flow.in")
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+        processDispatcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task RunOnceAsync_ExecutesMacroSubgraphAndReturnsToParentFlow()
     {
         var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
@@ -1021,6 +1441,8 @@ public sealed class AutomationGraphSmokeRunnerTests
         var json = await File.ReadAllTextAsync(path);
         var serializer = new AutomationGraphJsonSerializer();
         var doc = serializer.Deserialize(json);
+        const int bitmapWidth = 2;
+        const int bitmapHeight = 2;
         foreach (var node in doc.Nodes)
         {
             node.Properties ??= new JsonObject();
@@ -1028,17 +1450,29 @@ public sealed class AutomationGraphSmokeRunnerTests
                 AutomationNodePropertyReader.WriteInt(node.Properties, AutomationNodePropertyKeys.LoopMaxIterations, 2);
             if (string.Equals(node.NodeTypeId, "automation.delay", StringComparison.Ordinal))
                 AutomationNodePropertyReader.WriteInt(node.Properties, AutomationNodePropertyKeys.DelayMilliseconds, 0);
+            if (string.Equals(node.NodeTypeId, "perception.capture_screen", StringComparison.Ordinal) &&
+                AutomationCaptureSourceMode.IsInProcessWindow(
+                    AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.CaptureSourceMode)))
+            {
+                node.Properties[AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+                {
+                    ["x"] = 0,
+                    ["y"] = 0,
+                    ["width"] = bitmapWidth,
+                    ["height"] = bitmapHeight
+                };
+            }
         }
 
         var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
         var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
         var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Loose);
         var mouse = new Mock<IMouseEmulator>(MockBehavior.Loose);
-        var bitmap = CreateBitmap();
+        var bitmap = CreateBitmap(bitmapWidth, bitmapHeight);
         var metrics = new AutomationVirtualScreenMetrics(0, 0, bitmap.PixelWidth, bitmap.PixelHeight);
         captureService.Setup(s => s.CaptureVirtualScreenPhysical())
             .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
-        captureService.Setup(s => s.CaptureProcessWindowPhysical(It.IsAny<string?>()))
+        captureService.Setup(s => s.CaptureProcessWindowPhysical(It.IsAny<AutomationProcessWindowTarget>()))
             .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
         captureService.Setup(s =>
                 s.CaptureRectanglePhysical(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
@@ -1092,9 +1526,10 @@ public sealed class AutomationGraphSmokeRunnerTests
             },
             AutomationCaptureApi.Gdi);
 
-    private static BitmapSource CreateBitmap()
+    private static BitmapSource CreateBitmap(int width = 2, int height = 2)
     {
-        var bitmap = BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null, new byte[16], 8);
+        var stride = width * 4;
+        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, new byte[stride * height], stride);
         if (bitmap.CanFreeze)
             bitmap.Freeze();
 

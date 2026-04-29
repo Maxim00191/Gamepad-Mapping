@@ -4,4 +4,5 @@ namespace GamepadMapperGUI.Models.Automation;
 
 public readonly record struct AutomationVirtualScreenCaptureResult(
     BitmapSource Bitmap,
-    AutomationVirtualScreenMetrics Metrics);
+    AutomationVirtualScreenMetrics Metrics,
+    AutomationProcessWindowTarget ProcessTarget = default);

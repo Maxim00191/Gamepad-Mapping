@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation;
 using Moq;
@@ -60,18 +62,21 @@ public sealed class AutomationDirectScreenCaptureTests
     }
 
     [Fact]
-    public void TryDirectCapture_ProcessWindow_CallsProcessCapture()
+    public void TryDirectCapture_InProcessWindow_CallsProcessCapture()
     {
         var bmp = CreateBitmap();
         var metrics = new AutomationVirtualScreenMetrics(100, 200, 2, 2);
         var wrapped = new AutomationVirtualScreenCaptureResult(bmp, metrics);
         var mock = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
-        mock.Setup(s => s.CaptureProcessWindowPhysical("MyGame")).Returns(wrapped);
+        mock.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(wrapped);
 
         var props = new JsonObject
         {
             [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
-            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.ProcessWindow,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
             [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
         };
 
@@ -79,6 +84,107 @@ public sealed class AutomationDirectScreenCaptureTests
         Assert.True(ok);
         Assert.Same(bmp, result.Bitmap);
         Assert.Equal(100, result.Metrics.PhysicalOriginX);
+        mock.VerifyAll();
+    }
+
+    [Fact]
+    public void TryDirectCapture_InProcessWindow_PassesProcessIdWhenConfigured()
+    {
+        var bmp = CreateBitmap();
+        var metrics = new AutomationVirtualScreenMetrics(100, 200, 2, 2);
+        var resolvedTarget = AutomationProcessWindowTarget.From("MyGame", 4242);
+        var wrapped = new AutomationVirtualScreenCaptureResult(bmp, metrics, resolvedTarget);
+        var mock = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        mock.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 4242)))
+            .Returns(wrapped);
+
+        var props = new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame",
+            [AutomationNodePropertyKeys.CaptureProcessId] = 4242
+        };
+
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out var result);
+
+        Assert.True(ok);
+        Assert.Equal(4242, result.ProcessTarget.ProcessId);
+        mock.VerifyAll();
+    }
+
+    [Fact]
+    public void TryDirectCapture_InProcessWindow_ResolvesLiveProcessId()
+    {
+        var bmp = CreateBitmap();
+        var metrics = new AutomationVirtualScreenMetrics(100, 200, 2, 2);
+        var resolvedTarget = AutomationProcessWindowTarget.From("MyGame", 4242);
+        var wrapped = new AutomationVirtualScreenCaptureResult(bmp, metrics, resolvedTarget);
+        var capture = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var processTargets = new Mock<IProcessTargetService>(MockBehavior.Strict);
+        processTargets
+            .Setup(s => s.CreateTargetFromDeclaredProcessName("MyGame"))
+            .Returns(new ProcessInfo { ProcessName = "MyGame", ProcessId = 4242 });
+        capture.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 4242)))
+            .Returns(wrapped);
+
+        var props = new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame",
+            [AutomationNodePropertyKeys.CaptureProcessId] = 1111
+        };
+
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(
+            CreateResolver(capture.Object),
+            props,
+            out var result,
+            processTargets.Object);
+
+        Assert.True(ok);
+        Assert.Equal(4242, result.ProcessTarget.ProcessId);
+        capture.VerifyAll();
+        processTargets.VerifyAll();
+    }
+
+    [Fact]
+    public void TryDirectCapture_InProcessRoi_CropsProcessWindowCapture()
+    {
+        var bmp = CreateBitmap(6, 6);
+        var metrics = new AutomationVirtualScreenMetrics(100, 200, 6, 6);
+        var wrapped = new AutomationVirtualScreenCaptureResult(bmp, metrics);
+        var mock = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        mock.Setup(s => s.CaptureProcessWindowPhysical(
+                It.Is<AutomationProcessWindowTarget>(target =>
+                    target.ProcessName == "MyGame" && target.ProcessId == 0)))
+            .Returns(wrapped);
+
+        var props = new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Roi,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 102,
+                ["y"] = 203,
+                ["width"] = 2,
+                ["height"] = 2
+            }
+        };
+
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out var result);
+
+        Assert.True(ok);
+        Assert.Equal(2, result.Bitmap.PixelWidth);
+        Assert.Equal(2, result.Bitmap.PixelHeight);
+        Assert.Equal(102, result.Metrics.PhysicalOriginX);
+        Assert.Equal(203, result.Metrics.PhysicalOriginY);
         mock.VerifyAll();
     }
 
@@ -127,9 +233,10 @@ public sealed class AutomationDirectScreenCaptureTests
             },
             AutomationCaptureApi.Gdi);
 
-    private static BitmapSource CreateBitmap()
+    private static BitmapSource CreateBitmap(int width = 2, int height = 2)
     {
-        var bitmap = BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgra32, null, new byte[16], 8);
+        var stride = width * 4;
+        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, new byte[stride * height], stride);
         if (bitmap.CanFreeze)
             bitmap.Freeze();
 

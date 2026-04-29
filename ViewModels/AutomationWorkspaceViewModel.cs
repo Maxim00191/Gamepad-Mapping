@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services.Automation;
@@ -16,6 +17,7 @@ using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Utils;
+using Gamepad_Mapping.Utils;
 using Gamepad_Mapping.Views.Automation;
 using Microsoft.Win32;
 
@@ -50,6 +52,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
     private readonly IAutomationInputModeSelectionService _inputModeSelectionService;
     private readonly IAutomationNodeContextMenuService _nodeContextMenuService;
+    private readonly IProcessTargetService? _processTargetService;
+    private readonly Dictionary<Guid, Debouncer> _captureProcessTargetDebouncers = [];
 
     private AutomationGraphDocument _document = new();
     private Guid? _dragUndoSessionNodeId;
@@ -66,6 +70,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private CancellationTokenSource? _activeRunCts;
     private AutomationConnectionDragState? _connectionDrag;
     private AutomationRoiPreviewWindow? _roiPreviewWindow;
+    private DispatcherTimer? _roiInspectorLiveTimer;
 
     public AutomationWorkspaceViewModel(
         INodeTypeRegistry registry,
@@ -85,7 +90,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationNodeLayoutMetricsService nodeLayoutMetricsService,
         IAutomationOutputActionSelectionService outputActionSelectionService,
         IAutomationInputModeSelectionService inputModeSelectionService,
-        IAutomationNodeContextMenuService nodeContextMenuService)
+        IAutomationNodeContextMenuService nodeContextMenuService,
+        IProcessTargetService? processTargetService = null)
     {
         _registry = registry;
         _serializer = serializer;
@@ -105,6 +111,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _outputActionSelectionService = outputActionSelectionService;
         _inputModeSelectionService = inputModeSelectionService;
         _nodeContextMenuService = nodeContextMenuService;
+        _processTargetService = processTargetService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
@@ -186,6 +193,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     [ObservableProperty]
     private string _roiInspectorSummaryText = "";
+
+    [ObservableProperty]
+    private bool _isRoiInspectorLivePreview = true;
+
+    partial void OnIsRoiInspectorLivePreviewChanged(bool value) =>
+        RefreshRoiThumbnail(SelectedNode);
 
     public ObservableCollection<string> AutomationRunLogLines { get; } = [];
 
@@ -713,6 +726,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             outputPorts);
         RefreshNodeDisplayMetadata(vm);
         PopulateInlineEditors(vm);
+        ScheduleCaptureProcessTargetResolutionForNode(vm);
         vm.ApplyLayoutMetrics(_nodeLayoutMetricsService.Build(
             vm.InputPorts.Select(p => p.DisplayLabel).ToArray(),
             vm.OutputPorts.Select(p => p.DisplayLabel).ToArray(),
@@ -1393,7 +1407,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     private bool CanPickCaptureRoi() =>
         SelectedNode is not null &&
-        string.Equals(SelectedNode.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase);
+        string.Equals(SelectedNode.NodeTypeId, AutomationNodeTypeIds.CaptureScreen, StringComparison.OrdinalIgnoreCase);
 
     [RelayCommand(CanExecute = nameof(CanPickCaptureRoi))]
     private async Task PickCaptureRegionAsync()
@@ -1564,6 +1578,68 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
         _undo.PushCheckpoint(checkpoint);
         NotifyUndoRedoCommands();
+        PopulateInlineEditors(node);
+        ScheduleCaptureProcessTargetResolution(node, definition.PropertyKey);
+        if (SelectedNode?.Id == node.Id)
+            RefreshRoiThumbnail(node);
+    }
+
+    private void ScheduleCaptureProcessTargetResolution(AutomationCanvasNodeViewModel node, string changedPropertyKey)
+    {
+        if (_processTargetService is null ||
+            !string.Equals(node.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase) ||
+            changedPropertyKey is not AutomationNodePropertyKeys.CaptureProcessName
+                and not AutomationNodePropertyKeys.CaptureSourceMode
+                and not AutomationNodePropertyKeys.CaptureProcessId)
+        {
+            return;
+        }
+
+        ScheduleCaptureProcessTargetResolutionForNode(node);
+    }
+
+    private void ScheduleCaptureProcessTargetResolutionForNode(AutomationCanvasNodeViewModel node)
+    {
+        if (_processTargetService is null ||
+            !string.Equals(node.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var nodeId = node.Id;
+        if (!_captureProcessTargetDebouncers.TryGetValue(nodeId, out var debouncer))
+        {
+            debouncer = new Debouncer(TimeSpan.FromMilliseconds(1000));
+            _captureProcessTargetDebouncers[nodeId] = debouncer;
+        }
+
+        debouncer.Debounce(() => ResolveCaptureProcessTarget(nodeId));
+    }
+
+    private void ResolveCaptureProcessTarget(Guid nodeId)
+    {
+        if (!_nodeVmById.TryGetValue(nodeId, out var node))
+        {
+            _captureProcessTargetDebouncers.Remove(nodeId);
+            return;
+        }
+
+        var props = node.State.Properties ??= new JsonObject();
+        var sourceMode = AutomationCaptureSourceMode.Normalize(
+            AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureSourceMode));
+        if (!AutomationCaptureSourceMode.IsInProcessWindow(sourceMode))
+            return;
+
+        var processName = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureProcessName);
+        var currentProcessId = AutomationNodePropertyReader.ReadInt(props, AutomationNodePropertyKeys.CaptureProcessId, 0);
+        var resolved = AutomationProcessTargetResolution.ResolveLiveTarget(
+            _processTargetService,
+            processName,
+            currentProcessId);
+        if (resolved.ProcessId == currentProcessId)
+            return;
+
+        AutomationNodePropertyReader.WriteInt(props, AutomationNodePropertyKeys.CaptureProcessId, resolved.ProcessId);
         PopulateInlineEditors(node);
         if (SelectedNode?.Id == node.Id)
             RefreshRoiThumbnail(node);
@@ -1785,7 +1861,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     private bool CanClearCaptureRoi() =>
         SelectedNode is not null &&
-        string.Equals(SelectedNode.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase);
+        string.Equals(SelectedNode.NodeTypeId, AutomationNodeTypeIds.CaptureScreen, StringComparison.OrdinalIgnoreCase);
 
     [RelayCommand(CanExecute = nameof(CanClearCaptureRoi))]
     private void ClearCaptureRegion()
@@ -1851,8 +1927,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         var selected = SelectedNode;
         if (selected is null)
             return;
-        if (!string.Equals(selected.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(sourceNode.NodeTypeId, "perception.capture_screen", StringComparison.OrdinalIgnoreCase) ||
+        if (!string.Equals(selected.NodeTypeId, AutomationNodeTypeIds.CaptureScreen, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(sourceNode.NodeTypeId, AutomationNodeTypeIds.CaptureScreen, StringComparison.OrdinalIgnoreCase) ||
             selected.Id == sourceNode.Id)
         {
             _toast.ShowError("AutomationNodeContextMenu_Title", "AutomationNodeContextMenu_CaptureCacheApply_InvalidSelection");
@@ -1985,45 +2061,82 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         RoiInspectorThumbnail = null;
         RoiInspectorSummaryText = "";
         if (node?.State.Properties is null)
+        {
+            UpdateRoiInspectorLiveTimer();
             return;
+        }
+
+        if (!string.Equals(node.NodeTypeId, AutomationNodeTypeIds.CaptureScreen, StringComparison.OrdinalIgnoreCase))
+        {
+            UpdateRoiInspectorLiveTimer();
+            return;
+        }
 
         var props = node.State.Properties;
-        var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
-        if (string.IsNullOrWhiteSpace(mode))
-            mode = AutomationCaptureMode.Full;
-
-        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase) &&
-            AutomationNodePropertyReader.TryReadRoiCapture(props, out var roi) &&
-            !roi.IsEmpty)
+        if (!AutomationCapturePreviewSupport.TryGetPreviewableProperties(node.NodeTypeId, props, out var okProps, out var blockReason) ||
+            okProps is null)
         {
-            RoiInspectorSummaryText = string.Format(
-                Local("AutomationRoiPreview_StatusRoiFormat"),
-                roi.X,
-                roi.Y,
-                roi.Width,
-                roi.Height);
-        }
-        else if (string.Equals(mode, AutomationCaptureMode.Full, StringComparison.OrdinalIgnoreCase))
-        {
-            var sourceMode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureSourceMode);
-            if (string.IsNullOrWhiteSpace(sourceMode))
-                sourceMode = AutomationCaptureSourceMode.Screen;
-
-            if (string.Equals(sourceMode, AutomationCaptureSourceMode.ProcessWindow, StringComparison.OrdinalIgnoreCase))
-            {
-                var processName = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureProcessName);
-                var label = string.IsNullOrWhiteSpace(processName)
-                    ? Local("AutomationRoiPreview_ForegroundLabel")
-                    : processName;
-                RoiInspectorSummaryText = string.Format(Local("AutomationRoiPreview_StatusProcessWindowFormat"), label);
-            }
-            else
-            {
-                RoiInspectorSummaryText = Local("AutomationRoiPreview_StatusFullScreenShort");
-            }
+            RoiInspectorSummaryText = blockReason == AutomationCapturePreviewBlockReason.CacheReference
+                ? Local("AutomationRoiPreview_NoPreviewCacheRef")
+                : Local("AutomationRoiPreview_NoCapture");
+            UpdateRoiInspectorLiveTimer();
+            return;
         }
 
-        RoiInspectorThumbnail = _roiPreviewImageProvider.TryLoadStoredPreview(props);
+        RoiInspectorSummaryText = AutomationCapturePreviewSupport.FormatCaptureStatus(okProps, Local);
+
+        if (IsRoiInspectorLivePreview)
+        {
+            var live = _roiPreviewImageProvider.TryCaptureLivePreview(okProps);
+            RoiInspectorThumbnail = live ?? _roiPreviewImageProvider.TryLoadStoredPreview(okProps);
+        }
+        else
+            RoiInspectorThumbnail = _roiPreviewImageProvider.TryLoadStoredPreview(okProps);
+
+        UpdateRoiInspectorLiveTimer();
+    }
+
+    private void UpdateRoiInspectorLiveTimer()
+    {
+        if (_roiInspectorLiveTimer is null)
+        {
+            _roiInspectorLiveTimer = new DispatcherTimer(
+                TimeSpan.FromMilliseconds(AutomationCapturePreviewDefaults.LiveRefreshIntervalMilliseconds),
+                DispatcherPriority.Normal,
+                OnRoiInspectorLiveTick,
+                Dispatcher.CurrentDispatcher);
+        }
+
+        var run = IsRoiInspectorLivePreview &&
+            SelectedNode is not null &&
+            AutomationCapturePreviewSupport.TryGetPreviewableProperties(
+                SelectedNode.NodeTypeId,
+                SelectedNode.State.Properties,
+                out _,
+                out _);
+
+        if (run)
+            _roiInspectorLiveTimer.Start();
+        else
+            _roiInspectorLiveTimer.Stop();
+    }
+
+    private void OnRoiInspectorLiveTick(object? sender, EventArgs e)
+    {
+        if (!IsRoiInspectorLivePreview || SelectedNode is null)
+            return;
+
+        if (!AutomationCapturePreviewSupport.TryGetPreviewableProperties(
+                SelectedNode.NodeTypeId,
+                SelectedNode.State.Properties,
+                out var props,
+                out _) ||
+            props is null)
+            return;
+
+        var live = _roiPreviewImageProvider.TryCaptureLivePreview(props);
+        if (live is not null)
+            RoiInspectorThumbnail = live;
     }
 
     private static string ReadStringDefaulted(JsonObject? props, AutomationNodeInlineEditorDefinition definition)

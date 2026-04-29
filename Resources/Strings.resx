@@ -2463,16 +2463,16 @@ Relaunch this tool as administrator now?</value>
     <value>Capture Source</value>
   </data>
   <data name="AutomationInlineEditor_CaptureSourceScreen" xml:space="preserve">
-    <value>Screen Window</value>
+    <value>Global Screen</value>
   </data>
   <data name="AutomationInlineEditor_CaptureSourceProcessWindow" xml:space="preserve">
-    <value>Process Window</value>
+    <value>In-Process Window</value>
   </data>
   <data name="AutomationInlineEditor_CaptureProcessName" xml:space="preserve">
     <value>Process Name</value>
   </data>
   <data name="AutomationInlineEditor_CaptureProcessNamePlaceholder" xml:space="preserve">
-    <value>Optional, e.g. obs64 (empty = current foreground window)</value>
+    <value>Optional, e.g. obs64 (empty = current foreground target window)</value>
   </data>
   <data name="AutomationInlineEditor_CaptureMode" xml:space="preserve">
     <value>Capture Area</value>
@@ -2613,7 +2613,7 @@ Relaunch this tool as administrator now?</value>
     <value>Full virtual screen (physical pixels)</value>
   </data>
   <data name="AutomationRoiPreview_StatusProcessWindowFormat" xml:space="preserve">
-    <value>Process window: {0}</value>
+    <value>In-process window: {0}</value>
   </data>
   <data name="AutomationRoiPreview_ForegroundLabel" xml:space="preserve">
     <value>foreground window</value>
@@ -2628,7 +2628,7 @@ Relaunch this tool as administrator now?</value>
     <value>Live virtual screen</value>
   </data>
   <data name="AutomationRoiPreview_LiveSourceProcessFormat" xml:space="preserve">
-    <value>Live window ({0})</value>
+    <value>Live in-process window ({0})</value>
   </data>
   <data name="AutomationRoiPreview_FullModeSnapshotFailed" xml:space="preserve">
     <value>Could not capture preview (window not found, minimized, or protected). Focus the target window and try Refresh.</value>
@@ -2662,5 +2662,20 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationInlineEditor_CaptureApiDesktopDuplication" xml:space="preserve">
     <value>Desktop duplication (DXGI, faster for games)</value>
+  </data>
+  <data name="AutomationWorkspace_RoiInspectorLivePreview" xml:space="preserve">
+    <value>Live preview</value>
+  </data>
+  <data name="AutomationWorkspace_RoiInspectorLivePreviewHint" xml:space="preserve">
+    <value>Stream the capture region in real time (same timing as the ROI preview window). Turn off to show only the saved snapshot and reduce CPU use; full-screen live preview is more expensive than a small region.</value>
+  </data>
+  <data name="AutomationRoiPreview_TargetProcessUnspecifiedLabel" xml:space="preserve">
+    <value>Target process (not specified)</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessId" xml:space="preserve">
+    <value>Process PID</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureProcessIdPlaceholder" xml:space="preserve">
+    <value>Optional PID; use 0 to resolve by process name</value>
   </data>
 </root>

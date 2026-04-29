@@ -29,7 +29,13 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         }
 
         var sourceNodeId = context.Index.GetDataSource(node.Id, AutomationPortIds.HaystackImage);
-        if (sourceNodeId is not { } source || !context.TryGetCapture(source, out var bitmap, out var originX, out var originY))
+        if (sourceNodeId is not { } source ||
+            !context.TryGetCapture(
+                source,
+                out var bitmap,
+                out var originX,
+                out var originY,
+                out AutomationProcessWindowTarget captureTargetProcess))
         {
             if (context.VerboseExecutionLog)
                 log.Add("[find_image] missing_haystack_input");
@@ -37,7 +43,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
 
-        context.StoreCapture(node.Id, bitmap, originX, originY);
+        context.StoreCapture(node.Id, bitmap, originX, originY, captureTargetProcess);
 
         var confidence = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageConfidence, 0.85);
         var tolerance = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.FindImageTolerance, 1 - confidence);

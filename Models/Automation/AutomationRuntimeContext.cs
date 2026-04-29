@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services.Automation;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Services.Automation;
 
@@ -14,7 +15,11 @@ public sealed class AutomationRuntimeContext
     private const double MinLoopTargetIterationsPerSecond = 0.001d;
     private const double MaxLoopTargetIterationsPerSecond = 240d;
 
-    private sealed record ScreenBundle(BitmapSource Bitmap, int OriginScreenX, int OriginScreenY);
+    private sealed record ScreenBundle(
+        BitmapSource Bitmap,
+        int OriginScreenX,
+        int OriginScreenY,
+        AutomationProcessWindowTarget CaptureTargetProcess);
 
     private readonly Dictionary<Guid, ScreenBundle> _bundles = [];
     private readonly Dictionary<Guid, AutomationImageProbeResult> _probeResults = [];
@@ -46,6 +51,12 @@ public sealed class AutomationRuntimeContext
 
     public required IAutomationNodeInputModeResolver InputModeResolver { get; init; }
 
+    public IAutomationRuntimeOutputGuard? OutputGuard { get; init; }
+
+    public IAutomationProcessWindowInputDispatcher? ProcessWindowInputDispatcher { get; init; }
+
+    public IProcessTargetService? ProcessTargetService { get; init; }
+
     public required IAutomationEventBus EventBus { get; init; }
 
     public required INeedleBitmapCache NeedleCache { get; init; }
@@ -60,23 +71,92 @@ public sealed class AutomationRuntimeContext
 
     public bool RequestContinueLoop { get; private set; }
 
+    public string? CaptureTargetProcessName { get; private set; }
+
+    public AutomationProcessWindowTarget CaptureTargetProcess { get; private set; }
+
+    public bool IsProcessBoundOutputEnabled =>
+        !CaptureTargetProcess.IsEmpty;
+
     public (IKeyboardEmulator Keyboard, IMouseEmulator Mouse) ResolveInputEmulationPair(string? requestedModeId) =>
         InputModeResolver.Resolve(requestedModeId);
 
-    public void StoreCapture(Guid nodeId, BitmapSource bitmap, int originScreenX, int originScreenY) =>
-        _bundles[nodeId] = new ScreenBundle(bitmap, originScreenX, originScreenY);
+    public void SetCaptureTargetProcess(string? processName)
+    {
+        SetCaptureTargetProcess(AutomationProcessWindowTarget.From(processName));
+    }
+
+    public void SetCaptureTargetProcess(AutomationProcessWindowTarget processTarget)
+    {
+        CaptureTargetProcess = processTarget;
+        CaptureTargetProcessName = processTarget.IsEmpty ? null : processTarget.ProcessName;
+    }
+
+    public void StoreCapture(
+        Guid nodeId,
+        BitmapSource bitmap,
+        int originScreenX,
+        int originScreenY,
+        string? captureTargetProcessName = null) =>
+        StoreCapture(nodeId, bitmap, originScreenX, originScreenY, AutomationProcessWindowTarget.From(captureTargetProcessName));
+
+    public void StoreCapture(
+        Guid nodeId,
+        BitmapSource bitmap,
+        int originScreenX,
+        int originScreenY,
+        AutomationProcessWindowTarget captureTargetProcess) =>
+        _bundles[nodeId] = new ScreenBundle(
+            bitmap,
+            originScreenX,
+            originScreenY,
+            captureTargetProcess);
 
     public bool TryGetCapture(Guid nodeId, out BitmapSource bitmap, out int originScreenX, out int originScreenY)
+    {
+        return TryGetCapture(
+            nodeId,
+            out bitmap,
+            out originScreenX,
+            out originScreenY,
+            out AutomationProcessWindowTarget _);
+    }
+
+    public bool TryGetCapture(
+        Guid nodeId,
+        out BitmapSource bitmap,
+        out int originScreenX,
+        out int originScreenY,
+        out string? captureTargetProcessName)
+    {
+        var result = TryGetCapture(
+            nodeId,
+            out bitmap,
+            out originScreenX,
+            out originScreenY,
+            out AutomationProcessWindowTarget captureTargetProcess);
+        captureTargetProcessName = captureTargetProcess.IsEmpty ? null : captureTargetProcess.ProcessName;
+        return result;
+    }
+
+    public bool TryGetCapture(
+        Guid nodeId,
+        out BitmapSource bitmap,
+        out int originScreenX,
+        out int originScreenY,
+        out AutomationProcessWindowTarget captureTargetProcess)
     {
         bitmap = default!;
         originScreenX = 0;
         originScreenY = 0;
+        captureTargetProcess = default;
         if (!_bundles.TryGetValue(nodeId, out var bundle))
             return false;
 
         bitmap = bundle.Bitmap;
         originScreenX = bundle.OriginScreenX;
         originScreenY = bundle.OriginScreenY;
+        captureTargetProcess = bundle.CaptureTargetProcess;
         return true;
     }
 

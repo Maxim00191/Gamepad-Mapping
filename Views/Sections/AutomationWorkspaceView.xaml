@@ -792,6 +792,10 @@
                                Foreground="{DynamicResource AppSecondaryTextBrush}"
                                TextWrapping="Wrap"
                                Text="{Binding RoiInspectorSummaryText}" />
+                    <CheckBox Margin="0,0,0,8"
+                              Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiInspectorLivePreview]}"
+                              IsChecked="{Binding IsRoiInspectorLivePreview, Mode=TwoWay}"
+                              ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiInspectorLivePreviewHint]}" />
                     <Button Margin="0,0,0,8"
                             Padding="10,6"
                             HorizontalAlignment="Left"

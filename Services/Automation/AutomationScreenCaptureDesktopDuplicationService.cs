@@ -58,6 +58,9 @@ public sealed class AutomationScreenCaptureDesktopDuplicationService : IAutomati
     public AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(string? processName) =>
         _gdi.CaptureProcessWindowPhysical(processName);
 
+    public AutomationVirtualScreenCaptureResult CaptureProcessWindowPhysical(AutomationProcessWindowTarget processTarget) =>
+        _gdi.CaptureProcessWindowPhysical(processTarget);
+
     public BitmapSource CaptureRectanglePhysical(int physicalOriginX, int physicalOriginY, int widthPx, int heightPx)
     {
         if (widthPx <= 0 || heightPx <= 0)
