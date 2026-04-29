@@ -18,15 +18,17 @@ public sealed class CaptureScreenNodeHandler : IAutomationRuntimeNodeHandler
             context.TryGetCapture(cachedNodeId, out var cachedBitmap, out var cachedOriginX, out var cachedOriginY))
         {
             context.StoreCapture(node.Id, cachedBitmap, cachedOriginX, cachedOriginY);
-            log.Add($"[capture_screen] reused_cache source={AutomationLogFormatter.NodeId(cachedNodeId)} origin=({cachedOriginX},{cachedOriginY}) size={cachedBitmap.PixelWidth}x{cachedBitmap.PixelHeight}");
+            if (context.VerboseExecutionLog)
+                log.Add($"[capture_screen] reused_cache source={AutomationLogFormatter.NodeId(cachedNodeId)} origin=({cachedOriginX},{cachedOriginY}) size={cachedBitmap.PixelWidth}x{cachedBitmap.PixelHeight}");
             return context.GetExecutionTarget(node.Id, "flow.out");
         }
 
-        if (!AutomationDirectScreenCapture.TryDirectCapture(context.Capture, node.Properties, out var direct))
+        if (!AutomationDirectScreenCapture.TryDirectCapture(context.CaptureResolver, node.Properties, out var direct))
             throw new InvalidOperationException("capture_unavailable");
 
         context.StoreCapture(node.Id, direct.Bitmap, direct.Metrics.PhysicalOriginX, direct.Metrics.PhysicalOriginY);
-        log.Add(FormatDirectCaptureLogLine(node.Properties, direct));
+        if (context.VerboseExecutionLog)
+            log.Add(FormatDirectCaptureLogLine(node.Properties, direct));
         return context.GetExecutionTarget(node.Id, "flow.out");
     }
 

@@ -10,7 +10,7 @@ namespace GamepadMapperGUI.Services.Automation;
 public static class AutomationDirectScreenCapture
 {
     public static bool TryDirectCapture(
-        IAutomationScreenCaptureService capture,
+        IAutomationScreenCaptureServiceResolver captureResolver,
         JsonObject? properties,
         out AutomationVirtualScreenCaptureResult result)
     {
@@ -21,6 +21,8 @@ public static class AutomationDirectScreenCapture
         var cacheRef = AutomationNodePropertyReader.ReadString(properties, AutomationNodePropertyKeys.CaptureCacheRefNodeId);
         if (Guid.TryParse(cacheRef, out var guid) && guid != Guid.Empty)
             return false;
+
+        var capture = captureResolver.ResolveForNodeProperties(properties);
 
         var mode = AutomationNodePropertyReader.ReadString(properties, AutomationNodePropertyKeys.CaptureMode);
         if (string.IsNullOrWhiteSpace(mode))

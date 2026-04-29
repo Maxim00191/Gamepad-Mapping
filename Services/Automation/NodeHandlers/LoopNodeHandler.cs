@@ -27,7 +27,8 @@ public sealed class LoopNodeHandler : IAutomationRuntimeNodeHandler
         var loopCount = context.GetLoopCounter(node.Id);
         if (loopCount >= maxIterations)
         {
-            log.Add($"loop:done:{loopCount}");
+            if (context.VerboseExecutionLog)
+                log.Add($"loop:done:{loopCount}");
             context.SetLoopCounter(node.Id, 0);
             context.ExitLoopBodyScopeForFlowOut(node.Id);
             return context.GetExecutionTarget(node.Id, "flow.out");
@@ -48,7 +49,8 @@ public sealed class LoopNodeHandler : IAutomationRuntimeNodeHandler
         if (context.RequestContinueLoop)
             context.ResetLoopControlFlags();
 
-        log.Add($"loop:iter:{loopCount + 1}/{maxIterations}");
+        if (context.VerboseExecutionLog)
+            log.Add($"loop:iter:{loopCount + 1}/{maxIterations}");
         context.EnterLoopBodyScopeIfNeeded(node.Id, skipInteriorInterval);
         context.MarkLoopIterationDispatchedToBody(node.Id);
         return context.GetExecutionTarget(node.Id, "loop.body");

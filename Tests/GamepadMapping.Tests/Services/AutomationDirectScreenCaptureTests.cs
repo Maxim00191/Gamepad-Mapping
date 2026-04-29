@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Nodes;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -29,7 +30,7 @@ public sealed class AutomationDirectScreenCaptureTests
             }
         };
 
-        var ok = AutomationDirectScreenCapture.TryDirectCapture(mock.Object, props, out var result);
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out var result);
         Assert.True(ok);
         Assert.Same(bmp, result.Bitmap);
         Assert.Equal(5, result.Metrics.PhysicalOriginX);
@@ -52,7 +53,7 @@ public sealed class AutomationDirectScreenCaptureTests
             [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.Screen
         };
 
-        var ok = AutomationDirectScreenCapture.TryDirectCapture(mock.Object, props, out var result);
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out var result);
         Assert.True(ok);
         Assert.Same(bmp, result.Bitmap);
         mock.VerifyAll();
@@ -74,7 +75,7 @@ public sealed class AutomationDirectScreenCaptureTests
             [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame"
         };
 
-        var ok = AutomationDirectScreenCapture.TryDirectCapture(mock.Object, props, out var result);
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out var result);
         Assert.True(ok);
         Assert.Same(bmp, result.Bitmap);
         Assert.Equal(100, result.Metrics.PhysicalOriginX);
@@ -91,7 +92,7 @@ public sealed class AutomationDirectScreenCaptureTests
             [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Full
         };
 
-        var ok = AutomationDirectScreenCapture.TryDirectCapture(mock.Object, props, out _);
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out _);
         Assert.False(ok);
         mock.VerifyAll();
     }
@@ -112,10 +113,19 @@ public sealed class AutomationDirectScreenCaptureTests
             }
         };
 
-        var ok = AutomationDirectScreenCapture.TryDirectCapture(mock.Object, props, out _);
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out _);
         Assert.False(ok);
         mock.VerifyAll();
     }
+
+    private static IAutomationScreenCaptureServiceResolver CreateResolver(IAutomationScreenCaptureService capture) =>
+        new AutomationScreenCaptureServiceResolver(
+            new Dictionary<string, IAutomationScreenCaptureService>(StringComparer.OrdinalIgnoreCase)
+            {
+                [AutomationCaptureApi.Gdi] = capture,
+                [AutomationCaptureApi.DesktopDuplication] = capture
+            },
+            AutomationCaptureApi.Gdi);
 
     private static BitmapSource CreateBitmap()
     {

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
@@ -88,24 +88,19 @@ public sealed class AutomationScreenCaptureGdiService : IAutomationScreenCapture
 
                     Gdi32.SelectObject(hdcMem, old);
 
-                    using var gdiBmp = Image.FromHbitmap(hBmp);
-                    using var ms = new MemoryStream();
-                    gdiBmp.Save(ms, ImageFormat.Png);
-                    ms.Position = 0;
-
-                    var bmpImage = new BitmapImage();
-                    bmpImage.BeginInit();
-                    bmpImage.StreamSource = ms;
-                    bmpImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bmpImage.EndInit();
-                    bmpImage.Freeze();
+                    var bitmap = Imaging.CreateBitmapSourceFromHBitmap(
+                        hBmp,
+                        IntPtr.Zero,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+                    bitmap.Freeze();
                     try
                     {
-                        return AutomationBitmapDpiNormalizer.NormalizeToDefaultDpi(bmpImage);
+                        return AutomationBitmapDpiNormalizer.NormalizeToDefaultDpi(bitmap);
                     }
                     catch
                     {
-                        return bmpImage;
+                        return bitmap;
                     }
                 }
                 finally

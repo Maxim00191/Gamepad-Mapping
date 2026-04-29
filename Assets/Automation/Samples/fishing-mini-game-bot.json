@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "verboseExecutionLogging": false,
   "minNodeStepIntervalSeconds": 0,
   "nodes": [
     {
@@ -31,10 +32,18 @@
       "y": 1392,
       "properties": {
         "description": "One capture per iteration; reused by UI template match, PID needles, and OCR. Prefer ROI around the game HUD if full-screen OCR is too slow.",
-        "captureMode": "full",
+        "captureApi": "desktop_duplication",
+        "captureMode": "roi",
         "coordinateSpace": "physical",
         "captureSourceMode": "process_window",
-        "captureProcessName": "chrome"
+        "captureProcessName": "chrome",
+        "captureRoi": {
+          "x": 554,
+          "y": 277,
+          "width": 809,
+          "height": 698
+        },
+        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png"
       }
     },
     {
@@ -45,7 +54,7 @@
       "properties": {
         "description": "Template for the fishing mini-game chrome; fast timeout keeps iteration rate up when the bar is moving.",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-fishing-ui.png",
-        "findImageConfidence": 0.82,
+        "findImageConfidence": 0.3,
         "findImageTimeoutMs": 150,
         "findImageAlgorithm": "opencv_template"
       }
@@ -67,9 +76,9 @@
       "properties": {
         "description": "Windows OCR substring match for result banners (English). Add lines per language; install OCR language packs as needed.",
         "findImageAlgorithm": "ocr_phrase",
-        "findImageOcrPhrases": "Oops, the fish got away...\nSuccessfully caught a big fish!",
+        "findImageOcrPhrases": "\u54CE\u5440\n\u6210\u529F",
         "findImageOcrMaxLongEdgePx": 1200,
-        "findImageConfidence": 0.9,
+        "findImageConfidence": 0.6,
         "findImageTimeoutMs": 500
       }
     },
@@ -177,7 +186,7 @@
         "description": "Yellow zone needle; tight timeout for responsive PID.",
         "findImageAlgorithm": "opencv_template",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-yellow-zone.png",
-        "findImageConfidence": 0.85,
+        "findImageConfidence": 0.3,
         "findImageTimeoutMs": 150
       }
     },
@@ -190,8 +199,8 @@
         "description": "White indicator needle.",
         "findImageAlgorithm": "opencv_template",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-white-line.png",
-        "findImageConfidence": 0.85,
-        "findImageTimeoutMs": 150
+        "findImageConfidence": 0.3,
+         "findImageTimeoutMs": 150
       }
     },
     {

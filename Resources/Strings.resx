@@ -2597,9 +2597,6 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationRoiPreview_PixelSampleFormat" xml:space="preserve">
     <value>RGB ({0},{1},{2}) · A {3}</value>
   </data>
-  <data name="AutomationRoiPreview_CachedLowResHint" xml:space="preserve">
-    <value>Showing compressed thumbnail only — pick region again to refresh full-resolution cache.</value>
-  </data>
   <data name="AutomationRoiPreview_LiveSourceHint" xml:space="preserve">
     <value>Live desktop capture</value>
   </data>
@@ -2656,5 +2653,14 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationInlineEditor_FindImageOcrMaxLongEdgePx" xml:space="preserve">
     <value>OCR max image long edge (px, 0 = default)</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureApi" xml:space="preserve">
+    <value>Capture API</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureApiGdi" xml:space="preserve">
+    <value>GDI (BitBlt)</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureApiDesktopDuplication" xml:space="preserve">
+    <value>Desktop duplication (DXGI, faster for games)</value>
   </data>
 </root>

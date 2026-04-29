@@ -10,6 +10,23 @@ namespace GamepadMapperGUI.Core;
 /// </summary>
 internal static class PreciseDelay
 {
+    public static void DelayBlocking(TimeSpan duration, CancellationToken cancellationToken)
+    {
+        if (duration <= TimeSpan.Zero)
+            return;
+
+        var sw = Stopwatch.StartNew();
+        while (sw.Elapsed < duration)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var remainingMs = (duration - sw.Elapsed).TotalMilliseconds;
+            if (remainingMs > 3)
+                Thread.Sleep(Math.Max(1, (int)(remainingMs - 2)));
+            else if (remainingMs > 0)
+                Thread.SpinWait(50);
+        }
+    }
+
     public static async Task DelayAsync(int totalMilliseconds, CancellationToken cancellationToken)
     {
         if (totalMilliseconds <= 0)

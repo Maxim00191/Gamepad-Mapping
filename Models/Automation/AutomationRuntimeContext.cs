@@ -2,6 +2,7 @@
 
 using System.Text.Json.Nodes;
 using System.Windows.Media.Imaging;
+using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Services.Automation;
@@ -25,7 +26,7 @@ public sealed class AutomationRuntimeContext
     private readonly Dictionary<Guid, double> _loopIterationSpacingAnchorSeconds = [];
     private readonly Random _random = new();
 
-    public required IAutomationScreenCaptureService Capture { get; init; }
+    public required IAutomationScreenCaptureServiceResolver CaptureResolver { get; init; }
 
     public required IAutomationImageProbe Probe { get; init; }
 
@@ -46,6 +47,10 @@ public sealed class AutomationRuntimeContext
     public required IAutomationNodeInputModeResolver InputModeResolver { get; init; }
 
     public required IAutomationEventBus EventBus { get; init; }
+
+    public required INeedleBitmapCache NeedleCache { get; init; }
+
+    public bool VerboseExecutionLog { get; init; } = true;
 
     public double DeltaTimeSeconds { get; set; } = 1d / 60d;
 
@@ -116,7 +121,7 @@ public sealed class AutomationRuntimeContext
         var nowSeconds = MonotonicElapsed().TotalSeconds;
         var waitSeconds = minSpacingSeconds - (nowSeconds - anchorSeconds);
         if (waitSeconds > 0d)
-            Task.Delay(TimeSpan.FromSeconds(waitSeconds), cancellationToken).GetAwaiter().GetResult();
+            PreciseDelay.DelayBlocking(TimeSpan.FromSeconds(waitSeconds), cancellationToken);
     }
 
     public void MarkLoopIterationDispatchedToBody(Guid loopNodeId) =>

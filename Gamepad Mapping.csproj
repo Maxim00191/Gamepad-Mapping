@@ -29,6 +29,7 @@
     <PackageReference Include="InputSimulatorPlus" Version="1.0.7" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3240.44" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
     <PackageReference Include="Vortice.XInput" Version="3.8.3" />
     <PackageReference Include="SharpVectors.Wpf" Version="1.8.5" />
   </ItemGroup>
@@ -80,18 +81,13 @@
     <Copy SourceFiles="@(UpdaterPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="'@(UpdaterPayload)' != ''" />
   </Target>
 
-  <Target Name="ExcludeOpenCvVideoioFfmpegFromPublish"
-          AfterTargets="ComputeResolvedFilesToPublishList"
-          Condition="'$(GamepadMappingIncludeOpenCvVideoioFfmpeg)' != 'true'">
+  <Target Name="ExcludeOpenCvVideoioFfmpegFromPublish" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(GamepadMappingIncludeOpenCvVideoioFfmpeg)' != 'true'">
     <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-        Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Contains('opencv_videoio_ffmpeg'))" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Contains('opencv_videoio_ffmpeg'))" />
     </ItemGroup>
   </Target>
 
-  <Target Name="RemoveOpenCvVideoioFfmpegFromOutput"
-          AfterTargets="CopyFilesToOutputDirectory"
-          Condition="'$(GamepadMappingIncludeOpenCvVideoioFfmpeg)' != 'true'">
+  <Target Name="RemoveOpenCvVideoioFfmpegFromOutput" AfterTargets="CopyFilesToOutputDirectory" Condition="'$(GamepadMappingIncludeOpenCvVideoioFfmpeg)' != 'true'">
     <ItemGroup>
       <_OpenCvFfmpegInOutDir Include="$(OutDir)opencv_videoio_ffmpeg*.dll" />
     </ItemGroup>

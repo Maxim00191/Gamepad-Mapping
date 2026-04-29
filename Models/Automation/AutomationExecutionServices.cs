@@ -10,6 +10,8 @@ public sealed class AutomationExecutionServices
 
     public required IAutomationScreenCaptureService ScreenCapture { get; init; }
 
+    public required IAutomationScreenCaptureServiceResolver ScreenCaptureResolver { get; init; }
+
     public required IAutomationTopologyAnalyzer TopologyAnalyzer { get; init; }
 
     public required IAutomationNodeContractValidator ContractValidator { get; init; }

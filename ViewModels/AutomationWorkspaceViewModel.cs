@@ -38,7 +38,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationUndoCoordinator _undo;
     private readonly IUserDialogService _dialogs;
     private readonly IAppToastService _toast;
-    private readonly IAutomationScreenCaptureService _screenCapture;
+    private readonly IAutomationScreenCaptureServiceResolver _screenCaptureResolver;
     private readonly IAutomationRoiPreviewImageProvider _roiPreviewImageProvider;
     private readonly IAutomationRegionPickerService _regionPicker;
     private readonly IAutomationScriptRunner _scriptRunner;
@@ -74,7 +74,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationUndoCoordinator undo,
         IUserDialogService dialogs,
         IAppToastService toast,
-        IAutomationScreenCaptureService screenCapture,
+        IAutomationScreenCaptureServiceResolver screenCaptureResolver,
         IAutomationRoiPreviewImageProvider roiPreviewImageProvider,
         IAutomationRegionPickerService regionPicker,
         IAutomationScriptRunner scriptRunner,
@@ -93,7 +93,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _undo = undo;
         _dialogs = dialogs;
         _toast = toast;
-        _screenCapture = screenCapture;
+        _screenCaptureResolver = screenCaptureResolver;
         _roiPreviewImageProvider = roiPreviewImageProvider;
         _regionPicker = regionPicker;
         _scriptRunner = scriptRunner;
@@ -1454,9 +1454,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             };
 
             var thumbBmp = p.CroppedPhysicalBitmap
-                ?? _screenCapture.CaptureRectanglePhysical(r.X, r.Y, r.Width, r.Height);
-            st.Properties[AutomationNodePropertyKeys.CaptureRoiThumbnailBase64] =
-                AutomationThumbnailEncoder.ToPngBase64(thumbBmp, 96);
+                ?? _screenCaptureResolver.ResolveForNodeProperties(st.Properties)
+                    .CaptureRectanglePhysical(r.X, r.Y, r.Width, r.Height);
 
             var cachePath = Path.Combine(AppPaths.GetAutomationCaptureCacheDirectory(), $"{node.Id:N}.png");
             try
@@ -1764,7 +1763,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
             PushUndoCheckpoint();
             var bmp = pick.CroppedPhysicalBitmap
-                ?? _screenCapture.CaptureRectanglePhysical(pick.Rect.X, pick.Rect.Y, pick.Rect.Width, pick.Rect.Height);
+                ?? _screenCaptureResolver.Resolve(null)
+                    .CaptureRectanglePhysical(pick.Rect.X, pick.Rect.Y, pick.Rect.Width, pick.Rect.Height);
             var cachePath = Path.Combine(AppPaths.GetAutomationCaptureCacheDirectory(), $"needle-{node.Id:N}.png");
             SavePng(bmp, cachePath);
 
@@ -1799,7 +1799,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         PushUndoCheckpoint();
         var props = node.State.Properties ??= new JsonObject();
         props.Remove(AutomationNodePropertyKeys.CaptureRoi);
-        props.Remove(AutomationNodePropertyKeys.CaptureRoiThumbnailBase64);
         props.Remove(AutomationNodePropertyKeys.CaptureRoiCachePath);
         AutomationNodePropertyReader.WriteString(props, AutomationNodePropertyKeys.CaptureMode, AutomationCaptureMode.Full);
         PopulateInlineEditors(node);

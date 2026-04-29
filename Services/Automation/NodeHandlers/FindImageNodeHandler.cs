@@ -31,7 +31,8 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var sourceNodeId = context.Index.GetDataSource(node.Id, AutomationPortIds.HaystackImage);
         if (sourceNodeId is not { } source || !context.TryGetCapture(source, out var bitmap, out var originX, out var originY))
         {
-            log.Add("[find_image] missing_haystack_input");
+            if (context.VerboseExecutionLog)
+                log.Add("[find_image] missing_haystack_input");
             context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0, 0));
             return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
@@ -56,23 +57,27 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             ocrPhraseOptions);
         var needlePathResolved = AutomationNeedlePathResolver.ResolveExistingFilePath(needlePath);
         var needle = needlePathResolved is not null
-            ? AutomationImageProbe.TryLoadBitmapFromPath(needlePathResolved)
+            ? context.NeedleCache.GetOrLoadExistingFile(needlePathResolved)
             : null;
         var sourceNode = context.Index.GetNode(source);
         var sourceRef = sourceNode is null
             ? AutomationLogFormatter.NodeId(source)
             : AutomationLogFormatter.NodeRef(sourceNode.NodeTypeId, sourceNode.Id);
-        log.Add($"[find_image] haystack_source={sourceRef} haystack_origin=({originX},{originY}) haystack_size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
-        log.Add($"[find_image] needle_path={needlePath} resolved_path={(needlePathResolved ?? "(none)")} needle_loaded={(needle is not null ? "true" : "false")} yolo_onnx={(effectiveYoloPathForProbe ?? "(none)")} yolo_class_id={yoloClassId} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs} algorithm={algorithm}");
-        if (AutomationVisionAlgorithmRequirements.UsesColorDetectionOptions(algorithm))
-            log.Add($"[find_image] color_hsv=({colorOptions.HueMin}-{colorOptions.HueMax},{colorOptions.SaturationMin}-{colorOptions.SaturationMax},{colorOptions.ValueMin}-{colorOptions.ValueMax}) min_area={colorOptions.MinimumAreaPx}");
-        if (AutomationVisionAlgorithmRequirements.UsesTextDetectionOptions(algorithm))
-            log.Add($"[find_image] text_min_area={textOptions.MinimumRegionAreaPx} morphology={textOptions.MorphologyWidth}x{textOptions.MorphologyHeight}");
-        if (AutomationVisionAlgorithmRequirements.RequiresOcrPhraseList(algorithm))
-            log.Add($"[find_image] ocr_max_long_edge_px={(ocrPhraseOptions.MaxLongEdgePx <= 0 ? "default" : ocrPhraseOptions.MaxLongEdgePx.ToString())} ocr_case_sensitive={ocrPhraseOptions.CaseSensitive}");
+        if (context.VerboseExecutionLog)
+        {
+            log.Add($"[find_image] haystack_source={sourceRef} haystack_origin=({originX},{originY}) haystack_size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
+            log.Add($"[find_image] needle_path={needlePath} resolved_path={(needlePathResolved ?? "(none)")} needle_loaded={(needle is not null ? "true" : "false")} yolo_onnx={(effectiveYoloPathForProbe ?? "(none)")} yolo_class_id={yoloClassId} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs} algorithm={algorithm}");
+            if (AutomationVisionAlgorithmRequirements.UsesColorDetectionOptions(algorithm))
+                log.Add($"[find_image] color_hsv=({colorOptions.HueMin}-{colorOptions.HueMax},{colorOptions.SaturationMin}-{colorOptions.SaturationMax},{colorOptions.ValueMin}-{colorOptions.ValueMax}) min_area={colorOptions.MinimumAreaPx}");
+            if (AutomationVisionAlgorithmRequirements.UsesTextDetectionOptions(algorithm))
+                log.Add($"[find_image] text_min_area={textOptions.MinimumRegionAreaPx} morphology={textOptions.MorphologyWidth}x{textOptions.MorphologyHeight}");
+            if (AutomationVisionAlgorithmRequirements.RequiresOcrPhraseList(algorithm))
+                log.Add($"[find_image] ocr_max_long_edge_px={(ocrPhraseOptions.MaxLongEdgePx <= 0 ? "default" : ocrPhraseOptions.MaxLongEdgePx.ToString())} ocr_case_sensitive={ocrPhraseOptions.CaseSensitive}");
+        }
         if (requiresNeedle && needle is null)
         {
-            log.Add("[find_image] missing_template_needle => matched=false");
+            if (context.VerboseExecutionLog)
+                log.Add("[find_image] missing_template_needle => matched=false");
             context.StoreProbeResult(node.Id, new AutomationImageProbeResult(false, 0, 0, 0, 0, 0));
             return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
@@ -84,7 +89,8 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             Confidence = raw.Matched ? Math.Clamp(confidence, 0, 1) : 0
         };
         context.StoreProbeResult(node.Id, result);
-        log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2} raw_correlation={result.BestTemplateCorrelation:F2}");
+        if (context.VerboseExecutionLog)
+            log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2} raw_correlation={result.BestTemplateCorrelation:F2}");
         return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
     }
 

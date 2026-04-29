@@ -19,6 +19,14 @@ public sealed class AutomationExecutionServicesFactory : IAutomationExecutionSer
 
         var registry = new NodeTypeRegistry();
         var capture = new AutomationScreenCaptureGdiService();
+        var duplication = new AutomationScreenCaptureDesktopDuplicationService(capture);
+        var captureResolver = new AutomationScreenCaptureServiceResolver(
+            new Dictionary<string, IAutomationScreenCaptureService>(StringComparer.OrdinalIgnoreCase)
+            {
+                [AutomationCaptureApi.Gdi] = capture,
+                [AutomationCaptureApi.DesktopDuplication] = duplication
+            },
+            AutomationCaptureApi.Gdi);
         var topology = new AutomationTopologyAnalyzer(registry);
         var contracts = new AutomationNodeContractValidator();
         var safety = new AutomationExecutionSafetyPolicy();
@@ -26,7 +34,7 @@ public sealed class AutomationExecutionServicesFactory : IAutomationExecutionSer
         var probe = new AutomationImageProbe(visionPipeline);
         var inputState = new AutomationInputStateManager(keyboard);
         var runner = new AutomationGraphSmokeRunner(
-            capture,
+            captureResolver,
             probe,
             keyboard,
             mouse,
@@ -43,6 +51,7 @@ public sealed class AutomationExecutionServicesFactory : IAutomationExecutionSer
         {
             NodeRegistry = registry,
             ScreenCapture = capture,
+            ScreenCaptureResolver = captureResolver,
             TopologyAnalyzer = topology,
             ContractValidator = contracts,
             SafetyPolicy = safety,

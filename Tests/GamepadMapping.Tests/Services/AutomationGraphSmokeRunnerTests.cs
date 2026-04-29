@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Nodes;
 using System.Windows.Input;
@@ -45,7 +46,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         mouse.Setup(m => m.LeftClick());
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -122,7 +123,7 @@ public sealed class AutomationGraphSmokeRunnerTests
             .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 7, 8)));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -205,7 +206,7 @@ public sealed class AutomationGraphSmokeRunnerTests
             .Returns(processCapture);
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -268,7 +269,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Setup(k => k.TapKey(Key.D, 1, 0, 70));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -354,7 +355,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var topology = new AutomationTopologyAnalyzer(registry);
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -419,7 +420,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Setup(k => k.TapKey(Key.D, 1, 0, 70));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -494,7 +495,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var topology = new AutomationTopologyAnalyzer(registry);
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -537,7 +538,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var registry = new NodeTypeRegistry();
         var topology = new AutomationTopologyAnalyzer(registry);
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -582,7 +583,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var topology = new AutomationTopologyAnalyzer(registry);
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -620,7 +621,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -675,7 +676,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         var topology = new AutomationTopologyAnalyzer(registry);
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -708,7 +709,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         mouse.Setup(m => m.MoveBy(4, -3, 1.0f, null));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -749,7 +750,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Setup(k => k.KeyUp(Key.Space));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -799,7 +800,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         modeKeyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             defaultKeyboard.Object,
             defaultMouse.Object,
@@ -848,7 +849,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         modeMouse.Setup(m => m.LeftClick());
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             defaultKeyboard.Object,
             defaultMouse.Object,
@@ -890,7 +891,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Setup(k => k.TapKey(Key.A, 1, 0, 70));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -953,7 +954,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
 
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -1039,6 +1040,9 @@ public sealed class AutomationGraphSmokeRunnerTests
             .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
         captureService.Setup(s => s.CaptureProcessWindowPhysical(It.IsAny<string?>()))
             .Returns(new AutomationVirtualScreenCaptureResult(bitmap, metrics));
+        captureService.Setup(s =>
+                s.CaptureRectanglePhysical(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(bitmap);
         probeService.Setup(p => p.ProbeAsync(
             It.IsAny<BitmapSource>(),
             It.IsAny<int>(),
@@ -1051,7 +1055,7 @@ public sealed class AutomationGraphSmokeRunnerTests
 
         var registry = new NodeTypeRegistry();
         var sut = new AutomationGraphSmokeRunner(
-            captureService.Object,
+            CreateCaptureResolver(captureService.Object),
             probeService.Object,
             keyboard.Object,
             mouse.Object,
@@ -1077,6 +1081,16 @@ public sealed class AutomationGraphSmokeRunnerTests
         public (int Dx, int Dy) AdjustMouseMove(int deltaX, int deltaY, float stickMagnitude = 1.0f) =>
             (deltaX, deltaY);
     }
+
+    private static IAutomationScreenCaptureServiceResolver CreateCaptureResolver(
+        IAutomationScreenCaptureService capture) =>
+        new AutomationScreenCaptureServiceResolver(
+            new Dictionary<string, IAutomationScreenCaptureService>(StringComparer.OrdinalIgnoreCase)
+            {
+                [AutomationCaptureApi.Gdi] = capture,
+                [AutomationCaptureApi.DesktopDuplication] = capture
+            },
+            AutomationCaptureApi.Gdi);
 
     private static BitmapSource CreateBitmap()
     {

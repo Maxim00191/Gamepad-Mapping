@@ -120,6 +120,27 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.capture_screen",
+                    PropertyKey = AutomationNodePropertyKeys.CaptureApi,
+                    LabelResourceKey = "AutomationInlineEditor_CaptureApi",
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = AutomationCaptureApi.Gdi,
+                    ChoiceOptions =
+                    [
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationCaptureApi.Gdi,
+                            LabelResourceKey = "AutomationInlineEditor_CaptureApiGdi"
+                        },
+                        new AutomationNodeInlineChoiceOption
+                        {
+                            StoredValue = AutomationCaptureApi.DesktopDuplication,
+                            LabelResourceKey = "AutomationInlineEditor_CaptureApiDesktopDuplication"
+                        }
+                    ]
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.capture_screen",
                     PropertyKey = AutomationNodePropertyKeys.CaptureMode,
                     LabelResourceKey = "AutomationInlineEditor_CaptureMode",
                     Kind = AutomationNodeInlineEditorKind.Choice,

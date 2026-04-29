@@ -327,12 +327,7 @@ public partial class AutomationRoiPreviewViewModel : ObservableObject
         if (!string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase))
             return LStatic("AutomationRoiPreview_StoredFullModeHint");
 
-        var cachePath = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureRoiCachePath);
-        if (!string.IsNullOrWhiteSpace(cachePath) && File.Exists(cachePath))
-            return "";
-
-        var b64 = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureRoiThumbnailBase64);
-        return string.IsNullOrWhiteSpace(b64) ? "" : LStatic("AutomationRoiPreview_CachedLowResHint");
+        return "";
     }
 
     private static string ComputeLiveSourceHint(JsonObject props)

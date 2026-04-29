@@ -10,11 +10,11 @@ namespace GamepadMapperGUI.Services.Automation;
 
 public sealed class AutomationRoiPreviewImageProvider : IAutomationRoiPreviewImageProvider
 {
-    private readonly IAutomationScreenCaptureService _capture;
+    private readonly IAutomationScreenCaptureServiceResolver _captureResolver;
 
-    public AutomationRoiPreviewImageProvider(IAutomationScreenCaptureService capture)
+    public AutomationRoiPreviewImageProvider(IAutomationScreenCaptureServiceResolver captureResolver)
     {
-        _capture = capture;
+        _captureResolver = captureResolver;
     }
 
     public BitmapSource? TryLoadStoredPreview(JsonObject? properties)
@@ -43,32 +43,12 @@ public sealed class AutomationRoiPreviewImageProvider : IAutomationRoiPreviewIma
             }
         }
 
-        var b64 = AutomationNodePropertyReader.ReadString(properties,
-            AutomationNodePropertyKeys.CaptureRoiThumbnailBase64);
-        if (string.IsNullOrWhiteSpace(b64))
-            return null;
-
-        try
-        {
-            using var ms = new MemoryStream(Convert.FromBase64String(b64));
-            var img = new BitmapImage();
-            img.BeginInit();
-            img.StreamSource = ms;
-            img.CacheOption = BitmapCacheOption.OnLoad;
-            img.EndInit();
-            if (img.CanFreeze)
-                img.Freeze();
-            return img;
-        }
-        catch
-        {
-            return null;
-        }
+        return null;
     }
 
     public BitmapSource? TryCaptureLivePreview(JsonObject? properties)
     {
-        if (!AutomationDirectScreenCapture.TryDirectCapture(_capture, properties, out var direct))
+        if (!AutomationDirectScreenCapture.TryDirectCapture(_captureResolver, properties, out var direct))
             return null;
 
         var bmp = direct.Bitmap;

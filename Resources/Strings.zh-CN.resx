@@ -2597,9 +2597,6 @@
   <data name="AutomationRoiPreview_PixelSampleFormat" xml:space="preserve">
     <value>RGB ({0},{1},{2}) · A {3}</value>
   </data>
-  <data name="AutomationRoiPreview_CachedLowResHint" xml:space="preserve">
-    <value>当前仅显示压缩缩略图 — 请重新框选区域以更新全分辨率缓存。</value>
-  </data>
   <data name="AutomationRoiPreview_LiveSourceHint" xml:space="preserve">
     <value>实时桌面捕获</value>
   </data>
@@ -2656,5 +2653,14 @@
   </data>
   <data name="AutomationInlineEditor_FindImageOcrMaxLongEdgePx" xml:space="preserve">
     <value>OCR 图像最长边（像素，0=默认）</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureApi" xml:space="preserve">
+    <value>截图 API</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureApiGdi" xml:space="preserve">
+    <value>GDI（BitBlt）</value>
+  </data>
+  <data name="AutomationInlineEditor_CaptureApiDesktopDuplication" xml:space="preserve">
+    <value>桌面复制（DXGI，适合游戏场景）</value>
   </data>
 </root>

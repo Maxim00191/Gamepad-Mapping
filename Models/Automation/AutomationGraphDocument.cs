@@ -4,6 +4,8 @@ public sealed class AutomationGraphDocument
 {
     public int SchemaVersion { get; set; } = 1;
 
+    public bool? VerboseExecutionLogging { get; set; }
+
     public double? MinNodeStepIntervalSeconds { get; set; }
 
     public List<AutomationNodeState> Nodes { get; set; } = [];

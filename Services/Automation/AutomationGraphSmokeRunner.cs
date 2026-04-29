@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models.Automation;
@@ -9,7 +10,7 @@ namespace GamepadMapperGUI.Services.Automation;
 
 public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
 {
-    private readonly IAutomationScreenCaptureService _capture;
+    private readonly IAutomationScreenCaptureServiceResolver _captureResolver;
     private readonly IAutomationImageProbe _probe;
     private readonly IKeyboardEmulator _keyboard;
     private readonly IMouseEmulator _mouse;
@@ -21,6 +22,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private readonly IAutomationInputStateManager _inputState;
     private readonly IHumanInputNoiseController? _humanNoise;
     private readonly IAutomationNodeInputModeResolver _inputModeResolver;
+    private readonly INeedleBitmapCache _needleCache;
     private readonly IReadOnlyDictionary<string, IAutomationRuntimeNodeHandler> _handlersByNodeType;
 
     private AutomationExecutionGraphIndex _index = null!;
@@ -31,7 +33,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
     private HashSet<Guid> _queuedExecutionStarts = [];
 
     public AutomationGraphSmokeRunner(
-        IAutomationScreenCaptureService capture,
+        IAutomationScreenCaptureServiceResolver captureResolver,
         IAutomationImageProbe probe,
         IKeyboardEmulator keyboard,
         IMouseEmulator mouse,
@@ -42,9 +44,10 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         IAutomationExecutionSafetyPolicy safetyPolicy,
         IAutomationInputStateManager? inputState = null,
         IHumanInputNoiseController? humanNoise = null,
-        IAutomationNodeInputModeResolver? inputModeResolver = null)
+        IAutomationNodeInputModeResolver? inputModeResolver = null,
+        INeedleBitmapCache? needleCache = null)
     {
-        _capture = capture;
+        _captureResolver = captureResolver;
         _probe = probe;
         _keyboard = keyboard;
         _mouse = mouse;
@@ -56,6 +59,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _inputState = inputState ?? new AutomationInputStateManager(keyboard);
         _humanNoise = humanNoise;
         _inputModeResolver = inputModeResolver ?? new AutomationNodeInputModeResolver(keyboard, mouse);
+        _needleCache = needleCache ?? new AutomationNeedleBitmapCache();
         _handlersByNodeType = BuildHandlers();
     }
 
@@ -77,9 +81,10 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _pendingExecutionStarts = new Queue<Guid>();
         _queuedExecutionStarts = [];
         var eventBus = new AutomationEventBus();
+        var verboseExecutionLog = document.VerboseExecutionLogging is not false;
         var context = new AutomationRuntimeContext
         {
-            Capture = _capture,
+            CaptureResolver = _captureResolver,
             Probe = _probe,
             Keyboard = _keyboard,
             Mouse = _mouse,
@@ -89,7 +94,9 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             InputState = _inputState,
             HumanNoise = _humanNoise,
             InputModeResolver = _inputModeResolver,
-            EventBus = eventBus
+            EventBus = eventBus,
+            NeedleCache = _needleCache,
+            VerboseExecutionLog = verboseExecutionLog
         };
         context.EventBus.Subscribe(signal => OnEventSignal(document, signal, log));
 
@@ -184,7 +191,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
                 {
                     var remaining = TimeSpan.FromSeconds(effectiveMin - elapsedSinceLast.TotalSeconds);
                     if (remaining > TimeSpan.Zero)
-                        Task.Delay(remaining, ct).GetAwaiter().GetResult();
+                        PreciseDelay.DelayBlocking(remaining, ct);
                     now = timer.Elapsed;
                 }
 
@@ -196,13 +203,15 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
                 if (string.Equals(node.NodeTypeId, "automation.loop", StringComparison.Ordinal))
                     context.CompleteLoopBodyReturnIfReturningToHead(node.Id);
 
-                log.Add($"[step:{step}] enter {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
+                if (context.VerboseExecutionLog)
+                    log.Add($"[step:{step}] enter {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
 
                 context.BeginExecutionStep();
                 var next = ExecuteAndGetNext(context, index, node, log, ct);
                 if (next is null)
                 {
-                    log.Add($"[step:{step}] completed terminal_node={AutomationLogFormatter.NodeId(node.Id)}");
+                    if (context.VerboseExecutionLog)
+                        log.Add($"[step:{step}] completed terminal_node={AutomationLogFormatter.NodeId(node.Id)}");
                     context.Index = previousIndex;
                     return step + 1;
                 }
@@ -211,7 +220,8 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
                 var nextRef = nextNode is null
                     ? AutomationLogFormatter.NodeId(next.Value)
                     : AutomationLogFormatter.NodeRef(nextNode.NodeTypeId, nextNode.Id);
-                log.Add($"[step:{step}] next={nextRef}");
+                if (context.VerboseExecutionLog)
+                    log.Add($"[step:{step}] next={nextRef}");
 
                 current = next.Value;
             }
@@ -240,11 +250,13 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
 
         if (_handlersByNodeType.TryGetValue(node.NodeTypeId, out var handler))
         {
-            log.Add($"[handler] execute {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
+            if (context.VerboseExecutionLog)
+                log.Add($"[handler] execute {AutomationLogFormatter.NodeRef(node.NodeTypeId, node.Id)}");
             return handler.Execute(context, node, log, ct);
         }
 
-        log.Add($"[handler] missing type={node.NodeTypeId} for_node={AutomationLogFormatter.NodeId(node.Id)} fallback=true");
+        if (context.VerboseExecutionLog)
+            log.Add($"[handler] missing type={node.NodeTypeId} for_node={AutomationLogFormatter.NodeId(node.Id)} fallback=true");
         var fallbackPort = GetFirstExecOutPort(node.NodeTypeId);
         return string.IsNullOrEmpty(fallbackPort)
             ? null
