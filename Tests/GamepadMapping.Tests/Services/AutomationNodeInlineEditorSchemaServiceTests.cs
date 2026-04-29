@@ -60,6 +60,7 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         Assert.NotNull(algorithm.ChoiceOptions);
         Assert.Contains(algorithm.ChoiceOptions!, option => option.StoredValue == AutomationVisionAlgorithmStorage.YoloOnnx);
         Assert.Contains(algorithm.ChoiceOptions!, option => option.StoredValue == AutomationVisionAlgorithmStorage.OpenCvTemplateMatch);
+        Assert.Contains(algorithm.ChoiceOptions!, option => option.StoredValue == AutomationVisionAlgorithmStorage.OcrPhraseMatch);
     }
 
     [Theory]
@@ -107,6 +108,9 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         var colorMinimumArea = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageColorMinimumAreaPx);
         var textQuery = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTextQuery);
         var textMinimumArea = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTextMinimumRegionAreaPx);
+        var ocrPhrases = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageOcrPhrases);
+        var ocrCase = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageOcrCaseSensitive);
+        var ocrMaxEdge = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageOcrMaxLongEdgePx);
         var tolerance = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTolerance);
         var timeout = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTimeoutMs);
         var confidence = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageConfidence);
@@ -131,6 +135,12 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         Assert.DoesNotContain(AutomationVisionAlgorithmStorage.ColorThreshold, textMinimumArea.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.TextRegion, textQuery.VisibleWhenPropertyValues!);
         Assert.Equal(AutomationNodeInlineEditorKind.Text, textQuery.Kind);
+        Assert.Contains(AutomationVisionAlgorithmStorage.OcrPhraseMatch, ocrPhrases.VisibleWhenPropertyValues!);
+        Assert.Equal(AutomationNodeInlineEditorKind.MultilineText, ocrPhrases.Kind);
+        Assert.Contains(AutomationVisionAlgorithmStorage.OcrPhraseMatch, ocrCase.VisibleWhenPropertyValues!);
+        Assert.Equal(AutomationNodeInlineEditorKind.Boolean, ocrCase.Kind);
+        Assert.Contains(AutomationVisionAlgorithmStorage.OcrPhraseMatch, ocrMaxEdge.VisibleWhenPropertyValues!);
+        Assert.Equal(AutomationNodeInlineEditorKind.Integer, ocrMaxEdge.Kind);
         Assert.Contains(AutomationVisionAlgorithmStorage.OpenCvTemplateMatch, tolerance.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.OpenCvTemplateMatch, timeout.VisibleWhenPropertyValues!);
         Assert.DoesNotContain(AutomationVisionAlgorithmStorage.ColorThreshold, tolerance.VisibleWhenPropertyValues!);

@@ -33,6 +33,11 @@ public static class AutomationVisionAlgorithmCatalog
         },
         new()
         {
+            StoredValue = AutomationVisionAlgorithmStorage.OcrPhraseMatch,
+            LabelResourceKey = "AutomationVisionAlgorithm_Option_OcrPhraseMatch"
+        },
+        new()
+        {
             StoredValue = AutomationVisionAlgorithmStorage.Contour,
             LabelResourceKey = "AutomationVisionAlgorithm_Option_Contour"
         }

@@ -15,6 +15,7 @@ public sealed class AutomationVisionAlgorithmStorageTests
     [InlineData("opencv_template", AutomationVisionAlgorithmKind.OpenCvTemplateMatch)]
     [InlineData("yolo_onnx", AutomationVisionAlgorithmKind.YoloOnnx)]
     [InlineData("text_region", AutomationVisionAlgorithmKind.TextRegion)]
+    [InlineData("ocr_phrase", AutomationVisionAlgorithmKind.OcrPhraseMatch)]
     [InlineData("unknown", AutomationVisionAlgorithmKind.TemplateMatch)]
     [InlineData("", AutomationVisionAlgorithmKind.TemplateMatch)]
     public void ParseKind_maps_storage_strings(string raw, AutomationVisionAlgorithmKind expected) =>
@@ -60,5 +61,8 @@ public sealed class AutomationVisionAlgorithmStorageTests
         Assert.Equal(
             AutomationVisionAlgorithmStorage.TextRegion,
             AutomationVisionAlgorithmStorage.ToStorageValue(AutomationVisionAlgorithmKind.TextRegion));
+        Assert.Equal(
+            AutomationVisionAlgorithmStorage.OcrPhraseMatch,
+            AutomationVisionAlgorithmStorage.ToStorageValue(AutomationVisionAlgorithmKind.OcrPhraseMatch));
     }
 }

@@ -10,6 +10,7 @@ public static class AutomationVisionAlgorithmStorage
     public const string OpenCvTemplateMatch = "opencv_template";
     public const string YoloOnnx = "yolo_onnx";
     public const string TextRegion = "text_region";
+    public const string OcrPhraseMatch = "ocr_phrase";
 
     public static AutomationVisionAlgorithmKind ParseKind(string? raw)
     {
@@ -24,6 +25,8 @@ public static class AutomationVisionAlgorithmStorage
             return AutomationVisionAlgorithmKind.YoloOnnx;
         if (string.Equals(t, TextRegion, StringComparison.OrdinalIgnoreCase))
             return AutomationVisionAlgorithmKind.TextRegion;
+        if (string.Equals(t, OcrPhraseMatch, StringComparison.OrdinalIgnoreCase))
+            return AutomationVisionAlgorithmKind.OcrPhraseMatch;
         return AutomationVisionAlgorithmKind.TemplateMatch;
     }
 
@@ -42,6 +45,7 @@ public static class AutomationVisionAlgorithmStorage
         AutomationVisionAlgorithmKind.OpenCvTemplateMatch => OpenCvTemplateMatch,
         AutomationVisionAlgorithmKind.YoloOnnx => YoloOnnx,
         AutomationVisionAlgorithmKind.TextRegion => TextRegion,
+        AutomationVisionAlgorithmKind.OcrPhraseMatch => OcrPhraseMatch,
         _ => TemplateMatch
     };
 }

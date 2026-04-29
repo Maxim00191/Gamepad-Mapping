@@ -15,4 +15,7 @@ public static class AutomationVisionAlgorithmRequirements
 
     public static bool UsesTextDetectionOptions(AutomationVisionAlgorithmKind kind) =>
         kind == AutomationVisionAlgorithmKind.TextRegion;
+
+    public static bool RequiresOcrPhraseList(AutomationVisionAlgorithmKind kind) =>
+        kind == AutomationVisionAlgorithmKind.OcrPhraseMatch;
 }

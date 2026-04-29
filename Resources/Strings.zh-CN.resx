@@ -2642,4 +2642,19 @@
   <data name="AutomationInlineEditor_LoopInteriorSkipDocumentStepInterval" xml:space="preserve">
     <value>在循环体内跳过图级别的步骤间隔</value>
   </data>
+  <data name="AutomationVisionAlgorithm_Option_OcrPhraseMatch" xml:space="preserve">
+    <value>Windows OCR 短语匹配</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrPhrases" xml:space="preserve">
+    <value>OCR 短语（每行一条）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrPhrasesPlaceholder" xml:space="preserve">
+    <value>与识别后的屏幕文本做子串匹配（需要对应语言的 OCR 语言包）。</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrCaseSensitive" xml:space="preserve">
+    <value>OCR 短语区分大小写</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrMaxLongEdgePx" xml:space="preserve">
+    <value>OCR 图像最长边（像素，0=默认）</value>
+  </data>
 </root>

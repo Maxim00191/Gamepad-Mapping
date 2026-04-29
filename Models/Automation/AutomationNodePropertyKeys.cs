@@ -69,6 +69,12 @@ public static class AutomationNodePropertyKeys
     public const string FindImageTextMorphologyHeight = "findImageTextMorphologyHeight";
     public const string FindImageTextQuery = "findImageTextQuery";
 
+    public const string FindImageOcrPhrases = "findImageOcrPhrases";
+
+    public const string FindImageOcrCaseSensitive = "findImageOcrCaseSensitive";
+
+    public const string FindImageOcrMaxLongEdgePx = "findImageOcrMaxLongEdgePx";
+
     public const string LoopMaxIterations = "loopMaxIterations";
 
     public const string LoopTargetIterationsPerSecond = "loopTargetIterationsPerSecond";

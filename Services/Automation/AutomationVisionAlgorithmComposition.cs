@@ -13,8 +13,9 @@ internal static class AutomationVisionAlgorithmComposition
         var visionThreshold = new AutomationColorThresholdVisionAlgorithm();
         var visionContour = new AutomationContourVisionAlgorithm(visionThreshold);
         var visionTextRegion = new AutomationTextRegionVisionAlgorithm();
+        var visionOcrPhrase = new AutomationOcrPhraseMatchVisionAlgorithm();
 
         return new AutomationVisionPipeline(
-            [visionTemplate, visionOpenCvTemplate, visionYoloOnnx, visionThreshold, visionContour, visionTextRegion]);
+            [visionTemplate, visionOpenCvTemplate, visionYoloOnnx, visionThreshold, visionContour, visionTextRegion, visionOcrPhrase]);
     }
 }

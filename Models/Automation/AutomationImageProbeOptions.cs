@@ -6,7 +6,8 @@ public readonly record struct AutomationImageProbeOptions(
     string? YoloOnnxModelPath = null,
     int YoloClassIdFilter = -1,
     AutomationColorDetectionOptions ColorDetectionOptions = default,
-    AutomationTextDetectionOptions TextDetectionOptions = default)
+    AutomationTextDetectionOptions TextDetectionOptions = default,
+    AutomationOcrPhraseMatchOptions OcrPhraseMatchOptions = default)
 {
     public AutomationColorDetectionOptions EffectiveColorDetectionOptions =>
         ColorDetectionOptions == default
@@ -17,4 +18,9 @@ public readonly record struct AutomationImageProbeOptions(
         TextDetectionOptions == default
             ? AutomationTextDetectionOptions.Default
             : TextDetectionOptions;
+
+    public AutomationOcrPhraseMatchOptions EffectiveOcrPhraseMatchOptions =>
+        OcrPhraseMatchOptions == default
+            ? AutomationOcrPhraseMatchOptions.Default
+            : OcrPhraseMatchOptions;
 }

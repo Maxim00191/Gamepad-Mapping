@@ -9,5 +9,6 @@ public enum AutomationVisionAlgorithmKind
     Contour = 2,
     OpenCvTemplateMatch = 3,
     YoloOnnx = 4,
-    TextRegion = 5
+    TextRegion = 5,
+    OcrPhraseMatch = 6
 }

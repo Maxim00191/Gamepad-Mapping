@@ -46,6 +46,11 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
         AutomationVisionAlgorithmStorage.TextRegion
     ];
 
+    private static readonly IReadOnlyList<string> OcrAlgorithmValues =
+    [
+        AutomationVisionAlgorithmStorage.OcrPhraseMatch
+    ];
+
     private static readonly IReadOnlyList<string> CaptureSourceProcessWindowValues =
     [
         AutomationCaptureSourceMode.ProcessWindow
@@ -304,6 +309,34 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     1,
                     99,
                     TextAlgorithmValues),
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageOcrPhrases,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageOcrPhrases",
+                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageOcrPhrasesPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.MultilineText,
+                    DefaultTextValue = "",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = OcrAlgorithmValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageOcrCaseSensitive,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageOcrCaseSensitive",
+                    Kind = AutomationNodeInlineEditorKind.Boolean,
+                    DefaultBooleanValue = false,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = OcrAlgorithmValues
+                },
+                BuildFindImageIntegerDefinition(
+                    AutomationNodePropertyKeys.FindImageOcrMaxLongEdgePx,
+                    "AutomationInlineEditor_FindImageOcrMaxLongEdgePx",
+                    0,
+                    0,
+                    4096,
+                    OcrAlgorithmValues),
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",

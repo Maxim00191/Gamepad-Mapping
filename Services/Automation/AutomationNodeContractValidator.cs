@@ -68,6 +68,18 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                         }
                     }
 
+                    if (AutomationVisionAlgorithmRequirements.RequiresOcrPhraseList(algorithm))
+                    {
+                        var ocrPhrases = AutomationNodePropertyReader.ReadString(
+                            node.Properties,
+                            AutomationNodePropertyKeys.FindImageOcrPhrases);
+                        if (string.IsNullOrWhiteSpace(ocrPhrases))
+                        {
+                            detail = "find_image:ocr_phrases_missing";
+                            return true;
+                        }
+                    }
+
                     break;
                 case "logic.branch_image":
                     if (index.GetDataSource(node.Id, AutomationPortIds.ProbeImage) is null)

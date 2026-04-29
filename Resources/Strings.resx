@@ -2642,4 +2642,19 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_LoopInteriorSkipDocumentStepInterval" xml:space="preserve">
     <value>Skip graph step interval inside loop body</value>
   </data>
+  <data name="AutomationVisionAlgorithm_Option_OcrPhraseMatch" xml:space="preserve">
+    <value>Windows OCR phrase match</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrPhrases" xml:space="preserve">
+    <value>OCR phrases (one per line)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrPhrasesPlaceholder" xml:space="preserve">
+    <value>Substring match against recognized screen text (language packs required).</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrCaseSensitive" xml:space="preserve">
+    <value>OCR phrase case-sensitive match</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageOcrMaxLongEdgePx" xml:space="preserve">
+    <value>OCR max image long edge (px, 0 = default)</value>
+  </data>
 </root>

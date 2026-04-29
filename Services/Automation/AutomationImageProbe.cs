@@ -59,7 +59,8 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
             AutomationVisionAlgorithmKind.ColorThreshold or
                 AutomationVisionAlgorithmKind.Contour or
                 AutomationVisionAlgorithmKind.YoloOnnx or
-                AutomationVisionAlgorithmKind.TextRegion =>
+                AutomationVisionAlgorithmKind.TextRegion or
+                AutomationVisionAlgorithmKind.OcrPhraseMatch =>
                 new AutomationImageProbeResult(
                     true,
                     haystackLeftScreenPx + vision.MatchX,

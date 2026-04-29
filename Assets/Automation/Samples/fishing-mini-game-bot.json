@@ -5,8 +5,8 @@
     {
       "id": "f1000001-0000-4000-8000-000000000001",
       "nodeTypeId": "event.listener",
-      "x": 96,
-      "y": 576,
+      "x": 896,
+      "y": 1200,
       "properties": {
         "description": "Start here; run the automation engine after your game is at the fishing spot.",
         "eventSignal": "engine.start"
@@ -15,20 +15,22 @@
     {
       "id": "f1000002-0000-4000-8000-000000000002",
       "nodeTypeId": "automation.loop",
-      "x": 400,
-      "y": 576,
+      "x": 1184,
+      "y": 1216,
       "properties": {
-        "description": "Keep repeating the fishing check; lower the iteration count while testing.",
-        "loopMaxIterations": 5000
+        "description": "High-frequency loop: targets \u226545 iterations/sec with step-interval skipped inside the body; tune process/capture if CPU-bound.",
+        "loopMaxIterations": 5000,
+        "loopTargetIterationsPerSecond": 45,
+        "loopInteriorSkipDocumentStepInterval": true
       }
     },
     {
       "id": "f1000003-0000-4000-8000-000000000003",
       "nodeTypeId": "perception.capture_screen",
-      "x": 688,
-      "y": 576,
+      "x": 1488,
+      "y": 1392,
       "properties": {
-        "description": "Process window capture prefers the focused window for that process when it belongs to it; otherwise the largest visible top-level window (helps Chrome with many processes). Use full virtual screen if matching still fails.",
+        "description": "One capture per iteration; reused by UI template match, PID needles, and OCR. Prefer ROI around the game HUD if full-screen OCR is too slow.",
         "captureMode": "full",
         "coordinateSpace": "physical",
         "captureSourceMode": "process_window",
@@ -38,58 +40,167 @@
     {
       "id": "f1000004-0000-4000-8000-000000000004",
       "nodeTypeId": "perception.find_image",
-      "x": 1008,
-      "y": 592,
+      "x": 1840,
+      "y": 1536,
       "properties": {
-        "description": "Provide a template image of the fishing mini-game UI so the bot knows when tracking is active.",
+        "description": "Template for the fishing mini-game chrome; fast timeout keeps iteration rate up when the bar is moving.",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-fishing-ui.png",
         "findImageConfidence": 0.82,
-        "findImageTimeoutMs": 400,
-        "findImageAlgorithm": "template"
+        "findImageTimeoutMs": 150,
+        "findImageAlgorithm": "opencv_template"
       }
     },
     {
       "id": "f1000005-0000-4000-8000-000000000005",
       "nodeTypeId": "logic.branch_image",
-      "x": 1328,
-      "y": 672,
+      "x": 2128,
+      "y": 1536,
       "properties": {
-        "description": "If the mini-game UI is found, continue tracking; otherwise release movement keys and cast again."
+        "description": "match = mini-game visible \u2192 PID path. miss \u2192 OCR for end-of-round messages, then Space."
+      }
+    },
+    {
+      "id": "f1000026-0000-4000-8000-000000000026",
+      "nodeTypeId": "perception.find_image",
+      "x": 2464,
+      "y": 1056,
+      "properties": {
+        "description": "Windows OCR substring match for result banners (English). Add lines per language; install OCR language packs as needed.",
+        "findImageAlgorithm": "ocr_phrase",
+        "findImageOcrPhrases": "Oops, the fish got away...\nSuccessfully caught a big fish!",
+        "findImageOcrMaxLongEdgePx": 1200,
+        "findImageConfidence": 0.9,
+        "findImageTimeoutMs": 500
+      }
+    },
+    {
+      "id": "f1000027-0000-4000-8000-000000000027",
+      "nodeTypeId": "logic.branch_image",
+      "x": 3440,
+      "y": 400,
+      "properties": {
+        "description": "OCR matched a result phrase \u2192 short dismiss delay. No match \u2192 longer recast delay."
+      }
+    },
+    {
+      "id": "f1000032-0000-4000-8000-000000000032",
+      "nodeTypeId": "output.key_state",
+      "x": 3760,
+      "y": 256,
+      "properties": {
+        "description": "Release A after OCR success path.",
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000033-0000-4000-8000-000000000033",
+      "nodeTypeId": "output.key_state",
+      "x": 4064,
+      "y": 368,
+      "properties": {
+        "description": "Release D after OCR success path.",
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000028-0000-4000-8000-000000000028",
+      "nodeTypeId": "output.keyboard_key",
+      "x": 4352,
+      "y": 368,
+      "properties": {
+        "description": "Dismiss result dialog.",
+        "keyboardKey": "Space",
+        "keyboardActionMode": "tap"
+      }
+    },
+    {
+      "id": "f1000029-0000-4000-8000-000000000029",
+      "nodeTypeId": "automation.delay",
+      "x": 4960,
+      "y": 432,
+      "properties": {
+        "description": "Brief pause after dismissing text.",
+        "delayMilliseconds": 450
+      }
+    },
+    {
+      "id": "f1000018-0000-4000-8000-000000000018",
+      "nodeTypeId": "output.key_state",
+      "x": 3760,
+      "y": 640,
+      "properties": {
+        "description": "Release A before recast (no OCR phrase matched).",
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000019-0000-4000-8000-000000000019",
+      "nodeTypeId": "output.key_state",
+      "x": 4352,
+      "y": 912,
+      "properties": {
+        "description": "Release D before recast.",
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000030-0000-4000-8000-000000000030",
+      "nodeTypeId": "output.keyboard_key",
+      "x": 4656,
+      "y": 736,
+      "properties": {
+        "description": "Tap Space to recast when no result text was detected.",
+        "keyboardKey": "Space",
+        "keyboardActionMode": "tap"
+      }
+    },
+    {
+      "id": "f1000031-0000-4000-8000-000000000031",
+      "nodeTypeId": "automation.delay",
+      "x": 4960,
+      "y": 816,
+      "properties": {
+        "description": "Wait for cast animation when restarting without a known result string.",
+        "delayMilliseconds": 1600
       }
     },
     {
       "id": "f1000006-0000-4000-8000-000000000006",
       "nodeTypeId": "perception.find_image",
-      "x": 1680,
-      "y": 928,
+      "x": 2464,
+      "y": 1792,
       "properties": {
-        "description": "Provide a template for the center of the yellow target zone.",
-        "findImageAlgorithm": "template",
+        "description": "Yellow zone needle; tight timeout for responsive PID.",
+        "findImageAlgorithm": "opencv_template",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-yellow-zone.png",
         "findImageConfidence": 0.85,
-        "findImageTimeoutMs": 400
+        "findImageTimeoutMs": 150
       }
     },
     {
       "id": "f1000007-0000-4000-8000-000000000007",
       "nodeTypeId": "perception.find_image",
-      "x": 2336,
-      "y": 960,
+      "x": 3136,
+      "y": 1280,
       "properties": {
-        "description": "Template for the white line; include a few pixels of bar/background so the patch is not a single flat color (works best with OpenCV template match).",
-        "findImageAlgorithm": "template",
+        "description": "White indicator needle.",
+        "findImageAlgorithm": "opencv_template",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-white-line.png",
         "findImageConfidence": 0.85,
-        "findImageTimeoutMs": 400
+        "findImageTimeoutMs": 150
       }
     },
     {
       "id": "f1000025-0000-4000-8000-000000000025",
       "nodeTypeId": "control.pid_controller",
-      "x": 2512,
-      "y": 1056,
+      "x": 3440,
+      "y": 1776,
       "properties": {
-        "description": "Maps yellow-zone X (target) vs white-line X (current) to a steering signal. Tune pidKp/pidKd and compare thresholds if the bar oscillates or feels sluggish.",
+        "description": "Yellow X = target, white X = current.",
         "pidKp": 0.02,
         "pidKi": 0,
         "pidKd": 0.0008
@@ -98,48 +209,47 @@
     {
       "id": "f1000008-0000-4000-8000-000000000008",
       "nodeTypeId": "logic.gt",
-      "x": 2688,
-      "y": 832,
+      "x": 3760,
+      "y": 1376,
       "properties": {
-        "description": "True when PID output is above the positive deadband (steer right with D).",
+        "description": "Steer right (D) when PID output \u003E deadband.",
         "compareRight": 0.2
       }
     },
     {
       "id": "f1000009-0000-4000-8000-000000000009",
       "nodeTypeId": "logic.lt",
-      "x": 3072,
-      "y": 1184,
+      "x": 4096,
+      "y": 1728,
       "properties": {
-        "description": "True when PID output is below the negative deadband (steer left with A).",
+        "description": "Steer left (A) when PID output \u003C deadband.",
         "compareRight": -0.2
       }
     },
     {
       "id": "f1000010-0000-4000-8000-000000000010",
       "nodeTypeId": "logic.branch_bool",
-      "x": 3040,
-      "y": 864,
+      "x": 4096,
+      "y": 1392,
       "properties": {
-        "description": "When PID demands moving right (positive signal past deadband), hold D."
+        "description": "PID demands move right \u2192 hold D."
       }
     },
     {
       "id": "f1000011-0000-4000-8000-000000000011",
       "nodeTypeId": "logic.branch_bool",
-      "x": 3392,
-      "y": 1136,
+      "x": 4384,
+      "y": 1488,
       "properties": {
-        "description": "When PID demands moving left (negative signal past deadband), hold A; otherwise release both keys."
+        "description": "PID demands move left \u2192 hold A; else release both."
       }
     },
     {
       "id": "f1000012-0000-4000-8000-000000000012",
       "nodeTypeId": "output.key_state",
-      "x": 3744,
-      "y": 80,
+      "x": 4672,
+      "y": 32,
       "properties": {
-        "description": "Hold D to move the line toward the yellow zone.",
         "keyboardKey": "D",
         "keyboardActionMode": "hold"
       }
@@ -147,10 +257,9 @@
     {
       "id": "f1000013-0000-4000-8000-000000000013",
       "nodeTypeId": "output.key_state",
-      "x": 4096,
-      "y": 96,
+      "x": 4960,
+      "y": 32,
       "properties": {
-        "description": "Release A so only the right correction is active.",
         "keyboardKey": "A",
         "keyboardActionMode": "release"
       }
@@ -158,10 +267,9 @@
     {
       "id": "f1000014-0000-4000-8000-000000000014",
       "nodeTypeId": "output.key_state",
-      "x": 3744,
-      "y": 944,
+      "x": 4672,
+      "y": 1264,
       "properties": {
-        "description": "Hold A to move the line back toward the yellow zone.",
         "keyboardKey": "A",
         "keyboardActionMode": "hold"
       }
@@ -169,10 +277,9 @@
     {
       "id": "f1000015-0000-4000-8000-000000000015",
       "nodeTypeId": "output.key_state",
-      "x": 4096,
-      "y": 928,
+      "x": 4960,
+      "y": 1264,
       "properties": {
-        "description": "Release D so only the left correction is active.",
         "keyboardKey": "D",
         "keyboardActionMode": "release"
       }
@@ -180,10 +287,9 @@
     {
       "id": "f1000016-0000-4000-8000-000000000016",
       "nodeTypeId": "output.key_state",
-      "x": 3744,
-      "y": 1296,
+      "x": 4672,
+      "y": 1648,
       "properties": {
-        "description": "Release A when no left correction is needed.",
         "keyboardKey": "A",
         "keyboardActionMode": "release"
       }
@@ -191,83 +297,39 @@
     {
       "id": "f1000017-0000-4000-8000-000000000017",
       "nodeTypeId": "output.key_state",
-      "x": 4096,
-      "y": 1312,
+      "x": 4960,
+      "y": 1648,
       "properties": {
-        "description": "Release D when no right correction is needed.",
         "keyboardKey": "D",
         "keyboardActionMode": "release"
-      }
-    },
-    {
-      "id": "f1000018-0000-4000-8000-000000000018",
-      "nodeTypeId": "output.key_state",
-      "x": 2352,
-      "y": 112,
-      "properties": {
-        "description": "Release A before recasting when the fishing UI is not visible.",
-        "keyboardKey": "A",
-        "keyboardActionMode": "release"
-      }
-    },
-    {
-      "id": "f1000019-0000-4000-8000-000000000019",
-      "nodeTypeId": "output.key_state",
-      "x": 3040,
-      "y": 256,
-      "properties": {
-        "description": "Release D before recasting when the fishing UI is not visible.",
-        "keyboardKey": "D",
-        "keyboardActionMode": "release"
-      }
-    },
-    {
-      "id": "f1000020-0000-4000-8000-000000000020",
-      "nodeTypeId": "output.keyboard_key",
-      "x": 3744,
-      "y": 464,
-      "properties": {
-        "description": "Tap Space to cast or restart fishing after the UI disappears.",
-        "keyboardKey": "Space",
-        "keyboardActionMode": "tap"
-      }
-    },
-    {
-      "id": "f1000021-0000-4000-8000-000000000021",
-      "nodeTypeId": "automation.delay",
-      "x": 4112,
-      "y": 512,
-      "properties": {
-        "description": "Wait for the cast animation or bite window to settle before scanning again.",
-        "delayMilliseconds": 2000
-      }
-    },
-    {
-      "id": "f1000022-0000-4000-8000-000000000022",
-      "nodeTypeId": "automation.delay",
-      "x": 4432,
-      "y": 512,
-      "properties": {
-        "description": "Yield briefly before the next loop iteration; increase this if the game needs more time.",
-        "delayMilliseconds": 1
       }
     },
     {
       "id": "f1000023-0000-4000-8000-000000000023",
       "nodeTypeId": "logic.branch_image",
-      "x": 2048,
-      "y": 992,
+      "x": 2800,
+      "y": 1568,
       "properties": {
-        "description": "Only compare positions after the yellow target zone is found; otherwise release movement keys."
+        "description": "Yellow zone found before PID."
       }
     },
     {
       "id": "f1000024-0000-4000-8000-000000000024",
       "nodeTypeId": "logic.branch_image",
-      "x": 2704,
-      "y": 1152,
+      "x": 3760,
+      "y": 1024,
       "properties": {
-        "description": "Only steer after the moving white line is found; otherwise release movement keys."
+        "description": "White line found before steering."
+      }
+    },
+    {
+      "id": "f1000022-0000-4000-8000-000000000022",
+      "nodeTypeId": "automation.delay",
+      "x": 5280,
+      "y": 432,
+      "properties": {
+        "description": "Minimal yield before next loop iteration.",
+        "delayMilliseconds": 0
       }
     }
   ],
@@ -313,6 +375,97 @@
       "sourcePortId": "probe.image",
       "targetNodeId": "f1000005-0000-4000-8000-000000000005",
       "targetPortId": "probe.image"
+    },
+    {
+      "id": "f2000050-0000-4000-8000-000000000050",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000026-0000-4000-8000-000000000026",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000051-0000-4000-8000-000000000051",
+      "sourceNodeId": "f1000026-0000-4000-8000-000000000026",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000027-0000-4000-8000-000000000027",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000052-0000-4000-8000-000000000052",
+      "sourceNodeId": "f1000026-0000-4000-8000-000000000026",
+      "sourcePortId": "probe.image",
+      "targetNodeId": "f1000027-0000-4000-8000-000000000027",
+      "targetPortId": "probe.image"
+    },
+    {
+      "id": "f2000053-0000-4000-8000-000000000053",
+      "sourceNodeId": "f1000027-0000-4000-8000-000000000027",
+      "sourcePortId": "branch.match",
+      "targetNodeId": "f1000032-0000-4000-8000-000000000032",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000054-0000-4000-8000-000000000054",
+      "sourceNodeId": "f1000032-0000-4000-8000-000000000032",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000033-0000-4000-8000-000000000033",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000055-0000-4000-8000-000000000055",
+      "sourceNodeId": "f1000033-0000-4000-8000-000000000033",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000028-0000-4000-8000-000000000028",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000056-0000-4000-8000-000000000056",
+      "sourceNodeId": "f1000028-0000-4000-8000-000000000028",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000029-0000-4000-8000-000000000029",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000057-0000-4000-8000-000000000057",
+      "sourceNodeId": "f1000029-0000-4000-8000-000000000029",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000058-0000-4000-8000-000000000058",
+      "sourceNodeId": "f1000027-0000-4000-8000-000000000027",
+      "sourcePortId": "branch.miss",
+      "targetNodeId": "f1000018-0000-4000-8000-000000000018",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000059-0000-4000-8000-000000000059",
+      "sourceNodeId": "f1000018-0000-4000-8000-000000000018",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000019-0000-4000-8000-000000000019",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000060-0000-4000-8000-000000000060",
+      "sourceNodeId": "f1000019-0000-4000-8000-000000000019",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000030-0000-4000-8000-000000000030",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000061-0000-4000-8000-000000000061",
+      "sourceNodeId": "f1000030-0000-4000-8000-000000000030",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000031-0000-4000-8000-000000000031",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000062-0000-4000-8000-000000000062",
+      "sourceNodeId": "f1000031-0000-4000-8000-000000000031",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
     },
     {
       "id": "f2000007-0000-4000-8000-000000000007",
@@ -465,35 +618,7 @@
       "id": "f2000028-0000-4000-8000-000000000028",
       "sourceNodeId": "f1000005-0000-4000-8000-000000000005",
       "sourcePortId": "branch.miss",
-      "targetNodeId": "f1000018-0000-4000-8000-000000000018",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000029-0000-4000-8000-000000000029",
-      "sourceNodeId": "f1000018-0000-4000-8000-000000000018",
-      "sourcePortId": "flow.out",
-      "targetNodeId": "f1000019-0000-4000-8000-000000000019",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000030-0000-4000-8000-000000000030",
-      "sourceNodeId": "f1000019-0000-4000-8000-000000000019",
-      "sourcePortId": "flow.out",
-      "targetNodeId": "f1000020-0000-4000-8000-000000000020",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000031-0000-4000-8000-000000000031",
-      "sourceNodeId": "f1000020-0000-4000-8000-000000000020",
-      "sourcePortId": "flow.out",
-      "targetNodeId": "f1000021-0000-4000-8000-000000000021",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000032-0000-4000-8000-000000000032",
-      "sourceNodeId": "f1000021-0000-4000-8000-000000000021",
-      "sourcePortId": "flow.out",
-      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetNodeId": "f1000026-0000-4000-8000-000000000026",
       "targetPortId": "flow.in"
     },
     {

@@ -44,6 +44,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var yoloClassId = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.FindImageYoloClassId, -1);
         var colorOptions = ReadColorDetectionOptions(node);
         var textOptions = ReadTextDetectionOptions(node);
+        var ocrPhraseOptions = ReadOcrPhraseMatchOptions(node);
         var effectiveYoloPathForProbe = resolvedYoloOnnxPath;
         var options = new AutomationImageProbeOptions(
             tolerance,
@@ -51,7 +52,8 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             effectiveYoloPathForProbe,
             yoloClassId,
             colorOptions,
-            textOptions);
+            textOptions,
+            ocrPhraseOptions);
         var needlePathResolved = AutomationNeedlePathResolver.ResolveExistingFilePath(needlePath);
         var needle = needlePathResolved is not null
             ? AutomationImageProbe.TryLoadBitmapFromPath(needlePathResolved)
@@ -66,6 +68,8 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             log.Add($"[find_image] color_hsv=({colorOptions.HueMin}-{colorOptions.HueMax},{colorOptions.SaturationMin}-{colorOptions.SaturationMax},{colorOptions.ValueMin}-{colorOptions.ValueMax}) min_area={colorOptions.MinimumAreaPx}");
         if (AutomationVisionAlgorithmRequirements.UsesTextDetectionOptions(algorithm))
             log.Add($"[find_image] text_min_area={textOptions.MinimumRegionAreaPx} morphology={textOptions.MorphologyWidth}x{textOptions.MorphologyHeight}");
+        if (AutomationVisionAlgorithmRequirements.RequiresOcrPhraseList(algorithm))
+            log.Add($"[find_image] ocr_max_long_edge_px={(ocrPhraseOptions.MaxLongEdgePx <= 0 ? "default" : ocrPhraseOptions.MaxLongEdgePx.ToString())} ocr_case_sensitive={ocrPhraseOptions.CaseSensitive}");
         if (requiresNeedle && needle is null)
         {
             log.Add("[find_image] missing_template_needle => matched=false");
@@ -107,6 +111,14 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             ClampInt(AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.FindImageTextMorphologyWidth, defaults.MorphologyWidth), 1, 99),
             ClampInt(AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.FindImageTextMorphologyHeight, defaults.MorphologyHeight), 1, 99),
             AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.FindImageTextQuery));
+    }
+
+    private static AutomationOcrPhraseMatchOptions ReadOcrPhraseMatchOptions(AutomationNodeState node)
+    {
+        var phrases = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.FindImageOcrPhrases);
+        var caseSensitive = AutomationNodePropertyReader.ReadBool(node.Properties, AutomationNodePropertyKeys.FindImageOcrCaseSensitive);
+        var maxEdge = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.FindImageOcrMaxLongEdgePx, 0);
+        return new AutomationOcrPhraseMatchOptions(phrases, caseSensitive, maxEdge);
     }
 
     private static int ClampInt(int value, int min, int max) => Math.Clamp(value, min, max);

@@ -11,7 +11,7 @@ public sealed class AutomationVisionAlgorithmCatalogTests
     {
         var options = AutomationVisionAlgorithmCatalog.FindImageAlgorithmChoiceOptions();
 
-        Assert.Equal(6, options.Count);
+        Assert.Equal(7, options.Count);
 
         Assert.Equal(
             AutomationVisionAlgorithmStorage.YoloOnnx,
@@ -29,5 +29,8 @@ public sealed class AutomationVisionAlgorithmCatalogTests
         Assert.Contains(options, option =>
             option.StoredValue == AutomationVisionAlgorithmStorage.TextRegion &&
             option.LabelResourceKey == "AutomationVisionAlgorithm_Option_TextRegion");
+        Assert.Contains(options, option =>
+            option.StoredValue == AutomationVisionAlgorithmStorage.OcrPhraseMatch &&
+            option.LabelResourceKey == "AutomationVisionAlgorithm_Option_OcrPhraseMatch");
     }
 }
