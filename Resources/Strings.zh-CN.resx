@@ -1824,10 +1824,10 @@
     <value>使用自定义截图区域</value>
   </data>
   <data name="AutomationInlineEditor_FindImageNeedlePath" xml:space="preserve">
-    <value>模板图像路径</value>
+    <value>参考图像</value>
   </data>
   <data name="AutomationInlineEditor_FindImageNeedlePathPlaceholder" xml:space="preserve">
-    <value>选择模板图像</value>
+    <value>浏览或截图 PNG/JPEG（模板匹配必填；YOLO 可选）</value>
   </data>
   <data name="AutomationInlineEditor_FindImageTolerance" xml:space="preserve">
     <value>容差 (0.01-0.9)</value>
@@ -2515,5 +2515,95 @@
   </data>
   <data name="AutomationNodeContextMenu_CaptureCacheApply_InvalidSelection" xml:space="preserve">
     <value>请先选中一个截图节点，再右键另一个截图节点。</value>
+  </data>
+  <data name="AutomationInlineEditor_MathLeft" xml:space="preserve">
+    <value>左操作数（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_MathRight" xml:space="preserve">
+    <value>右操作数（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareLeft" xml:space="preserve">
+    <value>左值（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareRight" xml:space="preserve">
+    <value>右值（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_BoolLeft" xml:space="preserve">
+    <value>左（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_BoolRight" xml:space="preserve">
+    <value>右（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_BoolNotInput" xml:space="preserve">
+    <value>输入（无连接时）</value>
+  </data>
+  <data name="AutomationInlineEditor_RandomMin" xml:space="preserve">
+    <value>最小值</value>
+  </data>
+  <data name="AutomationInlineEditor_RandomMax" xml:space="preserve">
+    <value>最大值</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableDefaultValue" xml:space="preserve">
+    <value>变量不存在时的默认值</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableDefaultValuePlaceholder" xml:space="preserve">
+    <value>可选：JSON 字面量（如 0、true、"文本"）</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopControlMode" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopControlContinue" xml:space="preserve">
+    <value>继续循环</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopControlBreak" xml:space="preserve">
+    <value>跳出循环</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageConfidence" xml:space="preserve">
+    <value>匹配置信度（0–1）</value>
+  </data>
+  <data name="AutomationRoiPreview_WindowTitle" xml:space="preserve">
+    <value>ROI 预览</value>
+  </data>
+  <data name="AutomationRoiPreview_Zoom" xml:space="preserve">
+    <value>缩放</value>
+  </data>
+  <data name="AutomationRoiPreview_Fit" xml:space="preserve">
+    <value>适应窗口</value>
+  </data>
+  <data name="AutomationRoiPreview_ActualPixels" xml:space="preserve">
+    <value>100%</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveScreen" xml:space="preserve">
+    <value>实时屏幕</value>
+  </data>
+  <data name="AutomationRoiPreview_RefreshLive" xml:space="preserve">
+    <value>刷新实时画面</value>
+  </data>
+  <data name="AutomationRoiPreview_RefreshStored" xml:space="preserve">
+    <value>重新载入文件</value>
+  </data>
+  <data name="AutomationRoiPreview_PixelGrid" xml:space="preserve">
+    <value>像素网格</value>
+  </data>
+  <data name="AutomationRoiPreview_CopyInfo" xml:space="preserve">
+    <value>复制区域</value>
+  </data>
+  <data name="AutomationRoiPreview_StatusRoiFormat" xml:space="preserve">
+    <value>物理像素：{2}×{3}，原点 ({0},{1})</value>
+  </data>
+  <data name="AutomationRoiPreview_NoRoi" xml:space="preserve">
+    <value>请选择已保存 ROI 的“屏幕捕获”节点以预览。</value>
+  </data>
+  <data name="AutomationRoiPreview_PixelSampleFormat" xml:space="preserve">
+    <value>RGB ({0},{1},{2}) · A {3}</value>
+  </data>
+  <data name="AutomationRoiPreview_CachedLowResHint" xml:space="preserve">
+    <value>当前仅显示压缩缩略图 — 请重新框选区域以更新全分辨率缓存。</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveSourceHint" xml:space="preserve">
+    <value>实时桌面捕获</value>
+  </data>
+  <data name="AutomationRoiPreview_OpenWindow" xml:space="preserve">
+    <value>打开 ROI 预览…</value>
   </data>
 </root>

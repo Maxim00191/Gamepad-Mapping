@@ -1824,10 +1824,10 @@ Relaunch this tool as administrator now?</value>
     <value>Capture custom ROI</value>
   </data>
   <data name="AutomationInlineEditor_FindImageNeedlePath" xml:space="preserve">
-    <value>Template image path</value>
+    <value>Reference image</value>
   </data>
   <data name="AutomationInlineEditor_FindImageNeedlePathPlaceholder" xml:space="preserve">
-    <value>Select a template image</value>
+    <value>Browse or screenshot a PNG/JPEG (required for template match; optional for YOLO)</value>
   </data>
   <data name="AutomationInlineEditor_FindImageTolerance" xml:space="preserve">
     <value>Tolerance (0.01-0.9)</value>
@@ -2515,5 +2515,95 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationNodeContextMenu_CaptureCacheApply_InvalidSelection" xml:space="preserve">
     <value>Select a capture node first, then right-click another capture node.</value>
+  </data>
+  <data name="AutomationInlineEditor_MathLeft" xml:space="preserve">
+    <value>Left (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_MathRight" xml:space="preserve">
+    <value>Right (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareLeft" xml:space="preserve">
+    <value>Left (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareRight" xml:space="preserve">
+    <value>Right (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_BoolLeft" xml:space="preserve">
+    <value>Left (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_BoolRight" xml:space="preserve">
+    <value>Right (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_BoolNotInput" xml:space="preserve">
+    <value>Input (fallback)</value>
+  </data>
+  <data name="AutomationInlineEditor_RandomMin" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="AutomationInlineEditor_RandomMax" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableDefaultValue" xml:space="preserve">
+    <value>Default if unset</value>
+  </data>
+  <data name="AutomationInlineEditor_VariableDefaultValuePlaceholder" xml:space="preserve">
+    <value>Optional JSON literal if the variable is missing (e.g. 0, true, "text")</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopControlMode" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopControlContinue" xml:space="preserve">
+    <value>Continue loop</value>
+  </data>
+  <data name="AutomationInlineEditor_LoopControlBreak" xml:space="preserve">
+    <value>Break out</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageConfidence" xml:space="preserve">
+    <value>Match confidence (0–1)</value>
+  </data>
+  <data name="AutomationRoiPreview_WindowTitle" xml:space="preserve">
+    <value>ROI preview</value>
+  </data>
+  <data name="AutomationRoiPreview_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="AutomationRoiPreview_Fit" xml:space="preserve">
+    <value>Fit</value>
+  </data>
+  <data name="AutomationRoiPreview_ActualPixels" xml:space="preserve">
+    <value>100%</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveScreen" xml:space="preserve">
+    <value>Live screen</value>
+  </data>
+  <data name="AutomationRoiPreview_RefreshLive" xml:space="preserve">
+    <value>Refresh live</value>
+  </data>
+  <data name="AutomationRoiPreview_RefreshStored" xml:space="preserve">
+    <value>Reload file</value>
+  </data>
+  <data name="AutomationRoiPreview_PixelGrid" xml:space="preserve">
+    <value>Pixel grid</value>
+  </data>
+  <data name="AutomationRoiPreview_CopyInfo" xml:space="preserve">
+    <value>Copy region</value>
+  </data>
+  <data name="AutomationRoiPreview_StatusRoiFormat" xml:space="preserve">
+    <value>Physical pixels: {2}×{3} at ({0},{1})</value>
+  </data>
+  <data name="AutomationRoiPreview_NoRoi" xml:space="preserve">
+    <value>Select a Screen Capture node with a saved ROI to preview.</value>
+  </data>
+  <data name="AutomationRoiPreview_PixelSampleFormat" xml:space="preserve">
+    <value>RGB ({0},{1},{2}) · A {3}</value>
+  </data>
+  <data name="AutomationRoiPreview_CachedLowResHint" xml:space="preserve">
+    <value>Showing compressed thumbnail only — pick region again to refresh full-resolution cache.</value>
+  </data>
+  <data name="AutomationRoiPreview_LiveSourceHint" xml:space="preserve">
+    <value>Live desktop capture</value>
+  </data>
+  <data name="AutomationRoiPreview_OpenWindow" xml:space="preserve">
+    <value>Open ROI preview…</value>
   </data>
 </root>

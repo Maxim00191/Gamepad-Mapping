@@ -16,6 +16,7 @@ using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Services.Automation;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Utils;
+using Gamepad_Mapping.Views.Automation;
 using Microsoft.Win32;
 
 namespace Gamepad_Mapping.ViewModels;
@@ -38,6 +39,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IUserDialogService _dialogs;
     private readonly IAppToastService _toast;
     private readonly IAutomationScreenCaptureService _screenCapture;
+    private readonly IAutomationRoiPreviewImageProvider _roiPreviewImageProvider;
     private readonly IAutomationRegionPickerService _regionPicker;
     private readonly IAutomationScriptRunner _scriptRunner;
     private readonly IAutomationConnectionPolicy _connectionPolicy;
@@ -63,6 +65,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly object _runStateSync = new();
     private CancellationTokenSource? _activeRunCts;
     private AutomationConnectionDragState? _connectionDrag;
+    private AutomationRoiPreviewWindow? _roiPreviewWindow;
+
     public AutomationWorkspaceViewModel(
         INodeTypeRegistry registry,
         IAutomationGraphSerializer serializer,
@@ -71,6 +75,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IUserDialogService dialogs,
         IAppToastService toast,
         IAutomationScreenCaptureService screenCapture,
+        IAutomationRoiPreviewImageProvider roiPreviewImageProvider,
         IAutomationRegionPickerService regionPicker,
         IAutomationScriptRunner scriptRunner,
         IAutomationConnectionPolicy connectionPolicy,
@@ -89,6 +94,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _dialogs = dialogs;
         _toast = toast;
         _screenCapture = screenCapture;
+        _roiPreviewImageProvider = roiPreviewImageProvider;
         _regionPicker = regionPicker;
         _scriptRunner = scriptRunner;
         _connectionPolicy = connectionPolicy;
@@ -125,6 +131,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         ApplySelectionVisualStates();
         DeleteSelectedCommand.NotifyCanExecuteChanged();
         PickCaptureRegionCommand.NotifyCanExecuteChanged();
+        OpenRoiPreviewWindowCommand.NotifyCanExecuteChanged();
         ClearCaptureRegionCommand.NotifyCanExecuteChanged();
         RefreshRoiThumbnail(value);
     }
@@ -176,6 +183,9 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
     [ObservableProperty]
     private ImageSource? _roiInspectorThumbnail;
+
+    [ObservableProperty]
+    private string _roiInspectorSummaryText = "";
 
     [ObservableProperty]
     private string _automationRunLog = "";
@@ -1391,6 +1401,35 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             await PickCaptureRegionForNodeAsync(SelectedNode);
     }
 
+    [RelayCommand(CanExecute = nameof(CanPickCaptureRoi))]
+    private void OpenRoiPreviewWindow()
+    {
+        if (Application.Current?.MainWindow is not Window owner)
+            return;
+
+        if (_roiPreviewWindow is { IsLoaded: true })
+        {
+            if (_roiPreviewWindow.DataContext is AutomationRoiPreviewViewModel previewVm)
+                previewVm.ReloadFromWorkspace();
+            _roiPreviewWindow.Activate();
+            return;
+        }
+
+        var vm = new AutomationRoiPreviewViewModel(this, _roiPreviewImageProvider);
+        var w = new AutomationRoiPreviewWindow
+        {
+            Owner = owner,
+            DataContext = vm
+        };
+        w.Closed += (_, _) =>
+        {
+            vm.Detach();
+            _roiPreviewWindow = null;
+        };
+        _roiPreviewWindow = w;
+        w.Show();
+    }
+
     private async Task PickCaptureRegionForNodeAsync(AutomationCanvasNodeViewModel node)
     {
         try
@@ -1941,28 +1980,25 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private void RefreshRoiThumbnail(AutomationCanvasNodeViewModel? node)
     {
         RoiInspectorThumbnail = null;
+        RoiInspectorSummaryText = "";
         if (node?.State.Properties is null)
             return;
 
-        var b64 = AutomationNodePropertyReader.ReadString(node.State.Properties,
-            AutomationNodePropertyKeys.CaptureRoiThumbnailBase64);
-        if (string.IsNullOrWhiteSpace(b64))
-            return;
+        var props = node.State.Properties;
+        var mode = AutomationNodePropertyReader.ReadString(props, AutomationNodePropertyKeys.CaptureMode);
+        if (string.Equals(mode, AutomationCaptureMode.Roi, StringComparison.OrdinalIgnoreCase) &&
+            AutomationNodePropertyReader.TryReadRoiCapture(props, out var roi) &&
+            !roi.IsEmpty)
+        {
+            RoiInspectorSummaryText = string.Format(
+                Local("AutomationRoiPreview_StatusRoiFormat"),
+                roi.X,
+                roi.Y,
+                roi.Width,
+                roi.Height);
+        }
 
-        try
-        {
-            using var ms = new MemoryStream(Convert.FromBase64String(b64));
-            var img = new BitmapImage();
-            img.BeginInit();
-            img.StreamSource = ms;
-            img.CacheOption = BitmapCacheOption.OnLoad;
-            img.EndInit();
-            img.Freeze();
-            RoiInspectorThumbnail = img;
-        }
-        catch
-        {
-        }
+        RoiInspectorThumbnail = _roiPreviewImageProvider.TryLoadStoredPreview(props);
     }
 
     private static string ReadStringDefaulted(JsonObject? props, AutomationNodeInlineEditorDefinition definition)

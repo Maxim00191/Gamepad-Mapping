@@ -12,7 +12,7 @@ public sealed class LoopControlNodeHandler : IAutomationRuntimeNodeHandler
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, List<string> log, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var mode = AutomationNodePropertyReader.ReadString(node.Properties, "loopControlMode");
+        var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.LoopControlMode);
         if (string.Equals(mode, "break", StringComparison.OrdinalIgnoreCase))
         {
             context.TriggerLoopBreak();

@@ -786,6 +786,16 @@
                                FontWeight="SemiBold"
                                FontSize="13"
                                Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiPreview]}" />
+                    <TextBlock Margin="0,0,0,6"
+                               FontSize="12"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               Text="{Binding RoiInspectorSummaryText}" />
+                    <Button Margin="0,0,0,8"
+                            Padding="10,6"
+                            HorizontalAlignment="Left"
+                            Command="{Binding OpenRoiPreviewWindowCommand}"
+                            Content="{Binding Source={StaticResource Loc}, Path=[AutomationRoiPreview_OpenWindow]}" />
                     <Border Padding="6"
                             MinHeight="150"
                             CornerRadius="6"
@@ -793,7 +803,8 @@
                             BorderBrush="{DynamicResource AppBorderBrush}"
                             BorderThickness="1">
                         <Grid>
-                            <Image Stretch="Uniform"
+                            <Image RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                   Stretch="Uniform"
                                    Source="{Binding RoiInspectorThumbnail}" />
                         </Grid>
                     </Border>

@@ -1639,6 +1639,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _userDialogService,
             _appToastService,
             automationExecution.ScreenCapture,
+            new AutomationRoiPreviewImageProvider(automationExecution.ScreenCapture),
             new AutomationRegionPickerService(
                 automationExecution.ScreenCapture,
                 new AutomationCaptureShellHideService(),

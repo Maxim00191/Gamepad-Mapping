@@ -13,10 +13,12 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
     private readonly Dictionary<string, IReadOnlyList<AutomationNodeInlineEditorDefinition>> _definitionsByNodeTypeId =
         BuildDefinitions();
 
-    private static readonly IReadOnlyList<string> TemplateNeedleAlgorithmValues =
+    private static readonly IReadOnlyList<string> NeedlePathEditorAlgorithmValues =
     [
         AutomationVisionAlgorithmStorage.TemplateMatch,
-        AutomationVisionAlgorithmStorage.OpenCvTemplateMatch
+        AutomationVisionAlgorithmStorage.OpenCvTemplateMatch,
+        "",
+        AutomationVisionAlgorithmStorage.YoloOnnx
     ];
 
     private static readonly IReadOnlyList<string> YoloAlgorithmValues =
@@ -164,6 +166,15 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithm",
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = AutomationVisionAlgorithmStorage.YoloOnnx,
+                    ChoiceOptions = AutomationVisionAlgorithmCatalog.FindImageAlgorithmChoiceOptions()
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
                     PropertyKey = AutomationNodePropertyKeys.FindImageNeedlePath,
                     LabelResourceKey = "AutomationInlineEditor_FindImageNeedlePath",
                     PlaceholderResourceKey = "AutomationInlineEditor_FindImageNeedlePathPlaceholder",
@@ -174,16 +185,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     SecondaryActionKind = AutomationNodeInlineEditorActionKind.CaptureNeedleImageFromScreen,
                     SecondaryActionLabelResourceKey = "AutomationWorkspace_ScreenshotNeedle",
                     VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
-                    VisibleWhenPropertyValues = TemplateNeedleAlgorithmValues
-                },
-                new AutomationNodeInlineEditorDefinition
-                {
-                    NodeTypeId = "perception.find_image",
-                    PropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
-                    LabelResourceKey = "AutomationInlineEditor_FindImageAlgorithm",
-                    Kind = AutomationNodeInlineEditorKind.Choice,
-                    DefaultTextValue = AutomationVisionAlgorithmStorage.YoloOnnx,
-                    ChoiceOptions = AutomationVisionAlgorithmCatalog.FindImageAlgorithmChoiceOptions()
+                    VisibleWhenPropertyValues = NeedlePathEditorAlgorithmValues
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
@@ -323,6 +325,18 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     DefaultTextValue = "500",
                     MinIntegerValue = 25,
                     MaxIntegerValue = 30000,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = ScoreThresholdAlgorithmValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageConfidence,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageConfidence",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0.85",
+                    MinDoubleValue = 0,
+                    MaxDoubleValue = 1,
                     VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
                     VisibleWhenPropertyValues = ScoreThresholdAlgorithmValues
                 }
@@ -708,7 +722,20 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     Kind = AutomationNodeInlineEditorKind.Text,
                     DefaultTextValue = ""
                 }
-            ]
+            ],
+            ["math.add"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.add"),
+            ["math.subtract"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.subtract"),
+            ["math.multiply"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.multiply"),
+            ["math.divide"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.divide"),
+            ["logic.gt"] = AutomationNodeInlineEditorSchemaParts.LogicCompare("logic.gt"),
+            ["logic.lt"] = AutomationNodeInlineEditorSchemaParts.LogicCompare("logic.lt"),
+            ["logic.eq"] = AutomationNodeInlineEditorSchemaParts.LogicCompare("logic.eq"),
+            ["logic.and"] = AutomationNodeInlineEditorSchemaParts.LogicBoolBinary("logic.and"),
+            ["logic.or"] = AutomationNodeInlineEditorSchemaParts.LogicBoolBinary("logic.or"),
+            ["logic.not"] = AutomationNodeInlineEditorSchemaParts.LogicNot("logic.not"),
+            ["math.random"] = AutomationNodeInlineEditorSchemaParts.RandomInteger("math.random"),
+            ["variables.get"] = AutomationNodeInlineEditorSchemaParts.VariableGet("variables.get"),
+            ["logic.loop_control"] = AutomationNodeInlineEditorSchemaParts.LoopControl("logic.loop_control")
         };
 
     private static AutomationNodeInlineEditorDefinition BuildFindImageIntegerDefinition(

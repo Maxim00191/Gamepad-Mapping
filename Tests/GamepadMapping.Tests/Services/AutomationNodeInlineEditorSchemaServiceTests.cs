@@ -109,9 +109,11 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         var textMinimumArea = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTextMinimumRegionAreaPx);
         var tolerance = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTolerance);
         var timeout = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageTimeoutMs);
+        var confidence = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageConfidence);
 
         Assert.Equal(AutomationNodePropertyKeys.FindImageAlgorithm, needlePath.VisibleWhenPropertyKey);
-        Assert.DoesNotContain(AutomationVisionAlgorithmStorage.YoloOnnx, needlePath.VisibleWhenPropertyValues!);
+        Assert.Contains(AutomationVisionAlgorithmStorage.YoloOnnx, needlePath.VisibleWhenPropertyValues!);
+        Assert.Contains("", needlePath.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.TemplateMatch, needlePath.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.OpenCvTemplateMatch, needlePath.VisibleWhenPropertyValues!);
 
@@ -134,6 +136,31 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         Assert.DoesNotContain(AutomationVisionAlgorithmStorage.ColorThreshold, tolerance.VisibleWhenPropertyValues!);
         Assert.DoesNotContain(AutomationVisionAlgorithmStorage.Contour, timeout.VisibleWhenPropertyValues!);
         Assert.DoesNotContain(AutomationVisionAlgorithmStorage.TextRegion, timeout.VisibleWhenPropertyValues!);
+        Assert.Equal(tolerance.VisibleWhenPropertyValues, confidence.VisibleWhenPropertyValues);
+        Assert.Equal(AutomationNodeInlineEditorKind.Double, confidence.Kind);
+    }
+
+    [Fact]
+    public void GetDefinitions_MathAdd_ExposesOperandFallbacks()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions("math.add");
+
+        Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.MathLeft);
+        Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.MathRight);
+    }
+
+    [Fact]
+    public void GetDefinitions_LoopControl_UsesChoiceForMode()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions("logic.loop_control");
+        var mode = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.LoopControlMode);
+
+        Assert.Equal(AutomationNodeInlineEditorKind.Choice, mode.Kind);
+        Assert.NotNull(mode.ChoiceOptions);
+        Assert.Contains(mode.ChoiceOptions!, o => o.StoredValue == "break");
+        Assert.Contains(mode.ChoiceOptions!, o => o.StoredValue == "continue");
     }
 
     [Fact]

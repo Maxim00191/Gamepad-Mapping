@@ -88,6 +88,13 @@ public static class AutomationNodePropertyKeys
     public const string SwitchCaseValue = "switchCaseValue";
     public const string LogMessage = "logMessage";
 
+    public const string RandomMin = "randomMin";
+    public const string RandomMax = "randomMax";
+
+    public const string BoolNotInput = "boolInput";
+
+    public const string LoopControlMode = "loopControlMode";
+
     public const string PidCurrentValue = "pidCurrentValue";
     public const string PidTargetValue = "pidTargetValue";
     public const string PidKp = "pidKp";

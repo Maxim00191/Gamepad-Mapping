@@ -305,7 +305,7 @@ public sealed class AutomationRuntimeContext
             return AutomationDataValue.Empty;
 
         if (!TryResolveBooleanInput(node.Id, "input", out var input))
-            input = AutomationNodePropertyReader.ReadBool(node.Properties, "boolInput");
+            input = AutomationNodePropertyReader.ReadBool(node.Properties, AutomationNodePropertyKeys.BoolNotInput);
 
         return new AutomationDataValue(AutomationPortType.Boolean, !input);
     }
@@ -315,8 +315,8 @@ public sealed class AutomationRuntimeContext
         if (!string.Equals(sourcePortId, "value", StringComparison.Ordinal))
             return AutomationDataValue.Empty;
 
-        var minValue = AutomationNodePropertyReader.ReadInt(node.Properties, "randomMin", 0);
-        var maxValue = AutomationNodePropertyReader.ReadInt(node.Properties, "randomMax", 100);
+        var minValue = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.RandomMin, 0);
+        var maxValue = AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.RandomMax, 100);
         var value = NextRandomInt(Math.Min(minValue, maxValue), Math.Max(minValue, maxValue));
         return new AutomationDataValue(AutomationPortType.Integer, value);
     }
