@@ -17,4 +17,6 @@ public static class AutomationPortIds
     public const string BranchTrue = "branch.true";
 
     public const string BranchFalse = "branch.false";
+
+    public const string Condition = "condition";
 }

@@ -153,12 +153,47 @@ public sealed class AutomationDirectScreenCaptureTests
     }
 
     [Fact]
-    public void TryDirectCapture_InProcessRoi_CropsProcessWindowCapture()
+    public void TryDirectCapture_InProcessRoi_UsesDirectRectangleCapture()
     {
-        var bmp = CreateBitmap(6, 6);
-        var metrics = new AutomationVirtualScreenMetrics(100, 200, 6, 6);
-        var wrapped = new AutomationVirtualScreenCaptureResult(bmp, metrics);
+        var roiBitmap = CreateBitmap(2, 2);
         var mock = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        mock.Setup(s => s.CaptureRectanglePhysical(102, 203, 2, 2))
+            .Returns(roiBitmap);
+
+        var props = new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = AutomationCaptureMode.Roi,
+            [AutomationNodePropertyKeys.CaptureSourceMode] = AutomationCaptureSourceMode.InProcessWindow,
+            [AutomationNodePropertyKeys.CaptureProcessName] = "MyGame",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 102,
+                ["y"] = 203,
+                ["width"] = 2,
+                ["height"] = 2
+            }
+        };
+
+        var ok = AutomationDirectScreenCapture.TryDirectCapture(CreateResolver(mock.Object), props, out var result);
+
+        Assert.True(ok);
+        Assert.Same(roiBitmap, result.Bitmap);
+        Assert.Equal(2, result.Bitmap.PixelWidth);
+        Assert.Equal(2, result.Bitmap.PixelHeight);
+        Assert.Equal(102, result.Metrics.PhysicalOriginX);
+        Assert.Equal(203, result.Metrics.PhysicalOriginY);
+        mock.VerifyAll();
+    }
+
+    [Fact]
+    public void TryDirectCapture_InProcessRoi_FallsBackToWindowCropWhenRectangleCaptureFails()
+    {
+        var processBitmap = CreateBitmap(6, 6);
+        var metrics = new AutomationVirtualScreenMetrics(100, 200, 6, 6);
+        var wrapped = new AutomationVirtualScreenCaptureResult(processBitmap, metrics);
+        var mock = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        mock.Setup(s => s.CaptureRectanglePhysical(102, 203, 2, 2))
+            .Throws(new InvalidOperationException("roi_capture_failed"));
         mock.Setup(s => s.CaptureProcessWindowPhysical(
                 It.Is<AutomationProcessWindowTarget>(target =>
                     target.ProcessName == "MyGame" && target.ProcessId == 0)))

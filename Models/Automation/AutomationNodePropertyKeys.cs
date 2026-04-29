@@ -26,6 +26,7 @@ public static class AutomationNodePropertyKeys
     public const string KeyboardActionId = "keyboardActionId";
     public const string KeyboardActionMode = "keyboardActionMode";
     public const string KeyboardHoldMilliseconds = "keyboardHoldMs";
+    public const string OutputHoldCondition = "outputHoldCondition";
     public const string InputEmulationApiId = "inputEmulationApiId";
 
     public const string MouseUseMatchPosition = "mouseUseMatchPosition";
@@ -93,6 +94,10 @@ public static class AutomationNodePropertyKeys
 
     public const string MathLeft = "mathLeft";
     public const string MathRight = "mathRight";
+    public const string MathValue = "mathValue";
+    public const string MathMin = "mathMin";
+    public const string MathMax = "mathMax";
+    public const string MathThreshold = "mathThreshold";
     public const string BoolLeft = "boolLeft";
     public const string BoolRight = "boolRight";
     public const string CompareLeft = "compareLeft";
@@ -113,6 +118,13 @@ public static class AutomationNodePropertyKeys
     public const string PidKp = "pidKp";
     public const string PidKi = "pidKi";
     public const string PidKd = "pidKd";
+    public const string PidOutputMin = "pidOutputMin";
+    public const string PidOutputMax = "pidOutputMax";
+    public const string PidIntegralLimit = "pidIntegralLimit";
+    public const string PidDeadband = "pidDeadband";
+
+    public const string SmoothInputValue = "smoothInputValue";
+    public const string SmoothFactor = "smoothFactor";
 
     public const string MacroSubgraphId = "macroSubgraphId";
     public const string EventSignal = "eventSignal";

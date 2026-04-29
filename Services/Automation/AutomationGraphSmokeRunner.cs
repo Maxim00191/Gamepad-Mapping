@@ -91,7 +91,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
         _pendingExecutionStarts = new Queue<Guid>();
         _queuedExecutionStarts = [];
         var eventBus = new AutomationEventBus();
-        var verboseExecutionLog = document.VerboseExecutionLogging is not false;
+        var verboseExecutionLog = document.VerboseExecutionLogging is true;
         var context = new AutomationRuntimeContext
         {
             CaptureResolver = _captureResolver,

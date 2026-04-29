@@ -30,6 +30,7 @@ public sealed class AutomationRuntimeContext
     private readonly Stack<AutomationLoopBodyScope> _loopBodyScopes = new();
     private readonly Dictionary<Guid, double> _loopIterationSpacingAnchorSeconds = [];
     private readonly Random _random = new();
+    private int _dataRevision;
 
     public required IAutomationScreenCaptureServiceResolver CaptureResolver { get; init; }
 
@@ -160,7 +161,11 @@ public sealed class AutomationRuntimeContext
         return true;
     }
 
-    public void StoreProbeResult(Guid nodeId, AutomationImageProbeResult result) => _probeResults[nodeId] = result;
+    public void StoreProbeResult(Guid nodeId, AutomationImageProbeResult result)
+    {
+        _probeResults[nodeId] = result;
+        _dataRevision++;
+    }
 
     public bool TryGetProbeResultByNode(Guid nodeId, out AutomationImageProbeResult result) =>
         _probeResults.TryGetValue(nodeId, out result);
@@ -232,6 +237,7 @@ public sealed class AutomationRuntimeContext
             return;
 
         _variables[name.Trim()] = value;
+        _dataRevision++;
     }
 
     public AutomationDataValue GetVariable(string name)
@@ -331,6 +337,8 @@ public sealed class AutomationRuntimeContext
             "math.subtract" => EvaluateBinaryMath(node, sourcePortId, (l, r) => l - r),
             "math.multiply" => EvaluateBinaryMath(node, sourcePortId, (l, r) => l * r),
             "math.divide" => EvaluateBinaryMath(node, sourcePortId, (l, r) => Math.Abs(r) < double.Epsilon ? 0 : l / r),
+            AutomationNodeTypeIds.MathClamp => EvaluateClamp(node, sourcePortId),
+            AutomationNodeTypeIds.MathDeadband => EvaluateDeadband(node, sourcePortId),
             "logic.gt" => EvaluateComparison(node, sourcePortId),
             "logic.lt" => EvaluateComparison(node, sourcePortId),
             "logic.eq" => EvaluateComparison(node, sourcePortId),
@@ -340,6 +348,7 @@ public sealed class AutomationRuntimeContext
             "math.random" => EvaluateRandom(node, sourcePortId),
             "variables.get" => EvaluateVariableGet(node, sourcePortId),
             "control.pid_controller" => EvaluatePid(node, sourcePortId),
+            AutomationNodeTypeIds.SignalSmooth => EvaluateSignalSmooth(node, sourcePortId),
             "output.key_state" => EvaluateKeyState(node, sourcePortId),
             _ => AutomationDataValue.Empty
         };
@@ -357,17 +366,99 @@ public sealed class AutomationRuntimeContext
         var kp = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKp, 1d);
         var ki = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKi, 0d);
         var kd = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKd, 0d);
+        var deadband = Math.Max(0d, AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidDeadband, 0d));
+        var integralLimit = Math.Max(0d, AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidIntegralLimit, 0d));
+        var outputMin = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidOutputMin, 0d);
+        var outputMax = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidOutputMax, 0d);
 
         var state = GetOrCreateNodeState(node.Id, () => new GamepadMapperGUI.Services.Automation.NodeHandlers.PidControllerState());
+        var isDataDriven =
+            Index.GetDataSourceLink(node.Id, "current.value") is not null ||
+            Index.GetDataSourceLink(node.Id, "target.value") is not null;
+        if (isDataDriven &&
+            state.HasCachedOutput &&
+            state.LastInputRevision == _dataRevision &&
+            state.LastCurrent == current &&
+            state.LastTarget == target)
+        {
+            return new AutomationDataValue(AutomationPortType.Number, state.CachedOutput);
+        }
+
         var dt = Math.Max(DeltaTimeSeconds, 0.0001d);
-        var error = target - current;
+        var rawError = target - current;
+        var error = Math.Abs(rawError) <= deadband ? 0d : rawError;
         state.IntegralAccumulator += error * dt;
+        if (integralLimit > 0d)
+            state.IntegralAccumulator = Math.Clamp(state.IntegralAccumulator, -integralLimit, integralLimit);
         var derivative = state.Initialized ? (error - state.PreviousError) / dt : 0d;
         state.PreviousError = error;
         state.Initialized = true;
 
         var output = (kp * error) + (ki * state.IntegralAccumulator) + (kd * derivative);
+        if (outputMax > outputMin)
+            output = Math.Clamp(output, outputMin, outputMax);
+        state.LastOutput = output;
+        if (isDataDriven)
+        {
+            state.LastInputRevision = _dataRevision;
+            state.LastCurrent = current;
+            state.LastTarget = target;
+            state.CachedOutput = output;
+            state.HasCachedOutput = true;
+        }
+
         return new AutomationDataValue(AutomationPortType.Number, output);
+    }
+
+    private AutomationDataValue EvaluateClamp(AutomationNodeState node, string sourcePortId)
+    {
+        if (!string.Equals(sourcePortId, "value", StringComparison.Ordinal))
+            return AutomationDataValue.Empty;
+
+        if (!TryResolveNumberInput(node.Id, "input", out var input))
+            input = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.MathValue, 0d);
+        if (!TryResolveNumberInput(node.Id, "min", out var min))
+            min = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.MathMin, 0d);
+        if (!TryResolveNumberInput(node.Id, "max", out var max))
+            max = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.MathMax, 1d);
+
+        return new AutomationDataValue(AutomationPortType.Number, Math.Clamp(input, Math.Min(min, max), Math.Max(min, max)));
+    }
+
+    private AutomationDataValue EvaluateDeadband(AutomationNodeState node, string sourcePortId)
+    {
+        if (!string.Equals(sourcePortId, "value", StringComparison.Ordinal))
+            return AutomationDataValue.Empty;
+
+        if (!TryResolveNumberInput(node.Id, "input", out var input))
+            input = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.MathValue, 0d);
+        if (!TryResolveNumberInput(node.Id, "threshold", out var threshold))
+            threshold = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.MathThreshold, 0d);
+
+        var normalizedThreshold = Math.Max(0d, threshold);
+        var output = Math.Abs(input) <= normalizedThreshold ? 0d : input;
+        return new AutomationDataValue(AutomationPortType.Number, output);
+    }
+
+    private AutomationDataValue EvaluateSignalSmooth(AutomationNodeState node, string sourcePortId)
+    {
+        if (!string.Equals(sourcePortId, "value", StringComparison.Ordinal))
+            return AutomationDataValue.Empty;
+
+        if (!TryResolveNumberInput(node.Id, "input", out var input))
+            input = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.SmoothInputValue, 0d);
+
+        var factor = Math.Clamp(
+            AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.SmoothFactor, 0.25d),
+            0d,
+            1d);
+        var state = GetOrCreateNodeState(node.Id, () => new GamepadMapperGUI.Services.Automation.NodeHandlers.SignalSmoothingState());
+        state.Value = state.Initialized
+            ? state.Value + ((input - state.Value) * factor)
+            : input;
+        state.Initialized = true;
+
+        return new AutomationDataValue(AutomationPortType.Number, state.Value);
     }
 
     private AutomationDataValue EvaluateKeyState(AutomationNodeState node, string sourcePortId)

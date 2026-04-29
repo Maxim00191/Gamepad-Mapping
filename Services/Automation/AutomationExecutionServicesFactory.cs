@@ -29,7 +29,7 @@ public sealed class AutomationExecutionServicesFactory : IAutomationExecutionSer
                 [AutomationCaptureApi.Gdi] = capture,
                 [AutomationCaptureApi.DesktopDuplication] = duplication
             },
-            AutomationCaptureApi.Gdi);
+            AutomationCaptureApi.DesktopDuplication);
         var topology = new AutomationTopologyAnalyzer(registry);
         var contracts = new AutomationNodeContractValidator();
         var safety = new AutomationExecutionSafetyPolicy();

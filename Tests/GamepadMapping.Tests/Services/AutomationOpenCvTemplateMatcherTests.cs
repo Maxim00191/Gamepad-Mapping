@@ -32,6 +32,17 @@ public sealed class AutomationOpenCvTemplateMatcherTests
         Assert.True(result.Confidence >= 0.99);
     }
 
+    [Fact]
+    public void GetOrCreateCachedBgrMat_ReusesMatForSameBitmapInstance()
+    {
+        var bitmap = ToFrozenBitmap(8, 8, new byte[8 * 8 * 4], 8 * 4);
+
+        var first = AutomationBitmapSourceToOpenCvMat.GetOrCreateCachedBgrMat(bitmap);
+        var second = AutomationBitmapSourceToOpenCvMat.GetOrCreateCachedBgrMat(bitmap);
+
+        Assert.True(ReferenceEquals(first, second));
+    }
+
     private static (BitmapSource Haystack, BitmapSource Needle) CreateHaystackAndNeedleFromSameBuffer(
         int w,
         int h,

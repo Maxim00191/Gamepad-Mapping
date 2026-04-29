@@ -16,8 +16,8 @@ public sealed class AutomationOpenCvTemplateMatcher : IAutomationTemplateMatcher
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var hMat = AutomationBitmapSourceToOpenCvMat.ToBgrMat(haystack);
-        using var nMat = AutomationBitmapSourceToOpenCvMat.ToBgrMat(needle);
+        var hMat = AutomationBitmapSourceToOpenCvMat.GetOrCreateCachedBgrMat(haystack);
+        var nMat = AutomationBitmapSourceToOpenCvMat.GetOrCreateCachedBgrMat(needle);
         var searchW = hMat.Width - nMat.Width + 1;
         var searchH = hMat.Height - nMat.Height + 1;
         if (searchW <= 0 || searchH <= 0)

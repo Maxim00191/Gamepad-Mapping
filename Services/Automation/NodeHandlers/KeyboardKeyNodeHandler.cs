@@ -26,19 +26,27 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         var requestedModeId = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.InputEmulationApiId);
         var (keyboard, _) = context.ResolveInputEmulationPair(requestedModeId);
         var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.KeyboardActionMode);
-        var normalizedMode = string.IsNullOrWhiteSpace(mode) ? "tap" : mode.Trim().ToLowerInvariant();
+        var normalizedMode = NormalizeMode(mode, AutomationOutputActionModes.Tap);
 
-        if (string.Equals(normalizedMode, "press", StringComparison.Ordinal))
+        if (string.Equals(normalizedMode, AutomationOutputActionModes.HoldWhileTrue, StringComparison.Ordinal))
+        {
+            var isTrue = ResolveHoldCondition(context, node);
+            var sent = isTrue
+                ? context.InputState.Hold(key)
+                : context.InputState.Release(key);
+            log.Add($"[keyboard_key] action=hold_while_true key={key} condition={isTrue} sent={sent}");
+        }
+        else if (string.Equals(normalizedMode, AutomationOutputActionModes.Press, StringComparison.Ordinal))
         {
             keyboard.KeyDown(key);
             log.Add($"[keyboard_key] action=press key={key}");
         }
-        else if (string.Equals(normalizedMode, "release", StringComparison.Ordinal))
+        else if (string.Equals(normalizedMode, AutomationOutputActionModes.Release, StringComparison.Ordinal))
         {
             keyboard.KeyUp(key);
             log.Add($"[keyboard_key] action=release key={key}");
         }
-        else if (string.Equals(normalizedMode, "hold", StringComparison.Ordinal))
+        else if (string.Equals(normalizedMode, AutomationOutputActionModes.Hold, StringComparison.Ordinal))
         {
             var nominalHoldMs = Math.Clamp(
                 AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.KeyboardHoldMilliseconds, 200),
@@ -60,5 +68,22 @@ public sealed class KeyboardKeyNodeHandler : IAutomationRuntimeNodeHandler
         }
 
         return context.GetExecutionTarget(node.Id, "flow.out");
+    }
+
+    private static bool ResolveHoldCondition(AutomationRuntimeContext context, AutomationNodeState node)
+    {
+        if (context.TryResolveBooleanInput(node.Id, AutomationPortIds.Condition, out var signal))
+            return signal;
+
+        return AutomationNodePropertyReader.ReadBool(node.Properties, AutomationNodePropertyKeys.OutputHoldCondition);
+    }
+
+    private static string NormalizeMode(string? mode, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(mode))
+            return fallback;
+
+        var normalized = mode.Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(normalized) ? fallback : normalized;
     }
 }

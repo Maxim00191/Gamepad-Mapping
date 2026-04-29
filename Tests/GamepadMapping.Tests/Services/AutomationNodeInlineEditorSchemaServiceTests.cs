@@ -61,6 +61,16 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
     }
 
     [Fact]
+    public void GetDefinitions_CaptureScreenApi_DefaultsToDesktopDuplication()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+        var definitions = service.GetDefinitions("perception.capture_screen");
+        var captureApi = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.CaptureApi);
+
+        Assert.Equal(AutomationCaptureApi.DesktopDuplication, captureApi.DefaultTextValue);
+    }
+
+    [Fact]
     public void GetDefinitions_FindImageYoloPath_DefaultsToBundledRelativePath()
     {
         var service = new AutomationNodeInlineEditorSchemaService();
@@ -183,6 +193,32 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
 
         Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.MathLeft);
         Assert.Contains(definitions, d => d.PropertyKey == AutomationNodePropertyKeys.MathRight);
+    }
+
+    [Fact]
+    public void GetDefinitions_OutputNodes_UseChoiceModesAndConditionFallback()
+    {
+        var service = new AutomationNodeInlineEditorSchemaService();
+
+        var keyboardDefinitions = service.GetDefinitions("output.keyboard_key");
+        var keyboardMode = keyboardDefinitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.KeyboardActionMode);
+        var keyboardCondition = keyboardDefinitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.OutputHoldCondition);
+        Assert.Equal(AutomationNodeInlineEditorKind.Choice, keyboardMode.Kind);
+        Assert.NotNull(keyboardMode.ChoiceOptions);
+        Assert.Contains(keyboardMode.ChoiceOptions!, o => o.StoredValue == AutomationOutputActionModes.HoldWhileTrue);
+        Assert.Equal(AutomationNodeInlineEditorKind.Boolean, keyboardCondition.Kind);
+        Assert.Equal(AutomationNodePropertyKeys.KeyboardActionMode, keyboardCondition.VisibleWhenPropertyKey);
+        Assert.Contains(AutomationOutputActionModes.HoldWhileTrue, keyboardCondition.VisibleWhenPropertyValues!);
+
+        var mouseDefinitions = service.GetDefinitions("output.mouse_click");
+        var mouseMode = mouseDefinitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.MouseActionMode);
+        var mouseCondition = mouseDefinitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.OutputHoldCondition);
+        Assert.Equal(AutomationNodeInlineEditorKind.Choice, mouseMode.Kind);
+        Assert.NotNull(mouseMode.ChoiceOptions);
+        Assert.Contains(mouseMode.ChoiceOptions!, o => o.StoredValue == AutomationOutputActionModes.HoldWhileTrue);
+        Assert.Equal(AutomationNodeInlineEditorKind.Boolean, mouseCondition.Kind);
+        Assert.Equal(AutomationNodePropertyKeys.MouseActionMode, mouseCondition.VisibleWhenPropertyKey);
+        Assert.Contains(AutomationOutputActionModes.HoldWhileTrue, mouseCondition.VisibleWhenPropertyValues!);
     }
 
     [Fact]

@@ -2696,4 +2696,73 @@
   <data name="AutomationInlineEditor_CompareOperatorEquals" xml:space="preserve">
     <value>等于</value>
   </data>
+  <data name="AutomationNode_Display_Clamp" xml:space="preserve">
+    <value>限制范围</value>
+  </data>
+  <data name="AutomationNode_Summary_Clamp" xml:space="preserve">
+    <value>将数值信号限制在最小值和最大值之间。</value>
+  </data>
+  <data name="AutomationNode_Display_Deadband" xml:space="preserve">
+    <value>死区</value>
+  </data>
+  <data name="AutomationNode_Summary_Deadband" xml:space="preserve">
+    <value>当数值信号位于阈值内时输出零。</value>
+  </data>
+  <data name="AutomationNode_Display_SignalSmooth" xml:space="preserve">
+    <value>平滑信号</value>
+  </data>
+  <data name="AutomationNode_Summary_SignalSmooth" xml:space="preserve">
+    <value>跨自动化节拍平滑有噪声的数值信号。</value>
+  </data>
+  <data name="AutomationInlineEditor_MathValue" xml:space="preserve">
+    <value>数值</value>
+  </data>
+  <data name="AutomationInlineEditor_MathMin" xml:space="preserve">
+    <value>最小值</value>
+  </data>
+  <data name="AutomationInlineEditor_MathMax" xml:space="preserve">
+    <value>最大值</value>
+  </data>
+  <data name="AutomationInlineEditor_MathThreshold" xml:space="preserve">
+    <value>阈值</value>
+  </data>
+  <data name="AutomationInlineEditor_SmoothInputValue" xml:space="preserve">
+    <value>输入值</value>
+  </data>
+  <data name="AutomationInlineEditor_SmoothFactor" xml:space="preserve">
+    <value>平滑系数</value>
+  </data>
+  <data name="AutomationInlineEditor_PidDeadband" xml:space="preserve">
+    <value>误差死区</value>
+  </data>
+  <data name="AutomationInlineEditor_PidIntegralLimit" xml:space="preserve">
+    <value>积分限制</value>
+  </data>
+  <data name="AutomationInlineEditor_PidOutputMin" xml:space="preserve">
+    <value>输出最小值</value>
+  </data>
+  <data name="AutomationInlineEditor_PidOutputMax" xml:space="preserve">
+    <value>输出最大值</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeTap" xml:space="preserve">
+    <value>点按</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeClick" xml:space="preserve">
+    <value>点击</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModePress" xml:space="preserve">
+    <value>按下</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeRelease" xml:space="preserve">
+    <value>松开</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeHold" xml:space="preserve">
+    <value>定时按住</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeHoldWhileTrue" xml:space="preserve">
+    <value>条件为真时持续按住</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputHoldCondition" xml:space="preserve">
+    <value>后备按住条件</value>
+  </data>
 </root>

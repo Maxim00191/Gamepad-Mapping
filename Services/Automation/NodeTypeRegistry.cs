@@ -299,6 +299,13 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
                     PortType = AutomationPortType.ImageOrCoordinates,
                     FlowKind = AutomationPortFlowKind.Data,
                     IsOutput = false
+                },
+                new AutomationPortDescriptor
+                {
+                    Id = AutomationPortIds.Condition,
+                    PortType = AutomationPortType.Boolean,
+                    FlowKind = AutomationPortFlowKind.Data,
+                    IsOutput = false
                 }
             ],
             OutputPorts =
@@ -347,6 +354,13 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
                     PortType = AutomationPortType.Number,
                     FlowKind = AutomationPortFlowKind.Data,
                     IsOutput = false
+                },
+                new AutomationPortDescriptor
+                {
+                    Id = AutomationPortIds.Condition,
+                    PortType = AutomationPortType.Boolean,
+                    FlowKind = AutomationPortFlowKind.Data,
+                    IsOutput = false
                 }
             ],
             OutputPorts =
@@ -364,6 +378,9 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
         BuildBinaryMath("math.subtract", "AutomationNode_Display_Subtract", "\uE113"),
         BuildBinaryMath("math.multiply", "AutomationNode_Display_Multiply", "\uE118"),
         BuildBinaryMath("math.divide", "AutomationNode_Display_Divide", "\uE11A"),
+        BuildClampNode(),
+        BuildDeadbandNode(),
+        BuildSignalSmoothNode(),
         BuildComparison("logic.gt", "AutomationNode_Display_GreaterThan", "\uE8D1"),
         BuildComparison("logic.lt", "AutomationNode_Display_LessThan", "\uE8D2"),
         BuildComparison("logic.eq", "AutomationNode_Display_Equals", "\uE8D5"),
@@ -397,6 +414,60 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             [
                 new AutomationPortDescriptor { Id = "left", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
                 new AutomationPortDescriptor { Id = "right", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildClampNode() =>
+        new()
+        {
+            Id = AutomationNodeTypeIds.MathClamp,
+            DisplayNameResourceKey = "AutomationNode_Display_Clamp",
+            SummaryResourceKey = "AutomationNode_Summary_Clamp",
+            GlyphFontGlyph = "\uE9D9",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "input", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
+                new AutomationPortDescriptor { Id = "min", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
+                new AutomationPortDescriptor { Id = "max", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildDeadbandNode() =>
+        new()
+        {
+            Id = AutomationNodeTypeIds.MathDeadband,
+            DisplayNameResourceKey = "AutomationNode_Display_Deadband",
+            SummaryResourceKey = "AutomationNode_Summary_Deadband",
+            GlyphFontGlyph = "\uE9D9",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "input", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
+                new AutomationPortDescriptor { Id = "threshold", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = "value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildSignalSmoothNode() =>
+        new()
+        {
+            Id = AutomationNodeTypeIds.SignalSmooth,
+            DisplayNameResourceKey = "AutomationNode_Display_SignalSmooth",
+            SummaryResourceKey = "AutomationNode_Summary_SignalSmooth",
+            GlyphFontGlyph = "\uE9D9",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "input", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
             ],
             OutputPorts =
             [

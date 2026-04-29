@@ -56,6 +56,11 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
         AutomationCaptureSourceMode.InProcessWindow
     ];
 
+    private static readonly IReadOnlyList<string> HoldWhileTrueModeValues =
+    [
+        AutomationOutputActionModes.HoldWhileTrue
+    ];
+
     public IReadOnlyList<AutomationNodeInlineEditorDefinition> GetDefinitions(string nodeTypeId)
     {
         if (!_definitionsByNodeTypeId.TryGetValue(nodeTypeId, out var definitions))
@@ -136,7 +141,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     PropertyKey = AutomationNodePropertyKeys.CaptureApi,
                     LabelResourceKey = "AutomationInlineEditor_CaptureApi",
                     Kind = AutomationNodeInlineEditorKind.Choice,
-                    DefaultTextValue = AutomationCaptureApi.Gdi,
+                    DefaultTextValue = AutomationCaptureApi.DesktopDuplication,
                     ChoiceOptions =
                     [
                         new AutomationNodeInlineChoiceOption
@@ -442,9 +447,26 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     NodeTypeId = "output.keyboard_key",
                     PropertyKey = AutomationNodePropertyKeys.KeyboardActionMode,
                     LabelResourceKey = "AutomationInlineEditor_KeyboardActionMode",
-                    PlaceholderResourceKey = "AutomationInlineEditor_KeyboardActionModePlaceholder",
-                    Kind = AutomationNodeInlineEditorKind.Text,
-                    DefaultTextValue = "tap"
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = AutomationOutputActionModes.Tap,
+                    ChoiceOptions =
+                    [
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Tap, LabelResourceKey = "AutomationInlineEditor_OutputActionModeTap" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Press, LabelResourceKey = "AutomationInlineEditor_OutputActionModePress" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Release, LabelResourceKey = "AutomationInlineEditor_OutputActionModeRelease" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Hold, LabelResourceKey = "AutomationInlineEditor_OutputActionModeHold" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.HoldWhileTrue, LabelResourceKey = "AutomationInlineEditor_OutputActionModeHoldWhileTrue" }
+                    ]
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.keyboard_key",
+                    PropertyKey = AutomationNodePropertyKeys.OutputHoldCondition,
+                    LabelResourceKey = "AutomationInlineEditor_OutputHoldCondition",
+                    Kind = AutomationNodeInlineEditorKind.Boolean,
+                    DefaultBooleanValue = false,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.KeyboardActionMode,
+                    VisibleWhenPropertyValues = HoldWhileTrueModeValues
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
@@ -541,9 +563,26 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     NodeTypeId = "output.mouse_click",
                     PropertyKey = AutomationNodePropertyKeys.MouseActionMode,
                     LabelResourceKey = "AutomationInlineEditor_MouseActionMode",
-                    PlaceholderResourceKey = "AutomationInlineEditor_MouseActionModePlaceholder",
-                    Kind = AutomationNodeInlineEditorKind.Text,
-                    DefaultTextValue = "click"
+                    Kind = AutomationNodeInlineEditorKind.Choice,
+                    DefaultTextValue = AutomationOutputActionModes.Click,
+                    ChoiceOptions =
+                    [
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Click, LabelResourceKey = "AutomationInlineEditor_OutputActionModeClick" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Press, LabelResourceKey = "AutomationInlineEditor_OutputActionModePress" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Release, LabelResourceKey = "AutomationInlineEditor_OutputActionModeRelease" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.Hold, LabelResourceKey = "AutomationInlineEditor_OutputActionModeHold" },
+                        new AutomationNodeInlineChoiceOption { StoredValue = AutomationOutputActionModes.HoldWhileTrue, LabelResourceKey = "AutomationInlineEditor_OutputActionModeHoldWhileTrue" }
+                    ]
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "output.mouse_click",
+                    PropertyKey = AutomationNodePropertyKeys.OutputHoldCondition,
+                    LabelResourceKey = "AutomationInlineEditor_OutputHoldCondition",
+                    Kind = AutomationNodeInlineEditorKind.Boolean,
+                    DefaultBooleanValue = false,
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.MouseActionMode,
+                    VisibleWhenPropertyValues = HoldWhileTrueModeValues
                 },
                 new AutomationNodeInlineEditorDefinition
                 {
@@ -715,6 +754,40 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                     LabelResourceKey = "AutomationInlineEditor_PidKd",
                     Kind = AutomationNodeInlineEditorKind.Double,
                     DefaultTextValue = "0"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidDeadband,
+                    LabelResourceKey = "AutomationInlineEditor_PidDeadband",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0",
+                    MinDoubleValue = 0
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidIntegralLimit,
+                    LabelResourceKey = "AutomationInlineEditor_PidIntegralLimit",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0",
+                    MinDoubleValue = 0
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidOutputMin,
+                    LabelResourceKey = "AutomationInlineEditor_PidOutputMin",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0"
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "control.pid_controller",
+                    PropertyKey = AutomationNodePropertyKeys.PidOutputMax,
+                    LabelResourceKey = "AutomationInlineEditor_PidOutputMax",
+                    Kind = AutomationNodeInlineEditorKind.Double,
+                    DefaultTextValue = "0"
                 }
             ],
             ["output.key_state"] =
@@ -812,6 +885,9 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
             ["math.subtract"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.subtract"),
             ["math.multiply"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.multiply"),
             ["math.divide"] = AutomationNodeInlineEditorSchemaParts.MathBinary("math.divide"),
+            [AutomationNodeTypeIds.MathClamp] = AutomationNodeInlineEditorSchemaParts.MathClamp(AutomationNodeTypeIds.MathClamp),
+            [AutomationNodeTypeIds.MathDeadband] = AutomationNodeInlineEditorSchemaParts.MathDeadband(AutomationNodeTypeIds.MathDeadband),
+            [AutomationNodeTypeIds.SignalSmooth] = AutomationNodeInlineEditorSchemaParts.SignalSmooth(AutomationNodeTypeIds.SignalSmooth),
             ["logic.gt"] = AutomationNodeInlineEditorSchemaParts.LogicCompare("logic.gt"),
             ["logic.lt"] = AutomationNodeInlineEditorSchemaParts.LogicCompare("logic.lt"),
             ["logic.eq"] = AutomationNodeInlineEditorSchemaParts.LogicCompare("logic.eq"),

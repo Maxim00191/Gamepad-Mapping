@@ -81,7 +81,18 @@ public static class AutomationDirectScreenCapture
         AutomationPhysicalRect roi,
         out AutomationVirtualScreenCaptureResult result)
     {
-        result = default;
+        try
+        {
+            var roiBitmap = capture.CaptureRectanglePhysical(roi.X, roi.Y, roi.Width, roi.Height);
+            var metrics = new AutomationVirtualScreenMetrics(roi.X, roi.Y, roiBitmap.PixelWidth, roiBitmap.PixelHeight);
+            result = new AutomationVirtualScreenCaptureResult(roiBitmap, metrics, target);
+            return true;
+        }
+        catch
+        {
+            result = default;
+        }
+
         var windowCapture = capture.CaptureProcessWindowPhysical(target);
         var localX = roi.X - windowCapture.Metrics.PhysicalOriginX;
         var localY = roi.Y - windowCapture.Metrics.PhysicalOriginY;
@@ -97,8 +108,8 @@ public static class AutomationDirectScreenCapture
         if (crop.CanFreeze)
             crop.Freeze();
 
-        var metrics = new AutomationVirtualScreenMetrics(roi.X, roi.Y, crop.PixelWidth, crop.PixelHeight);
-        result = new AutomationVirtualScreenCaptureResult(crop, metrics, windowCapture.ProcessTarget);
+        var fallbackMetrics = new AutomationVirtualScreenMetrics(roi.X, roi.Y, crop.PixelWidth, crop.PixelHeight);
+        result = new AutomationVirtualScreenCaptureResult(crop, fallbackMetrics, windowCapture.ProcessTarget);
         return true;
     }
 

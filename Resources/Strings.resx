@@ -2696,4 +2696,73 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_CompareOperatorEquals" xml:space="preserve">
     <value>Equals</value>
   </data>
+  <data name="AutomationNode_Display_Clamp" xml:space="preserve">
+    <value>Clamp</value>
+  </data>
+  <data name="AutomationNode_Summary_Clamp" xml:space="preserve">
+    <value>Limits a numeric signal to a minimum and maximum value.</value>
+  </data>
+  <data name="AutomationNode_Display_Deadband" xml:space="preserve">
+    <value>Deadband</value>
+  </data>
+  <data name="AutomationNode_Summary_Deadband" xml:space="preserve">
+    <value>Outputs zero while a numeric signal stays inside a threshold.</value>
+  </data>
+  <data name="AutomationNode_Display_SignalSmooth" xml:space="preserve">
+    <value>Smooth Signal</value>
+  </data>
+  <data name="AutomationNode_Summary_SignalSmooth" xml:space="preserve">
+    <value>Smooths a noisy numeric signal across automation ticks.</value>
+  </data>
+  <data name="AutomationInlineEditor_MathValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="AutomationInlineEditor_MathMin" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="AutomationInlineEditor_MathMax" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="AutomationInlineEditor_MathThreshold" xml:space="preserve">
+    <value>Threshold</value>
+  </data>
+  <data name="AutomationInlineEditor_SmoothInputValue" xml:space="preserve">
+    <value>Input Value</value>
+  </data>
+  <data name="AutomationInlineEditor_SmoothFactor" xml:space="preserve">
+    <value>Smoothing Factor</value>
+  </data>
+  <data name="AutomationInlineEditor_PidDeadband" xml:space="preserve">
+    <value>Error Deadband</value>
+  </data>
+  <data name="AutomationInlineEditor_PidIntegralLimit" xml:space="preserve">
+    <value>Integral Limit</value>
+  </data>
+  <data name="AutomationInlineEditor_PidOutputMin" xml:space="preserve">
+    <value>Output Minimum</value>
+  </data>
+  <data name="AutomationInlineEditor_PidOutputMax" xml:space="preserve">
+    <value>Output Maximum</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeTap" xml:space="preserve">
+    <value>Tap</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeClick" xml:space="preserve">
+    <value>Click</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModePress" xml:space="preserve">
+    <value>Press</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeRelease" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeHold" xml:space="preserve">
+    <value>Hold (timed)</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputActionModeHoldWhileTrue" xml:space="preserve">
+    <value>Hold while condition is true</value>
+  </data>
+  <data name="AutomationInlineEditor_OutputHoldCondition" xml:space="preserve">
+    <value>Fallback Hold Condition</value>
+  </data>
 </root>

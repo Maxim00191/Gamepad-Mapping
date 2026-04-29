@@ -1,0 +1,516 @@
+{
+  "schemaVersion": 1,
+  "verboseExecutionLogging": false,
+  "minNodeStepIntervalSeconds": 0,
+  "nodes": [
+    {
+      "id": "f1000001-0000-4000-8000-000000000001",
+      "nodeTypeId": "event.listener",
+      "x": 320,
+      "y": 560,
+      "properties": {
+        "description": "Start fishing sim automation when the engine starts.",
+        "eventSignal": "engine.start"
+      }
+    },
+    {
+      "id": "f1000002-0000-4000-8000-000000000002",
+      "nodeTypeId": "automation.loop",
+      "x": 640,
+      "y": 560,
+      "properties": {
+        "description": "Continuous fishing state detection and tracking loop.",
+        "loopMaxIterations": 500000,
+        "loopTargetIterationsPerSecond": 0,
+        "loopInteriorSkipDocumentStepInterval": true
+      }
+    },
+    {
+      "id": "f1000003-0000-4000-8000-000000000003",
+      "nodeTypeId": "perception.capture_screen",
+      "x": 944,
+      "y": 544,
+      "properties": {
+        "description": "Capture the current frame for progress-state checks and tracking.",
+        "captureApi": "desktop_duplication",
+        "captureSourceMode": "screen",
+        "captureMode": "roi",
+        "coordinateSpace": "physical",
+        "captureRoi": {
+          "x": 558,
+          "y": 312,
+          "width": 796,
+          "height": 613
+        },
+        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png"
+      }
+    },
+    {
+      "id": "f1000004-0000-4000-8000-000000000004",
+      "nodeTypeId": "perception.find_image",
+      "x": 1280,
+      "y": -112,
+      "properties": {
+        "description": "Detect the completed right-side progress bar state.",
+        "findImageAlgorithm": "opencv_template",
+        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-progress-full-right.png",
+        "findImageConfidence": 0.5,
+        "findImageTolerance": 0.15,
+        "findImageTimeoutMs": 25
+      }
+    },
+    {
+      "id": "f1000005-0000-4000-8000-000000000005",
+      "nodeTypeId": "perception.find_image",
+      "x": 1280,
+      "y": 640,
+      "properties": {
+        "description": "Detect the failed or empty left-side progress bar state.",
+        "findImageAlgorithm": "opencv_template",
+        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-progress-empty-left.png",
+        "findImageConfidence": 0.5,
+        "findImageTolerance": 0.15,
+        "findImageTimeoutMs": 25
+      }
+    },
+    {
+      "id": "f1000006-0000-4000-8000-000000000006",
+      "nodeTypeId": "logic.or",
+      "x": 1616,
+      "y": 496,
+      "properties": {
+        "description": "Combine success and failure detections into a restart signal.",
+        "boolLeft": false,
+        "boolRight": false
+      }
+    },
+    {
+      "id": "f1000007-0000-4000-8000-000000000007",
+      "nodeTypeId": "logic.branch_bool",
+      "x": 1920,
+      "y": 560,
+      "properties": {
+        "description": "Restart when either progress-bar terminal state is visible."
+      }
+    },
+    {
+      "id": "f1000008-0000-4000-8000-000000000008",
+      "nodeTypeId": "output.keyboard_key",
+      "x": 2240,
+      "y": 360,
+      "properties": {
+        "description": "Tap Space to restart or cast again.",
+        "keyboardKey": "Space",
+        "keyboardActionMode": "tap"
+      }
+    },
+    {
+      "id": "f1000009-0000-4000-8000-000000000009",
+      "nodeTypeId": "logic.loop_control",
+      "x": 2560,
+      "y": 360,
+      "properties": {
+        "description": "Restart the loop immediately after the Space tap.",
+        "loopControlMode": "continue"
+      }
+    },
+    {
+      "id": "f1000010-0000-4000-8000-000000000010",
+      "nodeTypeId": "perception.find_image",
+      "x": 2240,
+      "y": 928,
+      "properties": {
+        "description": "Track the moving white target line.",
+        "findImageAlgorithm": "opencv_template",
+        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-white-line.png",
+        "findImageConfidence": 0.3,
+        "findImageTolerance": 0.18,
+        "findImageTimeoutMs": 25
+      }
+    },
+    {
+      "id": "f1000011-0000-4000-8000-000000000011",
+      "nodeTypeId": "perception.find_image",
+      "x": 2576,
+      "y": 832,
+      "properties": {
+        "description": "Track the capture zone highlight box.",
+        "findImageAlgorithm": "opencv_template",
+        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-yellow-zone.png",
+        "findImageConfidence": 0.3,
+        "findImageTolerance": 0.18,
+        "findImageTimeoutMs": 25
+      }
+    },
+    {
+      "id": "f1000012-0000-4000-8000-000000000012",
+      "nodeTypeId": "control.pid_controller",
+      "x": 2896,
+      "y": 1104,
+      "properties": {
+        "description": "Drive the capture zone toward the target line.",
+        "pidKp": 0.65,
+        "pidKi": 0.02,
+        "pidKd": 0.08,
+        "pidDeadband": 2,
+        "pidIntegralLimit": 120,
+        "pidOutputMin": -1,
+        "pidOutputMax": 1
+      }
+    },
+    {
+      "id": "f1000013-0000-4000-8000-000000000013",
+      "nodeTypeId": "output.human_noise",
+      "x": 2896,
+      "y": 672,
+      "properties": {
+        "description": "Add a tiny humanized mouse jitter before key actuation.",
+        "mouseJitterBaseDeltaX": 1,
+        "mouseJitterBaseDeltaY": 0,
+        "mouseJitterStickMagnitude": 0.2
+      }
+    },
+    {
+      "id": "f1000014-0000-4000-8000-000000000014",
+      "nodeTypeId": "logic.branch_compare",
+      "x": 3200,
+      "y": 760,
+      "properties": {
+        "description": "Route left correction when PID signal is below zero.",
+        "compareOperator": "lt",
+        "compareRight": 0
+      }
+    },
+    {
+      "id": "f1000015-0000-4000-8000-000000000015",
+      "nodeTypeId": "output.key_state",
+      "x": 3520,
+      "y": 368,
+      "properties": {
+        "description": "Hold A for left correction.",
+        "keyboardKey": "A",
+        "keyboardActionMode": "hold"
+      }
+    },
+    {
+      "id": "f1000016-0000-4000-8000-000000000016",
+      "nodeTypeId": "output.key_state",
+      "x": 3840,
+      "y": 368,
+      "properties": {
+        "description": "Release D while correcting left.",
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000017-0000-4000-8000-000000000017",
+      "nodeTypeId": "logic.branch_compare",
+      "x": 3536,
+      "y": 768,
+      "properties": {
+        "description": "Route right correction when PID signal is above zero.",
+        "compareOperator": "gt",
+        "compareRight": 0
+      }
+    },
+    {
+      "id": "f1000018-0000-4000-8000-000000000018",
+      "nodeTypeId": "output.key_state",
+      "x": 3840,
+      "y": 760,
+      "properties": {
+        "description": "Hold D for right correction.",
+        "keyboardKey": "D",
+        "keyboardActionMode": "hold"
+      }
+    },
+    {
+      "id": "f1000019-0000-4000-8000-000000000019",
+      "nodeTypeId": "output.key_state",
+      "x": 4160,
+      "y": 752,
+      "properties": {
+        "description": "Release A while correcting right.",
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000020-0000-4000-8000-000000000020",
+      "nodeTypeId": "output.key_state",
+      "x": 3840,
+      "y": 1136,
+      "properties": {
+        "description": "Release A when the PID signal is inside the deadzone.",
+        "keyboardKey": "A",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000021-0000-4000-8000-000000000021",
+      "nodeTypeId": "output.key_state",
+      "x": 4160,
+      "y": 1136,
+      "properties": {
+        "description": "Release D when the PID signal is inside the deadzone.",
+        "keyboardKey": "D",
+        "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000022-0000-4000-8000-000000000022",
+      "nodeTypeId": "automation.delay",
+      "x": 4464,
+      "y": 752,
+      "properties": {
+        "description": "Pace active tracking at roughly one frame.",
+        "delayMilliseconds": 16,
+        "delayMinMs": 16,
+        "delayMaxMs": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "f2000001-0000-4000-8000-000000000001",
+      "sourceNodeId": "f1000001-0000-4000-8000-000000000001",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000002-0000-4000-8000-000000000002",
+      "sourceNodeId": "f1000002-0000-4000-8000-000000000002",
+      "sourcePortId": "loop.body",
+      "targetNodeId": "f1000003-0000-4000-8000-000000000003",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000003-0000-4000-8000-000000000003",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000004-0000-4000-8000-000000000004",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000004-0000-4000-8000-000000000004",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000004-0000-4000-8000-000000000004",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000005-0000-4000-8000-000000000005",
+      "sourceNodeId": "f1000004-0000-4000-8000-000000000004",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000005-0000-4000-8000-000000000005",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000006-0000-4000-8000-000000000006",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000005-0000-4000-8000-000000000005",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000007-0000-4000-8000-000000000007",
+      "sourceNodeId": "f1000004-0000-4000-8000-000000000004",
+      "sourcePortId": "result.found",
+      "targetNodeId": "f1000006-0000-4000-8000-000000000006",
+      "targetPortId": "left"
+    },
+    {
+      "id": "f2000008-0000-4000-8000-000000000008",
+      "sourceNodeId": "f1000005-0000-4000-8000-000000000005",
+      "sourcePortId": "result.found",
+      "targetNodeId": "f1000006-0000-4000-8000-000000000006",
+      "targetPortId": "right"
+    },
+    {
+      "id": "f2000009-0000-4000-8000-000000000009",
+      "sourceNodeId": "f1000005-0000-4000-8000-000000000005",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000007-0000-4000-8000-000000000007",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000010-0000-4000-8000-000000000010",
+      "sourceNodeId": "f1000006-0000-4000-8000-000000000006",
+      "sourcePortId": "value",
+      "targetNodeId": "f1000007-0000-4000-8000-000000000007",
+      "targetPortId": "condition"
+    },
+    {
+      "id": "f2000011-0000-4000-8000-000000000011",
+      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
+      "sourcePortId": "branch.true",
+      "targetNodeId": "f1000008-0000-4000-8000-000000000008",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000012-0000-4000-8000-000000000012",
+      "sourceNodeId": "f1000008-0000-4000-8000-000000000008",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000009-0000-4000-8000-000000000009",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000013-0000-4000-8000-000000000013",
+      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000014-0000-4000-8000-000000000014",
+      "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
+      "sourcePortId": "branch.false",
+      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000015-0000-4000-8000-000000000015",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000016-0000-4000-8000-000000000016",
+      "sourceNodeId": "f1000010-0000-4000-8000-000000000010",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000011-0000-4000-8000-000000000011",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000017-0000-4000-8000-000000000017",
+      "sourceNodeId": "f1000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "f1000011-0000-4000-8000-000000000011",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "f2000018-0000-4000-8000-000000000018",
+      "sourceNodeId": "f1000011-0000-4000-8000-000000000011",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000012-0000-4000-8000-000000000012",
+      "targetPortId": "current.value"
+    },
+    {
+      "id": "f2000019-0000-4000-8000-000000000019",
+      "sourceNodeId": "f1000010-0000-4000-8000-000000000010",
+      "sourcePortId": "result.x",
+      "targetNodeId": "f1000012-0000-4000-8000-000000000012",
+      "targetPortId": "target.value"
+    },
+    {
+      "id": "f2000020-0000-4000-8000-000000000020",
+      "sourceNodeId": "f1000011-0000-4000-8000-000000000011",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000013-0000-4000-8000-000000000013",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000021-0000-4000-8000-000000000021",
+      "sourceNodeId": "f1000013-0000-4000-8000-000000000013",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000014-0000-4000-8000-000000000014",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000022-0000-4000-8000-000000000022",
+      "sourceNodeId": "f1000012-0000-4000-8000-000000000012",
+      "sourcePortId": "control.signal",
+      "targetNodeId": "f1000014-0000-4000-8000-000000000014",
+      "targetPortId": "left"
+    },
+    {
+      "id": "f2000023-0000-4000-8000-000000000023",
+      "sourceNodeId": "f1000014-0000-4000-8000-000000000014",
+      "sourcePortId": "branch.true",
+      "targetNodeId": "f1000015-0000-4000-8000-000000000015",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000024-0000-4000-8000-000000000024",
+      "sourceNodeId": "f1000015-0000-4000-8000-000000000015",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000016-0000-4000-8000-000000000016",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000025-0000-4000-8000-000000000025",
+      "sourceNodeId": "f1000016-0000-4000-8000-000000000016",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000026-0000-4000-8000-000000000026",
+      "sourceNodeId": "f1000014-0000-4000-8000-000000000014",
+      "sourcePortId": "branch.false",
+      "targetNodeId": "f1000017-0000-4000-8000-000000000017",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000027-0000-4000-8000-000000000027",
+      "sourceNodeId": "f1000012-0000-4000-8000-000000000012",
+      "sourcePortId": "control.signal",
+      "targetNodeId": "f1000017-0000-4000-8000-000000000017",
+      "targetPortId": "left"
+    },
+    {
+      "id": "f2000028-0000-4000-8000-000000000028",
+      "sourceNodeId": "f1000017-0000-4000-8000-000000000017",
+      "sourcePortId": "branch.true",
+      "targetNodeId": "f1000018-0000-4000-8000-000000000018",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000029-0000-4000-8000-000000000029",
+      "sourceNodeId": "f1000018-0000-4000-8000-000000000018",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000019-0000-4000-8000-000000000019",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000030-0000-4000-8000-000000000030",
+      "sourceNodeId": "f1000019-0000-4000-8000-000000000019",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000031-0000-4000-8000-000000000031",
+      "sourceNodeId": "f1000017-0000-4000-8000-000000000017",
+      "sourcePortId": "branch.false",
+      "targetNodeId": "f1000020-0000-4000-8000-000000000020",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000032-0000-4000-8000-000000000032",
+      "sourceNodeId": "f1000020-0000-4000-8000-000000000020",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000021-0000-4000-8000-000000000021",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000033-0000-4000-8000-000000000033",
+      "sourceNodeId": "f1000021-0000-4000-8000-000000000021",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000034-0000-4000-8000-000000000034",
+      "sourceNodeId": "f1000022-0000-4000-8000-000000000022",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    }
+  ],
+  "subgraphs": [],
+  "stateMachines": []
+}

@@ -26,6 +26,34 @@ internal static class AutomationNodeInlineEditorSchemaParts
         }
     ];
 
+    public static IReadOnlyList<AutomationNodeInlineEditorDefinition> MathClamp(string nodeTypeId) =>
+    [
+        Number(nodeTypeId, AutomationNodePropertyKeys.MathValue, "AutomationInlineEditor_MathValue", "0"),
+        Number(nodeTypeId, AutomationNodePropertyKeys.MathMin, "AutomationInlineEditor_MathMin", "0"),
+        Number(nodeTypeId, AutomationNodePropertyKeys.MathMax, "AutomationInlineEditor_MathMax", "1")
+    ];
+
+    public static IReadOnlyList<AutomationNodeInlineEditorDefinition> MathDeadband(string nodeTypeId) =>
+    [
+        Number(nodeTypeId, AutomationNodePropertyKeys.MathValue, "AutomationInlineEditor_MathValue", "0"),
+        Number(nodeTypeId, AutomationNodePropertyKeys.MathThreshold, "AutomationInlineEditor_MathThreshold", "0")
+    ];
+
+    public static IReadOnlyList<AutomationNodeInlineEditorDefinition> SignalSmooth(string nodeTypeId) =>
+    [
+        Number(nodeTypeId, AutomationNodePropertyKeys.SmoothInputValue, "AutomationInlineEditor_SmoothInputValue", "0"),
+        new AutomationNodeInlineEditorDefinition
+        {
+            NodeTypeId = nodeTypeId,
+            PropertyKey = AutomationNodePropertyKeys.SmoothFactor,
+            LabelResourceKey = "AutomationInlineEditor_SmoothFactor",
+            Kind = AutomationNodeInlineEditorKind.Double,
+            DefaultTextValue = "0.25",
+            MinDoubleValue = 0,
+            MaxDoubleValue = 1
+        }
+    ];
+
     public static IReadOnlyList<AutomationNodeInlineEditorDefinition> LogicCompare(string nodeTypeId) =>
     [
         new AutomationNodeInlineEditorDefinition
@@ -179,4 +207,18 @@ internal static class AutomationNodeInlineEditorSchemaParts
             ]
         }
     ];
+
+    private static AutomationNodeInlineEditorDefinition Number(
+        string nodeTypeId,
+        string propertyKey,
+        string labelResourceKey,
+        string defaultTextValue) =>
+        new()
+        {
+            NodeTypeId = nodeTypeId,
+            PropertyKey = propertyKey,
+            LabelResourceKey = labelResourceKey,
+            Kind = AutomationNodeInlineEditorKind.Double,
+            DefaultTextValue = defaultTextValue
+        };
 }

@@ -8,6 +8,12 @@ namespace GamepadMapperGUI.Services.Automation.NodeHandlers;
 
 public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
 {
+    private sealed class MouseButtonHoldState
+    {
+        public string Button { get; set; } = "left";
+        public bool IsHeld { get; set; }
+    }
+
     public string NodeTypeId => "output.mouse_click";
 
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
@@ -88,24 +94,37 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
         IList<string> log,
         CancellationToken cancellationToken)
     {
-        var mode = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseActionMode);
+        var mode = NormalizeMode(
+            AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseActionMode),
+            AutomationOutputActionModes.Click);
         var button = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.MouseButton);
         if (string.IsNullOrWhiteSpace(button))
             button = "left";
+        button = button.Trim().ToLowerInvariant();
 
-        if (string.Equals(mode, "press", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mode, AutomationOutputActionModes.Tap, StringComparison.Ordinal))
+            mode = AutomationOutputActionModes.Click;
+
+        if (string.Equals(mode, AutomationOutputActionModes.HoldWhileTrue, StringComparison.Ordinal))
+        {
+            var condition = ResolveHoldCondition(context, node);
+            ApplyMouseHoldTransition(context, node, mouse, button, condition);
+            return;
+        }
+
+        if (string.Equals(mode, AutomationOutputActionModes.Press, StringComparison.Ordinal))
         {
             MouseDown(mouse, button);
             return;
         }
 
-        if (string.Equals(mode, "release", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mode, AutomationOutputActionModes.Release, StringComparison.Ordinal))
         {
             MouseUp(mouse, button);
             return;
         }
 
-        if (string.Equals(mode, "hold", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mode, AutomationOutputActionModes.Hold, StringComparison.Ordinal))
         {
             var holdMs = Math.Clamp(
                 AutomationNodePropertyReader.ReadInt(node.Properties, AutomationNodePropertyKeys.KeyboardHoldMilliseconds, 120),
@@ -148,5 +167,51 @@ public sealed class MouseClickNodeHandler : IAutomationRuntimeNodeHandler
             mouse.MiddleUp();
         else
             mouse.LeftUp();
+    }
+
+    private static void ApplyMouseHoldTransition(
+        AutomationRuntimeContext context,
+        AutomationNodeState node,
+        IMouseEmulator mouse,
+        string button,
+        bool condition)
+    {
+        var state = context.GetOrCreateNodeState(node.Id, static () => new MouseButtonHoldState());
+        if (!condition)
+        {
+            if (state.IsHeld)
+            {
+                MouseUp(mouse, state.Button);
+                state.IsHeld = false;
+            }
+            return;
+        }
+
+        if (state.IsHeld && string.Equals(state.Button, button, StringComparison.Ordinal))
+            return;
+
+        if (state.IsHeld)
+            MouseUp(mouse, state.Button);
+
+        MouseDown(mouse, button);
+        state.Button = button;
+        state.IsHeld = true;
+    }
+
+    private static bool ResolveHoldCondition(AutomationRuntimeContext context, AutomationNodeState node)
+    {
+        if (context.TryResolveBooleanInput(node.Id, AutomationPortIds.Condition, out var signal))
+            return signal;
+
+        return AutomationNodePropertyReader.ReadBool(node.Properties, AutomationNodePropertyKeys.OutputHoldCondition);
+    }
+
+    private static string NormalizeMode(string? mode, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(mode))
+            return fallback;
+
+        var normalized = mode.Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(normalized) ? fallback : normalized;
     }
 }
