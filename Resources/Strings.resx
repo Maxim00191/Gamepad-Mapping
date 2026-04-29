@@ -2678,4 +2678,22 @@ Relaunch this tool as administrator now?</value>
   <data name="AutomationInlineEditor_CaptureProcessIdPlaceholder" xml:space="preserve">
     <value>Optional PID; use 0 to resolve by process name</value>
   </data>
+  <data name="AutomationNode_Display_BranchCompare" xml:space="preserve">
+    <value>Compare Branch</value>
+  </data>
+  <data name="AutomationNode_Summary_BranchCompare" xml:space="preserve">
+    <value>Routes execution by comparing two numeric values.</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperator" xml:space="preserve">
+    <value>Comparison</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperatorGreaterThan" xml:space="preserve">
+    <value>Greater than</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperatorLessThan" xml:space="preserve">
+    <value>Less than</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperatorEquals" xml:space="preserve">
+    <value>Equals</value>
+  </data>
 </root>

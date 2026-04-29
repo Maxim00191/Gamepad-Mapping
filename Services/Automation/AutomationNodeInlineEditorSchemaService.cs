@@ -818,6 +818,7 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
             ["logic.and"] = AutomationNodeInlineEditorSchemaParts.LogicBoolBinary("logic.and"),
             ["logic.or"] = AutomationNodeInlineEditorSchemaParts.LogicBoolBinary("logic.or"),
             ["logic.not"] = AutomationNodeInlineEditorSchemaParts.LogicNot("logic.not"),
+            [AutomationNodeTypeIds.BranchCompare] = AutomationNodeInlineEditorSchemaParts.LogicCompareBranch(AutomationNodeTypeIds.BranchCompare),
             ["math.random"] = AutomationNodeInlineEditorSchemaParts.RandomInteger("math.random"),
             ["variables.get"] = AutomationNodeInlineEditorSchemaParts.VariableGet("variables.get"),
             ["logic.loop_control"] = AutomationNodeInlineEditorSchemaParts.LoopControl("logic.loop_control")

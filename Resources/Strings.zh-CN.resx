@@ -2678,4 +2678,22 @@
   <data name="AutomationInlineEditor_CaptureProcessIdPlaceholder" xml:space="preserve">
     <value>可选 PID；填 0 时按进程名解析</value>
   </data>
+  <data name="AutomationNode_Display_BranchCompare" xml:space="preserve">
+    <value>比较分支</value>
+  </data>
+  <data name="AutomationNode_Summary_BranchCompare" xml:space="preserve">
+    <value>比较两个数值并按结果路由执行流。</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperator" xml:space="preserve">
+    <value>比较方式</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperatorGreaterThan" xml:space="preserve">
+    <value>大于</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperatorLessThan" xml:space="preserve">
+    <value>小于</value>
+  </data>
+  <data name="AutomationInlineEditor_CompareOperatorEquals" xml:space="preserve">
+    <value>等于</value>
+  </data>
 </root>

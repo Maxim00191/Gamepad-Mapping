@@ -350,6 +350,89 @@ public sealed class AutomationGraphSmokeRunnerTests
     }
 
     [Fact]
+    public async Task RunOnceAsync_BranchCompare_RoutesExecutionByNumericComparison()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        var bitmap = CreateBitmap();
+
+        captureService
+            .Setup(s => s.CaptureRectanglePhysical(10, 12, 40, 36))
+            .Returns(bitmap);
+        probeService
+            .Setup(p => p.ProbeAsync(
+                bitmap,
+                10,
+                12,
+                null,
+                It.IsAny<AutomationImageProbeOptions>(),
+                AutomationVisionAlgorithmKind.ColorThreshold,
+                It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new AutomationImageProbeResult(true, 8, 12)));
+        keyboard.Setup(k => k.TapKey(Key.D, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var capture = CreateNode("perception.capture_screen", new JsonObject
+        {
+            [AutomationNodePropertyKeys.CaptureMode] = "roi",
+            [AutomationNodePropertyKeys.CaptureRoi] = new JsonObject
+            {
+                ["x"] = 10,
+                ["y"] = 12,
+                ["width"] = 40,
+                ["height"] = 36
+            }
+        });
+        var find = CreateNode("perception.find_image", new JsonObject
+        {
+            [AutomationNodePropertyKeys.FindImageAlgorithm] = AutomationVisionAlgorithmStorage.ColorThreshold
+        });
+        var branch = CreateNode(AutomationNodeTypeIds.BranchCompare, new JsonObject
+        {
+            [AutomationNodePropertyKeys.CompareOperator] = AutomationComparisonEvaluator.GreaterThan,
+            [AutomationNodePropertyKeys.CompareRight] = 5
+        });
+        var keyD = CreateNode("output.keyboard_key", new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "D"
+        });
+
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [capture, find, branch, keyD],
+            Edges =
+            [
+                Edge(capture.Id, AutomationPortIds.FlowOut, find.Id, AutomationPortIds.FlowIn),
+                Edge(capture.Id, AutomationPortIds.ScreenImage, find.Id, AutomationPortIds.HaystackImage),
+                Edge(find.Id, AutomationPortIds.FlowOut, branch.Id, AutomationPortIds.FlowIn),
+                Edge(find.Id, "result.x", branch.Id, "left"),
+                Edge(branch.Id, AutomationPortIds.BranchTrue, keyD.Id, AutomationPortIds.FlowIn)
+            ]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(
+            result.Ok,
+            $"{result.MessageResourceKey}::{result.Detail}::{string.Join(" | ", result.LogLines)}");
+        keyboard.Verify(k => k.TapKey(Key.D, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
     public async Task RunOnceAsync_LoopInteriorSkipDocumentStepInterval_Completes()
     {
         var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
@@ -700,6 +783,42 @@ public sealed class AutomationGraphSmokeRunnerTests
         var result = await sut.RunOnceAsync(doc);
         Assert.False(result.Ok);
         Assert.Equal("branch_bool:condition_missing", result.Detail);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_FailsWhenBranchCompareOperatorIsInvalid()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var branch = CreateNode(AutomationNodeTypeIds.BranchCompare, new JsonObject
+        {
+            [AutomationNodePropertyKeys.CompareOperator] = "approximately"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            Nodes = [branch]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.False(result.Ok);
+        Assert.Equal("branch_compare:operator_invalid", result.Detail);
     }
 
     [Fact]

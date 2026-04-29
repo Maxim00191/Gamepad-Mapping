@@ -374,6 +374,7 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
         BuildGetVariableNode(),
         BuildSetVariableNode(),
         BuildBranchBoolNode(),
+        BuildBranchCompareNode(),
         BuildSwitchNode(),
         BuildLoopControlNode(),
         BuildPidControllerNode(),
@@ -520,6 +521,26 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             [
                 new AutomationPortDescriptor { Id = "branch.true", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true },
                 new AutomationPortDescriptor { Id = "branch.false", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
+            ]
+        };
+
+    private static AutomationNodeTypeDefinition BuildBranchCompareNode() =>
+        new()
+        {
+            Id = AutomationNodeTypeIds.BranchCompare,
+            DisplayNameResourceKey = "AutomationNode_Display_BranchCompare",
+            SummaryResourceKey = "AutomationNode_Summary_BranchCompare",
+            GlyphFontGlyph = "\uEBE7",
+            InputPorts =
+            [
+                new AutomationPortDescriptor { Id = "flow.in", PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = false },
+                new AutomationPortDescriptor { Id = "left", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
+                new AutomationPortDescriptor { Id = "right", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
+            ],
+            OutputPorts =
+            [
+                new AutomationPortDescriptor { Id = AutomationPortIds.BranchTrue, PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true },
+                new AutomationPortDescriptor { Id = AutomationPortIds.BranchFalse, PortType = AutomationPortType.Execution, FlowKind = AutomationPortFlowKind.Execution, IsOutput = true }
             ]
         };
 

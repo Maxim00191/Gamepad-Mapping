@@ -270,8 +270,8 @@
                                   Margin="8,0,8,8"
                                   ScrollChanged="CanvasScrollViewer_ScrollChanged"
                                   PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
-                        <Grid Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
-                              Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}"
+                        <Grid Width="{Binding CanvasLogicalWidth}"
+                              Height="{Binding CanvasLogicalHeight}"
                               ClipToBounds="False">
                             <Grid.Background>
                                 <DrawingBrush TileMode="Tile"
@@ -302,8 +302,8 @@
                             </Grid.RenderTransform>
 
                             <Canvas x:Name="CanvasSurface"
-                                    Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
-                                    Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}"
+                                    Width="{Binding CanvasLogicalWidth}"
+                                    Height="{Binding CanvasLogicalHeight}"
                                     AllowDrop="True"
                                     Background="Transparent"
                                     DragOver="CanvasSurface_DragOver"
@@ -316,8 +316,8 @@
 
                                 <ItemsControl Canvas.ZIndex="0"
                                               ItemsSource="{Binding EdgeDisplays}"
-                                              Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
-                                              Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}">
+                                              Width="{Binding CanvasLogicalWidth}"
+                                              Height="{Binding CanvasLogicalHeight}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <Canvas />
@@ -390,8 +390,8 @@
 
                                 <ItemsControl Canvas.ZIndex="1"
                                               ItemsSource="{Binding CanvasNodes}"
-                                              Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
-                                              Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}">
+                                              Width="{Binding CanvasLogicalWidth}"
+                                              Height="{Binding CanvasLogicalHeight}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <Canvas />
@@ -694,8 +694,8 @@
                                 PreviewMouseMove="MiniMapViewportHost_PreviewMouseMove"
                                 PreviewMouseLeftButtonUp="MiniMapViewportHost_PreviewMouseLeftButtonUp">
                             <Viewbox Stretch="Uniform">
-                                <Canvas Width="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalWidth}"
-                                        Height="{x:Static vm:AutomationWorkspaceViewModel.CanvasLogicalHeight}">
+                                <Canvas Width="{Binding CanvasLogicalWidth}"
+                                        Height="{Binding CanvasLogicalHeight}">
                                     <ItemsControl ItemsSource="{Binding CanvasNodes}"
                                                   IsHitTestVisible="False">
                                         <ItemsControl.ItemsPanel>

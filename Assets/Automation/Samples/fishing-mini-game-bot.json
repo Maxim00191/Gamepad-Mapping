@@ -43,7 +43,8 @@
           "width": 809,
           "height": 698
         },
-        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png"
+        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\f1000003000040008000000000000003.png",
+        "captureProcessId": 19776
       }
     },
     {
@@ -128,7 +129,7 @@
       "id": "f1000029-0000-4000-8000-000000000029",
       "nodeTypeId": "automation.delay",
       "x": 4960,
-      "y": 432,
+      "y": 560,
       "properties": {
         "description": "Brief pause after dismissing text.",
         "delayMilliseconds": 450
@@ -159,8 +160,8 @@
     {
       "id": "f1000030-0000-4000-8000-000000000030",
       "nodeTypeId": "output.keyboard_key",
-      "x": 4656,
-      "y": 736,
+      "x": 4672,
+      "y": 896,
       "properties": {
         "description": "Tap Space to recast when no result text was detected.",
         "keyboardKey": "Space",
@@ -171,7 +172,7 @@
       "id": "f1000031-0000-4000-8000-000000000031",
       "nodeTypeId": "automation.delay",
       "x": 4960,
-      "y": 816,
+      "y": 928,
       "properties": {
         "description": "Wait for cast animation when restarting without a known result string.",
         "delayMilliseconds": 1600
@@ -200,7 +201,7 @@
         "findImageAlgorithm": "opencv_template",
         "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-white-line.png",
         "findImageConfidence": 0.3,
-         "findImageTimeoutMs": 150
+        "findImageTimeoutMs": 150
       }
     },
     {
@@ -216,57 +217,43 @@
     },
     {
       "id": "f1000008-0000-4000-8000-000000000008",
-      "nodeTypeId": "logic.gt",
+      "nodeTypeId": "logic.branch_compare",
       "x": 3760,
       "y": 1376,
       "properties": {
         "description": "Steer right (D) when PID output \u003E deadband.",
+        "compareOperator": "gt",
         "compareRight": 0.15
       }
     },
     {
       "id": "f1000009-0000-4000-8000-000000000009",
-      "nodeTypeId": "logic.lt",
+      "nodeTypeId": "logic.branch_compare",
       "x": 4096,
       "y": 1728,
       "properties": {
         "description": "Steer left (A) when PID output \u003C deadband.",
+        "compareOperator": "lt",
         "compareRight": -0.15
       }
     },
     {
-      "id": "f1000010-0000-4000-8000-000000000010",
-      "nodeTypeId": "logic.branch_bool",
-      "x": 4096,
-      "y": 1392,
-      "properties": {
-        "description": "PID demands move right \u2192 hold D."
-      }
-    },
-    {
-      "id": "f1000011-0000-4000-8000-000000000011",
-      "nodeTypeId": "logic.branch_bool",
-      "x": 4384,
-      "y": 1488,
-      "properties": {
-        "description": "PID demands move left \u2192 hold A; else release both."
-      }
-    },
-    {
       "id": "f1000012-0000-4000-8000-000000000012",
-      "nodeTypeId": "output.key_state",
-      "x": 4672,
-      "y": 32,
+      "nodeTypeId": "output.keyboard_key",
+      "x": 4960,
+      "y": 64,
       "properties": {
+        "description": "Short humanized D tap for precise right steering.",
         "keyboardKey": "D",
-        "keyboardActionMode": "hold"
+        "keyboardActionMode": "hold",
+        "keyboardHoldMs": 70
       }
     },
     {
       "id": "f1000013-0000-4000-8000-000000000013",
       "nodeTypeId": "output.key_state",
-      "x": 4960,
-      "y": 32,
+      "x": 4656,
+      "y": 320,
       "properties": {
         "keyboardKey": "A",
         "keyboardActionMode": "release"
@@ -274,19 +261,21 @@
     },
     {
       "id": "f1000014-0000-4000-8000-000000000014",
-      "nodeTypeId": "output.key_state",
-      "x": 4672,
-      "y": 1264,
+      "nodeTypeId": "output.keyboard_key",
+      "x": 4960,
+      "y": 1424,
       "properties": {
+        "description": "Short humanized A tap for precise left steering.",
         "keyboardKey": "A",
-        "keyboardActionMode": "hold"
+        "keyboardActionMode": "hold",
+        "keyboardHoldMs": 70
       }
     },
     {
       "id": "f1000015-0000-4000-8000-000000000015",
       "nodeTypeId": "output.key_state",
-      "x": 4960,
-      "y": 1264,
+      "x": 4688,
+      "y": 1488,
       "properties": {
         "keyboardKey": "D",
         "keyboardActionMode": "release"
@@ -296,7 +285,7 @@
       "id": "f1000016-0000-4000-8000-000000000016",
       "nodeTypeId": "output.key_state",
       "x": 4672,
-      "y": 1648,
+      "y": 1920,
       "properties": {
         "keyboardKey": "A",
         "keyboardActionMode": "release"
@@ -306,10 +295,22 @@
       "id": "f1000017-0000-4000-8000-000000000017",
       "nodeTypeId": "output.key_state",
       "x": 4960,
-      "y": 1648,
+      "y": 1936,
       "properties": {
         "keyboardKey": "D",
         "keyboardActionMode": "release"
+      }
+    },
+    {
+      "id": "f1000034-0000-4000-8000-000000000034",
+      "nodeTypeId": "output.human_noise",
+      "x": 5312,
+      "y": 688,
+      "properties": {
+        "description": "Low-strength human noise after each steering correction.",
+        "mouseJitterBaseDeltaX": 0,
+        "mouseJitterBaseDeltaY": 0,
+        "mouseJitterStickMagnitude": 0.15
       }
     },
     {
@@ -333,8 +334,8 @@
     {
       "id": "f1000022-0000-4000-8000-000000000022",
       "nodeTypeId": "automation.delay",
-      "x": 5280,
-      "y": 432,
+      "x": 5632,
+      "y": 512,
       "properties": {
         "description": "Minimal yield before next loop iteration.",
         "delayMilliseconds": 0
@@ -533,20 +534,6 @@
     },
     {
       "id": "f2000015-0000-4000-8000-000000000015",
-      "sourceNodeId": "f1000008-0000-4000-8000-000000000008",
-      "sourcePortId": "value",
-      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
-      "targetPortId": "condition"
-    },
-    {
-      "id": "f2000016-0000-4000-8000-000000000016",
-      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
-      "sourcePortId": "value",
-      "targetNodeId": "f1000011-0000-4000-8000-000000000011",
-      "targetPortId": "condition"
-    },
-    {
-      "id": "f2000017-0000-4000-8000-000000000017",
       "sourceNodeId": "f1000007-0000-4000-8000-000000000007",
       "sourcePortId": "flow.out",
       "targetNodeId": "f1000024-0000-4000-8000-000000000024",
@@ -554,42 +541,42 @@
     },
     {
       "id": "f2000018-0000-4000-8000-000000000018",
-      "sourceNodeId": "f1000010-0000-4000-8000-000000000010",
+      "sourceNodeId": "f1000008-0000-4000-8000-000000000008",
       "sourcePortId": "branch.true",
-      "targetNodeId": "f1000012-0000-4000-8000-000000000012",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000019-0000-4000-8000-000000000019",
-      "sourceNodeId": "f1000012-0000-4000-8000-000000000012",
-      "sourcePortId": "flow.out",
       "targetNodeId": "f1000013-0000-4000-8000-000000000013",
       "targetPortId": "flow.in"
     },
     {
+      "id": "f2000019-0000-4000-8000-000000000019",
+      "sourceNodeId": "f1000013-0000-4000-8000-000000000013",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000012-0000-4000-8000-000000000012",
+      "targetPortId": "flow.in"
+    },
+    {
       "id": "f2000020-0000-4000-8000-000000000020",
-      "sourceNodeId": "f1000010-0000-4000-8000-000000000010",
+      "sourceNodeId": "f1000008-0000-4000-8000-000000000008",
       "sourcePortId": "branch.false",
-      "targetNodeId": "f1000011-0000-4000-8000-000000000011",
+      "targetNodeId": "f1000009-0000-4000-8000-000000000009",
       "targetPortId": "flow.in"
     },
     {
       "id": "f2000021-0000-4000-8000-000000000021",
-      "sourceNodeId": "f1000011-0000-4000-8000-000000000011",
+      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
       "sourcePortId": "branch.true",
-      "targetNodeId": "f1000014-0000-4000-8000-000000000014",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "f2000022-0000-4000-8000-000000000022",
-      "sourceNodeId": "f1000014-0000-4000-8000-000000000014",
-      "sourcePortId": "flow.out",
       "targetNodeId": "f1000015-0000-4000-8000-000000000015",
       "targetPortId": "flow.in"
     },
     {
+      "id": "f2000022-0000-4000-8000-000000000022",
+      "sourceNodeId": "f1000015-0000-4000-8000-000000000015",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000014-0000-4000-8000-000000000014",
+      "targetPortId": "flow.in"
+    },
+    {
       "id": "f2000023-0000-4000-8000-000000000023",
-      "sourceNodeId": "f1000011-0000-4000-8000-000000000011",
+      "sourceNodeId": "f1000009-0000-4000-8000-000000000009",
       "sourcePortId": "branch.false",
       "targetNodeId": "f1000016-0000-4000-8000-000000000016",
       "targetPortId": "flow.in"
@@ -603,14 +590,21 @@
     },
     {
       "id": "f2000025-0000-4000-8000-000000000025",
-      "sourceNodeId": "f1000013-0000-4000-8000-000000000013",
+      "sourceNodeId": "f1000012-0000-4000-8000-000000000012",
       "sourcePortId": "flow.out",
-      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
+      "targetNodeId": "f1000034-0000-4000-8000-000000000034",
       "targetPortId": "flow.in"
     },
     {
       "id": "f2000026-0000-4000-8000-000000000026",
-      "sourceNodeId": "f1000015-0000-4000-8000-000000000015",
+      "sourceNodeId": "f1000014-0000-4000-8000-000000000014",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000034-0000-4000-8000-000000000034",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "f2000063-0000-4000-8000-000000000063",
+      "sourceNodeId": "f1000034-0000-4000-8000-000000000034",
       "sourcePortId": "flow.out",
       "targetNodeId": "f1000022-0000-4000-8000-000000000022",
       "targetPortId": "flow.in"
@@ -668,7 +662,7 @@
       "id": "f2000038-0000-4000-8000-000000000038",
       "sourceNodeId": "f1000024-0000-4000-8000-000000000024",
       "sourcePortId": "branch.match",
-      "targetNodeId": "f1000010-0000-4000-8000-000000000010",
+      "targetNodeId": "f1000008-0000-4000-8000-000000000008",
       "targetPortId": "flow.in"
     },
     {

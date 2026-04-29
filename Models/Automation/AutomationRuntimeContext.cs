@@ -278,6 +278,16 @@ public sealed class AutomationRuntimeContext
         return resolved.GetStringOrEmpty();
     }
 
+    public bool ResolveComparisonCondition(AutomationNodeState node, string? operatorId)
+    {
+        if (!TryResolveNumberInput(node.Id, "left", out var left))
+            left = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.CompareLeft, 0);
+        if (!TryResolveNumberInput(node.Id, "right", out var right))
+            right = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.CompareRight, 0);
+
+        return AutomationComparisonEvaluator.Evaluate(operatorId, left, right);
+    }
+
     private AutomationDataValue ResolveInputValue(Guid targetNodeId, string targetPortId)
     {
         var sourceLink = Index.GetDataSourceLink(targetNodeId, targetPortId);
@@ -321,9 +331,9 @@ public sealed class AutomationRuntimeContext
             "math.subtract" => EvaluateBinaryMath(node, sourcePortId, (l, r) => l - r),
             "math.multiply" => EvaluateBinaryMath(node, sourcePortId, (l, r) => l * r),
             "math.divide" => EvaluateBinaryMath(node, sourcePortId, (l, r) => Math.Abs(r) < double.Epsilon ? 0 : l / r),
-            "logic.gt" => EvaluateComparison(node, sourcePortId, (l, r) => l > r),
-            "logic.lt" => EvaluateComparison(node, sourcePortId, (l, r) => l < r),
-            "logic.eq" => EvaluateComparison(node, sourcePortId, (l, r) => Math.Abs(l - r) < double.Epsilon),
+            "logic.gt" => EvaluateComparison(node, sourcePortId),
+            "logic.lt" => EvaluateComparison(node, sourcePortId),
+            "logic.eq" => EvaluateComparison(node, sourcePortId),
             "logic.and" => EvaluateBoolBinary(node, sourcePortId, (l, r) => l && r),
             "logic.or" => EvaluateBoolBinary(node, sourcePortId, (l, r) => l || r),
             "logic.not" => EvaluateBoolNot(node, sourcePortId),
@@ -405,17 +415,13 @@ public sealed class AutomationRuntimeContext
         return new AutomationDataValue(AutomationPortType.Number, operation(left, right));
     }
 
-    private AutomationDataValue EvaluateComparison(AutomationNodeState node, string sourcePortId, Func<double, double, bool> operation)
+    private AutomationDataValue EvaluateComparison(AutomationNodeState node, string sourcePortId)
     {
         if (!string.Equals(sourcePortId, "value", StringComparison.Ordinal))
             return AutomationDataValue.Empty;
 
-        if (!TryResolveNumberInput(node.Id, "left", out var left))
-            left = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.CompareLeft, 0);
-        if (!TryResolveNumberInput(node.Id, "right", out var right))
-            right = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.CompareRight, 0);
-
-        return new AutomationDataValue(AutomationPortType.Boolean, operation(left, right));
+        var operatorId = AutomationComparisonEvaluator.FromNodeType(node.NodeTypeId);
+        return new AutomationDataValue(AutomationPortType.Boolean, ResolveComparisonCondition(node, operatorId));
     }
 
     private AutomationDataValue EvaluateBoolBinary(AutomationNodeState node, string sourcePortId, Func<bool, bool, bool> operation)

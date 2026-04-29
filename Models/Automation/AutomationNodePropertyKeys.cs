@@ -97,6 +97,7 @@ public static class AutomationNodePropertyKeys
     public const string BoolRight = "boolRight";
     public const string CompareLeft = "compareLeft";
     public const string CompareRight = "compareRight";
+    public const string CompareOperator = "compareOperator";
     public const string SwitchCaseValue = "switchCaseValue";
     public const string LogMessage = "logMessage";
 

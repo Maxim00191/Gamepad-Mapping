@@ -377,6 +377,7 @@ public sealed class AutomationGraphSmokeRunner : IAutomationGraphSmokeRunner
             new FindImageNodeHandler(),
             new BranchImageNodeHandler(),
             new BranchBoolNodeHandler(),
+            new BranchCompareNodeHandler(),
             new SwitchNodeHandler(),
             new KeyboardKeyNodeHandler(),
             new MouseClickNodeHandler(),

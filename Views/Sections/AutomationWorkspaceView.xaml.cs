@@ -395,6 +395,7 @@ public partial class AutomationWorkspaceView
         if (WorkspaceVm is null)
             return;
 
+        e.Handled = true;
         var oldZoom = WorkspaceVm.Zoom;
         var step = e.Delta > 0 ? 0.1 : -0.1;
         var nextZoom = Math.Clamp(oldZoom + step, 0.35, 2.0);
@@ -408,7 +409,6 @@ public partial class AutomationWorkspaceView
         WorkspaceVm.Zoom = nextZoom;
         CanvasScrollViewer.ScrollToHorizontalOffset((absoluteX * factor) - viewportPoint.X);
         CanvasScrollViewer.ScrollToVerticalOffset((absoluteY * factor) - viewportPoint.Y);
-        e.Handled = true;
     }
 
     private void EdgeLine_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -900,13 +900,13 @@ public partial class AutomationWorkspaceView
 
         var ratioX = Math.Clamp(miniMapPoint.X / MiniMapViewportHost.ActualWidth, 0d, 1d);
         var ratioY = Math.Clamp(miniMapPoint.Y / MiniMapViewportHost.ActualHeight, 0d, 1d);
-        var targetX = ratioX * AutomationWorkspaceViewModel.CanvasLogicalWidth;
-        var targetY = ratioY * AutomationWorkspaceViewModel.CanvasLogicalHeight;
+        var targetX = ratioX * WorkspaceVm.CanvasLogicalWidth;
+        var targetY = ratioY * WorkspaceVm.CanvasLogicalHeight;
         var zoom = GetCurrentZoom();
         var halfViewportWidth = CanvasScrollViewer.ViewportWidth / (2d * zoom);
         var halfViewportHeight = CanvasScrollViewer.ViewportHeight / (2d * zoom);
-        var left = Math.Clamp(targetX - halfViewportWidth, 0d, AutomationWorkspaceViewModel.CanvasLogicalWidth);
-        var top = Math.Clamp(targetY - halfViewportHeight, 0d, AutomationWorkspaceViewModel.CanvasLogicalHeight);
+        var left = Math.Clamp(targetX - halfViewportWidth, 0d, WorkspaceVm.CanvasLogicalWidth);
+        var top = Math.Clamp(targetY - halfViewportHeight, 0d, WorkspaceVm.CanvasLogicalHeight);
         CanvasScrollViewer.ScrollToHorizontalOffset(left * zoom);
         CanvasScrollViewer.ScrollToVerticalOffset(top * zoom);
         UpdateOverviewViewportFromScroll();

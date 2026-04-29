@@ -27,6 +27,7 @@
 | `variables.get` | 读取变量 | 从自动化黑板读取一个值。 | *(无)* | `value (Any，读取到的变量值)` |
 | `variables.set` | 写入变量 | 将值写入自动化黑板。 | `flow.in (Execution，触发写入)`，`value.number (Number，候选数值)`，`value.bool (Boolean，候选布尔值)`，`value.string (String，候选字符串)` | `flow.out (Execution，写入后继续)` |
 | `logic.branch_bool` | 分支（布尔） | 根据布尔条件路由执行流。 | `flow.in (Execution，触发分支判断)`，`condition (Boolean，分支条件)` | `branch.true (Execution，条件为 true 时分支)`，`branch.false (Execution，条件为 false 时分支)` |
+| `logic.branch_compare` | 比较分支 | 比较两个数值并按结果路由执行流。 | `flow.in (Execution，触发比较判断)`，`left (Number，左操作数)`，`right (Number，右操作数)` | `branch.true (Execution，比较为 true 时分支)`，`branch.false (Execution，比较为 false 时分支)` |
 | `logic.switch` | 开关分支 | 通过匹配输入值路由执行流。 | `flow.in (Execution，触发开关判断)`，`value (String，用于匹配 case 的输入值)` | `case.match (Execution，命中 case 时分支)`，`case.default (Execution，默认分支)` |
 | `logic.loop_control` | 循环控制 | 为当前活动循环请求中断或继续。 | `flow.in (Execution，发送循环控制请求)` | `flow.out (Execution，请求处理后继续)` |
 | `debug.log` | 日志 | 将消息写入运行日志。 | `flow.in (Execution，触发日志写入)`，`message (String，日志文本)` | `flow.out (Execution，写入日志后继续)` |

@@ -119,6 +119,17 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                     }
 
                     break;
+                case AutomationNodeTypeIds.BranchCompare:
+                    var compareOperator = AutomationNodePropertyReader.ReadString(
+                        node.Properties,
+                        AutomationNodePropertyKeys.CompareOperator);
+                    if (!AutomationComparisonEvaluator.IsSupportedOperator(compareOperator))
+                    {
+                        detail = "branch_compare:operator_invalid";
+                        return true;
+                    }
+
+                    break;
                 case "variables.set":
                     var variableName = AutomationNodePropertyReader.ReadString(
                         node.Properties,

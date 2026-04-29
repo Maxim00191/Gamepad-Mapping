@@ -25,14 +25,15 @@ namespace Gamepad_Mapping.ViewModels;
 
 public partial class AutomationWorkspaceViewModel : ObservableObject
 {
-    public const double CanvasLogicalWidth = 4200;
-    public const double CanvasLogicalHeight = 4200;
+    public const double MinimumCanvasLogicalWidth = 4200;
+    public const double MinimumCanvasLogicalHeight = 4200;
     public const double NodeVisualWidth = 280;
     public const double NodeVisualMinHeight = 186;
     public const double NodeVisualMaxWidth = 520;
     public const double NodePortHandleSize = 10;
     public const double NodePortHitSize = 24;
     private const double ConnectionSnapRadiusPixels = 30;
+    private const double CanvasNodeExtentPadding = 900;
 
     private readonly INodeTypeRegistry _registry;
     private readonly IAutomationGraphSerializer _serializer;
@@ -159,16 +160,22 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private bool _showMinimap;
 
     [ObservableProperty]
+    private double _canvasLogicalWidth = MinimumCanvasLogicalWidth;
+
+    [ObservableProperty]
+    private double _canvasLogicalHeight = MinimumCanvasLogicalHeight;
+
+    [ObservableProperty]
     private double _overviewViewportLeft;
 
     [ObservableProperty]
     private double _overviewViewportTop;
 
     [ObservableProperty]
-    private double _overviewViewportWidth = CanvasLogicalWidth;
+    private double _overviewViewportWidth = MinimumCanvasLogicalWidth;
 
     [ObservableProperty]
-    private double _overviewViewportHeight = CanvasLogicalHeight;
+    private double _overviewViewportHeight = MinimumCanvasLogicalHeight;
 
     [ObservableProperty]
     private bool _isConnectionPreviewVisible;
@@ -225,6 +232,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         // Keep the viewport values in sync with zoom-dependent dimensions.
         SetViewportRect(OverviewViewportLeft, OverviewViewportTop, OverviewViewportWidth, OverviewViewportHeight);
     }
+
+    partial void OnCanvasLogicalWidthChanged(double value) =>
+        SetViewportRect(OverviewViewportLeft, OverviewViewportTop, OverviewViewportWidth, OverviewViewportHeight);
+
+    partial void OnCanvasLogicalHeightChanged(double value) =>
+        SetViewportRect(OverviewViewportLeft, OverviewViewportTop, OverviewViewportWidth, OverviewViewportHeight);
 
     private void OnCanvasNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
         ShowMinimap = CanvasNodes.Count >= 8;
@@ -406,6 +419,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _document.Nodes.Add(state);
         CreateAndRegisterNodeVm(state);
         MarkNodeTypeRecent(nodeTypeId);
+        RecalculateCanvasBounds();
         RefreshEdgeDisplays();
     }
 
@@ -465,6 +479,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _selectedNodeIds.Clear();
         SelectedNode = null;
         ApplySelectionVisualStates();
+        RecalculateCanvasBounds();
         RefreshEdgeDisplays();
     }
 
@@ -688,6 +703,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             ? CanvasNodes.FirstOrDefault(n => _selectedNodeIds.Contains(n.Id))
             : null;
         ApplySelectionVisualStates();
+        RecalculateCanvasBounds();
         RefreshEdgeDisplays();
     }
 
@@ -877,7 +893,22 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     {
         if (sender is AutomationCanvasNodeViewModel node)
             SyncNodeAnchorsFromOffsets(node);
+        RecalculateCanvasBounds();
         RefreshEdgeDisplays();
+    }
+
+    private void RecalculateCanvasBounds()
+    {
+        var width = MinimumCanvasLogicalWidth;
+        var height = MinimumCanvasLogicalHeight;
+        foreach (var node in CanvasNodes)
+        {
+            width = Math.Max(width, node.X + node.NodeVisualWidth + CanvasNodeExtentPadding);
+            height = Math.Max(height, node.Y + node.EstimatedVisualHeight + CanvasNodeExtentPadding);
+        }
+
+        CanvasLogicalWidth = width;
+        CanvasLogicalHeight = height;
     }
 
     private void RefreshEdgeDisplays()

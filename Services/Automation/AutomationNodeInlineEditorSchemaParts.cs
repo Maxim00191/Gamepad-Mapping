@@ -46,6 +46,37 @@ internal static class AutomationNodeInlineEditorSchemaParts
         }
     ];
 
+    public static IReadOnlyList<AutomationNodeInlineEditorDefinition> LogicCompareBranch(string nodeTypeId) =>
+    [
+        new AutomationNodeInlineEditorDefinition
+        {
+            NodeTypeId = nodeTypeId,
+            PropertyKey = AutomationNodePropertyKeys.CompareOperator,
+            LabelResourceKey = "AutomationInlineEditor_CompareOperator",
+            Kind = AutomationNodeInlineEditorKind.Choice,
+            DefaultTextValue = AutomationComparisonEvaluator.GreaterThan,
+            ChoiceOptions =
+            [
+                new AutomationNodeInlineChoiceOption
+                {
+                    StoredValue = AutomationComparisonEvaluator.GreaterThan,
+                    LabelResourceKey = "AutomationInlineEditor_CompareOperatorGreaterThan"
+                },
+                new AutomationNodeInlineChoiceOption
+                {
+                    StoredValue = AutomationComparisonEvaluator.LessThan,
+                    LabelResourceKey = "AutomationInlineEditor_CompareOperatorLessThan"
+                },
+                new AutomationNodeInlineChoiceOption
+                {
+                    StoredValue = AutomationComparisonEvaluator.EqualTo,
+                    LabelResourceKey = "AutomationInlineEditor_CompareOperatorEquals"
+                }
+            ]
+        },
+        .. LogicCompare(nodeTypeId)
+    ];
+
     public static IReadOnlyList<AutomationNodeInlineEditorDefinition> LogicBoolBinary(string nodeTypeId) =>
     [
         new AutomationNodeInlineEditorDefinition
