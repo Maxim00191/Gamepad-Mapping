@@ -1,6 +1,7 @@
 #nullable enable
 using System.Windows;
 using System.Windows.Threading;
+using Gamepad_Mapping;
 using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Services.Input;
@@ -33,7 +34,7 @@ public static class ApplicationComposition
         var appToastService = new AppToastService();
         var userDialogService = new UserDialogService();
         var xinputService = new XInputService();
-        var playStationInputProvider = new DualSenseHidInputProvider();
+        var playStationInputProvider = new DualSenseHidInputProvider(App.Logger);
         var gamepadSourceFactory = new GamepadSourceFactory(xinputService, playStationInputProvider);
         var gamepadSource = gamepadSourceFactory.CreateSource(appSettings.GamepadSourceApi, out _);
         var communityDownloadThrottle = new CommunityTemplateDownloadThrottle();

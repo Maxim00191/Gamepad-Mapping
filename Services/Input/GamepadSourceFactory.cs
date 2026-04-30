@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.Core.Input;
@@ -53,10 +54,13 @@ public sealed class GamepadSourceFactory : IGamepadSourceFactory
     private readonly IXInput _xInput;
     private readonly IPlayStationInputProvider _playStationInputProvider;
 
-    public GamepadSourceFactory(IXInput xInput, IPlayStationInputProvider? playStationInputProvider = null)
+    public GamepadSourceFactory(
+        IXInput xInput,
+        IPlayStationInputProvider? playStationInputProvider = null,
+        ILogger? logger = null)
     {
         _xInput = xInput ?? throw new ArgumentNullException(nameof(xInput));
-        _playStationInputProvider = playStationInputProvider ?? new DualSenseHidInputProvider();
+        _playStationInputProvider = playStationInputProvider ?? new DualSenseHidInputProvider(logger);
     }
 
     public IReadOnlyList<GamepadSourceRegistration> GetRegistrations() => Registrations;

@@ -3,18 +3,35 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Numerics;
 using GamepadMapperGUI.Interfaces.Core;
+using GamepadMapperGUI.Interfaces.Services.Infrastructure;
+using GamepadMapperGUI.Interfaces.Services.Input;
 using GamepadMapperGUI.Models;
-using HidSharp;
 
 namespace GamepadMapperGUI.Services.Input;
 
 public sealed class DualSenseHidInputProvider : IPlayStationInputProvider
 {
-    private const int SonyVendorId = 0x054C;
-    private static readonly ushort[] SupportedProductIds = [0x0CE6, 0x0DF2];
-
-    private HidStream? _stream;
+    private readonly ILogger? _logger;
+    private readonly IDualSenseHidStreamFactory _streamFactory;
+    private IDualSenseHidStream? _stream;
     private int _reportLength;
+    private byte[]? _readBuffer;
+    private byte[]? _drainBuffer;
+    private long _lastHealthLogTick;
+    private long _timeoutCount;
+    private long _ioFailureCount;
+    private long _openFailureCount;
+    private long _streamResetCount;
+    private long _drainedReportCount;
+    private int _maxDrainedReportsPerPoll;
+
+    public DualSenseHidInputProvider(
+        ILogger? logger = null,
+        IDualSenseHidStreamFactory? streamFactory = null)
+    {
+        _logger = logger;
+        _streamFactory = streamFactory ?? new HidSharpDualSenseHidStreamFactory();
+    }
 
     public bool TryGetState(out PlayStationInputState state)
     {
@@ -26,29 +43,70 @@ public sealed class DualSenseHidInputProvider : IPlayStationInputProvider
         if (stream is null)
             return false;
 
-        var buffer = new byte[_reportLength];
+        var latestReport = _readBuffer;
+        if (latestReport is null || latestReport.Length != _reportLength)
+            return false;
+
+        int read;
+        int drainedReads = 0;
         try
         {
-            var read = stream.Read(buffer, 0, buffer.Length);
+            read = stream.Read(latestReport, 0, latestReport.Length);
             if (read <= 0)
                 return false;
+
+            var drainBuffer = _drainBuffer ?? latestReport;
+            var priorTimeout = stream.ReadTimeout;
+            try
+            {
+                stream.ReadTimeout = DualSenseHidInputStreamConstraints.DrainReadTimeoutMs;
+                while (drainedReads < DualSenseHidInputStreamConstraints.MaxDrainReadsPerPoll)
+                {
+                    var drainedRead = stream.Read(drainBuffer, 0, drainBuffer.Length);
+                    if (drainedRead <= 0)
+                        break;
+
+                    Buffer.BlockCopy(drainBuffer, 0, latestReport, 0, drainedRead);
+                    read = drainedRead;
+                    drainedReads++;
+                }
+            }
+            catch (TimeoutException)
+            {
+                // Expected when the queue is drained.
+            }
+            finally
+            {
+                stream.ReadTimeout = priorTimeout;
+            }
         }
         catch (TimeoutException)
         {
+            _timeoutCount++;
+            TryLogHealthSnapshot();
             return false;
         }
         catch (IOException)
         {
+            _ioFailureCount++;
             ResetStream();
             return false;
         }
         catch (ObjectDisposedException)
         {
+            _ioFailureCount++;
             ResetStream();
             return false;
         }
 
-        var report = buffer.AsSpan();
+        if (drainedReads > 0)
+        {
+            _drainedReportCount += drainedReads;
+            _maxDrainedReportsPerPoll = Math.Max(_maxDrainedReportsPerPoll, drainedReads);
+            TryLogHealthSnapshot();
+        }
+
+        var report = latestReport.AsSpan(0, read);
         if (!TryGetPayloadSpan(report, out var payload))
             return false;
 
@@ -84,22 +142,20 @@ public sealed class DualSenseHidInputProvider : IPlayStationInputProvider
         if (_stream is not null)
             return true;
 
-        foreach (var productId in SupportedProductIds)
+        if (!_streamFactory.TryOpen(out var stream, out var maxInputReportLength) || stream is null)
         {
-            var device = DeviceList.Local.GetHidDeviceOrNull(SonyVendorId, productId);
-            if (device is null)
-                continue;
-
-            if (!device.TryOpen(out var stream))
-                continue;
-
-            stream.ReadTimeout = 5;
-            _stream = stream;
-            _reportLength = Math.Max(device.GetMaxInputReportLength(), 64);
-            return true;
+            _openFailureCount++;
+            TryLogHealthSnapshot();
+            return false;
         }
 
-        return false;
+        stream.ReadTimeout = DualSenseHidInputStreamConstraints.PrimaryReadTimeoutMs;
+        _stream = stream;
+        _reportLength = Math.Max(maxInputReportLength, 64);
+        _readBuffer = new byte[_reportLength];
+        _drainBuffer = new byte[_reportLength];
+        TryLogHealthSnapshot(force: true);
+        return true;
     }
 
     private static bool TryGetPayloadSpan(ReadOnlySpan<byte> report, out ReadOnlySpan<byte> payload)
@@ -195,5 +251,26 @@ public sealed class DualSenseHidInputProvider : IPlayStationInputProvider
 
         _stream = null;
         _reportLength = 0;
+        _readBuffer = null;
+        _drainBuffer = null;
+        _streamResetCount++;
+        TryLogHealthSnapshot(force: true);
+    }
+
+    private void TryLogHealthSnapshot(bool force = false)
+    {
+        if (_logger is null)
+            return;
+
+        var now = Environment.TickCount64;
+        if (!force && _lastHealthLogTick != 0 && now - _lastHealthLogTick < DualSenseHidInputStreamConstraints.HealthLogIntervalMs)
+            return;
+
+        if (_timeoutCount == 0 && _ioFailureCount == 0 && _openFailureCount == 0 && _streamResetCount == 0 && _drainedReportCount == 0)
+            return;
+
+        _lastHealthLogTick = now;
+        _logger.Info(
+            $"DualSense HID health: timeouts={_timeoutCount}, ioFailures={_ioFailureCount}, openFailures={_openFailureCount}, resets={_streamResetCount}, drainedReports={_drainedReportCount}, maxDrainPerPoll={_maxDrainedReportsPerPoll}");
     }
 }
