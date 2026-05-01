@@ -27,7 +27,7 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
         var frame = new AutomationVisionFrame(haystack, needle, haystackLeftScreenPx, haystackTopScreenPx, options);
         var result = await _pipeline.ProcessAsync(algorithmKind, frame, cancellationToken);
         if (!result.Matched)
-            return new AutomationImageProbeResult(false, 0, 0, 0, 0, GetBestTemplateCorrelation(algorithmKind, result));
+            return new AutomationImageProbeResult(false, 0, 0, 0, 0, GetBestTemplateCorrelation(algorithmKind, result), 0, 0);
 
         return ToProbeResult(algorithmKind, result, haystackLeftScreenPx, haystackTopScreenPx, needle);
     }
@@ -55,7 +55,9 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
                     haystackTopScreenPx + vision.MatchY + (needle?.PixelHeight ?? 0) / 2,
                     vision.MatchCount,
                     vision.Confidence,
-                    vision.Confidence),
+                    vision.Confidence,
+                    needle?.PixelWidth ?? 0,
+                    needle?.PixelHeight ?? 0),
             AutomationVisionAlgorithmKind.ColorThreshold or
                 AutomationVisionAlgorithmKind.Contour or
                 AutomationVisionAlgorithmKind.YoloOnnx or
@@ -66,7 +68,10 @@ public sealed class AutomationImageProbe(IAutomationVisionPipeline pipeline) : I
                     haystackLeftScreenPx + vision.MatchX,
                     haystackTopScreenPx + vision.MatchY,
                     vision.MatchCount,
-                    vision.Confidence),
+                    vision.Confidence,
+                    0,
+                    Math.Max(0, vision.BoundingWidth),
+                    Math.Max(0, vision.BoundingHeight)),
             _ => throw new ArgumentOutOfRangeException(nameof(algorithmKind), algorithmKind, null)
         };
     }

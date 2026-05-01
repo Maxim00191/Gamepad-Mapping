@@ -136,6 +136,7 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
 
         var definitions = service.GetDefinitions("perception.find_image");
         var needlePath = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageNeedlePath);
+        var alternateNeedles = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageAlternateNeedlePaths);
         var yoloPath = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageYoloOnnxPath);
         var yoloClass = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageYoloClassId);
         var colorTargetHex = definitions.Single(d => d.PropertyKey == AutomationNodePropertyKeys.FindImageColorTargetHex);
@@ -155,6 +156,10 @@ public sealed class AutomationNodeInlineEditorSchemaServiceTests
         Assert.Contains("", needlePath.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.TemplateMatch, needlePath.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.OpenCvTemplateMatch, needlePath.VisibleWhenPropertyValues!);
+
+        Assert.Equal(needlePath.VisibleWhenPropertyKey, alternateNeedles.VisibleWhenPropertyKey);
+        Assert.Equal(needlePath.VisibleWhenPropertyValues, alternateNeedles.VisibleWhenPropertyValues);
+        Assert.Equal(AutomationNodeInlineEditorKind.MultilineText, alternateNeedles.Kind);
 
         Assert.Contains("", yoloPath.VisibleWhenPropertyValues!);
         Assert.Contains(AutomationVisionAlgorithmStorage.YoloOnnx, yoloPath.VisibleWhenPropertyValues!);

@@ -18,6 +18,8 @@ public sealed class PidControllerState
 
     public double LastTarget { get; set; }
 
+    public double LastAlignmentHalfWidth { get; set; }
+
     public double CachedOutput { get; set; }
 
     public bool HasCachedOutput { get; set; }

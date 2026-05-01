@@ -55,8 +55,12 @@ public sealed class AutomationNodeContractValidator : IAutomationNodeContractVal
                     var needlePath = AutomationNodePropertyReader.ReadString(
                         node.Properties,
                         AutomationNodePropertyKeys.FindImageNeedlePath);
+                    var alternateNeedlePaths = AutomationNodePropertyReader.ReadStringList(
+                        node.Properties,
+                        AutomationNodePropertyKeys.FindImageAlternateNeedlePaths);
                     if (AutomationVisionAlgorithmRequirements.RequiresNeedleImage(algorithm) &&
-                        string.IsNullOrWhiteSpace(needlePath))
+                        string.IsNullOrWhiteSpace(needlePath) &&
+                        alternateNeedlePaths.Count == 0)
                     {
                         detail = "find_image:needle_missing";
                         return true;

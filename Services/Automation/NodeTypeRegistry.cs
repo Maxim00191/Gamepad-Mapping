@@ -220,6 +220,20 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
                     PortType = AutomationPortType.Integer,
                     FlowKind = AutomationPortFlowKind.Data,
                     IsOutput = true
+                },
+                new AutomationPortDescriptor
+                {
+                    Id = "result.width",
+                    PortType = AutomationPortType.Number,
+                    FlowKind = AutomationPortFlowKind.Data,
+                    IsOutput = true
+                },
+                new AutomationPortDescriptor
+                {
+                    Id = "result.height",
+                    PortType = AutomationPortType.Number,
+                    FlowKind = AutomationPortFlowKind.Data,
+                    IsOutput = true
                 }
             ]
         },
@@ -743,7 +757,8 @@ public sealed class NodeTypeRegistry : INodeTypeRegistry
             InputPorts =
             [
                 new AutomationPortDescriptor { Id = "current.value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
-                new AutomationPortDescriptor { Id = "target.value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
+                new AutomationPortDescriptor { Id = "target.value", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false },
+                new AutomationPortDescriptor { Id = "alignment.half_width", PortType = AutomationPortType.Number, FlowKind = AutomationPortFlowKind.Data, IsOutput = false }
             ],
             OutputPorts =
             [

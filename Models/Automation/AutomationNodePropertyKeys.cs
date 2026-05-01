@@ -52,6 +52,11 @@ public static class AutomationNodePropertyKeys
     public const string FindImageRoiNodeRef = "findImageRoiNodeRef";
 
     public const string FindImageNeedlePath = "findImageNeedlePath";
+
+    public const string FindImageAlternateNeedlePaths = "findImageAlternateNeedlePaths";
+
+    public const string FindImageLegacyZeroCoordinatesWhenUnmatched = "findImageLegacyZeroCoordinatesWhenUnmatched";
+
     public const string FindImageAlgorithm = "findImageAlgorithm";
 
     public const string FindImageYoloOnnxPath = "findImageYoloOnnxPath";

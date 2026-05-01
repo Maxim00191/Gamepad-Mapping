@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json.Nodes;
 using GamepadMapperGUI.Models.Automation;
 
@@ -5,6 +6,7 @@ namespace GamepadMapperGUI.Services.Automation;
 
 public static class AutomationNodePropertyReader
 {
+    private static readonly char[] AlternateNeedlePathSeparators = [';', '\n', '\r'];
     public static void WriteString(JsonObject props, string key, string value) => props[key] = value;
 
     public static void WriteDouble(JsonObject props, string key, double value) => props[key] = value;
@@ -22,6 +24,40 @@ public static class AutomationNodePropertyReader
             return s;
 
         return n.ToString();
+    }
+
+    public static IReadOnlyList<string> ReadStringList(JsonObject? props, string key)
+    {
+        if (props is null || !props.TryGetPropertyValue(key, out var n) || n is null)
+            return [];
+
+        if (n is JsonArray arr)
+        {
+            var list = new List<string>(arr.Count);
+            foreach (var item in arr)
+            {
+                var s = item switch
+                {
+                    JsonValue jv when jv.TryGetValue<string>(out var t) => t,
+                    null => "",
+                    _ => item.ToString()
+                };
+                if (!string.IsNullOrWhiteSpace(s))
+                    list.Add(s.Trim());
+            }
+
+            return list;
+        }
+
+        var raw = ReadString(props, key);
+        if (string.IsNullOrWhiteSpace(raw))
+            return [];
+
+        return raw
+            .Split(AlternateNeedlePathSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim())
+            .ToArray();
     }
 
     public static double ReadDouble(JsonObject? props, string key, double defaultValue)

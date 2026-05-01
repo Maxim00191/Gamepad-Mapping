@@ -375,7 +375,12 @@ public sealed class AutomationRuntimeContext
         var kp = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKp, 1d);
         var ki = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKi, 0d);
         var kd = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidKd, 0d);
-        var deadband = Math.Max(0d, AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidDeadband, 0d));
+        var deadbandProperty = Math.Max(0d, AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidDeadband, 0d));
+        var alignmentHalfWidth =
+            TryResolveNumberInput(node.Id, "alignment.half_width", out var alignmentRaw)
+                ? double.IsNaN(alignmentRaw) ? 0d : Math.Max(0d, alignmentRaw)
+                : 0d;
+        var deadband = Math.Max(deadbandProperty, alignmentHalfWidth);
         var integralLimit = Math.Max(0d, AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidIntegralLimit, 0d));
         var outputMin = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidOutputMin, 0d);
         var outputMax = AutomationNodePropertyReader.ReadDouble(node.Properties, AutomationNodePropertyKeys.PidOutputMax, 0d);
@@ -383,24 +388,64 @@ public sealed class AutomationRuntimeContext
         var state = GetOrCreateNodeState(node.Id, () => new GamepadMapperGUI.Services.Automation.NodeHandlers.PidControllerState());
         var isDataDriven =
             Index.GetDataSourceLink(node.Id, "current.value") is not null ||
-            Index.GetDataSourceLink(node.Id, "target.value") is not null;
+            Index.GetDataSourceLink(node.Id, "target.value") is not null ||
+            Index.GetDataSourceLink(node.Id, "alignment.half_width") is not null;
+
+        if (double.IsNaN(current) || double.IsNaN(target))
+        {
+            state.IntegralAccumulator = 0d;
+            state.PreviousError = 0d;
+            var nan = double.NaN;
+            if (isDataDriven)
+            {
+                state.LastInputRevision = _dataRevision;
+                state.LastCurrent = current;
+                state.LastTarget = target;
+                state.LastAlignmentHalfWidth = alignmentHalfWidth;
+                state.CachedOutput = nan;
+                state.HasCachedOutput = true;
+            }
+
+            return new AutomationDataValue(AutomationPortType.Number, nan);
+        }
+
         if (isDataDriven &&
             state.HasCachedOutput &&
             state.LastInputRevision == _dataRevision &&
-            state.LastCurrent == current &&
-            state.LastTarget == target)
+            SameNumeric(current, state.LastCurrent) &&
+            SameNumeric(target, state.LastTarget) &&
+            SameNumeric(alignmentHalfWidth, state.LastAlignmentHalfWidth))
         {
             return new AutomationDataValue(AutomationPortType.Number, state.CachedOutput);
         }
 
         var dt = Math.Max(DeltaTimeSeconds, 0.0001d);
         var rawError = target - current;
-        var error = Math.Abs(rawError) <= deadband ? 0d : rawError;
-        state.IntegralAccumulator += error * dt;
-        if (integralLimit > 0d)
-            state.IntegralAccumulator = Math.Clamp(state.IntegralAccumulator, -integralLimit, integralLimit);
-        var derivative = state.Initialized ? (error - state.PreviousError) / dt : 0d;
-        state.PreviousError = error;
+        var inDeadband = Math.Abs(rawError) <= deadband;
+        var error = inDeadband ? 0d : rawError;
+        if (inDeadband)
+        {
+            state.IntegralAccumulator = 0d;
+        }
+        else
+        {
+            state.IntegralAccumulator += error * dt;
+            if (integralLimit > 0d)
+                state.IntegralAccumulator = Math.Clamp(state.IntegralAccumulator, -integralLimit, integralLimit);
+        }
+
+        double derivative;
+        if (inDeadband)
+        {
+            derivative = 0d;
+            state.PreviousError = 0d;
+        }
+        else
+        {
+            derivative = state.Initialized ? (error - state.PreviousError) / dt : 0d;
+            state.PreviousError = error;
+        }
+
         state.Initialized = true;
 
         var output = (kp * error) + (ki * state.IntegralAccumulator) + (kd * derivative);
@@ -412,6 +457,7 @@ public sealed class AutomationRuntimeContext
             state.LastInputRevision = _dataRevision;
             state.LastCurrent = current;
             state.LastTarget = target;
+            state.LastAlignmentHalfWidth = alignmentHalfWidth;
             state.CachedOutput = output;
             state.HasCachedOutput = true;
         }
@@ -482,25 +528,52 @@ public sealed class AutomationRuntimeContext
 
     private AutomationDataValue EvaluateFindImageOutput(AutomationNodeState node, string sourcePortId)
     {
-        if (!_probeResults.TryGetValue(node.Id, out var probe))
-            return sourcePortId switch
-            {
-                "result.found" => new AutomationDataValue(AutomationPortType.Boolean, false),
-                "result.x" => new AutomationDataValue(AutomationPortType.Number, 0d),
-                "result.y" => new AutomationDataValue(AutomationPortType.Number, 0d),
-                "result.count" => new AutomationDataValue(AutomationPortType.Integer, 0),
-                _ => AutomationDataValue.Empty
-            };
+        var legacyZero = AutomationNodePropertyReader.ReadBool(
+            node.Properties,
+            AutomationNodePropertyKeys.FindImageLegacyZeroCoordinatesWhenUnmatched);
 
+        if (!_probeResults.TryGetValue(node.Id, out var probe))
+            return ResolveFindImageMissingProbe(sourcePortId, legacyZero);
+
+        var numericUnset = legacyZero ? 0d : double.NaN;
+        var geometryOk = probe.Matched;
         return sourcePortId switch
         {
             "result.found" => new AutomationDataValue(AutomationPortType.Boolean, probe.Matched),
-            "result.x" => new AutomationDataValue(AutomationPortType.Number, (double)probe.MatchScreenXPx),
-            "result.y" => new AutomationDataValue(AutomationPortType.Number, (double)probe.MatchScreenYPx),
+            "result.x" => new AutomationDataValue(
+                AutomationPortType.Number,
+                geometryOk ? (double)probe.MatchScreenXPx : numericUnset),
+            "result.y" => new AutomationDataValue(
+                AutomationPortType.Number,
+                geometryOk ? (double)probe.MatchScreenYPx : numericUnset),
             "result.count" => new AutomationDataValue(AutomationPortType.Integer, probe.MatchCount),
+            "result.width" => new AutomationDataValue(
+                AutomationPortType.Number,
+                geometryOk ? (double)probe.MatchWidthPx : numericUnset),
+            "result.height" => new AutomationDataValue(
+                AutomationPortType.Number,
+                geometryOk ? (double)probe.MatchHeightPx : numericUnset),
             _ => AutomationDataValue.Empty
         };
     }
+
+    private static AutomationDataValue ResolveFindImageMissingProbe(string sourcePortId, bool legacyZero)
+    {
+        var numericUnset = legacyZero ? 0d : double.NaN;
+        return sourcePortId switch
+        {
+            "result.found" => new AutomationDataValue(AutomationPortType.Boolean, false),
+            "result.x" => new AutomationDataValue(AutomationPortType.Number, numericUnset),
+            "result.y" => new AutomationDataValue(AutomationPortType.Number, numericUnset),
+            "result.count" => new AutomationDataValue(AutomationPortType.Integer, 0),
+            "result.width" => new AutomationDataValue(AutomationPortType.Number, numericUnset),
+            "result.height" => new AutomationDataValue(AutomationPortType.Number, numericUnset),
+            _ => AutomationDataValue.Empty
+        };
+    }
+
+    private static bool SameNumeric(double a, double b) =>
+        a.Equals(b) || (double.IsNaN(a) && double.IsNaN(b));
 
     private AutomationDataValue EvaluateBinaryMath(AutomationNodeState node, string sourcePortId, Func<double, double, double> operation)
     {

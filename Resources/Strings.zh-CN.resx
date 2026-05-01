@@ -2226,7 +2226,7 @@
     <value>PID 控制器</value>
   </data>
   <data name="AutomationNode_Summary_PidController" xml:space="preserve">
-    <value>根据当前值与目标值计算连续控制信号。</value>
+    <value>计算连续控制信号；误差 = 目标值 − 当前值（测量接当前值，设定点接目标值）。</value>
   </data>
   <data name="AutomationInlineEditor_FindImageAlgorithm" xml:space="preserve">
     <value>视觉算法</value>
@@ -2782,5 +2782,23 @@
   </data>
   <data name="AutomationInlineEditor_LoopJumpTargetScopeLabelPlaceholder" xml:space="preserve">
     <value>选择循环作用域名称</value>
+  </data>
+  <data name="AutomationPortLabel_ResultWidth" xml:space="preserve">
+    <value>匹配宽度（像素）</value>
+  </data>
+  <data name="AutomationPortLabel_ResultHeight" xml:space="preserve">
+    <value>匹配高度（像素）</value>
+  </data>
+  <data name="AutomationPortLabel_AlignmentHalfWidth" xml:space="preserve">
+    <value>对齐半宽（像素）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlternateNeedlePaths" xml:space="preserve">
+    <value>备用模板</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlternateNeedlePathsPlaceholder" xml:space="preserve">
+    <value>可选：每行一个额外模板路径（与主模板使用相同匹配参数）</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageLegacyZeroCoordinatesWhenUnmatched" xml:space="preserve">
+    <value>兼容：未匹配时输出坐标与尺寸为 0</value>
   </data>
 </root>

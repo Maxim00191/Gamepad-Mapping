@@ -234,6 +234,25 @@ public sealed class AutomationNodeInlineEditorSchemaService : IAutomationNodeInl
                 new AutomationNodeInlineEditorDefinition
                 {
                     NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageAlternateNeedlePaths,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageAlternateNeedlePaths",
+                    PlaceholderResourceKey = "AutomationInlineEditor_FindImageAlternateNeedlePathsPlaceholder",
+                    Kind = AutomationNodeInlineEditorKind.MultilineText,
+                    DefaultTextValue = "",
+                    VisibleWhenPropertyKey = AutomationNodePropertyKeys.FindImageAlgorithm,
+                    VisibleWhenPropertyValues = NeedlePathEditorAlgorithmValues
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
+                    PropertyKey = AutomationNodePropertyKeys.FindImageLegacyZeroCoordinatesWhenUnmatched,
+                    LabelResourceKey = "AutomationInlineEditor_FindImageLegacyZeroCoordinatesWhenUnmatched",
+                    Kind = AutomationNodeInlineEditorKind.Boolean,
+                    DefaultBooleanValue = false
+                },
+                new AutomationNodeInlineEditorDefinition
+                {
+                    NodeTypeId = "perception.find_image",
                     PropertyKey = AutomationNodePropertyKeys.FindImageYoloOnnxPath,
                     LabelResourceKey = "AutomationInlineEditor_FindImageYoloOnnxPath",
                     PlaceholderResourceKey = "AutomationInlineEditor_FindImageYoloOnnxPathPlaceholder",

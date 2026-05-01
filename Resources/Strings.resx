@@ -2226,7 +2226,7 @@ Relaunch this tool as administrator now?</value>
     <value>PID Controller</value>
   </data>
   <data name="AutomationNode_Summary_PidController" xml:space="preserve">
-    <value>Computes a continuous control signal from current and target values.</value>
+    <value>Computes a continuous control signal; error = Target Value − Current Value (measured → Current, setpoint → Target).</value>
   </data>
   <data name="AutomationInlineEditor_FindImageAlgorithm" xml:space="preserve">
     <value>Vision Algorithm</value>
@@ -2782,5 +2782,23 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationInlineEditor_LoopJumpTargetScopeLabelPlaceholder" xml:space="preserve">
     <value>Select the loop scope name</value>
+  </data>
+  <data name="AutomationPortLabel_ResultWidth" xml:space="preserve">
+    <value>Match Width (px)</value>
+  </data>
+  <data name="AutomationPortLabel_ResultHeight" xml:space="preserve">
+    <value>Match Height (px)</value>
+  </data>
+  <data name="AutomationPortLabel_AlignmentHalfWidth" xml:space="preserve">
+    <value>Alignment Half-Width (px)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlternateNeedlePaths" xml:space="preserve">
+    <value>Alternate templates</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageAlternateNeedlePathsPlaceholder" xml:space="preserve">
+    <value>Optional: one extra template path per line (same matching settings as the primary template)</value>
+  </data>
+  <data name="AutomationInlineEditor_FindImageLegacyZeroCoordinatesWhenUnmatched" xml:space="preserve">
+    <value>Legacy: emit (0,0) size when unmatched</value>
   </data>
 </root>

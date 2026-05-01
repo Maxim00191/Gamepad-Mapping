@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Windows.Media.Imaging;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
 using GamepadMapperGUI.Utils;
@@ -18,7 +19,10 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var algorithmText = AutomationNodePropertyReader.ReadString(node.Properties, AutomationNodePropertyKeys.FindImageAlgorithm);
         var algorithm = AutomationVisionAlgorithmStorage.ParseFindImageAlgorithmKind(algorithmText);
         var requiresNeedle = AutomationVisionAlgorithmRequirements.RequiresNeedleImage(algorithm);
-        if (requiresNeedle && string.IsNullOrWhiteSpace(needlePath))
+        var alternateNeedlePathList = AutomationNodePropertyReader.ReadStringList(
+            node.Properties,
+            AutomationNodePropertyKeys.FindImageAlternateNeedlePaths);
+        if (requiresNeedle && string.IsNullOrWhiteSpace(needlePath) && alternateNeedlePathList.Count == 0)
             throw new InvalidOperationException("find_image:needle_missing");
         string? resolvedYoloOnnxPath = null;
         if (AutomationVisionAlgorithmRequirements.RequiresYoloOnnxModel(algorithm))
@@ -53,6 +57,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         var textOptions = ReadTextDetectionOptions(node);
         var ocrPhraseOptions = ReadOcrPhraseMatchOptions(node);
         var effectiveYoloPathForProbe = resolvedYoloOnnxPath;
+        var templateMinCorrelation = AutomationImageProbeOptions.CombineTemplateMatchMinNormalizedCorrelation(tolerance, confidence);
         var options = new AutomationImageProbeOptions(
             tolerance,
             timeoutMs,
@@ -60,11 +65,11 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             yoloClassId,
             colorOptions,
             textOptions,
-            ocrPhraseOptions);
-        var needlePathResolved = AutomationNeedlePathResolver.ResolveExistingFilePath(needlePath);
-        var needle = needlePathResolved is not null
-            ? context.NeedleCache.GetOrLoadExistingFile(needlePathResolved)
-            : null;
+            ocrPhraseOptions,
+            templateMinCorrelation);
+        var needleChain = requiresNeedle
+            ? BuildNeedleChain(needlePath, alternateNeedlePathList, context)
+            : new List<(string RawPath, string? ResolvedPath, BitmapSource? Bitmap)>();
         var sourceNode = context.Index.GetNode(source);
         var sourceRef = sourceNode is null
             ? AutomationLogFormatter.NodeId(source)
@@ -72,7 +77,16 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
         if (context.VerboseExecutionLog)
         {
             log.Add($"[find_image] haystack_source={sourceRef} haystack_origin=({originX},{originY}) haystack_size={bitmap.PixelWidth}x{bitmap.PixelHeight}");
-            log.Add($"[find_image] needle_path={needlePath} resolved_path={(needlePathResolved ?? "(none)")} needle_loaded={(needle is not null ? "true" : "false")} yolo_onnx={(effectiveYoloPathForProbe ?? "(none)")} yolo_class_id={yoloClassId} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs} algorithm={algorithm}");
+            log.Add($"[find_image] needle_path={needlePath} alternates={alternateNeedlePathList.Count} yolo_onnx={(effectiveYoloPathForProbe ?? "(none)")} yolo_class_id={yoloClassId} confidence={confidence:F2} tolerance={tolerance:F2} timeout_ms={timeoutMs} algorithm={algorithm}");
+            if (requiresNeedle)
+            {
+                for (var i = 0; i < needleChain.Count; i++)
+                {
+                    var (raw, resolved, loaded) = needleChain[i];
+                    log.Add(
+                        $"[find_image] needle[{i}] raw={raw} resolved={(resolved ?? "(none)")} loaded={(loaded is not null ? "true" : "false")}");
+                }
+            }
             if (AutomationVisionAlgorithmRequirements.UsesColorDetectionOptions(algorithm))
                 log.Add($"[find_image] color_hsv=({colorOptions.HueMin}-{colorOptions.HueMax},{colorOptions.SaturationMin}-{colorOptions.SaturationMax},{colorOptions.ValueMin}-{colorOptions.ValueMax}) min_area={colorOptions.MinimumAreaPx}");
             if (AutomationVisionAlgorithmRequirements.UsesTextDetectionOptions(algorithm))
@@ -80,7 +94,7 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             if (AutomationVisionAlgorithmRequirements.RequiresOcrPhraseList(algorithm))
                 log.Add($"[find_image] ocr_max_long_edge_px={(ocrPhraseOptions.MaxLongEdgePx <= 0 ? "default" : ocrPhraseOptions.MaxLongEdgePx.ToString())} ocr_case_sensitive={ocrPhraseOptions.CaseSensitive}");
         }
-        if (requiresNeedle && needle is null)
+        if (requiresNeedle && needleChain.TrueForAll(e => e.Bitmap is null))
         {
             if (context.VerboseExecutionLog)
                 log.Add("[find_image] missing_template_needle => matched=false");
@@ -88,16 +102,76 @@ public sealed class FindImageNodeHandler : IAutomationRuntimeNodeHandler
             return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
         }
 
-        var raw = context.Probe.ProbeAsync(bitmap, originX, originY, needle, options, algorithm, cancellationToken).GetAwaiter().GetResult();
-        var result = raw with
+        AutomationImageProbeResult result;
+        if (!requiresNeedle)
         {
-            MatchCount = raw.Matched ? 1 : 0,
-            Confidence = raw.Matched ? Math.Clamp(confidence, 0, 1) : 0
-        };
+            var single = context.Probe
+                .ProbeAsync(bitmap, originX, originY, null, options, algorithm, cancellationToken)
+                .GetAwaiter()
+                .GetResult();
+            result = single with
+            {
+                MatchCount = single.Matched ? 1 : 0,
+                Confidence = single.Matched ? Math.Clamp(confidence, 0, 1) : 0
+            };
+        }
+        else
+        {
+            AutomationImageProbeResult? chosen = null;
+            foreach (var entry in needleChain)
+            {
+                if (entry.Bitmap is null)
+                    continue;
+
+                var raw = context.Probe
+                    .ProbeAsync(bitmap, originX, originY, entry.Bitmap, options, algorithm, cancellationToken)
+                    .GetAwaiter()
+                    .GetResult();
+                var adjusted = raw with
+                {
+                    MatchCount = raw.Matched ? 1 : 0,
+                    Confidence = raw.Matched ? Math.Clamp(confidence, 0, 1) : 0
+                };
+                if (adjusted.Matched)
+                {
+                    chosen = adjusted;
+                    break;
+                }
+
+                chosen ??= adjusted;
+            }
+
+            result = chosen ?? new AutomationImageProbeResult(false, 0, 0, 0, 0, 0);
+        }
         context.StoreProbeResult(node.Id, result);
         if (context.VerboseExecutionLog)
             log.Add($"[find_image] matched={result.Matched} match_screen=({result.MatchScreenXPx},{result.MatchScreenYPx}) count={result.MatchCount} confidence={result.Confidence:F2} raw_correlation={result.BestTemplateCorrelation:F2}");
         return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
+    }
+
+    private static List<(string RawPath, string? ResolvedPath, BitmapSource? Bitmap)> BuildNeedleChain(
+        string primaryPath,
+        IReadOnlyList<string> alternatePaths,
+        AutomationRuntimeContext context)
+    {
+        var chain = new List<(string, string?, BitmapSource?)>(1 + alternatePaths.Count);
+        AddResolved(primaryPath, chain, context);
+        foreach (var alt in alternatePaths)
+            AddResolved(alt, chain, context);
+        return chain;
+    }
+
+    private static void AddResolved(
+        string rawPath,
+        List<(string RawPath, string? ResolvedPath, BitmapSource? Bitmap)> chain,
+        AutomationRuntimeContext context)
+    {
+        if (string.IsNullOrWhiteSpace(rawPath))
+            return;
+
+        var resolved = AutomationNeedlePathResolver.ResolveExistingFilePath(rawPath);
+        var bmp = resolved is not null ? context.NeedleCache.GetOrLoadExistingFile(resolved) : null;
+        chain.Add((rawPath, resolved, bmp));
     }
 
     private static AutomationColorDetectionOptions ReadColorDetectionOptions(AutomationNodeState node)

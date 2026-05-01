@@ -20,6 +20,8 @@ public sealed class AutomationPortLabelService : IAutomationPortLabelService
             "result.x" => "AutomationPortLabel_ResultX",
             "result.y" => "AutomationPortLabel_ResultY",
             "result.count" => "AutomationPortLabel_ResultCount",
+            "result.width" => "AutomationPortLabel_ResultWidth",
+            "result.height" => "AutomationPortLabel_ResultHeight",
             "result.pressed" => "AutomationPortLabel_ResultPressed",
             "coord.x" => "AutomationPortLabel_CoordX",
             "coord.y" => "AutomationPortLabel_CoordY",
@@ -40,6 +42,7 @@ public sealed class AutomationPortLabelService : IAutomationPortLabelService
             "message" => "AutomationPortLabel_Message",
             "current.value" => "AutomationPortLabel_CurrentValue",
             "target.value" => "AutomationPortLabel_TargetValue",
+            "alignment.half_width" => "AutomationPortLabel_AlignmentHalfWidth",
             "control.signal" => "AutomationPortLabel_ControlSignal",
             _ => flowKind == AutomationPortFlowKind.Execution
                 ? (isOutputPort ? "AutomationPortLabel_Output" : "AutomationPortLabel_Input")
