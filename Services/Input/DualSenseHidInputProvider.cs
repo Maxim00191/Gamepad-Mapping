@@ -228,8 +228,8 @@ public sealed class DualSenseHidInputProvider : IPlayStationInputProvider
         return new PlayStationTouchPoint(
             IsActive: isActive,
             TrackingId: trackingId,
-            XNormalized: Math.Clamp(x / 1919f, 0f, 1f),
-            YNormalized: Math.Clamp(y / 1079f, 0f, 1f));
+            XNormalized: Math.Clamp(x / DualSenseTouchpadGeometry.NormalizedWidthDivisor, 0f, 1f),
+            YNormalized: Math.Clamp(y / DualSenseTouchpadGeometry.NormalizedHeightDivisor, 0f, 1f));
     }
 
     private static float NormalizeStick(byte value)

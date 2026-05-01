@@ -11,7 +11,8 @@ public enum GamepadBindingType
     LeftTrigger,
     RightTrigger,
     LeftThumbstick,
-    RightThumbstick
+    RightThumbstick,
+    Touchpad
 }
 
 public class GamepadBinding : ObservableObject

@@ -21,15 +21,21 @@ public partial class InputTriggerViewModel : ObservableObject
         foreach (var v in GamepadThumbstickFromValueCatalog.PickList)
             AvailableThumbstickFromValues.Add(v);
 
+        foreach (var v in GamepadTouchpadFromValueCatalog.PickList)
+            AvailableTouchpadFromValues.Add(v);
+
         EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
         EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
+        EditTouchpadFromValue = GamepadTouchpadFromValueCatalog.PickList[0];
     }
 
     public ObservableCollection<string> AvailableGamepadButtons { get; }
 
     public ObservableCollection<string> AvailableThumbstickFromValues { get; } = [];
+
+    public ObservableCollection<string> AvailableTouchpadFromValues { get; } = [];
 
     public ObservableCollection<string> AvailableNativeTriggerLabels { get; } =
     [
@@ -42,6 +48,9 @@ public partial class InputTriggerViewModel : ObservableObject
 
     [ObservableProperty]
     private string _editThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
+
+    [ObservableProperty]
+    private string _editTouchpadFromValue = GamepadTouchpadFromValueCatalog.PickList[0];
 
     [ObservableProperty]
     private string _editBindingFromButton = "A";
@@ -62,6 +71,8 @@ public partial class InputTriggerViewModel : ObservableObject
 
     public bool ShowThumbstickSourceEditor =>
         EditSourceKind is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick;
+
+    public bool ShowTouchpadSourceEditor => EditSourceKind == GamepadBindingType.Touchpad;
 
     public bool ShowNativeTriggerSourceEditor =>
         EditSourceKind is GamepadBindingType.LeftTrigger or GamepadBindingType.RightTrigger;
@@ -102,6 +113,7 @@ public partial class InputTriggerViewModel : ObservableObject
                 EditSourceKind = GamepadBindingType.Button;
                 EditBindingFromButton = AvailableGamepadButtons.FirstOrDefault() ?? "A";
                 EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
+                EditTouchpadFromValue = GamepadTouchpadFromValueCatalog.PickList[0];
                 return;
             }
 
@@ -122,6 +134,12 @@ public partial class InputTriggerViewModel : ObservableObject
                     EditSourceIsCombination = false;
                     EditThumbstickFromValue =
                         GamepadThumbstickFromValueCatalog.CanonicalizeForEditor(mapping.From.Value);
+                    break;
+
+                case GamepadBindingType.Touchpad:
+                    EditSourceIsCombination = false;
+                    EditTouchpadFromValue =
+                        GamepadTouchpadFromValueCatalog.CanonicalizeForEditor(mapping.From.Value);
                     break;
 
                 case GamepadBindingType.Button:
@@ -182,6 +200,16 @@ public partial class InputTriggerViewModel : ObservableObject
                     Value = GamepadThumbstickFromValueCatalog.CanonicalizeForEditor(stickVal)
                 };
                 return true;
+            case GamepadBindingType.Touchpad:
+                var touchVal = (EditTouchpadFromValue ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(touchVal))
+                    return false;
+                mapping.From = new GamepadBinding
+                {
+                    Type = GamepadBindingType.Touchpad,
+                    Value = GamepadTouchpadFromValueCatalog.CanonicalizeForEditor(touchVal)
+                };
+                return true;
             case GamepadBindingType.LeftTrigger:
             case GamepadBindingType.RightTrigger:
                 var single = (EditBindingFromButton ?? string.Empty).Trim();
@@ -202,6 +230,7 @@ public partial class InputTriggerViewModel : ObservableObject
         EditBindingComboButton1 = AvailableGamepadButtons.FirstOrDefault() ?? "A";
         EditBindingComboButton2 = AvailableGamepadButtons.Skip(1).FirstOrDefault() ?? "B";
         EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
+        EditTouchpadFromValue = GamepadTouchpadFromValueCatalog.PickList[0];
         ShowSourceKindChangedHint = false;
         RefreshDerivedTriggerProperties();
     }
@@ -270,6 +299,10 @@ public partial class InputTriggerViewModel : ObservableObject
                     EditThumbstickFromValue = GamepadThumbstickFromValueCatalog.PickList[0];
                     EditSourceIsCombination = false;
                     break;
+                case GamepadBindingType.Touchpad:
+                    EditTouchpadFromValue = GamepadTouchpadFromValueCatalog.PickList[0];
+                    EditSourceIsCombination = false;
+                    break;
                 case GamepadBindingType.LeftTrigger:
                     EditBindingFromButton = nameof(GamepadBindingType.LeftTrigger);
                     EditSourceIsCombination = false;
@@ -283,6 +316,7 @@ public partial class InputTriggerViewModel : ObservableObject
 
         OnPropertyChanged(nameof(ShowButtonSourceEditor));
         OnPropertyChanged(nameof(ShowThumbstickSourceEditor));
+        OnPropertyChanged(nameof(ShowTouchpadSourceEditor));
         OnPropertyChanged(nameof(ShowNativeTriggerSourceEditor));
         OnPropertyChanged(nameof(AnalogThresholdPrimaryCaption));
         OnPropertyChanged(nameof(AnalogThresholdSecondaryHint));
@@ -290,6 +324,8 @@ public partial class InputTriggerViewModel : ObservableObject
     }
 
     partial void OnEditThumbstickFromValueChanged(string value) => RefreshDerivedTriggerProperties();
+
+    partial void OnEditTouchpadFromValueChanged(string value) => RefreshDerivedTriggerProperties();
 
     partial void OnEditSourceIsCombinationChanged(bool value) => RefreshDerivedTriggerProperties();
 

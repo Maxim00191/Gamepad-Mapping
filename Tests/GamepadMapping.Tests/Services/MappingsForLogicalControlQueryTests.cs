@@ -207,6 +207,32 @@ public class MappingsForLogicalControlQueryTests
     }
 
     [Fact]
+    public void GetMappingsForLogicalControl_TouchpadGesture_IncludesMapping()
+    {
+        var swipe = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Touchpad, Value = "SWIPE_UP" }
+        };
+        var all = new[] { swipe };
+
+        var forTouch = _query.GetMappingsForLogicalControl("btn_touchpad", all);
+
+        Assert.Single(forTouch);
+        Assert.Same(swipe, forTouch[0]);
+    }
+
+    [Fact]
+    public void ResolvePrimaryLogicalControlIdForMapping_TouchpadGesture_ReturnsTouchpadLogicalId()
+    {
+        var m = new MappingEntry
+        {
+            From = new GamepadBinding { Type = GamepadBindingType.Touchpad, Value = "SWIPE_LEFT" }
+        };
+
+        Assert.Equal("btn_touchpad", _query.ResolvePrimaryLogicalControlIdForMapping(m));
+    }
+
+    [Fact]
     public void FormatInputLine_LeftThumbstickDirection_UsesStickSurfaceDisplayName()
     {
         var visual = new ControllerVisualService();

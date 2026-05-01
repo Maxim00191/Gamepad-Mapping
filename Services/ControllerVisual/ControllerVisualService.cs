@@ -8,13 +8,15 @@ namespace Gamepad_Mapping.Services.ControllerVisual;
 
 public class ControllerVisualService : IControllerVisualService
 {
+    private const string TouchpadLogicalControlId = "btn_touchpad";
+
     private static readonly Dictionary<string, (GamepadBindingType Type, string Value, string DisplayName)> _idMap = new(StringComparer.OrdinalIgnoreCase)
     {
         { "btn_A", (GamepadBindingType.Button, "A", "Button A") },
         { "btn_B", (GamepadBindingType.Button, "B", "Button B") },
         { "btn_X", (GamepadBindingType.Button, "X", "Button X") },
         { "btn_Y", (GamepadBindingType.Button, "Y", "Button Y") },
-        { "btn_touchpad", (GamepadBindingType.Button, "Touchpad", "Touchpad Click") },
+        { TouchpadLogicalControlId, (GamepadBindingType.Button, "Touchpad", "Touchpad Click") },
         { "shoulder_L", (GamepadBindingType.Button, "LeftShoulder", "Left Shoulder") },
         { "shoulder_R", (GamepadBindingType.Button, "RightShoulder", "Right Shoulder") },
         { "trigger_L", (GamepadBindingType.LeftTrigger, "LeftTrigger", "Left Trigger") },
@@ -43,6 +45,10 @@ public class ControllerVisualService : IControllerVisualService
 
         if (type == GamepadBindingType.RightThumbstick && IsRecognizedThumbstickFromValue(GamepadBindingType.RightThumbstick, value))
             return ThumbStickRightId;
+
+        if (type == GamepadBindingType.Touchpad &&
+            GamepadTouchpadFromValueCatalog.IsRecognizedTouchpadInput(value))
+            return TouchpadLogicalControlId;
 
         foreach (var kvp in _idMap)
         {
@@ -73,6 +79,9 @@ public class ControllerVisualService : IControllerVisualService
     }
 
     public IEnumerable<string> EnumerateMappedLogicalControlIds() => _idMap.Keys;
+
+    public bool IsTouchpadSurfaceLogicalControl(string elementId) =>
+        string.Equals(elementId, TouchpadLogicalControlId, StringComparison.OrdinalIgnoreCase);
 
     public GamepadBinding? MapIdToBinding(string elementId)
     {
@@ -114,6 +123,9 @@ public class ControllerVisualService : IControllerVisualService
             if (IsThumbstickSurfaceId(elementId))
                 return MatchesThumbstickAnalogMapping(mapping.From, elementId);
 
+            if (IsTouchpadSurfaceId(elementId))
+                return MatchesTouchpadSurfaceMapping(mapping.From);
+
             var binding = MapIdToBinding(elementId)!;
             if (mapping.From.Type != binding.Type)
                 return false;
@@ -145,6 +157,21 @@ public class ControllerVisualService : IControllerVisualService
     private static bool IsThumbstickSurfaceId(string elementId) =>
         string.Equals(elementId, ThumbStickLeftId, StringComparison.OrdinalIgnoreCase) ||
         string.Equals(elementId, ThumbStickRightId, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTouchpadSurfaceId(string elementId) =>
+        string.Equals(elementId, TouchpadLogicalControlId, StringComparison.OrdinalIgnoreCase);
+
+    private static bool MatchesTouchpadSurfaceMapping(GamepadBinding? from)
+    {
+        if (from is null)
+            return false;
+
+        if (from.Type == GamepadBindingType.Touchpad)
+            return true;
+
+        return from.Type == GamepadBindingType.Button &&
+               string.Equals(from.Value, "Touchpad", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static bool MatchesThumbstickAnalogMapping(GamepadBinding from, string elementId)
     {

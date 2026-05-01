@@ -310,6 +310,20 @@
                     </StackPanel>
 
                     <StackPanel Margin="0,0,0,4"
+                                Visibility="{Binding InputTrigger.ShowTouchpadSourceEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[TouchpadFromValueLabel]}"
+                                   Margin="0,0,0,4" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                   FontSize="12"
+                                   Margin="0,0,0,6"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[TouchpadFromValueHint]}" />
+                        <ComboBox ItemsSource="{Binding InputTrigger.AvailableTouchpadFromValues}"
+                                  SelectedItem="{Binding InputTrigger.EditTouchpadFromValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="True" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,4"
                                 Visibility="{Binding InputTrigger.ShowNativeTriggerSourceEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <TextBlock Text="{Binding Source={StaticResource Loc}, Path=[NativeTriggerSourceLabel]}"
                                    Margin="0,0,0,4" />

@@ -38,7 +38,7 @@ public sealed class MappingsForLogicalControlQuery(IControllerVisualService visu
             if (id is not null)
                 return id;
 
-            if (type is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick)
+            if (type is GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick or GamepadBindingType.Touchpad)
             {
                 id = _visual.MapBindingToId(p, type);
                 if (id is not null)

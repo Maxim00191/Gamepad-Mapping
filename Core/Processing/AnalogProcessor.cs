@@ -25,6 +25,8 @@ internal sealed class AnalogProcessor
     private float _mouseLookResidualLeftY;
     private float _mouseLookResidualRightX;
     private float _mouseLookResidualRightY;
+    private float _mouseLookResidualTouchX;
+    private float _mouseLookResidualTouchY;
 
     private const float DefaultAnalogThreshold = 0.35f;
     public const float LegacyDefaultMouseLookSensitivity = 18f;
@@ -257,19 +259,29 @@ internal sealed class AnalogProcessor
         _mouseLookResidualLeftY = 0f;
         _mouseLookResidualRightX = 0f;
         _mouseLookResidualRightY = 0f;
+        _mouseLookResidualTouchX = 0f;
+        _mouseLookResidualTouchY = 0f;
     }
 
     public static float DefaultLookSensitivity => DefaultMouseLookSensitivity;
 
-    private ref float GetMouseLookResidualXRef(GamepadBindingType thumbstickSource) =>
-        ref thumbstickSource == GamepadBindingType.LeftThumbstick
-            ? ref _mouseLookResidualLeftX
-            : ref _mouseLookResidualRightX;
+    private ref float GetMouseLookResidualXRef(GamepadBindingType source)
+    {
+        if (source == GamepadBindingType.LeftThumbstick)
+            return ref _mouseLookResidualLeftX;
+        if (source == GamepadBindingType.RightThumbstick)
+            return ref _mouseLookResidualRightX;
+        return ref _mouseLookResidualTouchX;
+    }
 
-    private ref float GetMouseLookResidualYRef(GamepadBindingType thumbstickSource) =>
-        ref thumbstickSource == GamepadBindingType.LeftThumbstick
-            ? ref _mouseLookResidualLeftY
-            : ref _mouseLookResidualRightY;
+    private ref float GetMouseLookResidualYRef(GamepadBindingType source)
+    {
+        if (source == GamepadBindingType.LeftThumbstick)
+            return ref _mouseLookResidualLeftY;
+        if (source == GamepadBindingType.RightThumbstick)
+            return ref _mouseLookResidualRightY;
+        return ref _mouseLookResidualTouchY;
+    }
 
     private void ClearMouseLookResidualForThumbstick(GamepadBindingType thumbstickSource)
     {

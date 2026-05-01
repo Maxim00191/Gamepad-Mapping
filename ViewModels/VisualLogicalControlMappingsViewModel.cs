@@ -10,6 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
 using Gamepad_Mapping.Models.Core.Visual;
 using Gamepad_Mapping.Utils.ControllerVisual;
+using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
 
@@ -100,6 +101,10 @@ public partial class VisualLogicalControlMappingsViewModel : ObservableObject
         var binding = _visualService.MapIdToBinding(_elementId);
         if (binding is null)
             return;
+
+        if (_mainViewModel.IsPlayStationGamepadActive &&
+            _visualService.IsTouchpadSurfaceLogicalControl(_elementId))
+            binding = GamepadTouchpadFromValueCatalog.CreateDefaultSurfaceBinding();
 
         _mainViewModel.MappingsWorkspace.History.ExecuteTransaction(() =>
         {

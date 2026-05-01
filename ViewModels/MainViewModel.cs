@@ -812,6 +812,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public ObservableCollection<InputApiOption> AvailableInputApis { get; } = new();
     public ObservableCollection<InputApiOption> AvailableGamepadApis { get; } = new();
 
+    public bool IsPlayStationGamepadActive =>
+        string.Equals(
+            _gamepadSourceFactory.NormalizeApiId(_settingsOrchestrator.Settings.GamepadSourceApi ?? string.Empty),
+            GamepadSourceApiIds.PlayStation,
+            StringComparison.OrdinalIgnoreCase);
+
     [ObservableProperty] private InputApiOption? selectedInputApi;
     [ObservableProperty] private InputApiOption? selectedGamepadApi;
 
@@ -841,6 +847,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         UpdateSetting(s => s.GamepadSourceApi = apiId);
         RecreateGamepadReaderForCurrentSource();
+        OnPropertyChanged(nameof(IsPlayStationGamepadActive));
     }
 
     private void SyncInputApiUi(string apiId)
@@ -1560,6 +1567,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
 
         SyncInputApiUi(NormalizeInputEmulationApiId(appSettings.InputEmulationApi));
         SyncGamepadSourceUi(appSettings.GamepadSourceApi ?? GamepadSourceApiIds.XInput);
+        OnPropertyChanged(nameof(IsPlayStationGamepadActive));
     }
 
     private void InitializeChildViewModels(float leftDz, float rightDz, AppSettings s)

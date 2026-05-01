@@ -20,6 +20,7 @@ public class MappingFromValueItemsSourceConverter : IMultiValueConverter
         {
             GamepadBindingType.Button => editor.AvailableGamepadButtons,
             GamepadBindingType.LeftThumbstick or GamepadBindingType.RightThumbstick => editor.AvailableThumbstickFromValues,
+            GamepadBindingType.Touchpad => editor.AvailableTouchpadFromValues,
             _ => Array.Empty<string>()
         };
     }

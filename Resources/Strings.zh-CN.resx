@@ -1622,4 +1622,13 @@
   <data name="GamepadSourcePlayStationHint" xml:space="preserve">
     <value>使用 PlayStation 兼容输入通道。后续可继续扩展 DualSense 原生高级特性。</value>
   </data>
+  <data name="GamepadBindingType_Touchpad" xml:space="preserve">
+    <value>触摸板（PlayStation）</value>
+  </data>
+  <data name="TouchpadFromValueLabel" xml:space="preserve">
+    <value>触摸板区域 / 手势</value>
+  </data>
+  <data name="TouchpadFromValueHint" xml:space="preserve">
+    <value>手指接触移动时使用 MOUSEX / MOUSEY 映射鼠标；滑动结束时识别 SWIPE_UP / DOWN / LEFT / RIGHT（触发方式请选「点按」）。</value>
+  </data>
 </root>

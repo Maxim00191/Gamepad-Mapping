@@ -202,7 +202,8 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
             _getMouseLookReboundSuppression,
             _getGamepadPollingIntervalMs,
             _getAnalogChangeEpsilon,
-            _getKeyboardTapHoldDurationMs);
+            _getKeyboardTapHoldDurationMs,
+            DispatchTouchpadDiscreteMapping);
 
         if (_setComboHud != null)
         {
@@ -711,6 +712,20 @@ public sealed class MappingEngine : IMappingEngine, IKeyboardActionExecutor
         }
 
         QueueOutputDispatch(sourceToken, TriggerMoment.Tap, o, label, string.Empty);
+    }
+
+    private void DispatchTouchpadDiscreteMapping(MappingEntry mapping)
+    {
+        if (!CanDispatchOutputMerged())
+            return;
+
+        mapping.ExecutableAction ??= ResolveExecutableAction(mapping);
+        var moment = mapping.ActionType == MappingActionType.RadialMenu
+            ? TriggerMoment.Pressed
+            : TriggerMoment.Tap;
+        TryDispatchAction(mapping, moment, "Touchpad", out var err);
+        if (!string.IsNullOrEmpty(err))
+            _setMappingStatus(err);
     }
 
     private bool TryDispatchAction(

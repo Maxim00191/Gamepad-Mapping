@@ -41,6 +41,8 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
     private int _carryLeftY;
     private int _carryRightX;
     private int _carryRightY;
+    private int _carryTouchX;
+    private int _carryTouchY;
 
     private readonly bool[] _skipMergeOnSubMoveExit = new bool[MouseLookMotionConstraints.SubMoveSubdivisionScopeCount];
     private readonly object _asyncLatestBatchCtsSyncRoot = new();
@@ -279,6 +281,10 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
                     _carryRightX = 0;
                     _carryRightY = 0;
                     break;
+                case 3:
+                    _carryTouchX = 0;
+                    _carryTouchY = 0;
+                    break;
             }
         }
     }
@@ -377,6 +383,7 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
         {
             GamepadBindingType.LeftThumbstick => 1,
             GamepadBindingType.RightThumbstick => 2,
+            GamepadBindingType.Touchpad => 3,
             _ => 0,
         };
 
@@ -385,6 +392,7 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
         {
             1 => GamepadBindingType.LeftThumbstick,
             2 => GamepadBindingType.RightThumbstick,
+            3 => GamepadBindingType.Touchpad,
             _ => null,
         };
 
@@ -393,6 +401,7 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
         {
             GamepadBindingType.LeftThumbstick => (_carryLeftX, _carryLeftY),
             GamepadBindingType.RightThumbstick => (_carryRightX, _carryRightY),
+            GamepadBindingType.Touchpad => (_carryTouchX, _carryTouchY),
             _ => (_carryUnscopedX, _carryUnscopedY),
         };
 
@@ -407,6 +416,10 @@ public sealed partial class HumanizingMouseEmulator : IMouseEmulator, IPendingMo
             case GamepadBindingType.RightThumbstick:
                 _carryRightX = cx;
                 _carryRightY = cy;
+                break;
+            case GamepadBindingType.Touchpad:
+                _carryTouchX = cx;
+                _carryTouchY = cy;
                 break;
             default:
                 _carryUnscopedX = cx;

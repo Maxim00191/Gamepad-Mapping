@@ -1622,4 +1622,13 @@ Relaunch this tool as administrator now?</value>
   <data name="GamepadSourcePlayStationHint" xml:space="preserve">
     <value>Uses the PlayStation-compatible input path. Native DualSense extended features can be added later.</value>
   </data>
+  <data name="GamepadBindingType_Touchpad" xml:space="preserve">
+    <value>Touchpad (PlayStation)</value>
+  </data>
+  <data name="TouchpadFromValueLabel" xml:space="preserve">
+    <value>Touchpad region / gesture</value>
+  </data>
+  <data name="TouchpadFromValueHint" xml:space="preserve">
+    <value>MOUSEX / MOUSEY move the cursor while your finger moves on the pad. SWIPE_UP / DOWN / LEFT / RIGHT fire when you lift after a decisive stroke (use Trigger: Tap).</value>
+  </data>
 </root>

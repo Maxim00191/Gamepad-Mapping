@@ -41,6 +41,11 @@ internal sealed class AnalogTransitionMiddleware : IInputFrameMiddleware
             mappings, 
             context.ConsumedInputs.Contains(GamepadBindingType.RightThumbstick));
 
+        _analogMappingProcessor.ProcessTouchpad(
+            frame.PlayStationState,
+            mappings,
+            context.ConsumedInputs.Contains(GamepadBindingType.Touchpad));
+
         // 2. Triggers (Keyboard/Pointer mappings)
         _analogMappingProcessor.ProcessTrigger(
             GamepadBindingType.LeftTrigger, 

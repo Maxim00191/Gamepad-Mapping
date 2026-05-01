@@ -49,9 +49,9 @@ public static class MouseLookMotionConstraints
     public const int MinInterSubMoveBaseDelayMs = 1;
 
     /// <summary>
-    /// Number of independent mouse-look carry/sub-move channels: unscoped, left thumbstick, right thumbstick.
+    /// Number of independent mouse-look carry/sub-move channels: unscoped, left thumbstick, right thumbstick, touchpad.
     /// </summary>
-    public const int SubMoveSubdivisionScopeCount = 3;
+    public const int SubMoveSubdivisionScopeCount = 4;
 
     /// <summary>
     /// Max time to wait for async sub-move workers to finish after cancellation when clearing pending subdivision.

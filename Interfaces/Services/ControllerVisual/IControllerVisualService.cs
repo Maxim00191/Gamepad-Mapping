@@ -38,4 +38,9 @@ public interface IControllerVisualService
     /// (including thumbstick surfaces, which aggregate axis/direction tokens).
     /// </summary>
     bool IsMappingOnLogicalControl(MappingEntry mapping, string elementId);
+
+    /// <summary>
+    /// True when <paramref name="elementId"/> is the diagram region for the PlayStation touch surface (click + gestures).
+    /// </summary>
+    bool IsTouchpadSurfaceLogicalControl(string elementId);
 }

@@ -384,8 +384,18 @@ public partial class MappingEditorViewModel : ObservableObject
 
     public ObservableCollection<string> AvailableThumbstickFromValues => InputTrigger.AvailableThumbstickFromValues;
 
-    public IReadOnlyList<GamepadBindingType> AvailableGamepadBindingTypes { get; } =
+    public ObservableCollection<string> AvailableTouchpadFromValues => InputTrigger.AvailableTouchpadFromValues;
+
+    private static readonly GamepadBindingType[] AllBindingTypesIncludingTouchpad =
         Enum.GetValues<GamepadBindingType>().ToArray();
+
+    private static readonly GamepadBindingType[] AllBindingTypesExcludingTouchpad =
+        AllBindingTypesIncludingTouchpad.Where(t => t != GamepadBindingType.Touchpad).ToArray();
+
+    public IReadOnlyList<GamepadBindingType> AvailableGamepadBindingTypes =>
+        _mainViewModel.IsPlayStationGamepadActive
+            ? AllBindingTypesIncludingTouchpad
+            : AllBindingTypesExcludingTouchpad;
 
     public ObservableCollection<TriggerMoment> AvailableTriggerModes => _mainViewModel.AvailableTriggerModes;
 
@@ -876,6 +886,12 @@ public partial class MappingEditorViewModel : ObservableObject
             return true;
         }
 
+        if (fromType == GamepadBindingType.Touchpad)
+        {
+            entry.AnalogThreshold = null;
+            return true;
+        }
+
         if (fromType != GamepadBindingType.Button)
         {
             entry.AnalogThreshold = null;
@@ -978,6 +994,9 @@ public partial class MappingEditorViewModel : ObservableObject
                 break;
             case nameof(MainViewModel.AvailableTriggerModes):
                 OnPropertyChanged(nameof(AvailableTriggerModes));
+                break;
+            case nameof(MainViewModel.IsPlayStationGamepadActive):
+                OnPropertyChanged(nameof(AvailableGamepadBindingTypes));
                 break;
             case nameof(MainViewModel.AvailableTemplates):
                 OnPropertyChanged(nameof(AvailableProfileTemplates));

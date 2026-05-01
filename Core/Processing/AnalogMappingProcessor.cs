@@ -10,6 +10,7 @@ using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Core.Input;
 using GamepadMapperGUI.Core.Emulation.Noise;
+using GamepadMapperGUI.Core.Processing;
 
 namespace GamepadMapperGUI.Core;
 
@@ -29,6 +30,13 @@ internal sealed class AnalogMappingProcessor
 
     private MouseLookPipeline _mouseLookLeft;
     private MouseLookPipeline _mouseLookRight;
+    private MouseLookPipeline _mouseLookTouchpad;
+
+    private readonly TouchpadSwipeGestureDetector _touchpadSwipeGestureDetector = new();
+    private bool _touchPrevSampleValid;
+    private int _touchPrevTrackingId;
+    private float _touchPrevX;
+    private float _touchPrevY;
 
     private readonly AnalogProcessor _analogProcessor;
     private readonly IKeyboardEmulator _keyboardEmulator;
@@ -43,6 +51,7 @@ internal sealed class AnalogMappingProcessor
     private readonly Func<int> _getGamepadPollingIntervalMs;
     private readonly Func<float> _getAnalogChangeEpsilon;
     private readonly Func<int> _getKeyboardTapHoldDurationMs;
+    private readonly Action<MappingEntry>? _dispatchTouchpadDiscreteAction;
 
     public AnalogMappingProcessor(
         AnalogProcessor analogProcessor,
@@ -57,7 +66,8 @@ internal sealed class AnalogMappingProcessor
         Func<float>? getMouseLookReboundSuppression = null,
         Func<int>? getGamepadPollingIntervalMs = null,
         Func<float>? getAnalogChangeEpsilon = null,
-        Func<int>? getKeyboardTapHoldDurationMs = null)
+        Func<int>? getKeyboardTapHoldDurationMs = null,
+        Action<MappingEntry>? dispatchTouchpadDiscreteAction = null)
     {
         _analogProcessor = analogProcessor;
         _keyboardEmulator = keyboardEmulator;
@@ -65,6 +75,7 @@ internal sealed class AnalogMappingProcessor
         _canDispatchOutput = canDispatchOutput;
         _setMappedOutput = setMappedOutput;
         _setMappingStatus = setMappingStatus;
+        _dispatchTouchpadDiscreteAction = dispatchTouchpadDiscreteAction;
         _getMouseLookSensitivity = getMouseLookSensitivity ?? (() => AnalogProcessor.LegacyDefaultMouseLookSensitivity);
         _getMouseLookSmoothing = getMouseLookSmoothing ?? (() => 0f);
         _getMouseLookSettleMagnitude = getMouseLookSettleMagnitude ?? (() => 0.02f);
@@ -202,6 +213,203 @@ internal sealed class AnalogMappingProcessor
         }
     }
 
+    public void ProcessTouchpad(
+        PlayStationInputState? psState,
+        IReadOnlyList<MappingEntry> mappingsSnapshot,
+        bool isConsumed = false)
+    {
+        if (!_canDispatchOutput())
+        {
+            ForceReleaseAnalogOutputs();
+            return;
+        }
+
+        if (isConsumed || psState is null)
+        {
+            ReleaseAnalogOutputsForTouchpad();
+            return;
+        }
+
+        var primary = psState.Value.PrimaryTouch;
+
+        var completedSwipe = _touchpadSwipeGestureDetector.Update(primary);
+        if (completedSwipe is { } dir)
+            DispatchTouchpadSwipeMappings(dir, mappingsSnapshot);
+
+        if (!primary.IsActive)
+        {
+            ReleaseTouchpadMouseMotionPipeline();
+            _touchPrevSampleValid = false;
+            return;
+        }
+
+        float ddx = 0f;
+        float ddy = 0f;
+        if (_touchPrevSampleValid && primary.TrackingId == _touchPrevTrackingId)
+        {
+            ddx = primary.XNormalized - _touchPrevX;
+            ddy = primary.YNormalized - _touchPrevY;
+        }
+
+        _touchPrevSampleValid = true;
+        _touchPrevTrackingId = primary.TrackingId;
+        _touchPrevX = primary.XNormalized;
+        _touchPrevY = primary.YNormalized;
+
+        var touchMotionMag = new Vector2(ddx, ddy).Length();
+        var settleFloor = MathF.Max(TouchpadGestureConstraints.FingerMotionIdleNormalized, _getAnalogChangeEpsilon() * 0.0001f);
+        var settleMag = MathF.Max(_getAnalogChangeEpsilon(), _getMouseLookSettleMagnitude());
+        var inSettle = touchMotionMag <= settleFloor || touchMotionMag <= settleMag * 0.001f;
+
+        ref var touchPipe = ref GetMouseLookPipelineRef(GamepadBindingType.Touchpad);
+
+        if (inSettle)
+        {
+            if (touchPipe.WasAboveSettle)
+            {
+                var rebound = Math.Clamp(_getMouseLookReboundSuppression(), 0f, 1f);
+                if (rebound > 0f)
+                {
+                    touchPipe.PreReleaseSignX = ToSign(touchPipe.LastRawX);
+                    touchPipe.PreReleaseSignY = ToSign(touchPipe.LastRawY);
+                    var pollMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(_getGamepadPollingIntervalMs());
+                    var frames = (int)MathF.Ceiling((float)MouseLookMotionConstraints.ReboundSuppressionCalibrationWindowMs / pollMs);
+                    touchPipe.ReboundFramesRemaining = Math.Max(2, frames);
+                }
+            }
+
+            touchPipe.FilterX = 0f;
+            touchPipe.FilterY = 0f;
+            touchPipe.LastRawX = 0f;
+            touchPipe.LastRawY = 0f;
+            touchPipe.WasAboveSettle = false;
+            _analogProcessor.ClearMouseLookResidual(GamepadBindingType.Touchpad);
+            ResetMouseSubdivisionIfApplicable(GamepadBindingType.Touchpad);
+        }
+
+        var mouseDeltaX = 0f;
+        var mouseDeltaY = 0f;
+        var epsilon = _getAnalogChangeEpsilon();
+        var sensitivity = _getMouseLookSensitivity();
+        var noiseMagnitude = TouchpadHasMouseLookMapping(mappingsSnapshot)
+            ? MathF.Min(1f, touchMotionMag * TouchpadGestureConstraints.NormalizedDeltaToMouseScale)
+            : 0f;
+
+        foreach (var mapping in mappingsSnapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Touchpad)
+                continue;
+
+            var outputToken = InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(outputToken))
+                continue;
+
+            if (!AnalogProcessor.TryResolveMouseLookOutput(outputToken, out var isVerticalLook))
+                continue;
+
+            var axisValue = isVerticalLook ? ddy : ddx;
+            if (MathF.Abs(axisValue) < epsilon)
+                continue;
+
+            var delta = axisValue * sensitivity * TouchpadGestureConstraints.NormalizedDeltaToMouseScale;
+            if (isVerticalLook)
+                mouseDeltaY += -delta;
+            else
+                mouseDeltaX += delta;
+        }
+
+        if (!inSettle)
+        {
+            touchPipe.WasAboveSettle = true;
+            touchPipe.LastRawX = mouseDeltaX;
+            touchPipe.LastRawY = mouseDeltaY;
+
+            var rebound = Math.Clamp(_getMouseLookReboundSuppression(), 0f, 1f);
+            if (rebound > 0f && touchPipe.ReboundFramesRemaining > 0)
+            {
+                ApplyReboundAttenuation(ref mouseDeltaX, ref mouseDeltaY, touchPipe.PreReleaseSignX, touchPipe.PreReleaseSignY, rebound);
+                touchPipe.ReboundFramesRemaining--;
+            }
+
+            var smoothing = Math.Clamp(_getMouseLookSmoothing(), 0f, 1f);
+            float sendX;
+            float sendY;
+            if (smoothing <= 0f)
+            {
+                sendX = mouseDeltaX;
+                sendY = mouseDeltaY;
+            }
+            else
+            {
+                var pollMs = GamepadInputStreamConstraints.ClampPollingIntervalMs(_getGamepadPollingIntervalMs());
+                var dtSec = pollMs / 1000f;
+                var sm = smoothing * smoothing;
+                var tauSec = 0.004f + (0.10f - 0.004f) * sm;
+                var alpha = tauSec > 1e-6f ? 1f - MathF.Exp(-dtSec / tauSec) : 1f;
+                touchPipe.FilterX += alpha * (mouseDeltaX - touchPipe.FilterX);
+                touchPipe.FilterY += alpha * (mouseDeltaY - touchPipe.FilterY);
+                sendX = touchPipe.FilterX;
+                sendY = touchPipe.FilterY;
+            }
+
+            if (MathF.Abs(sendX) > 0f || MathF.Abs(sendY) > 0f)
+                SendMouseLookDelta(GamepadBindingType.Touchpad, sendX, sendY, noiseMagnitude);
+            else if (noiseMagnitude > epsilon)
+                _mouseEmulator.MoveBy(0, 0, noiseMagnitude);
+        }
+        else if (noiseMagnitude > epsilon)
+        {
+            _mouseEmulator.MoveBy(0, 0, noiseMagnitude);
+        }
+    }
+
+    private void DispatchTouchpadSwipeMappings(TouchpadSwipeDirection direction, IReadOnlyList<MappingEntry> mappingsSnapshot)
+    {
+        if (_dispatchTouchpadDiscreteAction is null)
+            return;
+
+        foreach (var mapping in mappingsSnapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Touchpad)
+                continue;
+
+            if (!GamepadTouchpadFromValueCatalog.TryParseSwipe(mapping.From.Value, out var tokenDir) || tokenDir != direction)
+                continue;
+
+            if (mapping.Trigger != TriggerMoment.Tap)
+                continue;
+
+            try
+            {
+                _dispatchTouchpadDiscreteAction(mapping);
+                _setMappingStatus($"Touchpad swipe {direction}");
+            }
+            catch (Exception ex)
+            {
+                _setMappingStatus($"Touchpad swipe: {ex.Message}");
+            }
+        }
+    }
+
+    private void ReleaseTouchpadMouseMotionPipeline()
+    {
+        ref var pipe = ref GetMouseLookPipelineRef(GamepadBindingType.Touchpad);
+        pipe = default;
+        _analogProcessor.ClearMouseLookResidual(GamepadBindingType.Touchpad);
+        ResetMouseSubdivisionIfApplicable(GamepadBindingType.Touchpad);
+    }
+
+    private void ReleaseAnalogOutputsForTouchpad()
+    {
+        foreach (var (key, _) in _analogProcessor.GetActiveNonTapOutputsForBinding(GamepadBindingType.Touchpad))
+            _keyboardEmulator.KeyUp(key);
+
+        _analogProcessor.RemoveAnalogKeyboardStateForBinding(GamepadBindingType.Touchpad);
+        ReleaseTouchpadMouseMotionPipeline();
+        _touchpadSwipeGestureDetector.Reset();
+        _touchPrevSampleValid = false;
+    }
+
     private static bool ThumbstickHasMouseLookMapping(GamepadBindingType sourceType, IReadOnlyList<MappingEntry> mappingsSnapshot)
     {
         foreach (var mapping in mappingsSnapshot)
@@ -210,6 +418,24 @@ internal sealed class AnalogMappingProcessor
                 continue;
 
             if (!AnalogProcessor.TryParseAnalogSource(mapping.From.Value, out _))
+                continue;
+
+            var outputToken = InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(outputToken))
+                continue;
+
+            if (AnalogProcessor.TryResolveMouseLookOutput(outputToken, out _))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TouchpadHasMouseLookMapping(IReadOnlyList<MappingEntry> mappingsSnapshot)
+    {
+        foreach (var mapping in mappingsSnapshot)
+        {
+            if (mapping?.From is null || mapping.From.Type != GamepadBindingType.Touchpad)
                 continue;
 
             var outputToken = InputTokenResolver.NormalizeKeyboardKeyToken(mapping.KeyboardKey ?? string.Empty);
@@ -241,8 +467,14 @@ internal sealed class AnalogMappingProcessor
             dy *= factor;
     }
 
-    private ref MouseLookPipeline GetMouseLookPipelineRef(GamepadBindingType sourceType) =>
-        ref sourceType == GamepadBindingType.LeftThumbstick ? ref _mouseLookLeft : ref _mouseLookRight;
+    private ref MouseLookPipeline GetMouseLookPipelineRef(GamepadBindingType sourceType)
+    {
+        if (sourceType == GamepadBindingType.LeftThumbstick)
+            return ref _mouseLookLeft;
+        if (sourceType == GamepadBindingType.RightThumbstick)
+            return ref _mouseLookRight;
+        return ref _mouseLookTouchpad;
+    }
 
     public void ProcessTrigger(GamepadBindingType triggerBindingType, float triggerValue, IReadOnlyList<MappingEntry> mappingsSnapshot, Action<string, TriggerMoment, DispatchedOutput, string, string> queueOutputDispatch)
     {
@@ -321,6 +553,9 @@ internal sealed class AnalogMappingProcessor
         _analogProcessor.Reset();
         _mouseLookLeft = default;
         _mouseLookRight = default;
+        _mouseLookTouchpad = default;
+        _touchpadSwipeGestureDetector.Reset();
+        _touchPrevSampleValid = false;
         ResetMouseSubdivisionIfApplicable(null);
     }
 

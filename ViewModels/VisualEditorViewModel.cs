@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GamepadMapperGUI.Core;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Models.State;
 using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
@@ -198,6 +199,18 @@ public partial class VisualEditorViewModel : ObservableObject
         {
             SelectedMapping = null;
             _mainViewModel.MappingSelection.SelectedItem = null;
+
+            var editor = _mainViewModel.MappingEditorPanel.InputTrigger;
+            if (_mainViewModel.IsPlayStationGamepadActive &&
+                _visualService.IsTouchpadSurfaceLogicalControl(elementName))
+            {
+                editor.SyncFrom(new MappingEntry { From = GamepadTouchpadFromValueCatalog.CreateDefaultSurfaceBinding() });
+            }
+            else
+            {
+                editor.SyncFrom(new MappingEntry());
+            }
+
             return;
         }
 
