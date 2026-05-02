@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
@@ -73,6 +74,16 @@ public static class AutomationRunLogTextBoxBehavior
                     if (lines.Count > 0)
                         FullResync(textBox, lines);
                     return;
+
+                case NotifyCollectionChangedAction.Remove:
+                    if (args.OldStartingIndex == 0 &&
+                        args.OldItems?.Count == 1 &&
+                        TryRemoveFirstDisplayedLine(textBox))
+                    {
+                        ScrollLogToCaret(textBox);
+                        return;
+                    }
+                    break;
             }
 
             FullResync(textBox, lines);
@@ -99,6 +110,22 @@ public static class AutomationRunLogTextBoxBehavior
     {
         textBox.Text = lines.Count == 0 ? "" : string.Join(Environment.NewLine, lines);
         ScrollLogToCaret(textBox);
+    }
+
+    private static bool TryRemoveFirstDisplayedLine(TextBox textBox)
+    {
+        var text = textBox.Text;
+        if (text.Length == 0)
+            return false;
+
+        var nl = Environment.NewLine;
+        var idx = text.IndexOf(nl, StringComparison.Ordinal);
+        if (idx < 0)
+            textBox.Text = "";
+        else
+            textBox.Text = text.Substring(idx + nl.Length);
+
+        return true;
     }
 
     private static void ScrollLogToCaret(TextBox textBox)

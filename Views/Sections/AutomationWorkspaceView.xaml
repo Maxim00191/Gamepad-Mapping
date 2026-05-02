@@ -11,6 +11,7 @@
              Focusable="True"
              PreviewKeyDown="AutomationRoot_PreviewKeyDown"
              PreviewMouseUp="AutomationRoot_PreviewMouseUp"
+             GotKeyboardFocus="AutomationRoot_GotKeyboardFocus"
              LostMouseCapture="AutomationRoot_LostMouseCapture"
              Unloaded="AutomationRoot_Unloaded"
              mc:Ignorable="d"
@@ -20,6 +21,12 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <utils:BooleanToGridLengthConverter x:Key="AutomationWorkspacePaletteColumnConverter"
+                                            TrueLength="220"
+                                            FalseLength="0" />
+        <utils:BooleanToGridLengthConverter x:Key="AutomationWorkspaceInspectorColumnConverter"
+                                            TrueLength="340"
+                                            FalseLength="0" />
         <Style x:Key="AutomationNodePortHostStyle"
                TargetType="ContentPresenter">
             <Setter Property="Margin" Value="0,3,0,3" />
@@ -60,30 +67,70 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" MinWidth="180" />
+            <ColumnDefinition Width="{Binding IsNodeLibraryVisible, Converter={StaticResource AutomationWorkspacePaletteColumnConverter}}"
+                              MinWidth="0" />
             <ColumnDefinition Width="*" MinWidth="320" />
-            <ColumnDefinition Width="340" MinWidth="280" />
+            <ColumnDefinition Width="{Binding IsInspectorVisible, Converter={StaticResource AutomationWorkspaceInspectorColumnConverter}}"
+                              MinWidth="0" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0"
                 Margin="0,0,8,0"
                 Style="{StaticResource SectionCardBorder}"
                 Padding="10">
-            <DockPanel LastChildFill="True">
-                <TextBlock DockPanel.Dock="Top"
-                           Style="{StaticResource WorkspaceSectionTitleStyle}"
-                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Palette]}" />
-                <TextBlock DockPanel.Dock="Top"
-                           Margin="0,4,0,8"
-                           TextWrapping="Wrap"
-                           FontSize="11"
-                           Opacity="0.85"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}"
-                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_NodeLibraryHint]}" />
-                <ListBox ItemsSource="{Binding Source={StaticResource PaletteItemsGroupedView}}"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False"
+                          PreviewMouseWheel="NodeLibraryScrollViewer_PreviewMouseWheel">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Palette]}" />
+                    <TextBlock Margin="0,4,0,4"
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Opacity="0.85"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_NodeLibraryHint]}" />
+                    <TextBlock Margin="0,0,0,8"
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Opacity="0.85"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_KeyboardShortcutsHint]}" />
+                    <Expander Margin="0,0,0,8"
+                              IsExpanded="False">
+                        <Expander.Header>
+                            <TextBlock FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_BundledGraphsSection]}" />
+                        </Expander.Header>
+                        <ListBox ItemsSource="{Binding BundledGraphItems}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 MouseDoubleClick="BundledGraphList_MouseDoubleClick">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:AutomationAssetGraphItemViewModel}">
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Text="{Binding DisplayLabel}" />
+                                        <TextBlock FontSize="10"
+                                                   Opacity="0.8"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                   Text="{Binding RelativePath}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Expander>
+                    <ListBox ItemsSource="{Binding Source={StaticResource PaletteItemsGroupedView}}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled">
                     <ListBox.GroupStyle>
                         <GroupStyle>
                             <GroupStyle.ContainerStyle>
@@ -193,8 +240,9 @@
                             </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+                    </ListBox>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <Border Grid.Column="1"
@@ -202,62 +250,124 @@
                 Padding="0">
             <Grid>
                 <DockPanel LastChildFill="True">
-                    <WrapPanel DockPanel.Dock="Top"
-                               Margin="10,8"
-                               Orientation="Horizontal">
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding UndoActionCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Undo]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding RedoActionCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Redo]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding ImportGraphCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Import]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding ExportGraphCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Export]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding RunSmokeOnceCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunSmoke]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding RunCurrentScriptInBackgroundCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding EmergencyStopCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStop]}"
-                                ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStopTooltip]}" />
-                        <Button Margin="0,0,8,4"
-                                Padding="10,4"
-                                Command="{Binding DeleteSelectedCommand}"
-                                Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Delete]}" />
-                        <CheckBox Margin="10,6,8,4"
-                                  VerticalAlignment="Center"
-                                  Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_GridSnap]}"
-                                  IsChecked="{Binding GridSnapEnabled}" />
-                        <StackPanel Margin="8,2,8,4"
-                                    Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center"
-                                       Margin="0,0,8,0"
-                                       Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Zoom]}" />
-                            <Slider Width="120"
-                                    Minimum="0.35"
-                                    Maximum="2"
-                                    TickFrequency="0.05"
-                                    IsSnapToTickEnabled="False"
-                                    Value="{Binding Zoom}" />
-                            <TextBlock Margin="8,0,0,0"
-                                       VerticalAlignment="Center"
-                                       Text="{Binding Zoom, StringFormat={}{0:0.##}x}" />
-                        </StackPanel>
-                    </WrapPanel>
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource AutomationWorkspaceToolbarBackgroundBrush}"
+                            BorderBrush="{DynamicResource AutomationWorkspaceToolbarBorderBrush}"
+                            BorderThickness="0,0,0,1">
+                    <DockPanel LastChildFill="False">
+                        <Menu DockPanel.Dock="Top"
+                              Style="{StaticResource AutomationWorkspaceMainMenuStyle}"
+                              Background="Transparent"
+                              Foreground="{DynamicResource AppTextBrush}"
+                              Padding="4,2,4,0">
+                            <Menu.Resources>
+                                <Style TargetType="{x:Type MenuItem}"
+                                       BasedOn="{StaticResource AutomationWorkspaceMenuItemStyle}" />
+                                <Style TargetType="{x:Type Separator}"
+                                       BasedOn="{StaticResource AutomationWorkspaceMenuSeparatorStyle}" />
+                            </Menu.Resources>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_File]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_ImportGraph]}"
+                                          Command="{Binding ImportGraphCommand}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_ExportGraph]}"
+                                          Command="{Binding ExportGraphCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Edit]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Undo]}"
+                                          Command="{Binding UndoActionCommand}"
+                                          InputGestureText="Ctrl+Z" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Redo]}"
+                                          Command="{Binding RedoActionCommand}"
+                                          InputGestureText="Ctrl+Y" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_SelectAll]}"
+                                          Command="{Binding SelectAllCommand}"
+                                          InputGestureText="Ctrl+A" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Cut]}"
+                                          Command="{Binding CutSelectionCommand}"
+                                          InputGestureText="Ctrl+X" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Copy]}"
+                                          Command="{Binding CopySelectionCommand}"
+                                          InputGestureText="Ctrl+C" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Paste]}"
+                                          Command="{Binding PasteGraphFragmentCommand}"
+                                          InputGestureText="Ctrl+V" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Delete]}"
+                                          Command="{Binding DeleteSelectedCommand}"
+                                          InputGestureText="Del" />
+                            </MenuItem>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_View]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_NodeLibrary]}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsNodeLibraryVisible, Mode=TwoWay}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Inspector]}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsInspectorVisible, Mode=TwoWay}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Minimap]}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsMinimapVisible, Mode=TwoWay}" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_ResetZoom]}"
+                                          Command="{Binding ResetZoomCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Automation]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunSmoke]}"
+                                          Command="{Binding RunSmokeOnceCommand}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}"
+                                          Command="{Binding RunCurrentScriptInBackgroundCommand}" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStop]}"
+                                          Command="{Binding EmergencyStopCommand}" />
+                            </MenuItem>
+                        </Menu>
+                        <WrapPanel Margin="10,6,10,8"
+                                   Orientation="Horizontal">
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding RunSmokeOnceCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunSmoke]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_RunSmoke]}" />
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding RunCurrentScriptInBackgroundCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_RunBackground]}" />
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding EmergencyStopCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStop]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStopTooltip]}" />
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding DeleteSelectedCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Delete]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_Delete]}" />
+                            <CheckBox Margin="10,6,8,4"
+                                      VerticalAlignment="Center"
+                                      Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_GridSnap]}"
+                                      IsChecked="{Binding GridSnapEnabled}"
+                                      ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_GridSnap]}" />
+                            <StackPanel Margin="8,2,8,4"
+                                        Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Zoom]}" />
+                                <Slider Width="120"
+                                        Minimum="0.35"
+                                        Maximum="2"
+                                        TickFrequency="0.05"
+                                        IsSnapToTickEnabled="False"
+                                        Value="{Binding Zoom}"
+                                        ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_Zoom]}" />
+                                <TextBlock Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppTextBrush}"
+                                           Text="{Binding Zoom, StringFormat={}{0:0.##}x}" />
+                            </StackPanel>
+                        </WrapPanel>
+                    </DockPanel>
+                    </Border>
 
                     <TextBlock DockPanel.Dock="Top"
                                Margin="12,0,12,4"
@@ -270,8 +380,11 @@
                                   HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   Margin="8,0,8,8"
+                                  Background="{DynamicResource AutomationWorkspaceCanvasBackdropBrush}"
                                   ScrollChanged="CanvasScrollViewer_ScrollChanged"
-                                  PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel">
+                                  PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel"
+                                  PreviewDragOver="CanvasScrollViewer_PreviewDragOver"
+                                  PreviewDragLeave="CanvasScrollViewer_PreviewDragLeave">
                         <Grid Width="{Binding CanvasLogicalWidth}"
                               Height="{Binding CanvasLogicalHeight}"
                               ClipToBounds="False">
@@ -280,15 +393,12 @@
                                               Viewport="0,0,18,18"
                                               ViewportUnits="Absolute">
                                     <DrawingBrush.Drawing>
-                                        <GeometryDrawing>
+                                        <GeometryDrawing Brush="{DynamicResource AutomationWorkspaceGridDotBrush}">
                                             <GeometryDrawing.Geometry>
                                                 <EllipseGeometry Center="1,1"
                                                                  RadiusX="1"
                                                                  RadiusY="1" />
                                             </GeometryDrawing.Geometry>
-                                            <GeometryDrawing.Brush>
-                                                <SolidColorBrush Color="#40808080" />
-                                            </GeometryDrawing.Brush>
                                         </GeometryDrawing>
                                     </DrawingBrush.Drawing>
                                 </DrawingBrush>
@@ -342,12 +452,16 @@
                                                         <Style TargetType="Path">
                                                             <Setter Property="Stroke" Value="{DynamicResource AppSecondaryTextBrush}" />
                                                             <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsCycleWarning}" Value="True">
+                                                                    <Setter Property="Stroke" Value="#E74C3C" />
+                                                                </DataTrigger>
                                                                 <DataTrigger Binding="{Binding IsHovered}" Value="True">
                                                                     <Setter Property="Stroke" Value="{DynamicResource AppAccentBrush}" />
                                                                     <Setter Property="StrokeThickness" Value="3" />
                                                                 </DataTrigger>
-                                                                <DataTrigger Binding="{Binding IsCycleWarning}" Value="True">
-                                                                    <Setter Property="Stroke" Value="#E74C3C" />
+                                                                <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
+                                                                    <Setter Property="Stroke" Value="#2ECC71" />
+                                                                    <Setter Property="StrokeThickness" Value="4" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -426,7 +540,7 @@
                                                             <Setter Property="BorderBrush"
                                                                     Value="{DynamicResource AppBorderBrush}" />
                                                             <Setter Property="Background"
-                                                                    Value="{DynamicResource AppBackgroundBrush}" />
+                                                                    Value="{DynamicResource AutomationWorkspaceNodeBodyBrush}" />
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsHovered}" Value="True">
                                                                     <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
@@ -506,7 +620,7 @@
                                                                                        HorizontalAlignment="Right"
                                                                                        TextAlignment="Right"
                                                                                        FontSize="10"
-                                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                                       Foreground="{DynamicResource AutomationWorkspacePortLabelForegroundBrush}"
                                                                                        Text="{Binding DisplayLabel}"
                                                                                        TextWrapping="Wrap" />
                                                                             <Grid Grid.Column="1"
@@ -563,7 +677,7 @@
                                                                             <TextBlock Margin="0,0,0,0"
                                                                                        VerticalAlignment="Center"
                                                                                        FontSize="10"
-                                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                                       Foreground="{DynamicResource AutomationWorkspacePortLabelForegroundBrush}"
                                                                                        Text="{Binding DisplayLabel}"
                                                                                        TextWrapping="Wrap" />
                                                                         </StackPanel>
@@ -677,7 +791,7 @@
                                            Stroke="{DynamicResource AppAccentBrush}"
                                            StrokeThickness="1.5"
                                            StrokeDashArray="3,2"
-                                           Fill="#303498DB" />
+                                           Fill="{DynamicResource AutomationWorkspaceSelectionRectFillBrush}" />
                             </Canvas>
                         </Grid>
                     </ScrollViewer>
@@ -688,12 +802,12 @@
                         Margin="12"
                         Padding="6,6,6,4"
                         CornerRadius="4"
-                        Background="#CC202020"
+                        Background="{DynamicResource AutomationWorkspaceMinimapPanelBackgroundBrush}"
                         BorderBrush="{DynamicResource AppBorderBrush}"
                         BorderThickness="1"
                         Width="220"
                         Height="156"
-                        Visibility="{Binding ShowMinimap, Converter={StaticResource BoolToVis}}">
+                        Visibility="{Binding IsMinimapVisible, Converter={StaticResource BoolToVis}}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -702,9 +816,9 @@
                         <Border Grid.Row="0"
                                 x:Name="MiniMapViewportHost"
                                 ClipToBounds="True"
-                                BorderBrush="#60606060"
+                                BorderBrush="{DynamicResource AutomationWorkspaceMinimapHostBorderBrush}"
                                 BorderThickness="1"
-                                Background="#38000000"
+                                Background="{DynamicResource AutomationWorkspaceMinimapHostBackgroundBrush}"
                                 PreviewMouseLeftButtonDown="MiniMapViewportHost_PreviewMouseLeftButtonDown"
                                 PreviewMouseMove="MiniMapViewportHost_PreviewMouseMove"
                                 PreviewMouseLeftButtonUp="MiniMapViewportHost_PreviewMouseLeftButtonUp">
@@ -731,14 +845,14 @@
                                                            RadiusX="4"
                                                            RadiusY="4"
                                                            StrokeThickness="1"
-                                                           Stroke="#B0C0C0C0">
+                                                           Stroke="{DynamicResource AutomationWorkspaceMinimapNodeStrokeBrush}">
                                                     <Rectangle.Style>
                                                         <Style TargetType="Rectangle">
-                                                            <Setter Property="Fill" Value="#60A0A0A0" />
+                                                            <Setter Property="Fill" Value="{DynamicResource AutomationWorkspaceMinimapNodeFillBrush}" />
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding VisualState}" Value="{x:Static vm:AutomationCanvasVisualState.Selected}">
-                                                                    <Setter Property="Fill" Value="#90C98A00" />
-                                                                    <Setter Property="Stroke" Value="#FFE4B54A" />
+                                                                    <Setter Property="Fill" Value="{DynamicResource AutomationWorkspaceMinimapNodeSelectedFillBrush}" />
+                                                                    <Setter Property="Stroke" Value="{DynamicResource AutomationWorkspaceMinimapNodeSelectedStrokeBrush}" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -751,8 +865,8 @@
                                                Canvas.Top="{Binding OverviewViewportTop}"
                                                Width="{Binding OverviewViewportWidth}"
                                                Height="{Binding OverviewViewportHeight}"
-                                               Fill="#205FA4FF"
-                                               Stroke="#FF5FA4FF"
+                                               Fill="{DynamicResource AutomationWorkspaceMinimapViewportFillBrush}"
+                                               Stroke="{DynamicResource AutomationWorkspaceMinimapViewportStrokeBrush}"
                                                StrokeThickness="14" />
                                 </Canvas>
                             </Viewbox>

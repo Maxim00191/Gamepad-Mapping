@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
 
@@ -14,7 +15,16 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
         Guid sourceNodeId,
         string sourcePortId,
         Guid targetNodeId,
-        string targetPortId)
+        string targetPortId) =>
+        ValidateConnection(document, sourceNodeId, sourcePortId, targetNodeId, targetPortId, null);
+
+    public ConnectionValidationResult ValidateConnection(
+        AutomationGraphDocument document,
+        Guid sourceNodeId,
+        string sourcePortId,
+        Guid targetNodeId,
+        string targetPortId,
+        IReadOnlySet<Guid>? ignoredEdgeIds)
     {
         if (sourceNodeId == targetNodeId)
             return new ConnectionValidationResult(false, "AutomationConnection_InvalidDirection");
@@ -40,6 +50,7 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
             return new ConnectionValidationResult(false, "AutomationConnection_TypeMismatch");
 
         if (document.Edges.Any(e =>
+                !IsIgnored(e.Id, ignoredEdgeIds) &&
                 e.SourceNodeId == sourceNodeId &&
                 e.SourcePortId == sourcePortId &&
                 e.TargetNodeId == targetNodeId &&
@@ -49,9 +60,11 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
         }
 
         var existingIncoming = document.Edges.FirstOrDefault(e =>
+            !IsIgnored(e.Id, ignoredEdgeIds) &&
             e.TargetNodeId == targetNodeId &&
             string.Equals(e.TargetPortId, targetPortId, StringComparison.Ordinal));
         var existingOutgoing = document.Edges.FirstOrDefault(e =>
+            !IsIgnored(e.Id, ignoredEdgeIds) &&
             e.SourceNodeId == sourceNodeId &&
             string.Equals(e.SourcePortId, sourcePortId, StringComparison.Ordinal));
 
@@ -67,6 +80,9 @@ public sealed class AutomationTopologyAnalyzer(INodeTypeRegistry registry) : IAu
             null,
             existingIncoming?.Id);
     }
+
+    private static bool IsIgnored(Guid edgeId, IReadOnlySet<Guid>? ignoredEdgeIds) =>
+        ignoredEdgeIds is not null && ignoredEdgeIds.Contains(edgeId);
 
     public AutomationTopologyAnalysis Analyze(AutomationGraphDocument document)
     {

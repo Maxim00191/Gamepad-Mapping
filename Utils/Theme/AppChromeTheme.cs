@@ -236,6 +236,17 @@ internal sealed class AppChromeTheme
         resources["AppSemanticErrorForegroundBrush"] = Brush(SemanticErrorForeground);
         resources["AppTooltipBackgroundBrush"] = Brush(TooltipBackground);
         resources["AppTooltipBorderBrush"] = Brush(TooltipBorder);
+
+        resources[SystemColors.MenuBarColorKey] = Surface;
+        resources[SystemColors.MenuColorKey] = ControlSurface;
+        resources[SystemColors.MenuTextColorKey] = Text;
+        resources[SystemColors.MenuBarBrushKey] = Brush(Surface);
+        resources[SystemColors.MenuBrushKey] = Brush(ControlSurface);
+        resources[SystemColors.MenuTextBrushKey] = Brush(Text);
+        resources[SystemColors.MenuHighlightBrushKey] = Brush(ControlHover);
+        resources[SystemColors.HighlightBrushKey] = Brush(Selection);
+        resources[SystemColors.HighlightTextBrushKey] = Brush(SelectionText);
+        resources[SystemColors.GrayTextBrushKey] = Brush(SecondaryText);
     }
 
     public static void ApplyHudChrome(

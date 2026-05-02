@@ -311,7 +311,7 @@ public sealed class AutomationGraphSmokeRunnerTests
         {
             [AutomationNodePropertyKeys.CompareRight] = 5
         });
-        var branch = CreateNode("logic.branch_bool");
+        var branch = CreateNode(AutomationNodeTypeIds.BranchBool);
         var keyA = CreateNode("output.keyboard_key", new JsonObject
         {
             [AutomationNodePropertyKeys.KeyboardKey] = "A"
@@ -1428,6 +1428,148 @@ public sealed class AutomationGraphSmokeRunnerTests
 
         Assert.True(result.Ok);
         mouse.Verify(m => m.MoveBy(4, -3, 1.0f, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_HumanNoiseBeforeKeyboard_DoesNotMoveMouse()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        keyboard.Setup(k => k.TapKey(Key.Space, 1, 0, 70));
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var noise = CreateNode(AutomationNodeTypeIds.HumanNoise, new JsonObject
+        {
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaX] = 8,
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaY] = -6,
+            [AutomationNodePropertyKeys.MouseJitterStickMagnitude] = 1
+        });
+        var keyNode = CreateNode(AutomationNodeTypeIds.KeyboardKey, new JsonObject
+        {
+            [AutomationNodePropertyKeys.KeyboardKey] = "Space"
+        });
+        var doc = new AutomationGraphDocument
+        {
+            VerboseExecutionLogging = true,
+            Nodes = [noise, keyNode],
+            Edges = [Edge(noise.Id, AutomationPortIds.FlowOut, keyNode.Id, AutomationPortIds.FlowIn)]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        Assert.Contains(result.LogLines, line => line.Contains("target=keyboard", StringComparison.Ordinal));
+        mouse.Verify(m => m.MoveBy(
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<float>(),
+            It.IsAny<GamepadBindingType?>()), Times.Never);
+        keyboard.Verify(k => k.TapKey(Key.Space, 1, 0, 70), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_HumanNoiseBeforeMouseClick_EmitsConfiguredMouseDelta()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+        mouse.Setup(m => m.MoveBy(3, 2, 1.0f, null));
+        mouse.Setup(m => m.LeftClick());
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var noise = CreateNode(AutomationNodeTypeIds.HumanNoise, new JsonObject
+        {
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaX] = 3,
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaY] = 2,
+            [AutomationNodePropertyKeys.MouseJitterStickMagnitude] = 1
+        });
+        var mouseClick = CreateNode(AutomationNodeTypeIds.MouseClick);
+        var doc = new AutomationGraphDocument
+        {
+            VerboseExecutionLogging = true,
+            Nodes = [noise, mouseClick],
+            Edges = [Edge(noise.Id, AutomationPortIds.FlowOut, mouseClick.Id, AutomationPortIds.FlowIn)]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        Assert.Contains(result.LogLines, line => line.Contains("target=mouse", StringComparison.Ordinal));
+        mouse.Verify(m => m.MoveBy(3, 2, 1.0f, null), Times.Once);
+        mouse.Verify(m => m.LeftClick(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_HumanNoiseBeforeNonOutputFlow_DoesNotMoveMouse()
+    {
+        var captureService = new Mock<IAutomationScreenCaptureService>(MockBehavior.Strict);
+        var probeService = new Mock<IAutomationImageProbe>(MockBehavior.Strict);
+        var keyboard = new Mock<IKeyboardEmulator>(MockBehavior.Strict);
+        var mouse = new Mock<IMouseEmulator>(MockBehavior.Strict);
+        var registry = new NodeTypeRegistry();
+        var topology = new AutomationTopologyAnalyzer(registry);
+
+        var sut = new AutomationGraphSmokeRunner(
+            CreateCaptureResolver(captureService.Object),
+            probeService.Object,
+            keyboard.Object,
+            mouse.Object,
+            null,
+            registry,
+            topology,
+            new AutomationNodeContractValidator(),
+            new AutomationExecutionSafetyPolicy());
+
+        var noise = CreateNode(AutomationNodeTypeIds.HumanNoise, new JsonObject
+        {
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaX] = 8,
+            [AutomationNodePropertyKeys.MouseJitterBaseDeltaY] = -6,
+            [AutomationNodePropertyKeys.MouseJitterStickMagnitude] = 1
+        });
+        var eventEmit = CreateNode(AutomationNodeTypeIds.EventEmit);
+        var doc = new AutomationGraphDocument
+        {
+            VerboseExecutionLogging = true,
+            Nodes = [noise, eventEmit],
+            Edges = [Edge(noise.Id, AutomationPortIds.FlowOut, eventEmit.Id, AutomationPortIds.FlowIn)]
+        };
+
+        var result = await sut.RunOnceAsync(doc);
+
+        Assert.True(result.Ok);
+        Assert.Contains(result.LogLines, line => line.Contains("target=unknown", StringComparison.Ordinal));
+        mouse.Verify(m => m.MoveBy(
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<float>(),
+            It.IsAny<GamepadBindingType?>()), Times.Never);
     }
 
     [Fact]

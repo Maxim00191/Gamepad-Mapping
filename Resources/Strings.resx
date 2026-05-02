@@ -2265,7 +2265,7 @@ Relaunch this tool as administrator now?</value>
     <value>Human Noise</value>
   </data>
   <data name="AutomationNode_Summary_MouseJitter" xml:space="preserve">
-    <value>Applies human-like noise to a configured mouse delta and emits movement.</value>
+    <value>Applies human-like noise to the next output action, without moving the pointer for keyboard targets.</value>
   </data>
   <data name="AutomationInlineEditor_MouseJitterBaseDeltaX" xml:space="preserve">
     <value>Base Delta X</value>
@@ -2800,5 +2800,86 @@ Relaunch this tool as administrator now?</value>
   </data>
   <data name="AutomationInlineEditor_FindImageLegacyZeroCoordinatesWhenUnmatched" xml:space="preserve">
     <value>Legacy: emit (0,0) size when unmatched</value>
+  </data>
+  <data name="AutomationWorkspace_KeyboardShortcutsHint" xml:space="preserve">
+    <value>Drop a new node on a wire to insert it, or move a node onto a wire to splice. Import and export JSON from the File menu.</value>
+  </data>
+  <data name="AutomationWorkspace_JsonMenu" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="AutomationWorkspace_BundledGraphsSection" xml:space="preserve">
+    <value>Local library</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Automation" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_ImportGraph" xml:space="preserve">
+    <value>Import graph…</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_ExportGraph" xml:space="preserve">
+    <value>Export graph…</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Redo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_NodeLibrary" xml:space="preserve">
+    <value>Node library</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Inspector" xml:space="preserve">
+    <value>Inspector</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Minimap" xml:space="preserve">
+    <value>Minimap</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_ResetZoom" xml:space="preserve">
+    <value>Reset zoom</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Undo" xml:space="preserve">
+    <value>Undo the last change (Ctrl+Z)</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Redo" xml:space="preserve">
+    <value>Redo the last undo (Ctrl+Y)</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_RunSmoke" xml:space="preserve">
+    <value>Run a quick check of the current graph</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_RunBackground" xml:space="preserve">
+    <value>Run the graph in the background</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Delete" xml:space="preserve">
+    <value>Remove selected nodes (Del)</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_GridSnap" xml:space="preserve">
+    <value>Snap nodes to the grid when moving them</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Zoom" xml:space="preserve">
+    <value>Canvas zoom level</value>
   </data>
 </root>

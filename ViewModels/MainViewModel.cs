@@ -1631,10 +1631,20 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationHumanNoise,
             automationInputModeResolver,
             _processTargetService);
-        var automationScriptRunner = new AutomationScriptRunner(new AutomationGraphJsonSerializer(), automationExecution.SmokeRunner);
+        var automationGraphJsonSerializer = new AutomationGraphJsonSerializer();
+        var automationScriptRunner = new AutomationScriptRunner(automationGraphJsonSerializer, automationExecution.SmokeRunner);
+        var automationGraphClipboardService = new AutomationGraphClipboardService(automationGraphJsonSerializer);
+        var automationGraphLinkInsertionEvaluator = new AutomationGraphLinkInsertionEvaluator(
+            automationExecution.NodeRegistry,
+            automationExecution.TopologyAnalyzer,
+            automationGraphJsonSerializer);
+        var automationGraphLinearBridgeEvaluator = new AutomationGraphLinearBridgeEvaluator(automationExecution.TopologyAnalyzer);
+        var automationGraphOutgoingReachabilityService = new AutomationGraphOutgoingReachabilityService();
+        var automationGraphOcclusionReflowService = new AutomationGraphOcclusionReflowService();
+        var automationAssetGraphCatalogService = new AutomationAssetGraphCatalogService();
         AutomationWorkspacePanel = new AutomationWorkspaceViewModel(
             automationExecution.NodeRegistry,
-            new AutomationGraphJsonSerializer(),
+            automationGraphJsonSerializer,
             automationExecution.TopologyAnalyzer,
             new AutomationUndoCoordinator(),
             _userDialogService,
@@ -1654,6 +1664,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             automationOutputActionSelectionService,
             automationInputModeSelectionService,
             automationNodeContextMenuService,
+            automationGraphClipboardService,
+            automationGraphLinkInsertionEvaluator,
+            automationGraphLinearBridgeEvaluator,
+            automationGraphOutgoingReachabilityService,
+            automationGraphOcclusionReflowService,
+            automationAssetGraphCatalogService,
             _processTargetService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _mainShellVisibility, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);

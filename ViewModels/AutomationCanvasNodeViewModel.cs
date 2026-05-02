@@ -111,6 +111,14 @@ public sealed partial class AutomationCanvasNodeViewModel : ObservableObject
 
     public event EventHandler? PositionChanged;
 
+    public void SetXForLayoutReflow(double newX)
+    {
+        if (double.Abs(_state.X - newX) < 0.01)
+            return;
+        _state.X = newX;
+        OnPropertyChanged(nameof(X));
+    }
+
     public void ApplyDisplayMetadata(string? description)
     {
         Description = description?.Trim() ?? "";

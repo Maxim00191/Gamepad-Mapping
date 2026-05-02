@@ -2,13 +2,14 @@
 
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamepadMapperGUI.Interfaces.Services.Automation;
@@ -53,6 +54,13 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private readonly IAutomationOutputActionSelectionService _outputActionSelectionService;
     private readonly IAutomationInputModeSelectionService _inputModeSelectionService;
     private readonly IAutomationNodeContextMenuService _nodeContextMenuService;
+    private readonly IAutomationGraphClipboardService _graphClipboard;
+    private readonly IAutomationGraphLinkInsertionEvaluator _linkInsertion;
+    private readonly IAutomationGraphLinearBridgeEvaluator _linearBridge;
+    private readonly IAutomationGraphOutgoingReachabilityService _outgoingReachability;
+    private readonly IAutomationGraphOcclusionReflowService _occlusionReflow;
+    private readonly IAutomationAssetGraphCatalogService _assetGraphCatalog;
+    private readonly HashSet<Guid> _outgoingReachabilityScratch = [];
     private readonly IProcessTargetService? _processTargetService;
     private readonly Dictionary<Guid, Debouncer> _captureProcessTargetDebouncers = [];
 
@@ -92,6 +100,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         IAutomationOutputActionSelectionService outputActionSelectionService,
         IAutomationInputModeSelectionService inputModeSelectionService,
         IAutomationNodeContextMenuService nodeContextMenuService,
+        IAutomationGraphClipboardService graphClipboard,
+        IAutomationGraphLinkInsertionEvaluator linkInsertion,
+        IAutomationGraphLinearBridgeEvaluator linearBridge,
+        IAutomationGraphOutgoingReachabilityService outgoingReachability,
+        IAutomationGraphOcclusionReflowService occlusionReflow,
+        IAutomationAssetGraphCatalogService assetGraphCatalog,
         IProcessTargetService? processTargetService = null)
     {
         _registry = registry;
@@ -112,14 +126,34 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         _outputActionSelectionService = outputActionSelectionService;
         _inputModeSelectionService = inputModeSelectionService;
         _nodeContextMenuService = nodeContextMenuService;
+        _graphClipboard = graphClipboard;
+        _linkInsertion = linkInsertion;
+        _linearBridge = linearBridge;
+        _outgoingReachability = outgoingReachability;
+        _occlusionReflow = occlusionReflow;
+        _assetGraphCatalog = assetGraphCatalog;
         _processTargetService = processTargetService;
 
         CanvasNodes.CollectionChanged += OnCanvasNodesCollectionChanged;
         BuildPalette();
+        RefreshBundledGraphCatalog();
         RebuildFromDocument();
+
+        if (AppUiLocalization.TryTranslationService() is { } loc)
+            loc.PropertyChanged += OnTranslationServicePropertyChanged;
+    }
+
+    private void OnTranslationServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (nameof(TranslationService.Culture) or "Item[]"))
+            return;
+
+        BuildPalette();
     }
 
     public ObservableCollection<AutomationNodePaletteItemViewModel> PaletteItems { get; } = [];
+
+    public ObservableCollection<AutomationAssetGraphItemViewModel> BundledGraphItems { get; } = [];
 
     public ObservableCollection<AutomationCanvasNodeViewModel> CanvasNodes { get; } = [];
 
@@ -157,7 +191,13 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private string _topologyBannerText = "";
 
     [ObservableProperty]
-    private bool _showMinimap;
+    private bool _isMinimapVisible = true;
+
+    [ObservableProperty]
+    private bool _isNodeLibraryVisible = true;
+
+    [ObservableProperty]
+    private bool _isInspectorVisible = true;
 
     [ObservableProperty]
     private double _canvasLogicalWidth = MinimumCanvasLogicalWidth;
@@ -196,6 +236,12 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private string _connectionPreviewPathData = "";
 
     [ObservableProperty]
+    private Guid? _edgeDropHighlightEdgeId;
+
+    partial void OnEdgeDropHighlightEdgeIdChanged(Guid? value) =>
+        ApplyEdgeDropHighlightToDisplays();
+
+    [ObservableProperty]
     private ImageSource? _roiInspectorThumbnail;
 
     [ObservableProperty]
@@ -208,8 +254,6 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         RefreshRoiThumbnail(SelectedNode);
 
     public ObservableCollection<string> AutomationRunLogLines { get; } = [];
-
-    private const int MaxAutomationRunLogDisplayedLines = 8_000;
 
     [ObservableProperty]
     private bool _isBackgroundCheckRunning;
@@ -240,7 +284,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         SetViewportRect(OverviewViewportLeft, OverviewViewportTop, OverviewViewportWidth, OverviewViewportHeight);
 
     private void OnCanvasNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
-        ShowMinimap = CanvasNodes.Count >= 8;
+        RefreshClipboardCommandAvailability();
 
     private void BuildPalette()
     {
@@ -335,9 +379,23 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         if (dlg.ShowDialog() != true)
             return;
 
+        TryImportGraphFromPath(dlg.FileName);
+    }
+
+    [RelayCommand]
+    private void ImportBundledGraph(string? fullPath)
+    {
+        if (string.IsNullOrWhiteSpace(fullPath))
+            return;
+
+        TryImportGraphFromPath(fullPath);
+    }
+
+    private void TryImportGraphFromPath(string filePath)
+    {
         try
         {
-            var json = File.ReadAllText(dlg.FileName);
+            var json = File.ReadAllText(filePath);
             var next = _serializer.Deserialize(json);
             PushUndoCheckpoint();
             _document = next;
@@ -349,6 +407,20 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
             _dialogs.ShowError(string.Format(Local("AutomationWorkspace_ImportFailedFormat"),
                     ExceptionMessageFormatter.UserFacingMessage(ex)),
                 Local("AutomationWorkspace_ImportTitle"));
+        }
+    }
+
+    private void RefreshBundledGraphCatalog()
+    {
+        BundledGraphItems.Clear();
+        foreach (var info in _assetGraphCatalog.ListBundledGraphJsonFiles())
+        {
+            BundledGraphItems.Add(new AutomationAssetGraphItemViewModel
+            {
+                DisplayLabel = info.DisplayLabel,
+                RelativePath = info.RelativePath,
+                FullPath = info.FullPath
+            });
         }
     }
 
@@ -405,8 +477,11 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         if (!_registry.TryGet(nodeTypeId, out _))
             return;
 
-        PushUndoCheckpoint();
         var (sx, sy) = ApplySnap(x, y, bypassSnap);
+        if (TryInsertNodeOnLinkSplit(nodeTypeId, sx, sy))
+            return;
+
+        PushUndoCheckpoint();
         var state = new AutomationNodeState
         {
             Id = Guid.NewGuid(),
@@ -421,6 +496,230 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         MarkNodeTypeRecent(nodeTypeId);
         RecalculateCanvasBounds();
         RefreshEdgeDisplays();
+    }
+
+    private bool TryInsertNodeOnLinkSplit(string nodeTypeId, double snappedX, double snappedY)
+    {
+        var centerX = snappedX + (NodeVisualWidth / 2d);
+        var centerY = snappedY + (NodeVisualMinHeight / 2d);
+        if (!TryFindEdgeNearLogicalPoint(centerX, centerY, out var edgeId))
+            return false;
+
+        if (!_linkInsertion.TryBuildPlan(_document, edgeId, nodeTypeId, snappedX, snappedY, out var plan) || plan is null)
+            return false;
+
+        PushUndoCheckpoint();
+        _document.Edges.RemoveAll(e => e.Id == plan.RemovedEdgeId);
+        _document.Nodes.Add(plan.NewNode);
+        CreateAndRegisterNodeVm(plan.NewNode);
+        _document.Edges.Add(plan.EdgeFromSourceToNew);
+        _document.Edges.Add(plan.EdgeFromNewToTarget);
+        MarkNodeTypeRecent(nodeTypeId);
+        RecalculateCanvasBounds();
+        RefreshEdgeDisplays();
+        PushDownstreamNodesRightIfOccluded(plan.NewNode.Id);
+        if (_nodeVmById.TryGetValue(plan.NewNode.Id, out var vm))
+            SelectSingleNode(vm);
+
+        return true;
+    }
+
+    private bool TryFindEdgeNearLogicalPoint(double logicalX, double logicalY, out Guid edgeId)
+    {
+        edgeId = Guid.Empty;
+        var maxDistSq = AutomationGraphLayoutConstants.EdgeDropSnapToleranceSquaredLogical(Zoom);
+        var best = double.PositiveInfinity;
+        foreach (var edge in _document.Edges)
+        {
+            if (!_nodeVmById.TryGetValue(edge.SourceNodeId, out _) ||
+                !_nodeVmById.TryGetValue(edge.TargetNodeId, out _))
+            {
+                continue;
+            }
+
+            if (!TryGetPortAnchor(edge.SourceNodeId, edge.SourcePortId, true, out var fx, out var fy) ||
+                !TryGetPortAnchor(edge.TargetNodeId, edge.TargetPortId, false, out var tx, out var ty))
+            {
+                continue;
+            }
+
+            var d = _edgeGeometryBuilder.ComputeMinDistanceSquaredToPath(
+                fx,
+                fy,
+                tx,
+                ty,
+                logicalX,
+                logicalY,
+                AutomationGraphLayoutConstants.EdgeBezierDistanceInitialSamples);
+            if (d < best)
+            {
+                best = d;
+                edgeId = edge.Id;
+            }
+        }
+
+        if (best > maxDistSq || edgeId == Guid.Empty)
+        {
+            edgeId = Guid.Empty;
+            return false;
+        }
+
+        return true;
+    }
+
+    public void TrySpliceSingleMovedNodeOntoNearbyEdge(AutomationCanvasNodeViewModel node, double logicalPointerX, double logicalPointerY)
+    {
+        if (_selectedNodeIds.Count != 1 || !_selectedNodeIds.Contains(node.Id))
+            return;
+
+        if (!TryFindEdgeNearLogicalPoint(logicalPointerX, logicalPointerY, out var edgeId))
+            return;
+
+        if (!_linkInsertion.TryBuildExistingNodeSplicePlan(_document, edgeId, node.Id, out var plan) || plan is null)
+            return;
+
+        PushUndoCheckpoint();
+        foreach (var rid in plan.RemovedEdgeIds)
+            _document.Edges.RemoveAll(e => e.Id == rid);
+
+        _document.Edges.Add(plan.EdgeFromSourceToExisting);
+        _document.Edges.Add(plan.EdgeFromExistingToTarget);
+        MarkNodeTypeRecent(node.NodeTypeId);
+        RecalculateCanvasBounds();
+        RefreshEdgeDisplays();
+        PushDownstreamNodesRightIfOccluded(node.Id);
+        if (_nodeVmById.TryGetValue(node.Id, out var vm))
+            SelectSingleNode(vm);
+    }
+
+    public bool TryLinearBridgeExtractSingleMovedNode(AutomationCanvasNodeViewModel node)
+    {
+        if (_selectedNodeIds.Count != 1 || !_selectedNodeIds.Contains(node.Id))
+            return false;
+
+        if (!_linearBridge.TryBuildBridgeAcrossNode(_document, node.Id, out var plan) || plan is null)
+            return false;
+
+        var snapshots = new AutomationEdgeState[plan.RemovedEdgeIds.Length];
+        for (var i = 0; i < plan.RemovedEdgeIds.Length; i++)
+        {
+            var rid = plan.RemovedEdgeIds[i];
+            var edge = _document.Edges.FirstOrDefault(e => e.Id == rid);
+            if (edge is null)
+                return false;
+
+            snapshots[i] = new AutomationEdgeState
+            {
+                Id = edge.Id,
+                SourceNodeId = edge.SourceNodeId,
+                SourcePortId = edge.SourcePortId,
+                TargetNodeId = edge.TargetNodeId,
+                TargetPortId = edge.TargetPortId
+            };
+        }
+
+        foreach (var rid in plan.RemovedEdgeIds)
+            _document.Edges.RemoveAll(e => e.Id == rid);
+
+        if (!TryAppendEdgeWithoutUndo(plan.SourceNodeId, plan.SourcePortId, plan.TargetNodeId, plan.TargetPortId))
+        {
+            foreach (var e in snapshots)
+                _document.Edges.Add(e);
+            return false;
+        }
+
+        RecalculateCanvasBounds();
+        RefreshEdgeDisplays();
+        if (_nodeVmById.TryGetValue(node.Id, out var vm))
+            SelectSingleNode(vm);
+        return true;
+    }
+
+    public void UpdatePaletteDragEdgeHighlight(double logicalDropTopLeftX, double logicalDropTopLeftY)
+    {
+        var centerX = logicalDropTopLeftX + (NodeVisualWidth / 2d);
+        var centerY = logicalDropTopLeftY + (NodeVisualMinHeight / 2d);
+        UpdateEdgeDropHighlightFromLogicalCenter(centerX, centerY);
+    }
+
+    public void UpdateNodeDragEdgeHighlight(
+        AutomationCanvasNodeViewModel node,
+        double logicalPointerX,
+        double logicalPointerY,
+        bool suppressNearbyWireHighlight)
+    {
+        if (suppressNearbyWireHighlight)
+        {
+            ClearEdgeDropHighlight();
+            return;
+        }
+
+        if (_selectedNodeIds.Count != 1 || !_selectedNodeIds.Contains(node.Id))
+        {
+            ClearEdgeDropHighlight();
+            return;
+        }
+
+        UpdateEdgeDropHighlightFromLogicalCenter(logicalPointerX, logicalPointerY);
+    }
+
+    public void ClearEdgeDropHighlight()
+    {
+        EdgeDropHighlightEdgeId = null;
+    }
+
+    private void UpdateEdgeDropHighlightFromLogicalCenter(double centerX, double centerY)
+    {
+        if (!TryFindEdgeNearLogicalPoint(centerX, centerY, out var edgeId))
+        {
+            ClearEdgeDropHighlight();
+            return;
+        }
+
+        EdgeDropHighlightEdgeId = edgeId;
+    }
+
+    private void ApplyEdgeDropHighlightToDisplays()
+    {
+        foreach (var ed in EdgeDisplays)
+            ed.IsDropTarget = EdgeDropHighlightEdgeId.HasValue && ed.EdgeId == EdgeDropHighlightEdgeId;
+    }
+
+    private bool TryAppendEdgeWithoutUndo(Guid sourceNodeId, string sourcePortId, Guid targetNodeId, string targetPortId)
+    {
+        var validation = _topology.ValidateConnection(_document, sourceNodeId, sourcePortId, targetNodeId, targetPortId);
+        if (!validation.IsAllowed)
+            return false;
+
+        var sourceNode = _document.Nodes.FirstOrDefault(n => n.Id == sourceNodeId);
+        var targetNode = _document.Nodes.FirstOrDefault(n => n.Id == targetNodeId);
+
+        if (validation.ExistingIncomingEdgeId is Guid existingEdgeId &&
+            sourceNode is not null &&
+            targetNode is not null &&
+            _registry.TryGet(sourceNode.NodeTypeId, out var sourceDef) &&
+            _registry.TryGet(targetNode.NodeTypeId, out var targetDef))
+        {
+            var outPort = sourceDef?.OutputPorts.FirstOrDefault(p => string.Equals(p.Id, sourcePortId, StringComparison.Ordinal));
+            var inPort = targetDef?.InputPorts.FirstOrDefault(p => string.Equals(p.Id, targetPortId, StringComparison.Ordinal));
+            if (outPort is not null && inPort is not null)
+            {
+                if (_connectionPolicy.ShouldReplaceIncomingConnection(outPort, inPort))
+                    _document.Edges.RemoveAll(e => e.Id == existingEdgeId);
+                else
+                    return false;
+            }
+        }
+
+        _document.Edges.Add(new AutomationEdgeState
+        {
+            Id = Guid.NewGuid(),
+            SourceNodeId = sourceNodeId,
+            SourcePortId = sourcePortId,
+            TargetNodeId = targetNodeId,
+            TargetPortId = targetPortId
+        });
+        return true;
     }
 
     [RelayCommand]
@@ -460,12 +759,16 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private bool CanDeleteSelected() => _selectedNodeIds.Count > 0;
 
     [RelayCommand(CanExecute = nameof(CanDeleteSelected))]
-    private void DeleteSelected()
+    private void DeleteSelected() => DeleteSelectedCore(recordUndo: true);
+
+    private void DeleteSelectedCore(bool recordUndo)
     {
         if (_selectedNodeIds.Count == 0)
             return;
 
-        PushUndoCheckpoint();
+        if (recordUndo)
+            PushUndoCheckpoint();
+
         var ids = _selectedNodeIds.ToArray();
         _document.Nodes.RemoveAll(n => ids.Contains(n.Id));
         _document.Edges.RemoveAll(e => ids.Contains(e.SourceNodeId) || ids.Contains(e.TargetNodeId));
@@ -482,6 +785,157 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
         RecalculateCanvasBounds();
         RefreshEdgeDisplays();
     }
+
+    public void SelectAllNodes()
+    {
+        if (CanvasNodes.Count == 0)
+            return;
+
+        _selectedNodeIds.Clear();
+        foreach (var n in CanvasNodes)
+            _selectedNodeIds.Add(n.Id);
+
+        SelectedNode = CanvasNodes[0];
+        ApplySelectionVisualStates();
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        PickCaptureRegionCommand.NotifyCanExecuteChanged();
+        OpenRoiPreviewWindowCommand.NotifyCanExecuteChanged();
+        ClearCaptureRegionCommand.NotifyCanExecuteChanged();
+        RefreshRoiThumbnail(SelectedNode);
+    }
+
+    public bool TryCopySelectionToClipboard()
+    {
+        if (!_graphClipboard.TryBuildSelectionPayload(_document, _selectedNodeIds.ToArray(), out var text))
+            return false;
+
+        var data = new DataObject();
+        data.SetData(AutomationGraphClipboardFormats.DataObjectFormat, text);
+        Clipboard.SetDataObject(data, copy: true);
+        return true;
+    }
+
+    public bool TryCutSelectionToClipboard()
+    {
+        if (_selectedNodeIds.Count == 0)
+            return false;
+
+        if (!_graphClipboard.TryBuildSelectionPayload(_document, _selectedNodeIds.ToArray(), out var text))
+            return false;
+
+        AutomationGraphLinearBridgePlan? bridgePlan = null;
+        if (_selectedNodeIds.Count == 1 &&
+            _linearBridge.TryBuildBridgeAcrossNode(_document, _selectedNodeIds.First(), out var p))
+        {
+            bridgePlan = p;
+        }
+
+        var data = new DataObject();
+        data.SetData(AutomationGraphClipboardFormats.DataObjectFormat, text);
+        Clipboard.SetDataObject(data, copy: true);
+        PushUndoCheckpoint();
+        DeleteSelectedCore(recordUndo: false);
+        if (bridgePlan is not null &&
+            TryAppendEdgeWithoutUndo(
+                bridgePlan.SourceNodeId,
+                bridgePlan.SourcePortId,
+                bridgePlan.TargetNodeId,
+                bridgePlan.TargetPortId))
+        {
+            RecalculateCanvasBounds();
+            RefreshEdgeDisplays();
+        }
+
+        return true;
+    }
+
+    public bool TryPasteFromClipboard(double anchorLogicalX, double anchorLogicalY)
+    {
+        if (!Clipboard.ContainsData(AutomationGraphClipboardFormats.DataObjectFormat))
+            return false;
+
+        var text = Clipboard.GetData(AutomationGraphClipboardFormats.DataObjectFormat) as string;
+        if (string.IsNullOrWhiteSpace(text) ||
+            !_graphClipboard.TryParsePayloadForPaste(text, anchorLogicalX, anchorLogicalY, out var fragment))
+        {
+            return false;
+        }
+
+        var pastedIds = new List<Guid>();
+        foreach (var state in fragment.Nodes)
+        {
+            if (!_registry.TryGet(state.NodeTypeId, out _))
+                continue;
+
+            pastedIds.Add(state.Id);
+        }
+
+        if (pastedIds.Count == 0)
+            return false;
+
+        PushUndoCheckpoint();
+        foreach (var state in fragment.Nodes)
+        {
+            if (!_registry.TryGet(state.NodeTypeId, out _))
+                continue;
+
+            _document.Nodes.Add(state);
+            CreateAndRegisterNodeVm(state);
+            MarkNodeTypeRecent(state.NodeTypeId);
+        }
+
+        foreach (var edge in fragment.Edges)
+            TryAppendEdgeWithoutUndo(edge.SourceNodeId, edge.SourcePortId, edge.TargetNodeId, edge.TargetPortId);
+
+        RecalculateCanvasBounds();
+        RefreshEdgeDisplays();
+        _selectedNodeIds.Clear();
+        foreach (var id in pastedIds)
+            _selectedNodeIds.Add(id);
+
+        SelectedNode = _nodeVmById.TryGetValue(pastedIds[0], out var firstVm) ? firstVm : null;
+        ApplySelectionVisualStates();
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+        PickCaptureRegionCommand.NotifyCanExecuteChanged();
+        OpenRoiPreviewWindowCommand.NotifyCanExecuteChanged();
+        ClearCaptureRegionCommand.NotifyCanExecuteChanged();
+        RefreshRoiThumbnail(SelectedNode);
+        return true;
+    }
+
+    private bool CanSelectAll() => CanvasNodes.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanSelectAll))]
+    private void SelectAll() => SelectAllNodes();
+
+    private bool CanCopySelection() => _selectedNodeIds.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanCopySelection))]
+    private void CopySelection() => TryCopySelectionToClipboard();
+
+    private bool CanCutSelection() => _selectedNodeIds.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanCutSelection))]
+    private void CutSelection() => TryCutSelectionToClipboard();
+
+    private bool CanPasteGraphFragment()
+    {
+        try
+        {
+            return Clipboard.ContainsData(AutomationGraphClipboardFormats.DataObjectFormat);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPasteGraphFragment))]
+    private void PasteGraphFragment() =>
+        TryPasteFromClipboard(CanvasLogicalWidth / 2d, CanvasLogicalHeight / 2d);
+
+    [RelayCommand]
+    private void ResetZoom() => Zoom = 1d;
 
     [RelayCommand]
     private void SelectNode(AutomationCanvasNodeViewModel? node) => SelectSingleNode(node);
@@ -683,6 +1137,71 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
 
         var g = SnapCellSize;
         return (Math.Round(x / g) * g, Math.Round(y / g) * g);
+    }
+
+    private double SnapXForLayoutPush(double x)
+    {
+        if (!GridSnapEnabled || SnapCellSize <= 1)
+            return x;
+        var g = SnapCellSize;
+        return Math.Round(x / g) * g;
+    }
+
+    private void PushDownstreamNodesRightIfOccluded(Guid originNodeId)
+    {
+        if (!_nodeVmById.TryGetValue(originNodeId, out var origin))
+            return;
+
+        _outgoingReachability.CollectReachableTargetNodeIds(
+            _document,
+            originNodeId,
+            _outgoingReachabilityScratch);
+        if (_outgoingReachabilityScratch.Count == 0)
+            return;
+
+        var downstreamBounds = _outgoingReachabilityScratch
+            .Select(id => _nodeVmById.TryGetValue(id, out var vm)
+                ? CreateLayoutBounds(vm)
+                : (AutomationGraphNodeLayoutBounds?)null)
+            .Where(bounds => bounds.HasValue)
+            .Select(bounds => bounds!.Value);
+
+        if (!_occlusionReflow.TryComputeRightShift(
+            CreateLayoutBounds(origin),
+            downstreamBounds,
+            AutomationGraphLayoutConstants.InsertionDownstreamPushGutterLogical,
+            out var shiftDeltaX))
+        {
+            return;
+        }
+
+        PushDownstreamNodesRightOfReachabilitySet(shiftDeltaX);
+    }
+
+    private static AutomationGraphNodeLayoutBounds CreateLayoutBounds(AutomationCanvasNodeViewModel node) =>
+        new(
+            node.Id,
+            node.X,
+            node.Y,
+            node.NodeVisualWidth,
+            node.EstimatedVisualHeight);
+
+    private void PushDownstreamNodesRightOfReachabilitySet(double shiftDeltaX)
+    {
+        if (Math.Abs(shiftDeltaX) < 0.01d)
+            return;
+
+        foreach (var id in _outgoingReachabilityScratch)
+        {
+            if (!_nodeVmById.TryGetValue(id, out var vm))
+                continue;
+            var nx = SnapXForLayoutPush(vm.X + shiftDeltaX);
+            vm.SetXForLayoutReflow(nx);
+            SyncNodeAnchorsFromOffsets(vm);
+        }
+
+        RecalculateCanvasBounds();
+        RefreshEdgeDisplays();
     }
 
     private void RebuildFromDocument()
@@ -942,7 +1461,8 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 FromY = fy,
                 ToX = tx,
                 ToY = ty,
-                IsCycleWarning = cycleSet?.Contains(edge.Id) == true
+                IsCycleWarning = cycleSet?.Contains(edge.Id) == true,
+                IsDropTarget = EdgeDropHighlightEdgeId == edge.Id
             });
         }
 
@@ -1382,6 +1902,16 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
                 ? AutomationCanvasVisualState.Selected
                 : AutomationCanvasVisualState.Default;
         }
+
+        RefreshClipboardCommandAvailability();
+    }
+
+    public void RefreshClipboardCommandAvailability()
+    {
+        SelectAllCommand.NotifyCanExecuteChanged();
+        CopySelectionCommand.NotifyCanExecuteChanged();
+        CutSelectionCommand.NotifyCanExecuteChanged();
+        PasteGraphFragmentCommand.NotifyCanExecuteChanged();
     }
 
     private static string BuildPortAnchorKey(Guid nodeId, string portId, bool isOutputPort) =>
@@ -1985,7 +2515,7 @@ public partial class AutomationWorkspaceViewModel : ObservableObject
     private void AppendAutomationLogLine(string line)
     {
         AutomationRunLogLines.Add(line);
-        while (AutomationRunLogLines.Count > MaxAutomationRunLogDisplayedLines)
+        while (AutomationRunLogLines.Count > AutomationWorkspaceUiConstants.MaxAutomationRunLogLines)
             AutomationRunLogLines.RemoveAt(0);
     }
 

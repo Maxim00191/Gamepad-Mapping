@@ -40,6 +40,13 @@
         <SolidColorBrush x:Key="AppToastBackgroundBrush" Color="#D2EDEAE3" />
         <SolidColorBrush x:Key="AppTooltipBackgroundBrush" Color="#FFFDFBF7" />
         <SolidColorBrush x:Key="AppTooltipBorderBrush" Color="#FF504C46" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuBarBrushKey}" Color="#FFF7F5F0" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#FFF7F5F0" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#FF24221E" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.MenuHighlightBrushKey}" Color="#FFE2DDD4" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FFDDD4C4" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FF24221E" />
+        <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#FF736E66" />
         <Storyboard x:Key="SoftWarningBreathingBorderStoryboard">
             <DoubleAnimation Storyboard.TargetName="SoftWarningBorder"
                              Storyboard.TargetProperty="Opacity"
@@ -70,6 +77,22 @@
         <SolidColorBrush x:Key="VisualWorkspacePathSelectedFillBrush" Color="#45000000" />
         <SolidColorBrush x:Key="VisualWorkspaceChordPartFillBrush" Color="#402A4A7A" />
         <SolidColorBrush x:Key="VisualWorkspaceStrongAccentBorderBrush" Color="#CC2A4A7A" />
+        <SolidColorBrush x:Key="AutomationWorkspaceCanvasBackdropBrush" Color="#FFC8C4BC" />
+        <SolidColorBrush x:Key="AutomationWorkspaceNodeBodyBrush" Color="#FFF3F1EC" />
+        <SolidColorBrush x:Key="AutomationWorkspaceGridDotBrush" Color="#48504C46" />
+        <SolidColorBrush x:Key="AutomationWorkspaceToolbarBackgroundBrush" Color="#FFE6E2DA" />
+        <SolidColorBrush x:Key="AutomationWorkspaceToolbarBorderBrush" Color="#99807A72" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapPanelBackgroundBrush" Color="#D8363638" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapViewportFillBrush" Color="#35427ACC" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapViewportStrokeBrush" Color="#EE5090E8" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapNodeFillBrush" Color="#78909090" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapNodeStrokeBrush" Color="#B0707070" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapNodeSelectedFillBrush" Color="#A0E4B54A" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapNodeSelectedStrokeBrush" Color="#FFE4B54A" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapHostBorderBrush" Color="#99808080" />
+        <SolidColorBrush x:Key="AutomationWorkspaceMinimapHostBackgroundBrush" Color="#28202020" />
+        <SolidColorBrush x:Key="AutomationWorkspaceSelectionRectFillBrush" Color="#305290E8" />
+        <SolidColorBrush x:Key="AutomationWorkspacePortLabelForegroundBrush" Color="#FF24221E" />
         <sys:Double x:Key="VisualWorkspaceLogicalMappingsColumnMinWidth">200</sys:Double>
         <sys:Double x:Key="VisualWorkspaceVisualEditorCenterColumnMinWidth">260</sys:Double>
         <sys:Double x:Key="VisualWorkspaceVisualEditorSplitterWidth">6</sys:Double>
@@ -131,6 +154,143 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
             <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="AutomationWorkspaceMainMenuStyle" TargetType="{x:Type Menu}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Menu}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AutomationWorkspaceMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Grid SnapsToDevicePixels="True">
+                            <Border x:Name="HeaderHost"
+                                    Background="{TemplateBinding Background}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition x:Name="IconColumn" Width="20" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition x:Name="ArrowColumn" Width="18" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter x:Name="IconPresenter"
+                                                      Grid.Column="0"
+                                                      ContentSource="Icon"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                    <ContentPresenter x:Name="HeaderPresenter"
+                                                      Grid.Column="1"
+                                                      ContentSource="Header"
+                                                      RecognizesAccessKey="True"
+                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                    <TextBlock x:Name="GestureText"
+                                               Grid.Column="2"
+                                               Margin="18,0,8,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                               Text="{TemplateBinding InputGestureText}" />
+                                    <Path x:Name="SubmenuArrow"
+                                          Grid.Column="3"
+                                          Width="6"
+                                          Height="10"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}"
+                                          Data="M 0 0 L 6 5 L 0 10 Z" />
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Right"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource AppControlSurfaceBrush}"
+                                        BorderBrush="{DynamicResource AppBorderBrush}"
+                                        BorderThickness="1"
+                                        Padding="2"
+                                        SnapsToDevicePixels="True">
+                                    <StackPanel IsItemsHost="True"
+                                                KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter Property="Padding" Value="10,4" />
+                                <Setter TargetName="PART_Popup" Property="Placement" Value="Bottom" />
+                                <Setter TargetName="IconColumn" Property="Width" Value="0" />
+                                <Setter TargetName="ArrowColumn" Property="Width" Value="0" />
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="GestureText" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="TopLevelItem">
+                                <Setter Property="Padding" Value="10,4" />
+                                <Setter TargetName="IconColumn" Property="Width" Value="0" />
+                                <Setter TargetName="ArrowColumn" Property="Width" Value="0" />
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="GestureText" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuItem">
+                                <Setter TargetName="ArrowColumn" Property="Width" Value="0" />
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="HeaderHost" Property="Background" Value="{DynamicResource AppControlHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSubmenuOpen" Value="True">
+                                <Setter TargetName="HeaderHost" Property="Background" Value="{DynamicResource AppControlPressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+                                <Setter TargetName="HeaderHost" Property="Opacity" Value="0.65" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AutomationWorkspaceMenuSeparatorStyle" TargetType="{x:Type Separator}">
+            <Setter Property="Margin" Value="6,3" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource AppSeparatorBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Height="{TemplateBinding Height}"
+                                Margin="{TemplateBinding Margin}"
+                                Background="{TemplateBinding Background}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="MainWorkspaceTabControl" TargetType="{x:Type TabControl}">

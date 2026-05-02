@@ -115,7 +115,7 @@
       "properties": {
         "description": "Track the capture zone highlight box.",
         "findImageAlgorithm": "opencv_template",
-        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-yellow-zone.png",
+        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-hit-zone.png",
         "findImageConfidence": 0.48,
         "findImageTolerance": 0.32,
         "findImageTimeoutMs": 25
@@ -128,9 +128,9 @@
       "y": 1120,
       "properties": {
         "description": "Steer line toward zone: error = target − current with target=zone center X, current=line X (wire measured line to Current Value, zone to Target Value). Deadband = max(pidDeadband, zone half-width).",
-        "pidKp": 0.55,
+        "pidKp": 1.0,
         "pidKi": 0,
-        "pidKd": 0.09,
+        "pidKd": 0.0,
         "pidDeadband": 4,
         "pidIntegralLimit": 120,
         "pidOutputMin": -1,
@@ -255,7 +255,7 @@
       "x": 2960,
       "y": 1248,
       "properties": {
-        "description": "Yellow zone half-width (match width / 2) for PID containment deadband.",
+        "description": "Hit zone half-width (match width / 2) for PID containment deadband.",
         "mathRight": 2
       }
     },
@@ -273,27 +273,6 @@
       "nodeTypeId": "logic.loop_jump",
       "x": 2864,
       "y": 352,
-      "properties": {
-        "loopJumpTargetScopeLabel": "main"
-      }
-    },
-    {
-      "id": "1a8a6e9f-19c0-4497-ba2f-3acae658aa32",
-      "nodeTypeId": "automation.delay",
-      "x": 5536,
-      "y": 448,
-      "properties": {
-        "description": "Minimal pacing after left-steer key transitions (matches tracking delay order-of-magnitude).",
-        "delayMilliseconds": 1,
-        "delayMinMs": 1,
-        "delayMaxMs": 1
-      }
-    },
-    {
-      "id": "26d41814-f45a-41c3-9833-aaac741a6e3d",
-      "nodeTypeId": "logic.loop_jump",
-      "x": 6192,
-      "y": 432,
       "properties": {
         "loopJumpTargetScopeLabel": "main"
       }
@@ -514,7 +493,7 @@
       "id": "732cf7b5-8ab5-40e3-a0e2-9f43f4b8c5a4",
       "sourceNodeId": "f1000016-0000-4000-8000-000000000016",
       "sourcePortId": "flow.out",
-      "targetNodeId": "1a8a6e9f-19c0-4497-ba2f-3acae658aa32",
+      "targetNodeId": "f1000022-0000-4000-8000-000000000022",
       "targetPortId": "flow.in"
     },
     {
@@ -522,13 +501,6 @@
       "sourceNodeId": "f1000022-0000-4000-8000-000000000022",
       "sourcePortId": "flow.out",
       "targetNodeId": "4539802c-43f0-4f09-a084-78507a330b33",
-      "targetPortId": "flow.in"
-    },
-    {
-      "id": "ef6b9855-f338-4293-b2fd-7ccd83b60db1",
-      "sourceNodeId": "1a8a6e9f-19c0-4497-ba2f-3acae658aa32",
-      "sourcePortId": "flow.out",
-      "targetNodeId": "26d41814-f45a-41c3-9833-aaac741a6e3d",
       "targetPortId": "flow.in"
     }
   ],

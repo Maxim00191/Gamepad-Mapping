@@ -40,6 +40,9 @@ public sealed partial class AutomationEdgeDisplayViewModel : ObservableObject
     private bool _isHovered;
 
     [ObservableProperty]
+    private bool _isDropTarget;
+
+    [ObservableProperty]
     private string _pathData = "";
 
     partial void OnFromXChanged(double value) => RebuildPathData();

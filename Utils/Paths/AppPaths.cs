@@ -240,5 +240,8 @@ public static class AppPaths
 
         return GetAutomationWorkspaceStorageDirectory();
     }
+
+    public static string GetAutomationAssetsDirectory() =>
+        Path.Combine(ResolveContentRoot(), "Assets", "Automation");
 }
 

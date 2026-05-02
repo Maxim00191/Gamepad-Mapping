@@ -30,10 +30,13 @@ public partial class AutomationWorkspaceView
     private bool _isNodeDragActive;
     private AutomationCanvasNodeViewModel? _draggingNode;
     private Point _nodeDragLastCanvasPoint;
+    private bool _nodeDragDetachedWithAlt;
     private Point _selectionStartCanvasPoint;
     private Point _selectionStartScreenPoint;
     private bool _isMiniMapDragging;
     private const double SelectionDragStartTolerance = 6d;
+    private Point _lastLogicalPasteAnchor;
+    private bool _hasLogicalPasteAnchor;
 
     private void PaletteRow_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -59,6 +62,24 @@ public partial class AutomationWorkspaceView
 
         var data = new DataObject("AutomationNodeTypeId", item.NodeTypeId);
         DragDrop.DoDragDrop(_paletteDragSource, data, DragDropEffects.Copy);
+        e.Handled = true;
+    }
+
+    private void BundledGraphList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (WorkspaceVm is null)
+            return;
+
+        var fe = e.OriginalSource as DependencyObject;
+        var g = TryFindAncestorDataContext<AutomationAssetGraphItemViewModel>(fe);
+        if (g is null && sender is ListBox lb && lb.SelectedItem is AutomationAssetGraphItemViewModel sel)
+            g = sel;
+        if (g is null)
+            return;
+
+        if (WorkspaceVm.ImportBundledGraphCommand.CanExecute(g.FullPath))
+            WorkspaceVm.ImportBundledGraphCommand.Execute(g.FullPath);
+
         e.Handled = true;
     }
 
@@ -88,10 +109,34 @@ public partial class AutomationWorkspaceView
         e.Handled = true;
     }
 
+    private void CanvasScrollViewer_PreviewDragOver(object sender, DragEventArgs e)
+    {
+        if (WorkspaceVm is null || CanvasSurface is null)
+            return;
+        if (!e.Data.GetDataPresent("AutomationNodeTypeId"))
+        {
+            e.Effects = DragDropEffects.None;
+            return;
+        }
+
+        e.Effects = DragDropEffects.Copy;
+        var p = e.GetPosition(CanvasSurface);
+        var logical = ToLogicalCanvasPoint(p);
+        WorkspaceVm.UpdatePaletteDragEdgeHighlight(logical.X, logical.Y);
+        e.Handled = true;
+    }
+
+    private void CanvasScrollViewer_PreviewDragLeave(object sender, DragEventArgs e)
+    {
+        WorkspaceVm?.ClearEdgeDropHighlight();
+    }
+
     private void CanvasSurface_Drop(object sender, DragEventArgs e)
     {
         if (WorkspaceVm is null)
             return;
+
+        WorkspaceVm.ClearEdgeDropHighlight();
 
         if (!e.Data.GetDataPresent("AutomationNodeTypeId"))
             return;
@@ -180,6 +225,7 @@ public partial class AutomationWorkspaceView
         if (WorkspaceVm is null || sender is not Thumb t || t.DataContext is not AutomationCanvasNodeViewModel node)
             return;
 
+        _nodeDragDetachedWithAlt = false;
         WorkspaceVm.BeginNodeMoveSession(node);
     }
 
@@ -190,7 +236,13 @@ public partial class AutomationWorkspaceView
 
         var alt = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
         var delta = ToLogicalCanvasDelta(e.HorizontalChange, e.VerticalChange);
+        TryDetachMovedNodeWithAlt(node, alt);
         WorkspaceVm.DragNode(node, delta.X, delta.Y, alt);
+        if (CanvasSurface is not null)
+        {
+            var logical = ToLogicalCanvasPoint(Mouse.GetPosition(CanvasSurface));
+            WorkspaceVm.UpdateNodeDragEdgeHighlight(node, logical.X, logical.Y, alt);
+        }
     }
 
     private void NodeThumb_DragCompleted(object sender, DragCompletedEventArgs e)
@@ -198,7 +250,19 @@ public partial class AutomationWorkspaceView
         if (WorkspaceVm is null || sender is not Thumb t || t.DataContext is not AutomationCanvasNodeViewModel node)
             return;
 
+        var logical = CanvasSurface is not null
+            ? ToLogicalCanvasPoint(Mouse.GetPosition(CanvasSurface))
+            : new Point(node.X + node.NodeVisualWidth / 2d, node.Y + node.EstimatedVisualHeight / 2d);
+        if (!_nodeDragDetachedWithAlt)
+        {
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+                WorkspaceVm.TryLinearBridgeExtractSingleMovedNode(node);
+            else
+                WorkspaceVm.TrySpliceSingleMovedNodeOntoNearbyEdge(node, logical.X, logical.Y);
+        }
         WorkspaceVm.EndNodeMoveSession(node);
+        WorkspaceVm.ClearEdgeDropHighlight();
+        _nodeDragDetachedWithAlt = false;
     }
 
     private void PortHandle_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -400,6 +464,27 @@ public partial class AutomationWorkspaceView
         WorkspaceVm.CommitInlineNodeFieldCommand.Execute(field);
     }
 
+    private void NodeLibraryScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer scrollViewer)
+            return;
+
+        var wheelDelta = Mouse.MouseWheelDeltaForOneLine;
+        if (wheelDelta == 0)
+            wheelDelta = 120;
+
+        var lineHeight = 16.0;
+        var lines = SystemParameters.WheelScrollLines;
+        if (lines == 0)
+            lines = 3;
+
+        var scrollAmount = e.Delta / (double)wheelDelta * lines * lineHeight;
+        var next = scrollViewer.VerticalOffset - scrollAmount;
+        next = Math.Clamp(next, 0, Math.Max(0, scrollViewer.ScrollableHeight));
+        scrollViewer.ScrollToVerticalOffset(next);
+        e.Handled = true;
+    }
+
     private void CanvasScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (WorkspaceVm is null)
@@ -473,6 +558,12 @@ public partial class AutomationWorkspaceView
 
     private void CanvasSurface_PreviewMouseMove(object sender, MouseEventArgs e)
     {
+        if (WorkspaceVm is not null)
+        {
+            _lastLogicalPasteAnchor = ToLogicalCanvasPoint(e.GetPosition(CanvasSurface));
+            _hasLogicalPasteAnchor = true;
+        }
+
         if (_isNodeDragActive && Mouse.LeftButton != MouseButtonState.Pressed)
             EndNodeDrag();
         else if (_isNodeDragActive)
@@ -612,20 +703,116 @@ public partial class AutomationWorkspaceView
             return;
         }
 
-        if (WorkspaceVm is null || e.Key != Key.Delete)
+        if (WorkspaceVm is null)
         {
             if (e.Key == Key.Escape && _isConnectionDragActive)
             {
                 EndConnectionDrag();
                 e.Handled = true;
             }
+
             return;
         }
-        if (!WorkspaceVm.DeleteSelectedCommand.CanExecute(null))
-            return;
 
-        WorkspaceVm.DeleteSelectedCommand.Execute(null);
-        e.Handled = true;
+        if (IsTextInputKeyboardSink(Keyboard.FocusedElement as DependencyObject))
+        {
+            if (e.Key == Key.Escape && _isConnectionDragActive)
+            {
+                EndConnectionDrag();
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            switch (e.Key)
+            {
+                case Key.A:
+                    WorkspaceVm.SelectAllNodes();
+                    e.Handled = true;
+                    return;
+                case Key.C:
+                    if (WorkspaceVm.TryCopySelectionToClipboard())
+                        e.Handled = true;
+                    return;
+                case Key.X:
+                    if (WorkspaceVm.TryCutSelectionToClipboard())
+                        e.Handled = true;
+                    return;
+                case Key.V:
+                    if (WorkspaceVm.TryPasteFromClipboard(GetPasteAnchorLogical().X, GetPasteAnchorLogical().Y))
+                        e.Handled = true;
+                    return;
+                case Key.Z:
+                    if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                    {
+                        if (WorkspaceVm.RedoActionCommand.CanExecute(null))
+                        {
+                            WorkspaceVm.RedoActionCommand.Execute(null);
+                            e.Handled = true;
+                        }
+                    }
+                    else if (WorkspaceVm.UndoActionCommand.CanExecute(null))
+                    {
+                        WorkspaceVm.UndoActionCommand.Execute(null);
+                        e.Handled = true;
+                    }
+
+                    return;
+                case Key.Y:
+                    if (WorkspaceVm.RedoActionCommand.CanExecute(null))
+                    {
+                        WorkspaceVm.RedoActionCommand.Execute(null);
+                        e.Handled = true;
+                    }
+
+                    return;
+            }
+        }
+
+        if (e.Key == Key.Delete)
+        {
+            if (!WorkspaceVm.DeleteSelectedCommand.CanExecute(null))
+                return;
+
+            WorkspaceVm.DeleteSelectedCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && _isConnectionDragActive)
+        {
+            EndConnectionDrag();
+            e.Handled = true;
+        }
+    }
+
+    private Point GetPasteAnchorLogical()
+    {
+        if (WorkspaceVm is null)
+            return default;
+
+        if (_hasLogicalPasteAnchor)
+            return _lastLogicalPasteAnchor;
+
+        return new Point(WorkspaceVm.CanvasLogicalWidth / 2d, WorkspaceVm.CanvasLogicalHeight / 2d);
+    }
+
+    private static bool IsTextInputKeyboardSink(DependencyObject? focused)
+    {
+        for (var d = focused; d is not null; d = VisualTreeHelper.GetParent(d))
+        {
+            if (d is TextBox or PasswordBox)
+                return true;
+            if (d is RichTextBox)
+                return true;
+            if (d is ComboBox { IsEditable: true })
+                return true;
+        }
+
+        return false;
     }
 
     private static T? TryFindAncestorDataContext<T>(DependencyObject? start) where T : class
@@ -710,8 +897,25 @@ public partial class AutomationWorkspaceView
             return;
 
         if (WorkspaceVm is not null && _draggingNode is not null)
+        {
+            var logical = CanvasSurface is not null
+                ? ToLogicalCanvasPoint(Mouse.GetPosition(CanvasSurface))
+                : new Point(
+                    _draggingNode.X + _draggingNode.NodeVisualWidth / 2d,
+                    _draggingNode.Y + _draggingNode.EstimatedVisualHeight / 2d);
+            if (!_nodeDragDetachedWithAlt)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+                    WorkspaceVm.TryLinearBridgeExtractSingleMovedNode(_draggingNode);
+                else
+                    WorkspaceVm.TrySpliceSingleMovedNodeOntoNearbyEdge(_draggingNode, logical.X, logical.Y);
+            }
             WorkspaceVm.EndNodeMoveSession(_draggingNode);
+        }
+
+        WorkspaceVm?.ClearEdgeDropHighlight();
         _draggingNode = null;
+        _nodeDragDetachedWithAlt = false;
         _isNodeDragActive = false;
         PreviewMouseMove -= AutomationWorkspaceView_NodeDragPreviewMouseMove;
         PreviewMouseLeftButtonUp -= AutomationWorkspaceView_NodeDragPreviewMouseLeftButtonUp;
@@ -734,6 +938,7 @@ public partial class AutomationWorkspaceView
         WorkspaceVm.BeginNodeMoveSession(node);
         _draggingNode = node;
         _nodeDragLastCanvasPoint = startCanvasPoint;
+        _nodeDragDetachedWithAlt = false;
         _isNodeDragActive = true;
         Mouse.Capture(this, CaptureMode.SubTree);
         PreviewMouseMove += AutomationWorkspaceView_NodeDragPreviewMouseMove;
@@ -831,8 +1036,22 @@ public partial class AutomationWorkspaceView
             return;
 
         var suppressSnap = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+        TryDetachMovedNodeWithAlt(_draggingNode, suppressSnap);
         WorkspaceVm.DragNode(_draggingNode, dx, dy, suppressSnap);
+        WorkspaceVm.UpdateNodeDragEdgeHighlight(
+            _draggingNode,
+            nextPoint.X,
+            nextPoint.Y,
+            suppressSnap);
         e.Handled = true;
+    }
+
+    private void TryDetachMovedNodeWithAlt(AutomationCanvasNodeViewModel node, bool isAltDrag)
+    {
+        if (!isAltDrag || _nodeDragDetachedWithAlt || WorkspaceVm is null)
+            return;
+
+        _nodeDragDetachedWithAlt = WorkspaceVm.TryLinearBridgeExtractSingleMovedNode(node);
     }
 
     private void BeginSelectionRectangle()
@@ -852,7 +1071,11 @@ public partial class AutomationWorkspaceView
     private void AutomationWorkspaceView_Loaded(object sender, RoutedEventArgs e)
     {
         UpdateOverviewViewportFromScroll();
+        WorkspaceVm?.RefreshClipboardCommandAvailability();
     }
+
+    private void AutomationRoot_GotKeyboardFocus(object sender, RoutedEventArgs e) =>
+        WorkspaceVm?.RefreshClipboardCommandAvailability();
 
     private void CanvasScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {

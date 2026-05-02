@@ -2265,7 +2265,7 @@
     <value>拟人噪声</value>
   </data>
   <data name="AutomationNode_Summary_MouseJitter" xml:space="preserve">
-    <value>对配置的鼠标位移应用拟人噪声并输出移动。</value>
+    <value>对下一个输出动作应用拟人噪声，目标为键盘时不会移动指针。</value>
   </data>
   <data name="AutomationInlineEditor_MouseJitterBaseDeltaX" xml:space="preserve">
     <value>基础位移 X</value>
@@ -2800,5 +2800,86 @@
   </data>
   <data name="AutomationInlineEditor_FindImageLegacyZeroCoordinatesWhenUnmatched" xml:space="preserve">
     <value>兼容：未匹配时输出坐标与尺寸为 0</value>
+  </data>
+  <data name="AutomationWorkspace_KeyboardShortcutsHint" xml:space="preserve">
+    <value>将新节点放到连线上可插入；拖曳已有节点到连线可嵌入。JSON 的导入与导出在「文件」菜单。</value>
+  </data>
+  <data name="AutomationWorkspace_JsonMenu" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="AutomationWorkspace_BundledGraphsSection" xml:space="preserve">
+    <value>本地库</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Automation" xml:space="preserve">
+    <value>运行</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_ImportGraph" xml:space="preserve">
+    <value>导入图…</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_ExportGraph" xml:space="preserve">
+    <value>导出图…</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Redo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Cut" xml:space="preserve">
+    <value>剪切</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Paste" xml:space="preserve">
+    <value>粘贴</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_NodeLibrary" xml:space="preserve">
+    <value>节点库</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Inspector" xml:space="preserve">
+    <value>检查器</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_Minimap" xml:space="preserve">
+    <value>全览窗口</value>
+  </data>
+  <data name="AutomationWorkspace_Menu_ResetZoom" xml:space="preserve">
+    <value>重置缩放</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Undo" xml:space="preserve">
+    <value>撤销上一步操作 (Ctrl+Z)</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Redo" xml:space="preserve">
+    <value>重做上一步撤销 (Ctrl+Y)</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_RunSmoke" xml:space="preserve">
+    <value>快速运行当前图做一次检查</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_RunBackground" xml:space="preserve">
+    <value>在后台运行当前自动化图</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Delete" xml:space="preserve">
+    <value>删除所选节点 (Del)</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_GridSnap" xml:space="preserve">
+    <value>移动节点时对齐到网格</value>
+  </data>
+  <data name="AutomationWorkspace_Tooltip_Zoom" xml:space="preserve">
+    <value>画布缩放</value>
   </data>
 </root>

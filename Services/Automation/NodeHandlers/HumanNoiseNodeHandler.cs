@@ -2,12 +2,17 @@
 
 using GamepadMapperGUI.Interfaces.Services.Automation;
 using GamepadMapperGUI.Models.Automation;
+using GamepadMapperGUI.Services.Automation;
 
 namespace GamepadMapperGUI.Services.Automation.NodeHandlers;
 
-public sealed class HumanNoiseNodeHandler : IAutomationRuntimeNodeHandler
+public sealed class HumanNoiseNodeHandler(
+    IAutomationHumanNoiseTargetResolver? targetResolver = null) : IAutomationRuntimeNodeHandler
 {
-    public string NodeTypeId => "output.human_noise";
+    private readonly IAutomationHumanNoiseTargetResolver _targetResolver =
+        targetResolver ?? new AutomationHumanNoiseTargetResolver();
+
+    public string NodeTypeId => AutomationNodeTypeIds.HumanNoise;
 
     public Guid? Execute(AutomationRuntimeContext context, AutomationNodeState node, IList<string> log, CancellationToken cancellationToken)
     {
@@ -20,9 +25,23 @@ public sealed class HumanNoiseNodeHandler : IAutomationRuntimeNodeHandler
             0f,
             1f);
 
+        var target = _targetResolver.Resolve(context.Index, node);
+        if (target.Kind == AutomationHumanNoiseTargetKind.Keyboard ||
+            target.Kind == AutomationHumanNoiseTargetKind.Unknown && target.NodeId is not null)
+        {
+            log.Add($"[human_noise] target={FormatTargetKind(target)} action=no_pointer_move target_node={target.NodeId}");
+            return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
+        }
+
         var adjusted = context.HumanNoise?.AdjustMouseMove(baseDeltaX, baseDeltaY, stickMagnitude) ?? (baseDeltaX, baseDeltaY);
         context.Mouse.MoveBy(adjusted.Dx, adjusted.Dy);
-        log.Add($"[human_noise] dx={adjusted.Dx} dy={adjusted.Dy} base_dx={baseDeltaX} base_dy={baseDeltaY} stick={stickMagnitude:F2}");
-        return context.GetExecutionTarget(node.Id, "flow.out");
+        log.Add(
+            $"[human_noise] target={FormatTargetKind(target)} dx={adjusted.Dx} dy={adjusted.Dy} base_dx={baseDeltaX} base_dy={baseDeltaY} stick={stickMagnitude:F2}");
+        return context.GetExecutionTarget(node.Id, AutomationPortIds.FlowOut);
     }
+
+    private static string FormatTargetKind(AutomationHumanNoiseTarget target) =>
+        target.Kind == AutomationHumanNoiseTargetKind.Unknown && target.NodeId is null
+            ? "standalone_mouse"
+            : target.Kind.ToString().ToLowerInvariant();
 }
