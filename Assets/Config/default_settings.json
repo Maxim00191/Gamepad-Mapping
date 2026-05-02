@@ -24,5 +24,8 @@
   "communityTemplateDownloadMaxPerHour": 90,
   "communityProfilesUploadWorkerUrl": "https://gamepad-mapping-template-community-repo.w202810388s.workers.dev/submit",
   "communityProfilesUploadTurnstileAction": "community_upload_ticket",
+  "hasSeenWelcomeToast": false,
+  "exitOnClose": false,
+  "focusGracePeriodMs": 500,
   "appStatusPollIntervalMs": 100
 }

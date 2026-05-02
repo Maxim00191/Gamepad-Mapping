@@ -1,0 +1,58 @@
+#nullable enable
+
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using GamepadMapperGUI.Models.Automation;
+
+namespace Gamepad_Mapping.ViewModels;
+
+public sealed partial class AutomationInlineNodeFieldViewModel : ObservableObject
+{
+    public required Guid NodeId { get; init; }
+
+    public required string NodeTypeId { get; init; }
+
+    public required string PropertyKey { get; init; }
+
+    public required string Label { get; init; }
+
+    public required AutomationNodeInlineEditorKind Kind { get; init; }
+
+    public string Placeholder { get; init; } = "";
+
+    public AutomationNodeInlineEditorActionKind ActionKind { get; init; } = AutomationNodeInlineEditorActionKind.None;
+
+    public string ActionLabel { get; init; } = "";
+
+    public AutomationNodeInlineEditorActionKind SecondaryActionKind { get; init; } = AutomationNodeInlineEditorActionKind.None;
+
+    public string SecondaryActionLabel { get; init; } = "";
+
+    public bool HasAction => ActionKind != AutomationNodeInlineEditorActionKind.None;
+
+    public bool HasSecondaryAction => SecondaryActionKind != AutomationNodeInlineEditorActionKind.None;
+
+    public bool HasInlineActionRow => HasAction || HasSecondaryAction;
+
+    public bool IsBooleanField => Kind == AutomationNodeInlineEditorKind.Boolean;
+
+    public bool IsChoiceField => Kind == AutomationNodeInlineEditorKind.Choice;
+
+    public bool IsLoopScopeChoiceCombo { get; init; }
+
+    public bool IsMultilineTextField => Kind == AutomationNodeInlineEditorKind.MultilineText;
+
+    public bool IsTextField =>
+        Kind != AutomationNodeInlineEditorKind.Boolean &&
+        Kind != AutomationNodeInlineEditorKind.Action &&
+        Kind != AutomationNodeInlineEditorKind.Choice &&
+        Kind != AutomationNodeInlineEditorKind.MultilineText;
+
+    public ObservableCollection<AutomationInlineChoiceItemViewModel> ChoiceItems { get; init; } = [];
+
+    [ObservableProperty]
+    private string _textValue = "";
+
+    [ObservableProperty]
+    private bool _booleanValue;
+}

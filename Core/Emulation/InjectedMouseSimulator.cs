@@ -11,7 +11,7 @@ namespace GamepadMapperGUI.Core.Emulation;
 /// <summary>
 /// Mouse output via <see cref="InputInjector"/> (Windows.UI.Input.Preview.Injection).
 /// </summary>
-public sealed class InjectedMouseSimulator : IMouseEmulator
+public sealed class InjectedMouseSimulator : IMouseEmulator, IVirtualScreenMouse
 {
     private readonly InputInjector? _injector;
     private const int ClickHoldMs = 30;
@@ -202,6 +202,10 @@ public sealed class InjectedMouseSimulator : IMouseEmulator
 
     public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f, GamepadBindingType? moveSubdivisionScope = null) =>
         SendMouseInput(InjectedInputMouseOptions.Move, 0, deltaX, deltaY);
+
+    void IVirtualScreenMouse.MoveCursorToVirtualScreenPixels(int physicalX, int physicalY)
+    {
+    }
 
     private void SendMouseInput(InjectedInputMouseOptions options, uint mouseData = 0, int dx = 0, int dy = 0)
     {

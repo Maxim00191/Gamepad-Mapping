@@ -1,0 +1,979 @@
+<UserControl x:Class="Gamepad_Mapping.Views.Sections.AutomationWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Gamepad_Mapping.ViewModels"
+             xmlns:model="clr-namespace:GamepadMapperGUI.Models.Automation"
+             xmlns:behaviors="clr-namespace:Gamepad_Mapping.Behaviors"
+             xmlns:utils="clr-namespace:Gamepad_Mapping.Utils"
+             x:Name="AutomationRoot"
+             Focusable="True"
+             PreviewKeyDown="AutomationRoot_PreviewKeyDown"
+             PreviewMouseUp="AutomationRoot_PreviewMouseUp"
+             GotKeyboardFocus="AutomationRoot_GotKeyboardFocus"
+             LostMouseCapture="AutomationRoot_LostMouseCapture"
+             Unloaded="AutomationRoot_Unloaded"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="980"
+             d:DataContext="{d:DesignInstance vm:AutomationWorkspaceViewModel}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <utils:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <utils:BooleanToGridLengthConverter x:Key="AutomationWorkspacePaletteColumnConverter"
+                                            TrueLength="220"
+                                            FalseLength="0" />
+        <utils:BooleanToGridLengthConverter x:Key="AutomationWorkspaceInspectorColumnConverter"
+                                            TrueLength="340"
+                                            FalseLength="0" />
+        <Style x:Key="AutomationNodePortHostStyle"
+               TargetType="ContentPresenter">
+            <Setter Property="Margin" Value="0,3,0,3" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style x:Key="AutomationNodePortEllipseStyle"
+               TargetType="Ellipse">
+            <Setter Property="Width"
+                    Value="{x:Static vm:AutomationWorkspaceViewModel.NodePortHandleSize}" />
+            <Setter Property="Height"
+                    Value="{x:Static vm:AutomationWorkspaceViewModel.NodePortHandleSize}" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Cursor" Value="Pen" />
+            <Setter Property="Fill" Value="{Binding BaseFill}" />
+            <Setter Property="Stroke" Value="{Binding BaseStroke}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                    <Setter Property="StrokeThickness" Value="2" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding VisualState}"
+                             Value="{x:Static vm:AutomationPortVisualState.CandidateValid}">
+                    <Setter Property="Stroke" Value="#2ECC71" />
+                    <Setter Property="StrokeThickness" Value="2" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding VisualState}"
+                             Value="{x:Static vm:AutomationPortVisualState.CandidateInvalid}">
+                    <Setter Property="Stroke" Value="#E74C3C" />
+                    <Setter Property="StrokeThickness" Value="2" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <CollectionViewSource x:Key="PaletteItemsGroupedView"
+                              Source="{Binding PaletteItems}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="CategoryTitle" />
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{Binding IsNodeLibraryVisible, Converter={StaticResource AutomationWorkspacePaletteColumnConverter}}"
+                              MinWidth="0" />
+            <ColumnDefinition Width="*" MinWidth="320" />
+            <ColumnDefinition Width="{Binding IsInspectorVisible, Converter={StaticResource AutomationWorkspaceInspectorColumnConverter}}"
+                              MinWidth="0" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Margin="0,0,8,0"
+                Style="{StaticResource SectionCardBorder}"
+                Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False"
+                          PreviewMouseWheel="NodeLibraryScrollViewer_PreviewMouseWheel">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Palette]}" />
+                    <TextBlock Margin="0,4,0,4"
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Opacity="0.85"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_NodeLibraryHint]}" />
+                    <TextBlock Margin="0,0,0,8"
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Opacity="0.85"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_KeyboardShortcutsHint]}" />
+                    <Expander Margin="0,0,0,8"
+                              IsExpanded="False">
+                        <Expander.Header>
+                            <TextBlock FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_BundledGraphsSection]}" />
+                        </Expander.Header>
+                        <ListBox ItemsSource="{Binding BundledGraphItems}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 MouseDoubleClick="BundledGraphList_MouseDoubleClick">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:AutomationAssetGraphItemViewModel}">
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Text="{Binding DisplayLabel}" />
+                                        <TextBlock FontSize="10"
+                                                   Opacity="0.8"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                   Text="{Binding RelativePath}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Expander>
+                    <ListBox ItemsSource="{Binding Source={StaticResource PaletteItemsGroupedView}}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.ContainerStyle>
+                                <Style TargetType="{x:Type GroupItem}">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                <Expander IsExpanded="True"
+                                                          Margin="0,2,0,4">
+                                                    <Expander.Header>
+                                                        <TextBlock FontWeight="SemiBold"
+                                                                   FontSize="12"
+                                                                   Text="{Binding Name}" />
+                                                    </Expander.Header>
+                                                    <ItemsPresenter Margin="0,4,0,0" />
+                                                </Expander>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </GroupStyle.ContainerStyle>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:AutomationNodePaletteItemViewModel}">
+                            <Border Padding="6,6"
+                                    Margin="0,2"
+                                    CornerRadius="4"
+                                    Background="{DynamicResource AppSurfaceBrush}"
+                                    PreviewMouseLeftButtonDown="PaletteRow_PreviewMouseLeftButtonDown"
+                                    PreviewMouseMove="PaletteRow_PreviewMouseMove"
+                                    MouseLeftButtonDown="PaletteRow_MouseLeftButtonDown">
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Left"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="18"
+                                               Width="28"
+                                               VerticalAlignment="Top"
+                                               Text="{Binding Glyph}" />
+                                    <StackPanel Width="162">
+                                        <DockPanel LastChildFill="False">
+                                            <Button DockPanel.Dock="Right"
+                                                    Width="22"
+                                                    Height="22"
+                                                    Padding="0"
+                                                    Margin="6,0,0,0"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Command="{Binding DataContext.ToggleFavoriteNodeTypeCommand, ElementName=AutomationRoot}"
+                                                    CommandParameter="{Binding NodeTypeId}"
+                                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_ToggleFavorite]}">
+                                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="13"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Text="&#xE734;" />
+                                            </Button>
+                                            <TextBlock FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Text="{Binding DisplayTitle}" />
+                                        </DockPanel>
+                                        <TextBlock FontSize="11"
+                                                   Opacity="0.85"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                   Text="{Binding Summary}" />
+                                        <StackPanel Margin="0,4,0,0"
+                                                    Orientation="Horizontal">
+                                            <Border Margin="0,0,6,0"
+                                                    Padding="4,1"
+                                                    CornerRadius="3"
+                                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                                    BorderThickness="1">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock FontSize="10"
+                                                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_FavoriteTag]}" />
+                                            </Border>
+                                            <Border Padding="4,1"
+                                                    CornerRadius="3"
+                                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                                    BorderThickness="1">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRecent}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock FontSize="10"
+                                                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RecentTag]}" />
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Column="1"
+                Style="{StaticResource SectionCardBorder}"
+                Padding="0">
+            <Grid>
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource AutomationWorkspaceToolbarBackgroundBrush}"
+                            BorderBrush="{DynamicResource AutomationWorkspaceToolbarBorderBrush}"
+                            BorderThickness="0,0,0,1">
+                    <DockPanel LastChildFill="False">
+                        <Menu DockPanel.Dock="Top"
+                              Style="{StaticResource AutomationWorkspaceMainMenuStyle}"
+                              Background="Transparent"
+                              Foreground="{DynamicResource AppTextBrush}"
+                              Padding="4,2,4,0">
+                            <Menu.Resources>
+                                <Style TargetType="{x:Type MenuItem}"
+                                       BasedOn="{StaticResource AutomationWorkspaceMenuItemStyle}" />
+                                <Style TargetType="{x:Type Separator}"
+                                       BasedOn="{StaticResource AutomationWorkspaceMenuSeparatorStyle}" />
+                            </Menu.Resources>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_File]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_ImportGraph]}"
+                                          Command="{Binding ImportGraphCommand}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_ExportGraph]}"
+                                          Command="{Binding ExportGraphCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Edit]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Undo]}"
+                                          Command="{Binding UndoActionCommand}"
+                                          InputGestureText="Ctrl+Z" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Redo]}"
+                                          Command="{Binding RedoActionCommand}"
+                                          InputGestureText="Ctrl+Y" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_SelectAll]}"
+                                          Command="{Binding SelectAllCommand}"
+                                          InputGestureText="Ctrl+A" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Cut]}"
+                                          Command="{Binding CutSelectionCommand}"
+                                          InputGestureText="Ctrl+X" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Copy]}"
+                                          Command="{Binding CopySelectionCommand}"
+                                          InputGestureText="Ctrl+C" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Paste]}"
+                                          Command="{Binding PasteGraphFragmentCommand}"
+                                          InputGestureText="Ctrl+V" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Delete]}"
+                                          Command="{Binding DeleteSelectedCommand}"
+                                          InputGestureText="Del" />
+                            </MenuItem>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_View]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_NodeLibrary]}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsNodeLibraryVisible, Mode=TwoWay}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Inspector]}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsInspectorVisible, Mode=TwoWay}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Minimap]}"
+                                          IsCheckable="True"
+                                          IsChecked="{Binding IsMinimapVisible, Mode=TwoWay}" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_ResetZoom]}"
+                                          Command="{Binding ResetZoomCommand}" />
+                            </MenuItem>
+                            <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Menu_Automation]}">
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunSmoke]}"
+                                          Command="{Binding RunSmokeOnceCommand}" />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}"
+                                          Command="{Binding RunCurrentScriptInBackgroundCommand}" />
+                                <Separator />
+                                <MenuItem Header="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStop]}"
+                                          Command="{Binding EmergencyStopCommand}" />
+                            </MenuItem>
+                        </Menu>
+                        <WrapPanel Margin="10,6,10,8"
+                                   Orientation="Horizontal">
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding RunSmokeOnceCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunSmoke]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_RunSmoke]}" />
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding RunCurrentScriptInBackgroundCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RunBackground]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_RunBackground]}" />
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding EmergencyStopCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStop]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_EmergencyStopTooltip]}" />
+                            <Button Margin="0,0,8,4"
+                                    Padding="10,4"
+                                    Command="{Binding DeleteSelectedCommand}"
+                                    Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Delete]}"
+                                    ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_Delete]}" />
+                            <CheckBox Margin="10,6,8,4"
+                                      VerticalAlignment="Center"
+                                      Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_GridSnap]}"
+                                      IsChecked="{Binding GridSnapEnabled}"
+                                      ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_GridSnap]}" />
+                            <StackPanel Margin="8,2,8,4"
+                                        Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Zoom]}" />
+                                <Slider Width="120"
+                                        Minimum="0.35"
+                                        Maximum="2"
+                                        TickFrequency="0.05"
+                                        IsSnapToTickEnabled="False"
+                                        Value="{Binding Zoom}"
+                                        ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Tooltip_Zoom]}" />
+                                <TextBlock Margin="8,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppTextBrush}"
+                                           Text="{Binding Zoom, StringFormat={}{0:0.##}x}" />
+                            </StackPanel>
+                        </WrapPanel>
+                    </DockPanel>
+                    </Border>
+
+                    <TextBlock DockPanel.Dock="Top"
+                               Margin="12,0,12,4"
+                               TextWrapping="Wrap"
+                               Foreground="#E67E22"
+                               FontSize="11"
+                               Text="{Binding TopologyBannerText}" />
+
+                    <ScrollViewer x:Name="CanvasScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Margin="8,0,8,8"
+                                  Background="{DynamicResource AutomationWorkspaceCanvasBackdropBrush}"
+                                  ScrollChanged="CanvasScrollViewer_ScrollChanged"
+                                  PreviewMouseWheel="CanvasScrollViewer_PreviewMouseWheel"
+                                  PreviewDragOver="CanvasScrollViewer_PreviewDragOver"
+                                  PreviewDragLeave="CanvasScrollViewer_PreviewDragLeave">
+                        <Grid Width="{Binding CanvasLogicalWidth}"
+                              Height="{Binding CanvasLogicalHeight}"
+                              ClipToBounds="False">
+                            <Grid.Background>
+                                <DrawingBrush TileMode="Tile"
+                                              Viewport="0,0,18,18"
+                                              ViewportUnits="Absolute">
+                                    <DrawingBrush.Drawing>
+                                        <GeometryDrawing Brush="{DynamicResource AutomationWorkspaceGridDotBrush}">
+                                            <GeometryDrawing.Geometry>
+                                                <EllipseGeometry Center="1,1"
+                                                                 RadiusX="1"
+                                                                 RadiusY="1" />
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+                                    </DrawingBrush.Drawing>
+                                </DrawingBrush>
+                            </Grid.Background>
+
+                            <Grid.RenderTransformOrigin>
+                                <Point X="0"
+                                       Y="0" />
+                            </Grid.RenderTransformOrigin>
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="{Binding Zoom}"
+                                                ScaleY="{Binding Zoom}" />
+                            </Grid.RenderTransform>
+
+                            <Canvas x:Name="CanvasSurface"
+                                    Width="{Binding CanvasLogicalWidth}"
+                                    Height="{Binding CanvasLogicalHeight}"
+                                    AllowDrop="True"
+                                    Background="Transparent"
+                                    DragOver="CanvasSurface_DragOver"
+                                    Drop="CanvasSurface_Drop"
+                                    PreviewMouseLeftButtonDown="CanvasSurface_PreviewMouseLeftButtonDown"
+                                    PreviewMouseLeftButtonUp="CanvasSurface_PreviewMouseLeftButtonUp"
+                                    PreviewMouseMove="CanvasSurface_PreviewMouseMove"
+                                    PreviewMouseDown="CanvasSurface_PreviewMouseDown"
+                                    PreviewMouseUp="CanvasSurface_PreviewMouseUp">
+
+                                <ItemsControl Canvas.ZIndex="0"
+                                              ItemsSource="{Binding EdgeDisplays}"
+                                              Width="{Binding CanvasLogicalWidth}"
+                                              Height="{Binding CanvasLogicalHeight}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:AutomationEdgeDisplayViewModel}">
+                                            <Canvas>
+                                                <Path Data="{Binding PathData}"
+                                                      Stroke="Transparent"
+                                                      StrokeThickness="12"
+                                                      Cursor="Hand"
+                                                      MouseEnter="EdgePath_MouseEnter"
+                                                      MouseLeave="EdgePath_MouseLeave"
+                                                      PreviewMouseLeftButtonDown="EdgeLine_PreviewMouseLeftButtonDown" />
+                                                <Path Data="{Binding PathData}"
+                                                      StrokeThickness="2.2"
+                                                      IsHitTestVisible="False">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Stroke" Value="{DynamicResource AppSecondaryTextBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsCycleWarning}" Value="True">
+                                                                    <Setter Property="Stroke" Value="#E74C3C" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                                                                    <Setter Property="Stroke" Value="{DynamicResource AppAccentBrush}" />
+                                                                    <Setter Property="StrokeThickness" Value="3" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
+                                                                    <Setter Property="Stroke" Value="#2ECC71" />
+                                                                    <Setter Property="StrokeThickness" Value="4" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <Ellipse Width="6"
+                                                         Height="6"
+                                                         Canvas.Left="{Binding FromX}"
+                                                         Canvas.Top="{Binding FromY}"
+                                                         IsHitTestVisible="False"
+                                                         Fill="{DynamicResource AppSurfaceBrush}"
+                                                         Stroke="{DynamicResource AppSecondaryTextBrush}"
+                                                         StrokeThickness="1">
+                                                    <Ellipse.RenderTransform>
+                                                        <TranslateTransform X="-3" Y="-3" />
+                                                    </Ellipse.RenderTransform>
+                                                </Ellipse>
+                                                <Ellipse Width="6"
+                                                         Height="6"
+                                                         Canvas.Left="{Binding ToX}"
+                                                         Canvas.Top="{Binding ToY}"
+                                                         IsHitTestVisible="False"
+                                                         Fill="{DynamicResource AppSurfaceBrush}"
+                                                         Stroke="{DynamicResource AppSecondaryTextBrush}"
+                                                         StrokeThickness="1">
+                                                    <Ellipse.RenderTransform>
+                                                        <TranslateTransform X="-3" Y="-3" />
+                                                    </Ellipse.RenderTransform>
+                                                </Ellipse>
+                                            </Canvas>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Path Canvas.ZIndex="0"
+                                      Visibility="{Binding IsConnectionPreviewVisible, Converter={StaticResource BoolToVis}}"
+                                      Data="{Binding ConnectionPreviewPathData}"
+                                      Stroke="{DynamicResource AppAccentBrush}"
+                                      StrokeThickness="2"
+                                      StrokeDashArray="4,3"
+                                      IsHitTestVisible="False" />
+
+                                <ItemsControl Canvas.ZIndex="1"
+                                              ItemsSource="{Binding CanvasNodes}"
+                                              Width="{Binding CanvasLogicalWidth}"
+                                              Height="{Binding CanvasLogicalHeight}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <Canvas />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Canvas.Left"
+                                                    Value="{Binding X}" />
+                                            <Setter Property="Canvas.Top"
+                                                    Value="{Binding Y}" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:AutomationCanvasNodeViewModel}">
+                                            <Grid Width="{Binding NodeVisualWidth}"
+                                                  MinHeight="{Binding NodeVisualMinHeight}">
+                                                <Border CornerRadius="6"
+                                                        Padding="5"
+                                                        BorderThickness="2"
+                                                        Cursor="SizeAll"
+                                                        MouseEnter="NodeChrome_MouseEnter"
+                                                        MouseLeave="NodeChrome_MouseLeave"
+                                                        PreviewMouseLeftButtonDown="NodeChrome_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseRightButtonDown="NodeChrome_PreviewMouseRightButtonDown"
+                                                        PreviewMouseMove="NodeChrome_PreviewMouseMove"
+                                                        PreviewMouseLeftButtonUp="NodeChrome_PreviewMouseLeftButtonUp">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="BorderBrush"
+                                                                    Value="{DynamicResource AppBorderBrush}" />
+                                                            <Setter Property="Background"
+                                                                    Value="{DynamicResource AutomationWorkspaceNodeBodyBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHovered}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding VisualState}"
+                                                                             Value="{x:Static vm:AutomationCanvasVisualState.Selected}">
+                                                                    <Setter Property="BorderBrush"
+                                                                            Value="{DynamicResource AppAccentBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding VisualState}"
+                                                                             Value="{x:Static vm:AutomationCanvasVisualState.Faulted}">
+                                                                    <Setter Property="BorderBrush"
+                                                                            Value="#E74C3C" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="*" />
+                                                        </Grid.RowDefinitions>
+                                                        <StackPanel Grid.Row="0">
+                                                            <DockPanel LastChildFill="False">
+                                                                <TextBlock DockPanel.Dock="Left"
+                                                                           FontFamily="Segoe MDL2 Assets"
+                                                                           FontSize="16"
+                                                                           Margin="0,0,6,0"
+                                                                           VerticalAlignment="Top"
+                                                                           Text="{Binding Glyph}" />
+                                                                <TextBlock Text="{Binding Title}"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           TextWrapping="Wrap"
+                                                                           FontWeight="SemiBold" />
+                                                            </DockPanel>
+                                                            <TextBlock Margin="22,2,0,0"
+                                                                       FontSize="10"
+                                                                       Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                       Opacity="0.9"
+                                                                       Text="{Binding Description}"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       TextWrapping="Wrap"
+                                                                       ToolTip="{Binding Description}"
+                                                                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVis}}" />
+                                                        </StackPanel>
+                                                        <Grid Grid.Row="1"
+                                                              Margin="-1,5,-1,2"
+                                                              IsHitTestVisible="True">
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" MinHeight="{Binding OutputPortRowMinHeight}" />
+                                                                <RowDefinition Height="Auto" MinHeight="{Binding InputPortRowMinHeight}" />
+                                                                <RowDefinition Height="Auto" MinHeight="{Binding SettingsSectionMinHeight}" />
+                                                            </Grid.RowDefinitions>
+                                                            <ItemsControl Grid.Row="0"
+                                                                          VerticalAlignment="Top"
+                                                                          Margin="0,2,0,5"
+                                                                          MinWidth="{Binding NodeContentMinWidth}"
+                                                                          ItemsSource="{Binding OutputPorts}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <StackPanel Orientation="Vertical" />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <StaticResource ResourceKey="AutomationNodePortHostStyle" />
+                                                                </ItemsControl.ItemContainerStyle>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type vm:AutomationNodePortViewModel}">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="Auto" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <TextBlock Grid.Column="0"
+                                                                                       Margin="0,0,6,0"
+                                                                                       VerticalAlignment="Center"
+                                                                                       HorizontalAlignment="Right"
+                                                                                       TextAlignment="Right"
+                                                                                       FontSize="10"
+                                                                                       Foreground="{DynamicResource AutomationWorkspacePortLabelForegroundBrush}"
+                                                                                       Text="{Binding DisplayLabel}"
+                                                                                       TextWrapping="Wrap" />
+                                                                            <Grid Grid.Column="1"
+                                                                                  Width="{x:Static vm:AutomationWorkspaceViewModel.NodePortHitSize}"
+                                                                                  Height="{x:Static vm:AutomationWorkspaceViewModel.NodePortHitSize}"
+                                                                                  HorizontalAlignment="Right"
+                                                                                  Background="Transparent"
+                                                                                  Loaded="PortHandle_Loaded"
+                                                                                  LayoutUpdated="PortHandle_LayoutUpdated"
+                                                                                  Unloaded="PortHandle_Unloaded"
+                                                                                  MouseEnter="PortHandle_MouseEnter"
+                                                                                  MouseLeave="PortHandle_MouseLeave"
+                                                                                  PreviewMouseLeftButtonDown="PortHandle_PreviewMouseLeftButtonDown">
+                                                                                <Ellipse Style="{StaticResource AutomationNodePortEllipseStyle}"
+                                                                                         HorizontalAlignment="Center"
+                                                                                         VerticalAlignment="Center" />
+                                                                            </Grid>
+                                                                        </Grid>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <ItemsControl Grid.Row="1"
+                                                                          VerticalAlignment="Top"
+                                                                          Margin="0,0,0,5"
+                                                                          MinWidth="{Binding NodeContentMinWidth}"
+                                                                          ItemsSource="{Binding InputPorts}">
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <StackPanel Orientation="Vertical" />
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                                <ItemsControl.ItemContainerStyle>
+                                                                    <StaticResource ResourceKey="AutomationNodePortHostStyle" />
+                                                                </ItemsControl.ItemContainerStyle>
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type vm:AutomationNodePortViewModel}">
+                                                                        <StackPanel Orientation="Horizontal"
+                                                                                    HorizontalAlignment="Left">
+                                                                            <Grid Width="{x:Static vm:AutomationWorkspaceViewModel.NodePortHitSize}"
+                                                                                  Height="{x:Static vm:AutomationWorkspaceViewModel.NodePortHitSize}"
+                                                                                  Margin="0,0,4,0"
+                                                                                  HorizontalAlignment="Left"
+                                                                                  Background="Transparent"
+                                                                                  Loaded="PortHandle_Loaded"
+                                                                                  LayoutUpdated="PortHandle_LayoutUpdated"
+                                                                                  Unloaded="PortHandle_Unloaded"
+                                                                                  MouseEnter="PortHandle_MouseEnter"
+                                                                                  MouseLeave="PortHandle_MouseLeave"
+                                                                                  PreviewMouseLeftButtonDown="PortHandle_PreviewMouseLeftButtonDown">
+                                                                                <Ellipse Style="{StaticResource AutomationNodePortEllipseStyle}"
+                                                                                         HorizontalAlignment="Center"
+                                                                                         VerticalAlignment="Center" />
+                                                                            </Grid>
+                                                                            <TextBlock Margin="0,0,0,0"
+                                                                                       VerticalAlignment="Center"
+                                                                                       FontSize="10"
+                                                                                       Foreground="{DynamicResource AutomationWorkspacePortLabelForegroundBrush}"
+                                                                                       Text="{Binding DisplayLabel}"
+                                                                                       TextWrapping="Wrap" />
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                            <Border Grid.Row="2"
+                                                                    Margin="0,1,0,1"
+                                                                    Padding="6"
+                                                                    CornerRadius="4"
+                                                                    BorderBrush="{DynamicResource AppBorderBrush}"
+                                                                    BorderThickness="1"
+                                                                    Background="{DynamicResource AppSurfaceBrush}">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding HasInlineEditors}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <ItemsControl ItemsSource="{Binding InlineEditors}">
+                                                                    <ItemsControl.ItemContainerStyle>
+                                                                        <Style TargetType="ContentPresenter">
+                                                                            <Setter Property="Margin" Value="0,0,0,6" />
+                                                                        </Style>
+                                                                    </ItemsControl.ItemContainerStyle>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate DataType="{x:Type vm:AutomationInlineNodeFieldViewModel}">
+                                                                            <StackPanel>
+                                                                                <TextBlock FontSize="10"
+                                                                                           Margin="0,0,0,2"
+                                                                                           Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                                                                           Text="{Binding Label}" />
+                                                                                <TextBox Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}"
+                                                                                         Tag="{Binding Placeholder}"
+                                                                                         LostFocus="InlineNodeEditor_LostFocus_Commit"
+                                                                                         KeyDown="InlineNodeEditor_KeyDown_Commit"
+                                                                                         ToolTip="{Binding Placeholder}"
+                                                                                         Visibility="{Binding IsTextField, Converter={StaticResource BoolToVis}}" />
+                                                                                <TextBox MinHeight="54"
+                                                                                         MaxHeight="88"
+                                                                                         AcceptsReturn="True"
+                                                                                         TextWrapping="Wrap"
+                                                                                         VerticalScrollBarVisibility="Auto"
+                                                                                         Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}"
+                                                                                         Tag="{Binding Placeholder}"
+                                                                                         LostFocus="InlineNodeEditor_LostFocus_Commit"
+                                                                                         KeyDown="InlineNodeEditor_KeyDown_Commit"
+                                                                                         ToolTip="{Binding Placeholder}"
+                                                                                         Visibility="{Binding IsMultilineTextField, Converter={StaticResource BoolToVis}}" />
+                                                                                <Grid Visibility="{Binding IsChoiceField, Converter={StaticResource BoolToVis}}">
+                                                                                    <ComboBox Margin="0,0,0,0"
+                                                                                              Padding="4,2"
+                                                                                              ItemsSource="{Binding ChoiceItems}"
+                                                                                              SelectedValue="{Binding TextValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                              SelectedValuePath="StoredValue"
+                                                                                              DisplayMemberPath="Display"
+                                                                                              DropDownClosed="InlineNodeEditor_Choice_DropDownClosed"
+                                                                                              Visibility="{Binding IsLoopScopeChoiceCombo, Converter={StaticResource InverseBoolToVis}, ConverterParameter=Inverse}" />
+                                                                                    <ComboBox Margin="0,0,0,0"
+                                                                                              Padding="4,2"
+                                                                                              IsEditable="True"
+                                                                                              ItemsSource="{Binding ChoiceItems}"
+                                                                                              DisplayMemberPath="Display"
+                                                                                              Text="{Binding TextValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                              KeyDown="InlineNodeEditor_KeyDown_Commit"
+                                                                                              LostFocus="InlineNodeEditor_LostFocus_Commit"
+                                                                                              DropDownOpened="InlineNodeEditor_LoopScopeChoice_DropDownOpened"
+                                                                                              DropDownClosed="InlineNodeEditor_Choice_DropDownClosed"
+                                                                                              Visibility="{Binding IsLoopScopeChoiceCombo, Converter={StaticResource BoolToVis}}" />
+                                                                                </Grid>
+                                                                                <CheckBox IsChecked="{Binding BooleanValue}"
+                                                                                          Command="{Binding DataContext.CommitInlineNodeFieldCommand, ElementName=AutomationRoot}"
+                                                                                          CommandParameter="{Binding}"
+                                                                                          Content="{Binding Label}"
+                                                                                          Visibility="{Binding IsBooleanField, Converter={StaticResource BoolToVis}}" />
+                                                                                <StackPanel Margin="0,4,0,0"
+                                                                                            Orientation="Horizontal"
+                                                                                            Visibility="{Binding HasInlineActionRow, Converter={StaticResource BoolToVis}}">
+                                                                                    <Button Padding="8,2"
+                                                                                            Margin="0,0,6,0"
+                                                                                            Command="{Binding DataContext.ExecuteInlineNodeActionCommand, ElementName=AutomationRoot}"
+                                                                                            CommandParameter="{Binding}"
+                                                                                            Content="{Binding ActionLabel}"
+                                                                                            Visibility="{Binding HasAction, Converter={StaticResource BoolToVis}}" />
+                                                                                    <Button Padding="8,2"
+                                                                                            Command="{Binding DataContext.ExecuteSecondaryInlineNodeActionCommand, ElementName=AutomationRoot}"
+                                                                                            CommandParameter="{Binding}"
+                                                                                            Content="{Binding SecondaryActionLabel}"
+                                                                                            Visibility="{Binding HasSecondaryAction, Converter={StaticResource BoolToVis}}" />
+                                                                                </StackPanel>
+                                                                            </StackPanel>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </Border>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Rectangle x:Name="SelectionRectOverlay"
+                                           Canvas.ZIndex="99"
+                                           Visibility="Collapsed"
+                                           Stroke="{DynamicResource AppAccentBrush}"
+                                           StrokeThickness="1.5"
+                                           StrokeDashArray="3,2"
+                                           Fill="{DynamicResource AutomationWorkspaceSelectionRectFillBrush}" />
+                            </Canvas>
+                        </Grid>
+                    </ScrollViewer>
+                </DockPanel>
+
+                <Border VerticalAlignment="Bottom"
+                        HorizontalAlignment="Right"
+                        Margin="12"
+                        Padding="6,6,6,4"
+                        CornerRadius="4"
+                        Background="{DynamicResource AutomationWorkspaceMinimapPanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppBorderBrush}"
+                        BorderThickness="1"
+                        Width="220"
+                        Height="156"
+                        Visibility="{Binding IsMinimapVisible, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0"
+                                x:Name="MiniMapViewportHost"
+                                ClipToBounds="True"
+                                BorderBrush="{DynamicResource AutomationWorkspaceMinimapHostBorderBrush}"
+                                BorderThickness="1"
+                                Background="{DynamicResource AutomationWorkspaceMinimapHostBackgroundBrush}"
+                                PreviewMouseLeftButtonDown="MiniMapViewportHost_PreviewMouseLeftButtonDown"
+                                PreviewMouseMove="MiniMapViewportHost_PreviewMouseMove"
+                                PreviewMouseLeftButtonUp="MiniMapViewportHost_PreviewMouseLeftButtonUp">
+                            <Viewbox Stretch="Uniform">
+                                <Canvas Width="{Binding CanvasLogicalWidth}"
+                                        Height="{Binding CanvasLogicalHeight}">
+                                    <ItemsControl ItemsSource="{Binding CanvasNodes}"
+                                                  IsHitTestVisible="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:AutomationCanvasNodeViewModel}">
+                                                <Rectangle Width="{Binding NodeVisualWidth}"
+                                                           Height="{Binding EstimatedVisualHeight}"
+                                                           RadiusX="4"
+                                                           RadiusY="4"
+                                                           StrokeThickness="1"
+                                                           Stroke="{DynamicResource AutomationWorkspaceMinimapNodeStrokeBrush}">
+                                                    <Rectangle.Style>
+                                                        <Style TargetType="Rectangle">
+                                                            <Setter Property="Fill" Value="{DynamicResource AutomationWorkspaceMinimapNodeFillBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding VisualState}" Value="{x:Static vm:AutomationCanvasVisualState.Selected}">
+                                                                    <Setter Property="Fill" Value="{DynamicResource AutomationWorkspaceMinimapNodeSelectedFillBrush}" />
+                                                                    <Setter Property="Stroke" Value="{DynamicResource AutomationWorkspaceMinimapNodeSelectedStrokeBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Rectangle.Style>
+                                                </Rectangle>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Rectangle Canvas.Left="{Binding OverviewViewportLeft}"
+                                               Canvas.Top="{Binding OverviewViewportTop}"
+                                               Width="{Binding OverviewViewportWidth}"
+                                               Height="{Binding OverviewViewportHeight}"
+                                               Fill="{DynamicResource AutomationWorkspaceMinimapViewportFillBrush}"
+                                               Stroke="{DynamicResource AutomationWorkspaceMinimapViewportStrokeBrush}"
+                                               StrokeThickness="14" />
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,6,0,0"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                                   FontSize="10.5"
+                                   Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_MiniMapHint]}" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="2"
+                Margin="8,0,0,0"
+                Padding="0"
+                Style="{StaticResource SectionCardBorder}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False"
+                          Padding="14">
+                <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Style="{StaticResource WorkspaceSectionTitleStyle}"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_Inspector]}" />
+                    <TextBlock Margin="0,8,0,0"
+                               FontWeight="SemiBold"
+                               FontSize="14"
+                               Text="{Binding SelectedNode.Title, TargetNullValue=''}" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="12"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               Text="{Binding SelectedNode.NodeTypeId, TargetNullValue=''}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1"
+                            Margin="0,14,0,0">
+                    <TextBlock Margin="0,0,0,6"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiPreview]}" />
+                    <TextBlock Margin="0,0,0,6"
+                               FontSize="12"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               Text="{Binding RoiInspectorSummaryText}" />
+                    <CheckBox Margin="0,0,0,8"
+                              Content="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiInspectorLivePreview]}"
+                              IsChecked="{Binding IsRoiInspectorLivePreview, Mode=TwoWay}"
+                              ToolTip="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_RoiInspectorLivePreviewHint]}" />
+                    <Button Margin="0,0,0,8"
+                            Padding="10,6"
+                            HorizontalAlignment="Left"
+                            Command="{Binding OpenRoiPreviewWindowCommand}"
+                            Content="{Binding Source={StaticResource Loc}, Path=[AutomationRoiPreview_OpenWindow]}" />
+                    <Border Padding="6"
+                            MinHeight="150"
+                            CornerRadius="6"
+                            Background="{DynamicResource AppSurfaceBrush}"
+                            BorderBrush="{DynamicResource AppBorderBrush}"
+                            BorderThickness="1">
+                        <Grid>
+                            <Image RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                   Stretch="Uniform"
+                                   Source="{Binding RoiInspectorThumbnail}" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <Grid Grid.Row="2"
+                      Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0"
+                               Margin="0,0,0,6"
+                               FontWeight="SemiBold"
+                               FontSize="13"
+                               Text="{Binding Source={StaticResource Loc}, Path=[AutomationWorkspace_AutomationLog]}" />
+                    <TextBox Grid.Row="1"
+                             MinHeight="220"
+                             Padding="8"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             IsReadOnly="True"
+                             FontFamily="Consolas"
+                             FontSize="12.5"
+                             Background="Transparent"
+                             BorderThickness="1"
+                             BorderBrush="{DynamicResource AppBorderBrush}"
+                             IsTabStop="True"
+                             Focusable="True"
+                             behaviors:AutomationRunLogTextBoxBehavior.LinesSource="{Binding AutomationRunLogLines}" />
+                </Grid>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

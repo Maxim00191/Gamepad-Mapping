@@ -181,5 +181,67 @@ public static class AppPaths
         var updatesDir = GetUpdateDownloadsDirectory();
         return Path.Combine(updatesDir, "update-last-result.json");
     }
+
+    public static string GetAutomationWorkspaceStorageDirectory()
+    {
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var dir = Path.Combine(localAppData, "GamepadMapping", "Automation");
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            return dir;
+        }
+        catch
+        {
+            try
+            {
+                var fallback = Path.Combine(Path.GetTempPath(), "GamepadMapping", "Automation");
+                if (!Directory.Exists(fallback))
+                    Directory.CreateDirectory(fallback);
+                return fallback;
+            }
+            catch
+            {
+                return Path.GetTempPath();
+            }
+        }
+    }
+
+    public static string GetAutomationCaptureCacheDirectory()
+    {
+        var root = GetAutomationWorkspaceStorageDirectory();
+        var dir = Path.Combine(root, "Captures");
+        try
+        {
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            return dir;
+        }
+        catch
+        {
+            return root;
+        }
+    }
+
+    public static string GetAutomationImportDirectory()
+    {
+        var installAssetsAutomation = Path.Combine(ResolveContentRoot(), "Assets", "Automation");
+        try
+        {
+            if (!Directory.Exists(installAssetsAutomation))
+                Directory.CreateDirectory(installAssetsAutomation);
+            return installAssetsAutomation;
+        }
+        catch
+        {
+            // ignore and fallback
+        }
+
+        return GetAutomationWorkspaceStorageDirectory();
+    }
+
+    public static string GetAutomationAssetsDirectory() =>
+        Path.Combine(ResolveContentRoot(), "Assets", "Automation");
 }
 

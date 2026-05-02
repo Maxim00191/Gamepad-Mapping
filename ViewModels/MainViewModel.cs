@@ -25,10 +25,12 @@ using GamepadMapperGUI.Interfaces.Services.Editing;
 using GamepadMapperGUI.Services.Input;
 using GamepadMapperGUI.Services.Editing;
 using GamepadMapperGUI.Interfaces.Services.Radial;
+using GamepadMapperGUI.Core.Emulation.Noise;
 using GamepadMapperGUI.Models.State;
 using GamepadMapperGUI.Services.Infrastructure;
 using GamepadMapperGUI.Services.Update;
 using GamepadMapperGUI.Services.Radial;
+using GamepadMapperGUI.Services.Automation;
 using Gamepad_Mapping.Utils;
 using ElevationHandlerService = GamepadMapperGUI.Utils.ElevationHandler;
 using Gamepad_Mapping.Interfaces.Services.ControllerVisual;
@@ -470,6 +472,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         KeyboardActions = 2,
         RadialMenus = 3,
         Community = 4,
+        Automation = 5,
     }
 
     /// <summary>
@@ -509,6 +512,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     partial void OnProfileListTabIndexChanged(int value)
     {
         IsVisualMode = value == (int)MainProfileWorkspaceTab.VisualEditor;
+        OnPropertyChanged(nameof(IsRightEditorPaneVisible));
         OnPropertyChanged(nameof(SelectedMapping));
         SetWorkspaceSelectionScope(GetWorkspaceSelectionScopeForTab(value));
         MappingEditorPanel?.RefreshWorkspaceSelectionMirror();
@@ -527,6 +531,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     [ObservableProperty]
     private ProfileRightPanelSurface rightPanelSurface;
 
+    public bool IsRightEditorPaneVisible =>
+        ProfileListTabIndex is (int)MainProfileWorkspaceTab.VisualEditor
+            or (int)MainProfileWorkspaceTab.Mappings
+            or (int)MainProfileWorkspaceTab.KeyboardActions
+            or (int)MainProfileWorkspaceTab.RadialMenus;
+
     public VisualEditorViewModel VisualEditorPanel { get; private set; } = null!;
     public ProfileTemplatePanelViewModel ProfileTemplatePanel { get; private set; } = null!;
     public NewBindingPanelViewModel NewBindingPanel { get; private set; } = null!;
@@ -534,6 +544,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
     public ProfileCatalogPanelViewModel CatalogPanel { get; private set; } = null!;
     public ProfileRuleClipboardViewModel RuleClipboard { get; private set; } = null!;
     public CommunityCatalogViewModel CommunityCatalogPanel { get; private set; } = null!;
+    public AutomationWorkspaceViewModel AutomationWorkspacePanel { get; private set; } = null!;
     public GamepadMonitorViewModel GamepadMonitorPanel { get; private set; } = null!;
     public ProcessTargetPanelViewModel ProcessTargetPanel { get; private set; } = null!;
 
@@ -784,6 +795,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         UpdateSetting(s => s.ControllerMappingOverlayShowSecondary = value);
         RefreshControllerVisualOverlays();
     }
+
+    [ObservableProperty] private bool exitOnClose;
+    partial void OnExitOnCloseChanged(bool value) => UpdateSetting(s => s.ExitOnClose = value);
 
     public event EventHandler? FocusMappingDetailsFirstFieldRequested;
 
@@ -1046,6 +1060,12 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         _inputEmulationStackFactory.CreatePair(
             _settingsOrchestrator.Settings.InputEmulationApi,
             () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings));
+
+    private IHumanInputNoiseController CreateAutomationHumanNoiseController() =>
+        new HumanInputNoiseController(
+            new NoiseGenerator(Random.Shared.Next()),
+            () => HumanInputNoiseParameters.From(_settingsOrchestrator.Settings),
+            new RealTimeProvider());
 
     private Action<string> MarshaledGamepadMonitorSetter(Action<string> apply) =>
         s =>
@@ -1526,6 +1546,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
         };
         ControllerMappingOverlayShowSecondary = appSettings.ControllerMappingOverlayShowSecondary;
         ComboHudPlacementSetting = Enum.TryParse<ComboHudPlacement>(appSettings.ComboHudPlacement, out var p) ? p : ComboHudPlacement.BottomRight;
+        ExitOnClose = appSettings.ExitOnClose;
 
         AvailableInputApis.Clear();
         AvailableInputApis.Add(new InputApiOption(InputEmulationApiIds.Win32, _settingsOrchestrator.Localize("InputApiWin32Label")));
@@ -1589,6 +1610,67 @@ public partial class MainViewModel : ObservableObject, IDisposable, IProfileSele
             _appToastService,
             _userDialogService,
             s.CommunityCatalogRefreshCooldownSeconds);
+        var automationExecutionFactory = new AutomationExecutionServicesFactory();
+        var automationConnectionPolicy = new AutomationConnectionPolicy();
+        var automationInlineSchema = new AutomationNodeInlineEditorSchemaService();
+        var automationEdgeGeometryBuilder = new AutomationEdgeGeometryBuilder();
+        var automationPortLabelService = new AutomationPortLabelService();
+        var automationNodeLayoutMetricsService = new AutomationNodeLayoutMetricsService();
+        var automationOutputActionSelectionService = new AutomationOutputActionSelectionService(
+            KeyboardActions,
+            _itemSelectionDialogService,
+            _keyboardActionSelectionBuilder);
+        var automationInputModeSelectionService = new AutomationInputModeSelectionService(_itemSelectionDialogService);
+        var automationNodeContextMenuService = new AutomationNodeContextMenuService();
+        var (automationKbd, automationMouse) = CreateEmulatorPair();
+        var automationHumanNoise = CreateAutomationHumanNoiseController();
+        var automationInputModeResolver = new AutomationNodeInputModeResolver(automationKbd, automationMouse);
+        var automationExecution = automationExecutionFactory.Create(
+            automationKbd,
+            automationMouse,
+            automationHumanNoise,
+            automationInputModeResolver,
+            _processTargetService);
+        var automationGraphJsonSerializer = new AutomationGraphJsonSerializer();
+        var automationScriptRunner = new AutomationScriptRunner(automationGraphJsonSerializer, automationExecution.SmokeRunner);
+        var automationGraphClipboardService = new AutomationGraphClipboardService(automationGraphJsonSerializer);
+        var automationGraphLinkInsertionEvaluator = new AutomationGraphLinkInsertionEvaluator(
+            automationExecution.NodeRegistry,
+            automationExecution.TopologyAnalyzer,
+            automationGraphJsonSerializer);
+        var automationGraphLinearBridgeEvaluator = new AutomationGraphLinearBridgeEvaluator(automationExecution.TopologyAnalyzer);
+        var automationGraphOutgoingReachabilityService = new AutomationGraphOutgoingReachabilityService();
+        var automationGraphOcclusionReflowService = new AutomationGraphOcclusionReflowService();
+        var automationAssetGraphCatalogService = new AutomationAssetGraphCatalogService();
+        AutomationWorkspacePanel = new AutomationWorkspaceViewModel(
+            automationExecution.NodeRegistry,
+            automationGraphJsonSerializer,
+            automationExecution.TopologyAnalyzer,
+            new AutomationUndoCoordinator(),
+            _userDialogService,
+            _appToastService,
+            automationExecution.ScreenCaptureResolver,
+            new AutomationRoiPreviewImageProvider(automationExecution.ScreenCaptureResolver),
+            new AutomationRegionPickerService(
+                automationExecution.ScreenCapture,
+                new AutomationCaptureShellHideService(),
+                _dispatcher),
+            automationScriptRunner,
+            automationConnectionPolicy,
+            automationInlineSchema,
+            automationEdgeGeometryBuilder,
+            automationPortLabelService,
+            automationNodeLayoutMetricsService,
+            automationOutputActionSelectionService,
+            automationInputModeSelectionService,
+            automationNodeContextMenuService,
+            automationGraphClipboardService,
+            automationGraphLinkInsertionEvaluator,
+            automationGraphLinearBridgeEvaluator,
+            automationGraphOutgoingReachabilityService,
+            automationGraphOcclusionReflowService,
+            automationAssetGraphCatalogService,
+            _processTargetService);
         GamepadMonitorPanel = new GamepadMonitorViewModel(StopGamepadCommand, StartGamepadCommand, b => _uiOrchestrator.HideAllHuds(), leftDz, rightDz, (l, r) => _gamepadService.SetThumbstickDeadzones(l, r), s.LeftTriggerInnerDeadzone, s.LeftTriggerOuterDeadzone, s.RightTriggerInnerDeadzone, s.RightTriggerOuterDeadzone, (li, lo, ri, ro) => _gamepadService.SetTriggerDeadzones(li, lo, ri, ro), s.ComboHudPanelAlpha, s.ComboHudShadowOpacity, (a, o) => _uiOrchestrator.ApplyHudVisuals((byte)a, o), s.TemplateSwitchHudSeconds, _ => { }, _mainShellVisibility, _dispatcher);
         ApplyGamepadMonitorInitialUiState(s);
         GamepadMonitorPanel.PropertyChanged += OnGamepadMonitorPanelSettingsChanged;

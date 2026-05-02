@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "verboseExecutionLogging": false,
+  "minNodeStepIntervalSeconds": 0,
+  "nodes": [
+    {
+      "id": "10000001-0000-4000-8000-000000000001",
+      "nodeTypeId": "event.listener",
+      "x": 576,
+      "y": 560,
+      "properties": {
+        "description": "Start benchmark when engine starts.",
+        "eventSignal": "engine.start"
+      }
+    },
+    {
+      "id": "10000002-0000-4000-8000-000000000002",
+      "nodeTypeId": "automation.loop",
+      "x": 880,
+      "y": 624,
+      "properties": {
+        "description": "Uncapped loop for max-FPS benchmark.",
+        "loopScopeLabel": "benchmarkLoop",
+        "loopMaxIterations": 500000,
+        "loopTargetIterationsPerSecond": 3,
+        "loopInteriorSkipDocumentStepInterval": true
+      }
+    },
+    {
+      "id": "10000003-0000-4000-8000-000000000003",
+      "nodeTypeId": "perception.capture_screen",
+      "x": 1184,
+      "y": 784,
+      "properties": {
+        "description": "Capture a small ROI for raw capture throughput.",
+        "captureApi": "desktop_duplication",
+        "captureSourceMode": "screen",
+        "captureMode": "roi",
+        "captureRoi": {
+          "x": 546,
+          "y": 315,
+          "width": 834,
+          "height": 620
+        },
+        "coordinateSpace": "physical",
+        "captureRoiCachePath": "C:\\Users\\Maxim\\AppData\\Local\\GamepadMapping\\Automation\\Captures\\10000003000040008000000000000003.png"
+      }
+    },
+    {
+      "id": "10000004-0000-4000-8000-000000000004",
+      "nodeTypeId": "perception.find_image",
+      "x": 1520,
+      "y": 560,
+      "properties": {
+        "description": "Run template matching each loop for realistic vision FPS.",
+        "findImageAlgorithm": "opencv_template",
+        "findImageNeedlePath": "Assets/Automation/Samples/fishing-mini-game-bot/needle-fishing-ui.png",
+        "findImageConfidence": 0.3,
+        "findImageTimeoutMs": 25
+      }
+    },
+    {
+      "id": "f1000005-0000-4000-8000-000000000005",
+      "nodeTypeId": "logic.loop_jump",
+      "x": 3424,
+      "y": 592,
+      "properties": {
+        "description": "Returns to the benchmark loop via scope id benchmarkLoop (Loop Jump smoke path).",
+        "loopJumpTargetScopeLabel": "benchmarkLoop"
+      }
+    },
+    {
+      "id": "e625abd6-2ced-4b5a-b413-1ed8645cdfb1",
+      "nodeTypeId": "debug.log",
+      "x": 3088,
+      "y": 592,
+      "properties": {
+        "logMessage": ""
+      }
+    },
+    {
+      "id": "194b637b-f09b-4af6-a90c-148f0f18450d",
+      "nodeTypeId": "variables.set",
+      "x": 2240,
+      "y": 576,
+      "properties": {
+        "variableName": "v"
+      }
+    },
+    {
+      "id": "4a027253-7b20-4843-a653-351d97dacb11",
+      "nodeTypeId": "variables.get",
+      "x": 1520,
+      "y": 1248,
+      "properties": {
+        "variableName": "v",
+        "variableDefaultValue": "0"
+      }
+    },
+    {
+      "id": "e725d9bc-6279-42f0-b10f-2fd77e17bbd0",
+      "nodeTypeId": "math.add",
+      "x": 1840,
+      "y": 976,
+      "properties": {
+        "mathRight": 1
+      }
+    },
+    {
+      "id": "8186c707-4e97-43b4-99ab-b607e7dc1691",
+      "nodeTypeId": "variables.get",
+      "x": 2736,
+      "y": 864,
+      "properties": {
+        "variableName": "v"
+      }
+    },
+    {
+      "id": "0a6edefe-a3c6-4bd2-89ec-9f15ba4b11ad",
+      "nodeTypeId": "variables.get",
+      "x": 2240,
+      "y": 976,
+      "properties": {
+        "variableName": "isFind"
+      }
+    },
+    {
+      "id": "07e880dc-0f3e-4db8-b41f-5b81ec642c1f",
+      "nodeTypeId": "variables.set",
+      "x": 1840,
+      "y": 560,
+      "properties": {
+        "variableName": "isFind"
+      }
+    },
+    {
+      "id": "cc1b22ed-8101-4534-b185-c6b605bd23ed",
+      "nodeTypeId": "debug.log",
+      "x": 2736,
+      "y": 576,
+      "properties": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "20000001-0000-4000-8000-000000000001",
+      "sourceNodeId": "10000001-0000-4000-8000-000000000001",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "10000002-0000-4000-8000-000000000002",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "20000003-0000-4000-8000-000000000003",
+      "sourceNodeId": "10000003-0000-4000-8000-000000000003",
+      "sourcePortId": "screen.image",
+      "targetNodeId": "10000004-0000-4000-8000-000000000004",
+      "targetPortId": "haystack.image"
+    },
+    {
+      "id": "20000004-0000-4000-8000-000000000004",
+      "sourceNodeId": "10000003-0000-4000-8000-000000000003",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "10000004-0000-4000-8000-000000000004",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "5545ab6b-55cc-4505-a0bf-7a57a2014a32",
+      "sourceNodeId": "e725d9bc-6279-42f0-b10f-2fd77e17bbd0",
+      "sourcePortId": "value",
+      "targetNodeId": "194b637b-f09b-4af6-a90c-148f0f18450d",
+      "targetPortId": "value.number"
+    },
+    {
+      "id": "6cf6ec8e-51cd-4b75-b26b-ced12c405a1c",
+      "sourceNodeId": "4a027253-7b20-4843-a653-351d97dacb11",
+      "sourcePortId": "value",
+      "targetNodeId": "e725d9bc-6279-42f0-b10f-2fd77e17bbd0",
+      "targetPortId": "left"
+    },
+    {
+      "id": "998fe6eb-475a-4b98-aee3-1c59b945fbe2",
+      "sourceNodeId": "10000002-0000-4000-8000-000000000002",
+      "sourcePortId": "loop.body",
+      "targetNodeId": "10000003-0000-4000-8000-000000000003",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "aa62e6bf-2126-4c2e-8104-a68e14d6af90",
+      "sourceNodeId": "e625abd6-2ced-4b5a-b413-1ed8645cdfb1",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "f1000005-0000-4000-8000-000000000005",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "ccc2e15b-dfab-4bfc-a0a1-1edb17d68a12",
+      "sourceNodeId": "8186c707-4e97-43b4-99ab-b607e7dc1691",
+      "sourcePortId": "value",
+      "targetNodeId": "e625abd6-2ced-4b5a-b413-1ed8645cdfb1",
+      "targetPortId": "message"
+    },
+    {
+      "id": "2f3d3d60-b6f7-47c8-abaa-7ed89d6416b9",
+      "sourceNodeId": "10000004-0000-4000-8000-000000000004",
+      "sourcePortId": "result.found",
+      "targetNodeId": "07e880dc-0f3e-4db8-b41f-5b81ec642c1f",
+      "targetPortId": "value.bool"
+    },
+    {
+      "id": "5e196a22-5978-4f5d-a65a-506e2ac70cd6",
+      "sourceNodeId": "0a6edefe-a3c6-4bd2-89ec-9f15ba4b11ad",
+      "sourcePortId": "value",
+      "targetNodeId": "cc1b22ed-8101-4534-b185-c6b605bd23ed",
+      "targetPortId": "message"
+    },
+    {
+      "id": "ca633ece-49cd-4ab2-93aa-fbc4f3d533ef",
+      "sourceNodeId": "cc1b22ed-8101-4534-b185-c6b605bd23ed",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "e625abd6-2ced-4b5a-b413-1ed8645cdfb1",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "0ff66d81-463f-4988-b323-ada84ae5b31e",
+      "sourceNodeId": "10000004-0000-4000-8000-000000000004",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "07e880dc-0f3e-4db8-b41f-5b81ec642c1f",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "fd2d6389-1a23-4734-b1e0-c5bc0725a6ff",
+      "sourceNodeId": "07e880dc-0f3e-4db8-b41f-5b81ec642c1f",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "194b637b-f09b-4af6-a90c-148f0f18450d",
+      "targetPortId": "flow.in"
+    },
+    {
+      "id": "225bccb0-cae5-4646-af87-7db850bf4020",
+      "sourceNodeId": "194b637b-f09b-4af6-a90c-148f0f18450d",
+      "sourcePortId": "flow.out",
+      "targetNodeId": "cc1b22ed-8101-4534-b185-c6b605bd23ed",
+      "targetPortId": "flow.in"
+    }
+  ],
+  "subgraphs": [],
+  "stateMachines": []
+}

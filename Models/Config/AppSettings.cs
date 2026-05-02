@@ -250,6 +250,10 @@ public class AppSettings
     [JsonProperty("hasSeenWelcomeToast")]
     public bool HasSeenWelcomeToast { get; set; }
 
+    /// <summary>When true, closing the main window exits the application instead of hiding to tray.</summary>
+    [JsonProperty("exitOnClose")]
+    public bool ExitOnClose { get; set; }
+
     /// <summary>
     /// Grace period (ms) for app focus loss before suppressing output. Helps with transient overlays.
     /// </summary>

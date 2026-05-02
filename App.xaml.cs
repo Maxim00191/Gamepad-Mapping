@@ -146,11 +146,13 @@ public partial class App : Application
         {
             chromeTheme.ApplyTo(Resources);
             VisualWorkspaceTheme.Apply(Resources, light: true);
+            AutomationWorkspaceTheme.Apply(Resources, light: true);
         }
         else
         {
             chromeTheme.ApplyTo(Resources);
             VisualWorkspaceTheme.Apply(Resources, light: false);
+            AutomationWorkspaceTheme.Apply(Resources, light: false);
         }
 
         ApplyTitleBarThemeToOpenWindows(chromeTheme, useLightTheme);

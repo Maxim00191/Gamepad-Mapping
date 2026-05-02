@@ -125,6 +125,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (_viewModel.ExitOnClose)
+        {
+            _viewModel.BeginApplicationShutdown();
+            base.OnClosing(e);
+            return;
+        }
+
         e.Cancel = true;
         _viewModel.OnMainWindowHiddenToTray();
         _trayNotifyIconService.EnsureIconCreatedAndVisible();

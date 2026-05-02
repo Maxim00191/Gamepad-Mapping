@@ -7,6 +7,7 @@ using GamepadMapperGUI.Interfaces.Services.Infrastructure;
 using GamepadMapperGUI.Interfaces.Services.Storage;
 using GamepadMapperGUI.Interfaces.Services.Update;
 using GamepadMapperGUI.Interfaces.Services.Input;
+using GamepadMapperGUI.Services.Automation;
 using GamepadMapperGUI.Interfaces.Services.Radial;
 using GamepadMapperGUI.Models;
 using GamepadMapperGUI.Services.Infrastructure;
@@ -21,7 +22,7 @@ using static GamepadMapperGUI.Services.Win32.Win32InputConstants;
 namespace GamepadMapperGUI.Core;
 
 /// <summary>Mouse output via Win32 <c>SendInput</c> (<see cref="ISendInputChannel"/>).</summary>
-public sealed class Win32MouseEmulator : IMouseEmulator
+public sealed class Win32MouseEmulator : IMouseEmulator, IVirtualScreenMouse
 {
     private readonly ISendInputChannel _sendChannel;
 
@@ -29,6 +30,10 @@ public sealed class Win32MouseEmulator : IMouseEmulator
     private const int ClickHoldMs = 30;
 
     private const int WheelDelta = 120;
+
+    private const uint MouseeventfAbsolute = 0x8000;
+
+    private const uint MouseeventfVirtualdesk = 0x4000;
 
     public Win32MouseEmulator(ISendInputChannel? sendChannel = null)
     {
@@ -207,6 +212,46 @@ public sealed class Win32MouseEmulator : IMouseEmulator
     public void WheelDown() => SendMouseInput(MOUSEEVENTF_WHEEL, unchecked((uint)-WheelDelta));
     public void MoveBy(int deltaX, int deltaY, float stickMagnitude = 1.0f, GamepadBindingType? moveSubdivisionScope = null) =>
         SendMouseInput(MOUSEEVENTF_MOVE, 0, deltaX, deltaY);
+
+    public void MoveCursorToVirtualScreenPixels(int physicalX, int physicalY)
+    {
+        var m = AutomationVirtualScreenNative.GetPhysicalVirtualScreen();
+        var denomX = Math.Max(1, m.WidthPx - 1);
+        var denomY = Math.Max(1, m.HeightPx - 1);
+        var nx = (int)((physicalX - m.PhysicalOriginX) * 65535L / denomX);
+        var ny = (int)((physicalY - m.PhysicalOriginY) * 65535L / denomY);
+        nx = Math.Clamp(nx, 0, 65535);
+        ny = Math.Clamp(ny, 0, 65535);
+        SendMouseAbsolute(nx, ny);
+    }
+
+    private void SendMouseAbsolute(int normalizedX, int normalizedY)
+    {
+        Span<INPUT> inputs = stackalloc INPUT[1];
+        inputs[0] = new INPUT
+        {
+            type = INPUT_MOUSE,
+            U = new InputUnion
+            {
+                mi = new MOUSEINPUT
+                {
+                    dx = normalizedX,
+                    dy = normalizedY,
+                    mouseData = 0,
+                    dwFlags = MOUSEEVENTF_MOVE | MouseeventfAbsolute | MouseeventfVirtualdesk,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero
+                }
+            }
+        };
+
+        var sent = _sendChannel.SendInput(inputs);
+        if (sent != 1)
+        {
+            var err = Marshal.GetLastWin32Error();
+            App.Logger.Warning($"Mouse SendInput absolute failed. err={err}");
+        }
+    }
 
     private void SendMouseInput(uint flags, uint mouseData = 0, int dx = 0, int dy = 0)
     {
